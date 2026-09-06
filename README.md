@@ -8,7 +8,10 @@ The design target is CPU-vs-CPU slow-sim play: the fun lives in roster construct
 
 ## Status
 
-**Milestone:** M0 — project skeleton
+**Milestone:** M7 — the offseason. Retirement, progression, the draft, free
+agency and the salary cap all run; a dynasty can be simulated for decades.
+Next: the free agency auction (SPEC §8.3) and an offseason news screen in the app.
+
 See [`docs/SPEC.md`](docs/SPEC.md) §14 for the full roadmap.
 
 ---
