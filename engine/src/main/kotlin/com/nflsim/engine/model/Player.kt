@@ -16,6 +16,8 @@ data class Player(
     val heightIn: Int,
     val weightLb: Int,
     val college: String,
+    /** Optional. Real rosters have them; generated players may not. */
+    val jersey: Int? = null,
     val ratings: Ratings,
     val traits: HiddenTraits,
     val teamId: TeamId? = null,

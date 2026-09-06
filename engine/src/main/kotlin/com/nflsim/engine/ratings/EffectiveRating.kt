@@ -1,7 +1,9 @@
 package com.nflsim.engine.ratings
 
 import com.nflsim.engine.model.Player
+import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.RatingId
+import com.nflsim.engine.model.Ratings
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -54,6 +56,21 @@ fun effectiveRating(player: Player, ratingId: RatingId, ctx: RatingContext): Int
 
     val result = base * schemeMod * familiarity * emphasis * fatigueMod * moraleMod
     return result.roundToInt().coerceIn(1, 99)
+}
+
+/**
+ * Position-weighted overall from a bare rating sheet, with no player context.
+ * Used by the generators, which need to hit a target before a Player exists.
+ */
+fun rawOverall(position: Position, ratings: Ratings): Int {
+    val weights = OverallWeights.forPosition(position)
+    var sum = 0f
+    var weightTotal = 0f
+    for ((ratingId, weight) in weights) {
+        sum += ratings[ratingId] * weight
+        weightTotal += weight
+    }
+    return (sum / weightTotal).roundToInt().coerceIn(1, 99)
 }
 
 /**

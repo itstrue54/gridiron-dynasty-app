@@ -664,6 +664,52 @@ Value function combining a draft-pick chart (make it a tunable table, not Jimmy 
 | Transactions ledger | Forever |
 | Draft results, awards, standings | Forever |
 
+### 9.4 Roster import / export **[LOCKED]**
+
+The game ships a generated fictional league. It also reads a roster file the
+user supplies — which is how someone plays with real players without the
+project ever distributing real names or ratings.
+
+**Legal position:** no real player data ships with the app, is bundled in it,
+or is downloaded by it. The user brings their own file. This is the same
+posture text sims have used for decades and it keeps the legal footprint at
+zero.
+
+**Format:** CSV, because the people who maintain roster files live in
+spreadsheets. `RosterExporter.template()` is the documented starting point,
+and whatever the exporter writes, the importer reads — round-tripping a
+generated roster through a spreadsheet and back is a supported workflow and a
+test asserts it is lossless.
+
+**Three fidelity levels**, all valid:
+
+| What the file has | What happens |
+|---|---|
+| `name,position` | A plausible player is generated at that position |
+| `name,position,ovr` | Generated to hit that overall |
+| `name,position,spd,acc,mcv,…` | The supplied numbers are used exactly as given |
+
+**Filling gaps** — supplied ratings always win. A position-relevant rating that
+is missing is filled from the mean of the ratings that *were* supplied, so a
+partial sheet stays internally consistent. An irrelevant one gets a low
+baseline, so an imported quarterback does not end up with 70 man coverage.
+
+**Archetype inference** — real ratings dumps carry numbers, not labels, but
+archetype drives scheme fit, which is the heart of this game. `ArchetypeInference`
+reads a sheet the way a scout would: which attributes stand out relative to the
+player's own average? It returns a confidence, and a low-confidence guess is
+surfaced as a warning rather than hidden.
+
+**Forgiving on input, loud about it.** Position spellings (`DE`, `OLB`, `NT`,
+`FS`, `HB`, `WO`) and rating column codes (`TAS`, `MCV`, `RBK`) are aliased.
+Ambiguous spellings — a bare `T` or `G` — resolve to the left side *and warn*.
+An unrecognised position is an error, not a guess. Unknown columns are listed,
+never silently dropped. Every import returns an `ImportReport` and the UI must
+show it.
+
+**Determinism holds.** Everything invented during an import comes from the
+seed, so the same file always produces the same players.
+
 ### 9.3 v2 — Room **[OPEN]**
 
 If save/load exceeds ~1.5 s or the file exceeds ~25 MB, move career/history tables to Room and keep only live state in the serialized blob. Don't do this speculatively. Revisit at milestone M7.
@@ -842,7 +888,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 ## 16. Open questions
 
 - **[OPEN]** Room in v1 or defer to v2? — Deferred. Revisit at M7 with real save-size numbers.
-- **[OPEN]** Real player names via an import file, or fully fictional only? Legal footprint is zero if you ship fictional and let users import their own.
+- ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - **[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.
 - **[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin? Prototype at M8 and decide by feel.
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
