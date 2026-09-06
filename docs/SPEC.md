@@ -603,6 +603,24 @@ Model it properly — the cap *is* the strategy game.
 - Franchise tag = max(top-5 average at position, 120% of prior cap hit). Transition tag = top-10.
 - Restructure = convert base to bonus, pushing cap into the future. Let the player dig their own grave.
 
+**Implemented (M7 stage 1).** `engine/econ/MarketValue` is the single price
+curve — free agency, roster generation, and release decisions all read it, so
+players cannot be created at one price and signed at another.
+`engine/offseason/CapManagement` grows the cap 6.8% a year, and each offseason
+gets every team legal *before* the draft, so team needs reflect the roster a
+team can afford. Cuts are chosen by cap hit per point of ability with a nudge
+toward players past 28: the expensive veteran goes, not the cheap rookie.
+Positional minimums and a 46-man floor are protected, dead money follows the
+release, and half of it is carried into the next year's books.
+
+Generated rosters are signed at creation with staggered terms (see
+`RosterGenerator.sign`) targeting ~88% of the cap. Before this, generated
+players had no contracts at all, so the whole league hit free agency after one
+season and every offseason was an accidental redraft.
+
+Still to do: the day-based auction in §8.3, franchise/transition tags, the
+5th-year option, and cap carryover.
+
 ### 8.2 AI GM decision model
 
 Each AI team has a `GmProfile`:
@@ -642,6 +660,20 @@ Value function combining a draft-pick chart (make it a tunable table, not Jimmy 
 - Traits assigned with correlations (elite `workEthic` correlates mildly with `developmentCurve`).
 - Each prospect gets a `scoutingBias` and a "small school / big program" exposure factor that sets starting confidence.
 - **Hook for the college sim:** `interface DraftClassSource { fun generate(year: Int, rng: Rng): List<Prospect> }`. v1 ships `SyntheticDraftClassSource`. The college sim later provides `CollegeSimDraftClassSource` with real college stats and 3–4 years of scouting history. This one interface is why the college project is a plugin, not a rewrite.
+
+**Board depth is the point (ADR-005).** The class must be far larger than the
+draft: ~507 prospects for 224 picks, so teams take the top third rather than
+two thirds of the board. Selection, not the rating curve, is where a league's
+talent comes from. At 350 prospects the pipeline delivered ~12 rookies a year
+able to start against ~28 elite players a year lost to age, and the top of the
+league drained once the founding cohort aged out - visible in the count of
+players rated 80+, invisible in the league mean.
+
+**Roster age preference (ADR-004).** Cut-to-53 and free agent signing rank on
+`rosterValue()`, which discounts 2.2 points per year past 29. Without it a
+declining veteran outrates a rookie every year until he is thirty-six, keeps
+the roster spot, and never reaches the free agency that ends careers. Rosters
+skew young because of decisions, not because players spontaneously retire.
 
 ---
 

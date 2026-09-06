@@ -43,6 +43,8 @@ data class Dynasty(
     val champion: Int? = null,
     /** The user's most recent game, kept for the box score screen. */
     val lastGame: GameResult? = null,
+    /** What happened between seasons, for the news screen. */
+    val lastOffseason: com.nflsim.engine.offseason.OffseasonReport? = null,
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)
@@ -89,8 +91,18 @@ object DynastyEngine {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
             DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning)
             DynastyPhase.PLAYOFFS -> runPlayoffs(dynasty, tuning)
-            DynastyPhase.OFFSEASON -> dynasty
+            DynastyPhase.OFFSEASON -> rollOver(dynasty)
         }
+
+    /**
+     * The offseason, and into the next year. This is the step that turns a
+     * season into a dynasty: players age, some retire, a draft class arrives,
+     * and the roster you finish with is not the roster you started with.
+     */
+    private fun rollOver(dynasty: Dynasty): Dynasty {
+        val (next, report) = com.nflsim.engine.offseason.OffseasonEngine.run(dynasty)
+        return next.copy(lastOffseason = report)
+    }
 
     private fun teamsFor(league: League): Map<TeamId, GameTeam> =
         league.teams.associate { team ->

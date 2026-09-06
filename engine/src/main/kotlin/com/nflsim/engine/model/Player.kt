@@ -21,6 +21,7 @@ data class Player(
     val ratings: Ratings,
     val traits: HiddenTraits,
     val teamId: TeamId? = null,
+    val contract: Contract? = null,
     val status: PlayerStatus = PlayerStatus.ACTIVE,
     /** Seasons spent in the current scheme. Drives familiarity. */
     val yearsInSystem: Int = 0,
@@ -40,6 +41,10 @@ data class Player(
     val name: String get() = "$firstName $lastName"
 
     fun age(inYear: Int): Int = inYear - birthYear
+
+    fun capHit(year: Int): Int = contract?.capHit(year) ?: 0
+
+    val isFreeAgent: Boolean get() = teamId == null || contract == null
 
     operator fun get(id: RatingId): Int = ratings[id]
 

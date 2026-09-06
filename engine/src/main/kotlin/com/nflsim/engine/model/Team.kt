@@ -35,6 +35,7 @@ data class Team(
     val offenseScheme: String,
     val defenseScheme: String,
     val roster: List<PlayerId> = emptyList(),
+    val finances: TeamFinances = TeamFinances(),
 ) {
     val name: String get() = "$city $nickname"
     val divisionName: String get() = "${conference.label} ${division.name.lowercase().replaceFirstChar { it.uppercase() }}"
