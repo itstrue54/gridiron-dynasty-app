@@ -1,0 +1,270 @@
+[
+  {
+    "id": "OFF_WIDE_ZONE",
+    "name": "Wide Zone / Play-Action",
+    "side": "OFFENSE",
+    "notes": "One cut and go. Reach blocks, bootlegs off the run action, tight ends who move.",
+    "basePassRate": 0.54, "playActionRate": 0.31, "tempo": 0.45,
+    "archetypeFit": {
+      "QB": { "FIELD_GENERAL": 0.95, "POCKET_PASSER": 0.85, "IMPROVISER": 0.90, "DUAL_THREAT": 0.85, "GUNSLINGER": 0.70 },
+      "RB": { "ONE_CUT_ZONE": 1.00, "ELUSIVE": 0.85, "WORKHORSE": 0.80, "RECEIVING_BACK": 0.75, "POWER_BACK": 0.55 },
+      "WR": { "Z_ROUTE_TECH": 0.90, "YAC_RECEIVER": 0.85, "SLOT": 0.80, "X_CONTESTED": 0.75, "DEEP_THREAT": 0.80 },
+      "TE": { "MOVE_TE": 1.00, "INLINE_BLOCKER": 0.85, "H_BACK": 0.90, "RECEIVING_TE": 0.70 },
+      "OL": { "ZONE_BLOCKER": 1.00, "ATHLETIC_PULLING": 0.90, "PASS_PROTECTOR": 0.75, "POWER_MAULER": 0.50 }
+    },
+    "ratingEmphasis": {
+      "RB": ["VISION", "ACCELERATION"],
+      "OL": ["RUN_BLOCK_FINESSE", "AGILITY"],
+      "TE": ["RUN_BLOCK", "SPEED"],
+      "QB": ["PLAY_ACTION", "THROW_ON_RUN"]
+    }
+  },
+  {
+    "id": "OFF_GAP_POWER",
+    "name": "Gap / Power",
+    "side": "OFFENSE",
+    "notes": "Down blocks and pullers. Wins at the point of attack, needs maulers.",
+    "basePassRate": 0.50, "playActionRate": 0.24, "tempo": 0.35,
+    "archetypeFit": {
+      "QB": { "POCKET_PASSER": 0.90, "FIELD_GENERAL": 0.90, "GUNSLINGER": 0.80, "DUAL_THREAT": 0.75, "IMPROVISER": 0.75 },
+      "RB": { "POWER_BACK": 1.00, "WORKHORSE": 0.95, "ONE_CUT_ZONE": 0.65, "ELUSIVE": 0.60, "RECEIVING_BACK": 0.55 },
+      "WR": { "X_CONTESTED": 0.90, "Z_ROUTE_TECH": 0.80, "YAC_RECEIVER": 0.75, "SLOT": 0.70, "DEEP_THREAT": 0.75 },
+      "TE": { "INLINE_BLOCKER": 1.00, "H_BACK": 0.90, "MOVE_TE": 0.70, "RECEIVING_TE": 0.55 },
+      "OL": { "POWER_MAULER": 1.00, "ATHLETIC_PULLING": 0.95, "ZONE_BLOCKER": 0.60, "PASS_PROTECTOR": 0.70 }
+    },
+    "ratingEmphasis": {
+      "RB": ["TRUCKING", "BREAK_TACKLE"],
+      "OL": ["RUN_BLOCK_POWER", "STRENGTH"],
+      "TE": ["IMPACT_BLOCK"]
+    }
+  },
+  {
+    "id": "OFF_AIR_RAID",
+    "name": "Air Raid",
+    "side": "OFFENSE",
+    "notes": "Four verticals, mesh, spacing. Empty sets, quick game, run only when they let you.",
+    "basePassRate": 0.68, "playActionRate": 0.18, "tempo": 0.75,
+    "archetypeFit": {
+      "QB": { "GUNSLINGER": 0.95, "POCKET_PASSER": 0.95, "FIELD_GENERAL": 0.90, "IMPROVISER": 0.80, "DUAL_THREAT": 0.70 },
+      "RB": { "RECEIVING_BACK": 1.00, "ELUSIVE": 0.85, "ONE_CUT_ZONE": 0.70, "WORKHORSE": 0.60, "POWER_BACK": 0.40 },
+      "WR": { "SLOT": 1.00, "Z_ROUTE_TECH": 0.95, "DEEP_THREAT": 0.90, "YAC_RECEIVER": 0.85, "X_CONTESTED": 0.80 },
+      "TE": { "RECEIVING_TE": 1.00, "MOVE_TE": 0.85, "H_BACK": 0.55, "INLINE_BLOCKER": 0.35 },
+      "OL": { "PASS_PROTECTOR": 1.00, "ZONE_BLOCKER": 0.80, "ATHLETIC_PULLING": 0.65, "POWER_MAULER": 0.55 }
+    },
+    "ratingEmphasis": {
+      "QB": ["THROW_ACC_MID", "THROW_ACC_DEEP"],
+      "WR": ["ROUTE_MID", "ROUTE_DEEP", "RELEASE"],
+      "OL": ["PASS_BLOCK"]
+    }
+  },
+  {
+    "id": "OFF_WEST_COAST",
+    "name": "West Coast",
+    "side": "OFFENSE",
+    "notes": "Timing, rhythm, yards after catch. The throw is on time or it is wrong.",
+    "basePassRate": 0.60, "playActionRate": 0.26, "tempo": 0.50,
+    "archetypeFit": {
+      "QB": { "FIELD_GENERAL": 1.00, "POCKET_PASSER": 0.95, "IMPROVISER": 0.75, "DUAL_THREAT": 0.70, "GUNSLINGER": 0.65 },
+      "RB": { "RECEIVING_BACK": 0.95, "ELUSIVE": 0.90, "ONE_CUT_ZONE": 0.85, "WORKHORSE": 0.75, "POWER_BACK": 0.60 },
+      "WR": { "YAC_RECEIVER": 1.00, "Z_ROUTE_TECH": 0.95, "SLOT": 0.90, "X_CONTESTED": 0.75, "DEEP_THREAT": 0.70 },
+      "TE": { "RECEIVING_TE": 0.95, "MOVE_TE": 0.90, "H_BACK": 0.80, "INLINE_BLOCKER": 0.65 },
+      "OL": { "PASS_PROTECTOR": 0.95, "ZONE_BLOCKER": 0.90, "ATHLETIC_PULLING": 0.80, "POWER_MAULER": 0.65 }
+    },
+    "ratingEmphasis": {
+      "QB": ["THROW_ACC_SHORT", "AWARENESS"],
+      "WR": ["ROUTE_SHORT", "CATCHING"],
+      "RB": ["CATCHING"]
+    }
+  },
+  {
+    "id": "OFF_SPREAD_OPTION",
+    "name": "Spread Option",
+    "side": "OFFENSE",
+    "notes": "RPOs and read option. The quarterback is a runner and the math changes.",
+    "basePassRate": 0.52, "playActionRate": 0.34, "tempo": 0.80,
+    "archetypeFit": {
+      "QB": { "DUAL_THREAT": 1.00, "IMPROVISER": 0.90, "FIELD_GENERAL": 0.70, "GUNSLINGER": 0.60, "POCKET_PASSER": 0.45 },
+      "RB": { "ONE_CUT_ZONE": 0.95, "ELUSIVE": 0.90, "RECEIVING_BACK": 0.80, "WORKHORSE": 0.75, "POWER_BACK": 0.60 },
+      "WR": { "SLOT": 0.95, "YAC_RECEIVER": 0.90, "DEEP_THREAT": 0.90, "Z_ROUTE_TECH": 0.80, "X_CONTESTED": 0.75 },
+      "TE": { "MOVE_TE": 0.90, "H_BACK": 0.85, "RECEIVING_TE": 0.80, "INLINE_BLOCKER": 0.55 },
+      "OL": { "ZONE_BLOCKER": 0.95, "ATHLETIC_PULLING": 0.90, "PASS_PROTECTOR": 0.75, "POWER_MAULER": 0.60 }
+    },
+    "ratingEmphasis": {
+      "QB": ["SCRAMBLING", "SPEED", "THROW_ON_RUN"],
+      "RB": ["VISION", "ELUSIVENESS"]
+    }
+  },
+  {
+    "id": "OFF_VERTICAL",
+    "name": "Vertical / Shot Plays",
+    "side": "OFFENSE",
+    "notes": "Take the top off. Max protect, deep shots, live with the sacks.",
+    "basePassRate": 0.62, "playActionRate": 0.30, "tempo": 0.40,
+    "archetypeFit": {
+      "QB": { "GUNSLINGER": 1.00, "POCKET_PASSER": 0.90, "IMPROVISER": 0.85, "FIELD_GENERAL": 0.75, "DUAL_THREAT": 0.75 },
+      "RB": { "WORKHORSE": 0.85, "POWER_BACK": 0.80, "ONE_CUT_ZONE": 0.80, "ELUSIVE": 0.75, "RECEIVING_BACK": 0.70 },
+      "WR": { "DEEP_THREAT": 1.00, "X_CONTESTED": 0.95, "Z_ROUTE_TECH": 0.80, "YAC_RECEIVER": 0.70, "SLOT": 0.65 },
+      "TE": { "INLINE_BLOCKER": 0.85, "RECEIVING_TE": 0.85, "MOVE_TE": 0.80, "H_BACK": 0.75 },
+      "OL": { "PASS_PROTECTOR": 1.00, "POWER_MAULER": 0.80, "ZONE_BLOCKER": 0.75, "ATHLETIC_PULLING": 0.70 }
+    },
+    "ratingEmphasis": {
+      "QB": ["THROW_POWER", "THROW_ACC_DEEP", "THROW_UNDER_PRESSURE"],
+      "WR": ["ROUTE_DEEP", "SPECTACULAR_CATCH", "SPEED"],
+      "OL": ["PASS_BLOCK", "PASS_BLOCK_POWER"]
+    }
+  },
+  {
+    "id": "OFF_RUN_HEAVY_PRO",
+    "name": "Run-Heavy Pro",
+    "side": "OFFENSE",
+    "notes": "Two backs, two tight ends, and a dare. Shortens the game.",
+    "basePassRate": 0.44, "playActionRate": 0.28, "tempo": 0.25,
+    "archetypeFit": {
+      "QB": { "FIELD_GENERAL": 0.95, "POCKET_PASSER": 0.90, "DUAL_THREAT": 0.75, "GUNSLINGER": 0.70, "IMPROVISER": 0.70 },
+      "RB": { "WORKHORSE": 1.00, "POWER_BACK": 0.95, "ONE_CUT_ZONE": 0.80, "ELUSIVE": 0.60, "RECEIVING_BACK": 0.50 },
+      "WR": { "X_CONTESTED": 0.90, "Z_ROUTE_TECH": 0.80, "DEEP_THREAT": 0.75, "YAC_RECEIVER": 0.70, "SLOT": 0.60 },
+      "TE": { "INLINE_BLOCKER": 1.00, "H_BACK": 0.95, "MOVE_TE": 0.75, "RECEIVING_TE": 0.60 },
+      "OL": { "POWER_MAULER": 1.00, "ZONE_BLOCKER": 0.85, "ATHLETIC_PULLING": 0.85, "PASS_PROTECTOR": 0.65 }
+    },
+    "ratingEmphasis": {
+      "RB": ["BREAK_TACKLE", "CARRYING", "STAMINA"],
+      "OL": ["RUN_BLOCK", "STRENGTH"],
+      "TE": ["RUN_BLOCK", "IMPACT_BLOCK"]
+    }
+  },
+  {
+    "id": "DEF_43_OVER",
+    "name": "4-3 Over",
+    "side": "DEFENSE",
+    "notes": "Four down, shade to the strength. The 3-tech is the engine.",
+    "blitzRate": 0.24, "manZoneSplit": 0.40,
+    "archetypeFit": {
+      "EDGE": { "SPEED_RUSHER": 0.95, "POWER_RUSHER": 0.90, "RUN_STOPPING_EDGE": 0.85, "COVERAGE_OLB": 0.55 },
+      "DT": { "PENETRATOR_3TECH": 1.00, "NOSE_1TECH": 0.90, "INTERIOR_RUSHER": 0.85, "TWO_GAP_5TECH": 0.60 },
+      "LB": { "FIELD_GENERAL_MLB": 0.95, "THUMPER": 0.85, "COVERAGE_LB": 0.85, "BLITZING_LB": 0.75 },
+      "CB": { "ZONE_CB": 0.90, "MAN_PRESS": 0.85, "BALLHAWK": 0.85, "SLOT_CB": 0.80 },
+      "S": { "FREE_SAFETY": 0.90, "STRONG_SAFETY": 0.90, "BOX_SAFETY": 0.85, "HYBRID_NICKEL": 0.80 }
+    },
+    "ratingEmphasis": { "DT": ["FINESSE_MOVES", "ACCELERATION"], "LB": ["PLAY_RECOGNITION"] }
+  },
+  {
+    "id": "DEF_43_UNDER",
+    "name": "4-3 Under",
+    "side": "DEFENSE",
+    "notes": "Slide the front weak, walk the SAM up. Heavier against the run.",
+    "blitzRate": 0.26, "manZoneSplit": 0.45,
+    "archetypeFit": {
+      "EDGE": { "POWER_RUSHER": 0.95, "RUN_STOPPING_EDGE": 0.95, "SPEED_RUSHER": 0.85, "COVERAGE_OLB": 0.70 },
+      "DT": { "NOSE_1TECH": 1.00, "TWO_GAP_5TECH": 0.90, "PENETRATOR_3TECH": 0.85, "INTERIOR_RUSHER": 0.75 },
+      "LB": { "THUMPER": 0.95, "FIELD_GENERAL_MLB": 0.90, "BLITZING_LB": 0.85, "COVERAGE_LB": 0.75 },
+      "CB": { "MAN_PRESS": 0.90, "ZONE_CB": 0.85, "SLOT_CB": 0.80, "BALLHAWK": 0.80 },
+      "S": { "STRONG_SAFETY": 0.95, "BOX_SAFETY": 0.90, "FREE_SAFETY": 0.85, "HYBRID_NICKEL": 0.75 }
+    },
+    "ratingEmphasis": { "DT": ["STRENGTH", "BLOCK_SHEDDING"], "LB": ["TACKLE", "HIT_POWER"] }
+  },
+  {
+    "id": "DEF_34_TWO_GAP",
+    "name": "3-4 Two-Gap",
+    "side": "DEFENSE",
+    "notes": "Big bodies occupy, linebackers make the plays. Needs rare defensive linemen.",
+    "blitzRate": 0.22, "manZoneSplit": 0.35,
+    "archetypeFit": {
+      "EDGE": { "COVERAGE_OLB": 0.90, "POWER_RUSHER": 0.90, "SPEED_RUSHER": 0.85, "RUN_STOPPING_EDGE": 0.90 },
+      "DT": { "TWO_GAP_5TECH": 1.00, "NOSE_1TECH": 0.95, "PENETRATOR_3TECH": 0.50, "INTERIOR_RUSHER": 0.55 },
+      "LB": { "FIELD_GENERAL_MLB": 1.00, "THUMPER": 0.90, "COVERAGE_LB": 0.85, "BLITZING_LB": 0.85 },
+      "CB": { "ZONE_CB": 0.90, "BALLHAWK": 0.85, "MAN_PRESS": 0.80, "SLOT_CB": 0.80 },
+      "S": { "FREE_SAFETY": 0.90, "STRONG_SAFETY": 0.90, "BOX_SAFETY": 0.85, "HYBRID_NICKEL": 0.75 }
+    },
+    "ratingEmphasis": { "DT": ["STRENGTH", "BLOCK_SHEDDING"], "LB": ["PLAY_RECOGNITION", "PURSUIT"] }
+  },
+  {
+    "id": "DEF_34_ONE_GAP",
+    "name": "3-4 One-Gap",
+    "side": "DEFENSE",
+    "notes": "Attack a gap and go. Front seven penetrates instead of holding.",
+    "blitzRate": 0.32, "manZoneSplit": 0.50,
+    "archetypeFit": {
+      "EDGE": { "SPEED_RUSHER": 1.00, "POWER_RUSHER": 0.90, "COVERAGE_OLB": 0.75, "RUN_STOPPING_EDGE": 0.75 },
+      "DT": { "PENETRATOR_3TECH": 0.95, "INTERIOR_RUSHER": 0.90, "TWO_GAP_5TECH": 0.80, "NOSE_1TECH": 0.80 },
+      "LB": { "BLITZING_LB": 0.95, "FIELD_GENERAL_MLB": 0.90, "COVERAGE_LB": 0.80, "THUMPER": 0.80 },
+      "CB": { "MAN_PRESS": 0.95, "SLOT_CB": 0.85, "ZONE_CB": 0.75, "BALLHAWK": 0.80 },
+      "S": { "HYBRID_NICKEL": 0.90, "BOX_SAFETY": 0.85, "STRONG_SAFETY": 0.85, "FREE_SAFETY": 0.85 }
+    },
+    "ratingEmphasis": { "EDGE": ["FINESSE_MOVES", "ACCELERATION"], "LB": ["POWER_MOVES", "SPEED"] }
+  },
+  {
+    "id": "DEF_425_NICKEL",
+    "name": "4-2-5 Nickel",
+    "side": "DEFENSE",
+    "notes": "Five defensive backs as base. Built for spread offenses, light against power.",
+    "blitzRate": 0.28, "manZoneSplit": 0.50,
+    "archetypeFit": {
+      "EDGE": { "SPEED_RUSHER": 0.95, "POWER_RUSHER": 0.85, "COVERAGE_OLB": 0.80, "RUN_STOPPING_EDGE": 0.75 },
+      "DT": { "PENETRATOR_3TECH": 0.95, "INTERIOR_RUSHER": 0.90, "NOSE_1TECH": 0.80, "TWO_GAP_5TECH": 0.65 },
+      "LB": { "COVERAGE_LB": 1.00, "FIELD_GENERAL_MLB": 0.90, "BLITZING_LB": 0.85, "THUMPER": 0.60 },
+      "CB": { "SLOT_CB": 1.00, "MAN_PRESS": 0.90, "ZONE_CB": 0.90, "BALLHAWK": 0.85 },
+      "S": { "HYBRID_NICKEL": 1.00, "FREE_SAFETY": 0.90, "BOX_SAFETY": 0.85, "STRONG_SAFETY": 0.80 }
+    },
+    "ratingEmphasis": { "LB": ["ZONE_COVERAGE", "SPEED"], "CB": ["MAN_COVERAGE", "AGILITY"] }
+  },
+  {
+    "id": "DEF_TAMPA_2",
+    "name": "Tampa 2",
+    "side": "DEFENSE",
+    "notes": "Two deep, MIKE runs the pipe. Rush four, tackle well, live underneath.",
+    "blitzRate": 0.16, "manZoneSplit": 0.15,
+    "archetypeFit": {
+      "EDGE": { "SPEED_RUSHER": 1.00, "POWER_RUSHER": 0.80, "RUN_STOPPING_EDGE": 0.75, "COVERAGE_OLB": 0.70 },
+      "DT": { "PENETRATOR_3TECH": 0.95, "INTERIOR_RUSHER": 0.90, "NOSE_1TECH": 0.75, "TWO_GAP_5TECH": 0.60 },
+      "LB": { "COVERAGE_LB": 0.95, "FIELD_GENERAL_MLB": 0.95, "THUMPER": 0.65, "BLITZING_LB": 0.60 },
+      "CB": { "ZONE_CB": 1.00, "BALLHAWK": 0.90, "SLOT_CB": 0.80, "MAN_PRESS": 0.60 },
+      "S": { "FREE_SAFETY": 1.00, "HYBRID_NICKEL": 0.80, "STRONG_SAFETY": 0.75, "BOX_SAFETY": 0.65 }
+    },
+    "ratingEmphasis": { "CB": ["ZONE_COVERAGE", "PLAY_RECOGNITION"], "LB": ["ZONE_COVERAGE", "SPEED"] }
+  },
+  {
+    "id": "DEF_COVER3_MATCH",
+    "name": "Cover-3 Match",
+    "side": "DEFENSE",
+    "notes": "Zone shell with man rules. Long corners, a single high safety, everything in front.",
+    "blitzRate": 0.24, "manZoneSplit": 0.30,
+    "archetypeFit": {
+      "EDGE": { "POWER_RUSHER": 0.90, "SPEED_RUSHER": 0.90, "RUN_STOPPING_EDGE": 0.85, "COVERAGE_OLB": 0.70 },
+      "DT": { "NOSE_1TECH": 0.90, "PENETRATOR_3TECH": 0.90, "TWO_GAP_5TECH": 0.80, "INTERIOR_RUSHER": 0.80 },
+      "LB": { "FIELD_GENERAL_MLB": 0.95, "COVERAGE_LB": 0.90, "THUMPER": 0.80, "BLITZING_LB": 0.75 },
+      "CB": { "ZONE_CB": 0.95, "MAN_PRESS": 0.90, "BALLHAWK": 0.85, "SLOT_CB": 0.80 },
+      "S": { "FREE_SAFETY": 1.00, "STRONG_SAFETY": 0.85, "BOX_SAFETY": 0.85, "HYBRID_NICKEL": 0.80 }
+    },
+    "ratingEmphasis": { "CB": ["ZONE_COVERAGE", "PRESS"], "S": ["ZONE_COVERAGE", "PLAY_RECOGNITION"] }
+  },
+  {
+    "id": "DEF_MAN_BLITZ",
+    "name": "Man Pressure",
+    "side": "DEFENSE",
+    "notes": "Cover zero and one, bring the house. Wins fast or loses badly.",
+    "blitzRate": 0.44, "manZoneSplit": 0.85,
+    "archetypeFit": {
+      "EDGE": { "SPEED_RUSHER": 0.95, "POWER_RUSHER": 0.95, "COVERAGE_OLB": 0.60, "RUN_STOPPING_EDGE": 0.70 },
+      "DT": { "INTERIOR_RUSHER": 1.00, "PENETRATOR_3TECH": 0.95, "NOSE_1TECH": 0.70, "TWO_GAP_5TECH": 0.55 },
+      "LB": { "BLITZING_LB": 1.00, "COVERAGE_LB": 0.80, "FIELD_GENERAL_MLB": 0.80, "THUMPER": 0.75 },
+      "CB": { "MAN_PRESS": 1.00, "SLOT_CB": 0.85, "BALLHAWK": 0.75, "ZONE_CB": 0.55 },
+      "S": { "BOX_SAFETY": 0.90, "HYBRID_NICKEL": 0.90, "STRONG_SAFETY": 0.85, "FREE_SAFETY": 0.75 }
+    },
+    "ratingEmphasis": { "CB": ["MAN_COVERAGE", "PRESS", "SPEED"], "LB": ["POWER_MOVES", "ACCELERATION"] }
+  },
+  {
+    "id": "DEF_335_MULTIPLE",
+    "name": "3-3-5 Multiple",
+    "side": "DEFENSE",
+    "notes": "Three down, three linebackers, five backs. Disguise everything, tackle in space.",
+    "blitzRate": 0.36, "manZoneSplit": 0.50,
+    "archetypeFit": {
+      "EDGE": { "COVERAGE_OLB": 0.95, "SPEED_RUSHER": 0.90, "POWER_RUSHER": 0.80, "RUN_STOPPING_EDGE": 0.70 },
+      "DT": { "TWO_GAP_5TECH": 0.90, "NOSE_1TECH": 0.90, "PENETRATOR_3TECH": 0.85, "INTERIOR_RUSHER": 0.80 },
+      "LB": { "COVERAGE_LB": 0.95, "BLITZING_LB": 0.95, "FIELD_GENERAL_MLB": 0.90, "THUMPER": 0.65 },
+      "CB": { "SLOT_CB": 0.95, "ZONE_CB": 0.90, "MAN_PRESS": 0.85, "BALLHAWK": 0.90 },
+      "S": { "HYBRID_NICKEL": 1.00, "FREE_SAFETY": 0.90, "BOX_SAFETY": 0.90, "STRONG_SAFETY": 0.85 }
+    },
+    "ratingEmphasis": { "LB": ["PURSUIT", "ZONE_COVERAGE"], "S": ["TACKLE", "PLAY_RECOGNITION"] }
+  }
+]

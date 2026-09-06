@@ -331,8 +331,8 @@ fun effectiveRating(player: Player, ratingId: RatingId, ctx: SimContext): Int {
     val base = player.ratings[ratingId]
     val fit  = schemeFit(player, ctx.scheme)
     // versatility softens the penalty for a bad fit; it never boosts a good one
-    val adjFit = fit + (1f - fit) * (player.traits.schemeVersatility / 250f)
-    val schemeMod = 0.88f + 0.12f * adjFit            // 0.88 .. 1.00
+    val adjFit = fit + (1f - fit) * (player.traits.schemeVersatility / 500f)
+    val schemeMod = 0.76f + 0.24f * adjFit            // 0.76 .. 1.00
     val familiarity = 0.96f + 0.04f * min(player.yearsInSystem, 3) / 3f
     val emphasis = if (ratingId in ctx.scheme.emphasized(player.position)) 1.03f else 1.0f
     val fatigueMod = 1f - fatiguePenalty(player, ctx)  // 0 .. ~0.15
@@ -342,7 +342,7 @@ fun effectiveRating(player: Player, ratingId: RatingId, ctx: SimContext): Int {
 }
 ```
 
-A perfect-fit veteran in year 3 plays ~+4% over raw. A bad fit rookie plays ~-14%. That is a 92 playing like an 79 — exactly the outcome you want to be able to feel.
+A perfect-fit veteran in year 3 plays ~+1% over raw before emphasis, a badly miscast one (fit 0.40) about -12%. On an 85 base that is roughly 86 against 75 — an eleven-point swing, so scheme can beat talent. Tuned Sept 2026 against the `schemefit` report; these constants move to `TuningTable` at M4.
 
 ### 4.10 League state (the save)
 
@@ -401,7 +401,11 @@ fun simPlay(s: PlayState, rng: Rng): PlayResult {
     val outcome = resolveOutcome(offCall, defCall, matchups, s, rng) // 5.7
     val penalty = checkPenalty(personnel, outcome, s, rng)  // 5.8
     val injury = checkInjury(personnel, outcome, s, rng)    // 5.9
-    return PlayResult(outcome, penalty, injury, clockRunoff(outcome, s), log = buildLog(...))
+    return PlayResult(
+        outcome, penalty, injury,
+        clockRunoff(outcome, s),
+        log = buildLog(s, offCall, defCall, matchups, outcome),
+    )
 }
 ```
 
@@ -477,7 +481,8 @@ Convert an advantage number into a distribution, then sample:
 val pressure = logistic(-protection / K_PRESSURE)              // P(pressure)
 val sackGiven = pressure * (1 - qb.breakSack/180f)
 val throwQuality = logistic((qb.accForDepth(depth) + routeWin - coverageQuality) / K_THROW)
-val completion = throwQuality * (pressured ? qb.throwUnderPressure/99f * 0.85f : 1f)
+val completion = throwQuality *
+    (if (pressured) qb.throwUnderPressure / 99f * 0.85f else 1f)
 val yardsAfterCatch = gamma(shape = f(wr.elusiveness, coverage), scale = g(depth, tacklingQuality))
 ```
 

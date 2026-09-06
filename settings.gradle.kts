@@ -24,4 +24,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "nflsimtext"
 include(":app")
+include(":engine")
+include(":data")
+include(":engine-cli")
  
