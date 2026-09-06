@@ -6,7 +6,6 @@ import com.nflsim.engine.gen.LeagueGenerator
 import com.nflsim.engine.gen.NameGenerator
 import com.nflsim.engine.model.Archetype
 import com.nflsim.engine.model.HiddenTraits
-import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
