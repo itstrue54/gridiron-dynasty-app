@@ -31,12 +31,12 @@ data class TuningTable(
         /** Bigger = accuracy and coverage differences matter less. */
         val completionScale: Float = 88f,
         /** Completion probability at a dead-even matchup, before depth. */
-        val baseCompletion: Float = 0.775f,
+        val baseCompletion: Float = 0.80f,
         /** Completion penalty per yard of intended air distance. */
         val depthPenaltyPerYard: Float = 0.0120f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
-        val interceptionBase: Float = 0.021f,
+        val interceptionBase: Float = 0.025f,
         /** How much a badly-lost route matchup raises interception odds. */
         val interceptionCoverageScale: Float = 0.042f,
         val yacScale: Float = 1.06f,
@@ -50,14 +50,16 @@ data class TuningTable(
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
-        val variance: Float = 3.50f,
+        val variance: Float = 4.00f,
         /** Chance a carry breaks into the second level at neutral advantage. */
-        val breakawayBase: Float = 0.030f,
+        val breakawayBase: Float = 0.042f,
         val breakawayAdvantageScale: Float = 0.030f,
         /** Mean extra yards once a run breaks. Long tail lives here. */
         val breakawayYards: Float = 11.0f,
-        val fumbleBase: Float = 0.0092f,
+        val fumbleBase: Float = 0.0125f,
         val tackleForLossFloor: Float = -6f,
+        /** Blocking advantage lost per yard inside the twenty. */
+        val redZoneCompression: Float = 0.40f,
     )
 
     @Serializable
@@ -68,6 +70,17 @@ data class TuningTable(
         val boxCountPenalty: Float = 6.5f,
         /** Scales the offensive-concept vs defensive-front lookup. */
         val gapSchemeScale: Float = 1.0f,
+        /**
+         * Protection lost by a road offence at maximum crowd noise.
+         *
+         * Home field is not a mystical bonus - it is linemen who cannot hear
+         * the cadence firing a beat late, and a silent count that telegraphs
+         * the snap. Modelled where it actually happens rather than as a thumb
+         * on the scoreboard.
+         */
+        val crowdNoiseProtectionCost: Float = 7.0f,
+        /** Run blocking advantage lost by a road offence at maximum noise. */
+        val crowdNoiseRunCost: Float = 4.0f,
     )
 
     @Serializable
@@ -78,11 +91,16 @@ data class TuningTable(
         val doubleTeamPenalty: Float = 14f,
         /** Coverage help a blitz gives up per extra rusher. */
         val blitzCoverageCost: Float = 7.5f,
+        /**
+         * Separation lost per yard inside the twenty. There is no grass behind
+         * the defence in the red zone, so coverage tightens the closer you get.
+         */
+        val redZoneCompression: Float = 1.45f,
     )
 
     @Serializable
     data class Penalties(
-        val perPlayBase: Float = 0.095f,
+        val perPlayBase: Float = 0.135f,
         val disciplineScale: Float = 0.55f,
         val crowdNoiseScale: Float = 0.45f,
     )
@@ -97,8 +115,8 @@ data class TuningTable(
     @Serializable
     data class GameFlow(
         val playClockSeconds: Int = 40,
-        val runPlayClockRunoff: Int = 38,
-        val completionClockRunoff: Int = 36,
+        val runPlayClockRunoff: Int = 31,
+        val completionClockRunoff: Int = 29,
         val incompleteClockRunoff: Int = 6,
     )
 

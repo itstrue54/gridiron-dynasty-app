@@ -61,19 +61,31 @@ object PlayCaller {
 
     private fun pass(ctx: PlayContext, rng: Rng): OffensivePlayCall.Pass {
         val s = ctx.state
-        val needed = s.distance
 
-        // Coordinators throw roughly to the sticks, with shots mixed in.
-        val pool = when {
-            needed <= 3 -> listOf(PassConcept.SLANT, PassConcept.FLAT, PassConcept.STICK,
-                                  PassConcept.SCREEN, PassConcept.CROSSER)
-            needed <= 8 -> listOf(PassConcept.SLANT, PassConcept.STICK, PassConcept.CURL,
-                                  PassConcept.CROSSER, PassConcept.OUT, PassConcept.SCREEN)
-            needed <= 15 -> listOf(PassConcept.CURL, PassConcept.DIG, PassConcept.OUT,
-                                   PassConcept.CROSSER, PassConcept.SEAM, PassConcept.CORNER)
-            else -> listOf(PassConcept.DIG, PassConcept.CORNER, PassConcept.POST,
-                           PassConcept.GO, PassConcept.SEAM)
+        // How deep the coordinator is actually trying to throw.
+        //
+        // Depth follows DOWN first and distance second. Tying it to distance
+        // alone meant first and ten pulled from the same pool as third and ten,
+        // so offences threw digs and corners on early downs. That produced a
+        // league completing 62% at 13.0 yards a catch - both wrong, in
+        // opposite directions, from one cause.
+        val targetDepth = when (s.down) {
+            1 -> 7 + rng.nextInt(7)                                  // 7-13
+            2 -> (s.distance * 0.9f).toInt().coerceIn(5, 17)
+            else -> (s.distance + 1).coerceIn(5, 25)
         }
+
+        // Shot plays. Uncommon, and they are what makes a defence respect the
+        // deep third - without them coverage sits on everything underneath.
+        val shot = rng.nextFloat() < ctx.offense.scheme.playActionRate * 0.65f
+        val depth = if (shot) targetDepth + 10 else targetDepth
+
+        val available = PassConcept.entries.filter { it.airYards <= s.yardsToGoal + 2 }
+        val pool = available
+            .filter { it.airYards >= depth - 6 && it.airYards <= depth + 6 }
+            .ifEmpty { available.sortedBy { kotlin.math.abs(it.airYards - depth) }.take(3) }
+            .ifEmpty { listOf(PassConcept.FLAT) }
+
         val concept = pool[rng.nextInt(pool.size)]
 
         val playAction = !concept.quick && s.down <= 2 &&
@@ -100,8 +112,11 @@ object PlayCaller {
         val s = ctx.state
         val scheme = ctx.defense.scheme
 
+        // Defences get heavier near the goal line because they can: there is no
+        // deep third to protect, so those bodies come into the box. This is the
+        // real reason the red zone is hard, more than coverage tightening.
         val front = when {
-            s.goalToGo && s.yardsToGoal <= 2 -> DefensiveFront.GOAL_LINE
+            s.yardsToGoal <= 3 -> DefensiveFront.GOAL_LINE
             s.down == 3 && s.distance >= 8 -> DefensiveFront.DIME_FOUR_ONE
             s.distance >= 7 -> DefensiveFront.NICKEL_FOUR_TWO
             scheme.id.contains("34_TWO") -> DefensiveFront.THREE_FOUR_TWO_GAP
@@ -126,11 +141,12 @@ object PlayCaller {
         val extraRushers = if (rng.nextFloat() < blitzRate) 1 + rng.nextInt(2) else 0
 
         // Selling out against the run when it is obviously coming.
-        val boxAdd = when {
+        var boxAdd = when {
             s.down <= 2 && s.distance <= 3 -> 1
             s.distance >= 12 -> -1
             else -> 0
         }
+        if (s.yardsToGoal <= 12) boxAdd += 1
 
         return DefensivePlayCall(
             front = front,

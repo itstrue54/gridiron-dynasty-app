@@ -32,7 +32,10 @@ internal object PassResolution {
         val actionHelp = if (call.playAction) 4.5f else 0f
         val quickRelease = if (call.concept.quick) 9f else 0f
 
-        val protection = linePass - rushStrength + numbers + actionHelp + quickRelease
+        // Road offences fire late because they cannot hear the snap count.
+        val noiseCost = (ctx.crowdNoise / 100f) * t.blocking.crowdNoiseProtectionCost
+
+        val protection = linePass - rushStrength + numbers + actionHelp + quickRelease - noiseCost
         values["protection"] = protection
 
         val pressureChance = logistic(-protection / t.passing.pressureScale)
@@ -107,6 +110,11 @@ internal object PassResolution {
         if (def.doubledTarget == targetIndex) routeWin -= t.coverage.doubleTeamPenalty
         // Deep shots into a loaded shell are harder than the raw matchup says.
         if (call.concept.airYards >= 18) routeWin -= (def.coverage.deepDefenders - 1) * 3.2f
+        // The red zone is hard because the field runs out. Safeties who would
+        // be playing twenty yards deep are now standing on the goal line.
+        if (ctx.state.yardsToGoal <= 20) {
+            routeWin -= (20 - ctx.state.yardsToGoal) * t.coverage.redZoneCompression
+        }
         values["routeWin"] = routeWin
 
         val accuracy = when {

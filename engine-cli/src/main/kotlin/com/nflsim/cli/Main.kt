@@ -11,7 +11,6 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Ratings
 import com.nflsim.engine.ratings.SchemeCatalog
-import com.nflsim.engine.sim.CalibrationHarness
 import com.nflsim.engine.sim.GameCalibration
 import com.nflsim.engine.sim.GameSimulator
 import com.nflsim.engine.sim.GameTeam
@@ -39,7 +38,7 @@ fun main(args: Array<String>) {
         "export" -> export(args, seedFrom(args))
         "import" -> importRoster(args.getOrNull(1))
         "template" -> template(args)
-        "playdemo" -> playDemo(args)
+        "playdemo" -> gameCal(args)
         "snap" -> snap(args)
         "game" -> game(args)
         "gamecal" -> gameCal(args)
@@ -47,7 +46,7 @@ fun main(args: Array<String>) {
         "schemes" -> listSchemes()
         "schemefit" -> schemeFitDemo()
         "rngdemo" -> rngDemo()
-        "calibrate" -> playDemo(args)
+        "calibrate" -> gameCal(args)
         "simseason" -> println("simseason: not implemented yet (milestone M5)")
         else -> help()
     }
@@ -67,10 +66,10 @@ private fun help() {
           export [ABBR] [--out=F] Write rosters to CSV (all teams if no ABBR)
           import FILE             Read a roster CSV and report what it found
           template [--out=F]      Write a starter roster CSV you can fill in
-          playdemo [--plays=N]    Sim N snaps and check the stats against target bands
           snap [--n=N]            Sim N snaps and show the engine's working
           game [HOME] [AWAY]      Sim one full game and print the box score
-          gamecal [--games=N]     Check game-level stats against target bands
+          gamecal [--games=N]     Sim N games and check every stat against target bands
+                                  (playdemo and calibrate are aliases)
           schemes               List the shipped schemes
           schemefit             Show how scheme choice changes a player's value
           rngdemo               Prove the RNG is deterministic
@@ -344,22 +343,6 @@ private fun buildContext(offAbbrev: String, defAbbrev: String, seed: Long): Pair
 private fun intArg(args: Array<String>, name: String, default: Int): Int =
     args.firstOrNull { it.startsWith("--$name=") }?.removePrefix("--$name=")?.toIntOrNull() ?: default
 
-private fun playDemo(args: Array<String>) {
-    val plays = intArg(args, "plays", 60_000)
-    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
-
-    println("Sampling $plays snaps across all ${league.teams.size} teams, both directions.")
-    println()
-
-    val t0 = System.nanoTime()
-    val report = CalibrationHarness.run(league, plays = plays, seed = DEFAULT_SEED)
-    val ms = (System.nanoTime() - t0) / 1_000_000
-
-    print(report.table())
-    println("${report.carries} carries, ${report.attempts} attempts, ${ms}ms")
-    println("Bands come from docs/SPEC.md 13.2. Anything OUT is a dial in TuningTable.")
-}
-
 private fun snap(args: Array<String>) {
     val n = intArg(args, "n", 8)
     val (base, header) = buildContext("KC", "SEA", DEFAULT_SEED)
@@ -492,7 +475,7 @@ private fun game(args: Array<String>) {
 }
 
 private fun gameCal(args: Array<String>) {
-    val games = intArg(args, "games", 240)
+    val games = intArg(args, "games", 500)
     val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
     println("Simulating $games full games across the league.")
     println()

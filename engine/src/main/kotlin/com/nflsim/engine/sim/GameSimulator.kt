@@ -361,16 +361,21 @@ class GameSimulator(
     // ---------------------------------------------------------------
 
     private fun recordStats(state: GameState, offense: Side, result: PlayResult, wasPass: Boolean) {
-        addTeam(offense) { it.copy(plays = it.plays + 1) }
-        if (state.down == 3) addTeam(offense) {
-            it.copy(thirdDownAttempts = it.thirdDownAttempts + 1)
-        }
+        // The flag first. A snap wiped out by penalty is not an offensive play
+        // by NFL convention and must not be counted as one - counting it made
+        // plays per game read six higher than the offence actually ran, which
+        // in turn made the clock look correctly tuned when it was not.
         result.penalty?.let { p ->
             val side = if (p.type.onOffense) offense else offense.other()
             addTeam(side) {
                 it.copy(penalties = it.penalties + 1, penaltyYards = it.penaltyYards + abs(p.yards))
             }
             if (p.type.negatesPlay) return
+        }
+
+        addTeam(offense) { it.copy(plays = it.plays + 1) }
+        if (state.down == 3) addTeam(offense) {
+            it.copy(thirdDownAttempts = it.thirdDownAttempts + 1)
         }
 
         val td = state.yardLine + result.yards >= 100
@@ -380,7 +385,9 @@ class GameSimulator(
                 addTeam(offense) {
                     it.copy(rushAttempts = it.rushAttempts + 1,
                         rushYards = it.rushYards + result.yards,
-                        totalYards = it.totalYards + result.yards)
+                        totalYards = it.totalYards + result.yards,
+                        rushesForLoss = it.rushesForLoss + if (result.yards < 0) 1 else 0,
+                        rushesOfTwentyPlus = it.rushesOfTwentyPlus + if (result.yards >= 20) 1 else 0)
                 }
                 stats.update(result.ballCarrier) {
                     it.copy(carries = it.carries + 1, rushYards = it.rushYards + result.yards,
@@ -411,7 +418,8 @@ class GameSimulator(
             }
             PlayOutcome.INTERCEPTION -> {
                 addTeam(offense) {
-                    it.copy(passAttempts = it.passAttempts + 1, turnovers = it.turnovers + 1)
+                    it.copy(passAttempts = it.passAttempts + 1, turnovers = it.turnovers + 1,
+                        passInterceptions = it.passInterceptions + 1)
                 }
                 stats.update(result.passer) {
                     it.copy(passAttempts = it.passAttempts + 1,
@@ -430,7 +438,8 @@ class GameSimulator(
             }
             PlayOutcome.FUMBLE_LOST -> {
                 addTeam(offense) {
-                    it.copy(rushAttempts = it.rushAttempts + 1, turnovers = it.turnovers + 1)
+                    it.copy(rushAttempts = it.rushAttempts + 1, turnovers = it.turnovers + 1,
+                        fumblesLost = it.fumblesLost + 1)
                 }
                 stats.update(result.ballCarrier) {
                     it.copy(carries = it.carries + 1, fumblesLost = it.fumblesLost + 1)

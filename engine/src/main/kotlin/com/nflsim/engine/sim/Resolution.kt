@@ -83,7 +83,14 @@ internal object RunResolution {
         val numbers = (blockers - def.box) * t.blocking.boxCountPenalty
         val gap = GapSchemeTable.bonus(call.concept, def.front) * t.blocking.gapSchemeScale
 
-        val rawAdvantage = (lineBlock + teHelp + backHelp) - frontStrength + gap + numbers
+        // Nowhere to run to inside the twenty - the safeties are already there.
+        val redZone = if (ctx.state.yardsToGoal <= 20)
+            (20 - ctx.state.yardsToGoal) * t.rushing.redZoneCompression else 0f
+
+        val noiseCost = (ctx.crowdNoise / 100f) * t.blocking.crowdNoiseRunCost
+
+        val rawAdvantage = (lineBlock + teHelp + backHelp) - frontStrength + gap + numbers -
+            redZone - noiseCost
         val advantage = rawAdvantage / ADVANTAGE_DIVISOR
 
         val carrier = if (call.concept == RunConcept.QB_SNEAK || call.concept == RunConcept.QB_KEEP)
