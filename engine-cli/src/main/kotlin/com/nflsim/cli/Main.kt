@@ -11,6 +11,17 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Ratings
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.sim.CalibrationHarness
+import com.nflsim.engine.sim.DefenseUnit
+import com.nflsim.engine.sim.DefensiveFront
+import com.nflsim.engine.sim.DepthChart
+import com.nflsim.engine.sim.OffenseUnit
+import com.nflsim.engine.sim.PlayCaller
+import com.nflsim.engine.sim.PlayContext
+import com.nflsim.engine.sim.PlayOutcome
+import com.nflsim.engine.sim.PlaySimulator
+import com.nflsim.engine.sim.PlayState
+import com.nflsim.engine.sim.Personnel
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.SplitMixRng
@@ -24,11 +35,13 @@ fun main(args: Array<String>) {
         "export" -> export(args, seedFrom(args))
         "import" -> importRoster(args.getOrNull(1))
         "template" -> template(args)
+        "playdemo" -> playDemo(args)
+        "snap" -> snap(args)
         "roster" -> roster(args.getOrNull(1)?.uppercase(), seedFrom(args))
         "schemes" -> listSchemes()
         "schemefit" -> schemeFitDemo()
         "rngdemo" -> rngDemo()
-        "calibrate" -> println("calibrate: not implemented yet (milestone M4)")
+        "calibrate" -> playDemo(args)
         "simseason" -> println("simseason: not implemented yet (milestone M5)")
         else -> help()
     }
@@ -48,6 +61,8 @@ private fun help() {
           export [ABBR] [--out=F] Write rosters to CSV (all teams if no ABBR)
           import FILE             Read a roster CSV and report what it found
           template [--out=F]      Write a starter roster CSV you can fill in
+          playdemo [--plays=N]    Sim N snaps and check the stats against target bands
+          snap [--n=N]            Sim N snaps and show the engine's working
           schemes               List the shipped schemes
           schemefit             Show how scheme choice changes a player's value
           rngdemo               Prove the RNG is deterministic
@@ -292,5 +307,78 @@ private fun template(args: Array<String>) {
     } else {
         java.io.File(target).writeText(text)
         println("Wrote a starter roster file to $target")
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Play engine
+// ---------------------------------------------------------------------------
+
+private fun buildContext(offAbbrev: String, defAbbrev: String, seed: Long): Pair<PlayContext, String> {
+    val league = LeagueGenerator.generate(YEAR, seed)
+    val offTeam = league.teams.first { it.abbrev == offAbbrev }
+    val defTeam = league.teams.first { it.abbrev == defAbbrev }
+    val offScheme = SchemeCatalog[offTeam.offenseScheme]
+    val defScheme = SchemeCatalog[defTeam.defenseScheme]
+    val ctx = PlayContext(
+        offense = OffenseUnit.from(
+            DepthChart.auto(league.roster(offTeam.id), offScheme), Personnel.P_11, offScheme),
+        defense = DefenseUnit.from(
+            DepthChart.auto(league.roster(defTeam.id), defScheme),
+            DefensiveFront.FOUR_THREE_OVER, defScheme),
+        state = PlayState(),
+        crowdNoise = defTeam.stadium.crowdNoise,
+    )
+    val header = "${offTeam.name} (${offScheme.name}) at ${defTeam.name} (${defScheme.name})"
+    return ctx to header
+}
+
+private fun intArg(args: Array<String>, name: String, default: Int): Int =
+    args.firstOrNull { it.startsWith("--$name=") }?.removePrefix("--$name=")?.toIntOrNull() ?: default
+
+private fun playDemo(args: Array<String>) {
+    val plays = intArg(args, "plays", 60_000)
+    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
+
+    println("Sampling $plays snaps across all ${league.teams.size} teams, both directions.")
+    println()
+
+    val t0 = System.nanoTime()
+    val report = CalibrationHarness.run(league, plays = plays, seed = DEFAULT_SEED)
+    val ms = (System.nanoTime() - t0) / 1_000_000
+
+    print(report.table())
+    println("${report.carries} carries, ${report.attempts} attempts, ${ms}ms")
+    println("Bands come from docs/SPEC.md 13.2. Anything OUT is a dial in TuningTable.")
+}
+
+private fun snap(args: Array<String>) {
+    val n = intArg(args, "n", 8)
+    val (base, header) = buildContext("KC", "SEA", DEFAULT_SEED)
+    val rng = SplitMixRng(intArg(args, "seed", 99).toLong())
+
+    println(header)
+    println()
+    repeat(n) {
+        val state = PlayState(
+            down = 1 + rng.nextInt(3),
+            distance = 1 + rng.nextInt(12),
+            yardLine = 20 + rng.nextInt(60),
+        )
+        val ctx = base.copy(state = state)
+        val off = PlayCaller.offense(ctx, rng)
+        val def = PlayCaller.defense(ctx, rng)
+        val r = PlaySimulator.simPlay(ctx, off, def, rng)
+
+        println("%d and %d at the %d".format(state.down, state.distance,
+            if (state.yardLine > 50) 100 - state.yardLine else state.yardLine))
+        println("  ${def.front.label}, ${def.coverage.label}" +
+                if (def.isBlitz) ", ${def.rushers} rushing" else "")
+        println("  ${r.log.narrative}")
+        r.penalty?.let { println("  FLAG: ${it.description}") }
+        val working = r.log.values.entries.sortedBy { it.key }
+            .joinToString("  ") { "%s=%.2f".format(it.key, it.value) }
+        if (working.isNotEmpty()) println("  [$working]")
+        println()
     }
 }

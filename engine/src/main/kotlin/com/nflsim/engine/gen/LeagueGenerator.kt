@@ -1,0 +1,84 @@
+package com.nflsim.engine.gen
+
+import com.nflsim.engine.model.League
+import com.nflsim.engine.model.Player
+import com.nflsim.engine.model.PlayerId
+import com.nflsim.engine.model.Team
+import com.nflsim.engine.model.TeamId
+import com.nflsim.engine.model.TeamSeed
+import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.rng.Rng
+import com.nflsim.engine.rng.SplitMixRng
+import kotlinx.serialization.json.Json
+
+/**
+ * Builds a complete 32-team league from a single seed.
+ *
+ * Every team gets its own RNG stream keyed by abbreviation, so regenerating
+ * one team reproduces it exactly and adding a team later does not shuffle
+ * everybody else's players.
+ */
+object LeagueGenerator {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    val teamSeeds: List<TeamSeed> by lazy {
+        val text = LeagueGenerator::class.java.getResourceAsStream("/teams.json")
+            ?.bufferedReader()?.use { it.readText() }
+            ?: error("/teams.json not found on the classpath")
+        json.decodeFromString<List<TeamSeed>>(text)
+    }
+
+    fun generate(year: Int, seed: Long): League {
+        val root = SplitMixRng(seed)
+        val players = mutableListOf<Player>()
+        val teams = mutableListOf<Team>()
+        var nextPlayerId = 1
+
+        teamSeeds.forEachIndexed { index, teamSeed ->
+            val teamId = TeamId(index + 1)
+            val teamRng = root.split("team=${teamSeed.abbrev}")
+
+            val offense = SchemeCatalog.offensive[teamRng.nextInt(SchemeCatalog.offensive.size)]
+            val defense = SchemeCatalog.defensive[teamRng.nextInt(SchemeCatalog.defensive.size)]
+
+            // Team quality. Most teams cluster near average; a few are genuinely
+            // good or genuinely bad, which is what makes a league worth watching.
+            val strength = teamRng.gaussian(0f, 3.6f).coerceIn(-8f, 8f)
+
+            val roster = RosterGenerator.generate(
+                teamId = teamId,
+                strength = strength,
+                year = year,
+                rng = teamRng,
+            ) { PlayerId(nextPlayerId++) }
+
+            players += roster
+            teams += Team(
+                id = teamId,
+                city = teamSeed.city,
+                nickname = teamSeed.nickname,
+                abbrev = teamSeed.abbrev,
+                conference = teamSeed.conference,
+                division = teamSeed.division,
+                stadium = teamSeed.stadium,
+                marketSize = teamSeed.marketSize,
+                offenseScheme = offense.id,
+                defenseScheme = defense.id,
+                roster = roster.map { it.id },
+            )
+        }
+
+        return League(seed = seed, year = year, teams = teams, players = players)
+    }
+
+    /** Regenerates one team's roster in isolation - same seed, same players. */
+    fun rosterFor(abbrev: String, year: Int, seed: Long, teamId: TeamId): List<Player> {
+        val rng: Rng = SplitMixRng(seed).split("team=$abbrev")
+        rng.nextInt(SchemeCatalog.offensive.size)
+        rng.nextInt(SchemeCatalog.defensive.size)
+        rng.gaussian(0f, 3.6f)
+        var id = 1
+        return RosterGenerator.generate(teamId, 0f, year, rng) { PlayerId(id++) }
+    }
+}
