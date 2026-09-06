@@ -14,6 +14,9 @@ import com.nflsim.engine.ratings.SchemeCatalog
 import com.nflsim.engine.model.Conference
 import com.nflsim.engine.season.LeagueLeaders
 import com.nflsim.engine.season.PlayoffRound
+import com.nflsim.engine.season.DynastyEngine
+import com.nflsim.engine.season.DynastyPhase
+import com.nflsim.engine.season.Schedule
 import com.nflsim.engine.season.SeasonSimulator
 import com.nflsim.engine.season.Standings
 import com.nflsim.engine.sim.GameCalibration
@@ -48,6 +51,7 @@ fun main(args: Array<String>) {
         "game" -> game(args)
         "gamecal" -> gameCal(args)
         "season" -> season(args)
+        "dynasty" -> dynasty(args)
         "roster" -> roster(args.getOrNull(1)?.uppercase(), seedFrom(args))
         "schemes" -> listSchemes()
         "schemefit" -> schemeFitDemo()
@@ -75,6 +79,7 @@ private fun help() {
           snap [--n=N]            Sim N snaps and show the engine's working
           game [HOME] [AWAY]      Sim one full game and print the box score
           season [--seed=N]       Sim a full season: standings, playoffs, leaders, awards
+          dynasty [--years=N]     Sim N years and report how the league holds up
           gamecal [--games=N]     Sim N games and check every stat against target bands
                                   (playdemo and calibrate are aliases)
           schemes               List the shipped schemes
@@ -573,4 +578,169 @@ private fun season(args: Array<String>) {
     leaders("SACKS", LeagueLeaders.sacks(league, s.playerStats, 5))
 
     println("${s.results.size} regular season games, ${s.playoffs.size} playoff games, ${ms}ms")
+}
+
+// ---------------------------------------------------------------------------
+// Multi-season
+//
+// A single season can look perfect while a decade quietly falls apart: talent
+// drifting, one roster never declining, the draft failing to replenish. This
+// is the only view that shows it.
+// ---------------------------------------------------------------------------
+
+private fun dynasty(args: Array<String>) {
+    val years = intArg(args, "years", 10)
+    val seed = intArg(args, "seed", 2026).toLong()
+    val league = LeagueGenerator.generate(YEAR, seed)
+    val userTeam = league.teams.first { it.abbrev == "KC" }
+
+    var d = DynastyEngine.start(league, YEAR, seed, userTeam.id)
+
+    println("Simulating $years seasons from ${d.year}. You are the ${userTeam.name}.")
+    println()
+    println("%-6s %-24s %-22s %-8s %6s %8s %6s %5s".format(
+        "YEAR", "CHAMPION", "MVP", "YOUR REC", "MEAN", "STARTERS", "AGE", "80+"))
+    println("-".repeat(92))
+
+    val champions = mutableListOf<String>()
+    val flow = mutableListOf<Pair<Int, com.nflsim.engine.offseason.OffseasonReport>>()
+    val t0 = System.nanoTime()
+
+    repeat(years) {
+        repeat(Schedule.WEEKS) { d = DynastyEngine.advance(d) }
+        d = DynastyEngine.advance(d)   // playoffs
+
+        val champ = d.champion?.let { d.league.team(com.nflsim.engine.model.TeamId(it)).name } ?: "-"
+        champions += champ
+        val yourRecord = d.record().recordText
+
+        val mvp = com.nflsim.engine.season.AwardVoting
+            .decide(d.league, d.standings().records, d.playerStats, d.year)
+            .mostValuablePlayer
+            ?.let { d.league.player(com.nflsim.engine.model.PlayerId(it.player)).name } ?: "-"
+
+        // Rate every player against the scheme he actually plays in. Scoring
+        // a defence against its own offence's scheme reads as a league-wide
+        // slide that is really just the wrong yardstick.
+        val overalls = d.league.teams.flatMap { t ->
+            val off = SchemeCatalog[t.offenseScheme]
+            val def = SchemeCatalog[t.defenseScheme]
+            d.league.roster(t.id).map { overall(it, if (it.position.isOffense) off else def) }
+        }
+
+        // What the league actually looks like on the field: the best player at
+        // each position on each roster. Depth players drag the mean around
+        // without changing a single game.
+        val starters = d.league.teams.flatMap { t ->
+            val off = SchemeCatalog[t.offenseScheme]
+            val def = SchemeCatalog[t.defenseScheme]
+            d.league.roster(t.id).groupBy { it.position }.values.map { group ->
+                group.maxOf { overall(it, if (it.position.isOffense) off else def) }
+            }
+        }
+        val ages = d.league.players.filter { it.teamId != null }.map { it.age(d.year) }
+        // The top tier. A league keeps its shape only if it replaces these as
+        // fast as age takes them away.
+        val elite = overalls.count { it >= 80 }
+
+        println("%-6d %-24s %-22s %-8s %6.1f %8.1f %6.1f %5d".format(
+            d.year, champ.take(24), mvp.take(22), yourRecord,
+            overalls.average(), starters.average(), ages.average(), elite))
+
+        d = DynastyEngine.advance(d)   // offseason, into the next year
+        d.lastOffseason?.let { flow += d.year to it }
+    }
+
+    val ms = (System.nanoTime() - t0) / 1_000_000
+    println()
+
+    val distinct = champions.toSet().size
+    val repeats = champions.groupingBy { it }.eachCount().filterValues { it > 1 }
+    println("HEALTH CHECK")
+    println("  %-34s %d of %d".format("distinct champions", distinct, years))
+    if (repeats.isNotEmpty()) {
+        repeats.entries.sortedByDescending { it.value }.take(3).forEach { (team, n) ->
+            println("    %-32s %d titles".format(team, n))
+        }
+    }
+
+    val report = d.lastOffseason
+    if (report != null) {
+        println("  %-34s %d".format("retirements last offseason", report.retirementCount))
+        println("  %-34s %d".format("free agents signed", report.signingCount))
+        println("  %-34s %d".format("cap casualties", report.capCasualties))
+    }
+
+    val rosterSizes = d.league.teams.map { d.league.roster(it.id).size }
+    println("  %-34s %d to %d".format("roster sizes", rosterSizes.min(), rosterSizes.max()))
+    println("  %-34s %d".format("players in the league", d.league.players.size))
+
+    val byAge = d.league.players.filter { it.teamId != null }.groupBy {
+        when (val a = it.age(d.year)) {
+            in 0..24 -> "21-24"
+            in 25..27 -> "25-27"
+            in 28..30 -> "28-30"
+            in 31..33 -> "31-33"
+            else -> "34+"
+        }
+    }
+    // Where the league's talent comes from and where it goes. A league that
+    // slides is losing more than it drafts or develops; this says which.
+    if (flow.isNotEmpty()) {
+        println()
+        println("TALENT FLOW")
+        val brackets = listOf("21-24", "25-27", "28-30", "31+")
+        println("  %-6s %8s %7s %8s %7s %6s %8s   %s".format(
+            "YEAR", "RETIRED", "MEAN", "DRAFTED", "MEAN", "70+", "NET DEV",
+            brackets.joinToString(" ") { "%7s".format(it) }))
+        flow.forEach { (year, r) ->
+            println("  %-6d %8d %7.1f %8d %7.1f %6d %8.2f   %s".format(
+                year, r.retirementCount, r.retiredMean,
+                r.draftedCount, r.draftedMean, r.draftedStarters, r.developmentNet,
+                brackets.joinToString(" ") { "%7.2f".format(r.developmentByAge[it] ?: 0f) }))
+        }
+    }
+
+    // One league is one sample. Champion turnover swings hard on a single
+    // seed, so judging parity from one run is guessing with extra steps.
+    val runs = intArg(args, "runs", 1)
+    if (runs > 1) {
+        println()
+        println("PARITY ACROSS $runs LEAGUES")
+        println("  %-10s %10s %10s".format("SEED", "DISTINCT", "MOST TITLES"))
+        var distinctSum = 0
+        var mostSum = 0
+        repeat(runs) { k ->
+            val s = seed + k * 101L
+            val lg = LeagueGenerator.generate(YEAR, s)
+            var sim = DynastyEngine.start(
+                lg, YEAR, s, lg.teams.first { it.abbrev == "KC" }.id)
+            val champs = mutableListOf<String>()
+            repeat(years) {
+                repeat(Schedule.WEEKS) { sim = DynastyEngine.advance(sim) }
+                sim = DynastyEngine.advance(sim)   // playoffs
+                champs += sim.champion
+                    ?.let { sim.league.team(com.nflsim.engine.model.TeamId(it)).name } ?: "-"
+                sim = DynastyEngine.advance(sim)   // offseason
+            }
+            val n = champs.toSet().size
+            val most = champs.groupingBy { it }.eachCount().values.maxOrNull() ?: 0
+            distinctSum += n
+            mostSum += most
+            println("  %-10d %10d %10d".format(s, n, most))
+        }
+        println("  %-10s %10.1f %10.1f".format(
+            "average", distinctSum.toFloat() / runs, mostSum.toFloat() / runs))
+    }
+
+    println()
+    println("AGE DISTRIBUTION")
+    listOf("21-24", "25-27", "28-30", "31-33", "34+").forEach { bucket ->
+        val n = byAge[bucket]?.size ?: 0
+        val pct = n * 100.0 / d.league.players.count { it.teamId != null }
+        println("  %-8s %5d  %s".format(bucket, n, "#".repeat((pct / 2).toInt())))
+    }
+
+    println()
+    println("$years seasons in ${ms}ms")
 }
