@@ -25,6 +25,7 @@ class GameTeam(
     val id: TeamId get() = team.id
 }
 
+@kotlinx.serialization.Serializable
 data class GameResult(
     val home: TeamId,
     val away: TeamId,
