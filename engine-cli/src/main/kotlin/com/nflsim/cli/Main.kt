@@ -12,6 +12,10 @@ import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Ratings
 import com.nflsim.engine.ratings.SchemeCatalog
 import com.nflsim.engine.sim.CalibrationHarness
+import com.nflsim.engine.sim.GameCalibration
+import com.nflsim.engine.sim.GameSimulator
+import com.nflsim.engine.sim.GameTeam
+import com.nflsim.engine.sim.Side
 import com.nflsim.engine.sim.DefenseUnit
 import com.nflsim.engine.sim.DefensiveFront
 import com.nflsim.engine.sim.DepthChart
@@ -37,6 +41,8 @@ fun main(args: Array<String>) {
         "template" -> template(args)
         "playdemo" -> playDemo(args)
         "snap" -> snap(args)
+        "game" -> game(args)
+        "gamecal" -> gameCal(args)
         "roster" -> roster(args.getOrNull(1)?.uppercase(), seedFrom(args))
         "schemes" -> listSchemes()
         "schemefit" -> schemeFitDemo()
@@ -63,6 +69,8 @@ private fun help() {
           template [--out=F]      Write a starter roster CSV you can fill in
           playdemo [--plays=N]    Sim N snaps and check the stats against target bands
           snap [--n=N]            Sim N snaps and show the engine's working
+          game [HOME] [AWAY]      Sim one full game and print the box score
+          gamecal [--games=N]     Check game-level stats against target bands
           schemes               List the shipped schemes
           schemefit             Show how scheme choice changes a player's value
           rngdemo               Prove the RNG is deterministic
@@ -381,4 +389,117 @@ private fun snap(args: Array<String>) {
         if (working.isNotEmpty()) println("  [$working]")
         println()
     }
+}
+
+// ---------------------------------------------------------------------------
+// Full games
+// ---------------------------------------------------------------------------
+
+private fun gameTeam(league: com.nflsim.engine.model.League, abbrev: String, aggression: Float) =
+    league.teams.first { it.abbrev == abbrev }.let { t ->
+        GameTeam(t, league.roster(t.id),
+            SchemeCatalog[t.offenseScheme], SchemeCatalog[t.defenseScheme], aggression)
+    }
+
+private fun game(args: Array<String>) {
+    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
+    val homeAbbr = args.getOrNull(1)?.takeIf { !it.startsWith("--") }?.uppercase() ?: "KC"
+    val awayAbbr = args.getOrNull(2)?.takeIf { !it.startsWith("--") }?.uppercase() ?: "SEA"
+    val seed = intArg(args, "seed", 7).toLong()
+
+    if (league.teams.none { it.abbrev == homeAbbr } || league.teams.none { it.abbrev == awayAbbr }) {
+        println("Teams: ${league.teams.joinToString(" ") { it.abbrev }}")
+        return
+    }
+
+    val home = gameTeam(league, homeAbbr, 0.5f)
+    val away = gameTeam(league, awayAbbr, 0.5f)
+    val g = GameSimulator(home, away).simulate(SplitMixRng(seed))
+
+    println("=".repeat(72))
+    println("%s at %s".format(away.team.name, home.team.name))
+    println("%s, %s".format(home.team.stadium.name, if (home.team.stadium.domed) "dome" else "outdoors"))
+    println("=".repeat(72))
+    println()
+    println("FINAL   %-26s %3d".format(away.team.name, g.awayScore))
+    println("        %-26s %3d".format(home.team.name, g.homeScore))
+    println()
+
+    val h = g.boxScore.home
+    val a = g.boxScore.away
+    println("%-28s %10s %10s".format("", awayAbbr, homeAbbr))
+    println("-".repeat(50))
+    fun row(label: String, x: Any, y: Any) = println("%-28s %10s %10s".format(label, x, y))
+    row("First downs", a.firstDowns, h.firstDowns)
+    row("Total yards", a.totalYards, h.totalYards)
+    row("  Rushing", "%d-%d".format(a.rushAttempts, a.rushYards), "%d-%d".format(h.rushAttempts, h.rushYards))
+    row("  Passing", a.passYards, h.passYards)
+    row("Comp-Att", "%d-%d".format(a.completions, a.passAttempts), "%d-%d".format(h.completions, h.passAttempts))
+    row("Sacked-yards", "%d-%d".format(a.sacksAllowed, -a.sackYards), "%d-%d".format(h.sacksAllowed, -h.sackYards))
+    row("Third downs", "%d-%d".format(a.thirdDownConversions, a.thirdDownAttempts),
+        "%d-%d".format(h.thirdDownConversions, h.thirdDownAttempts))
+    row("Fourth downs", "%d-%d".format(a.fourthDownConversions, a.fourthDownAttempts),
+        "%d-%d".format(h.fourthDownConversions, h.fourthDownAttempts))
+    row("Red zone TDs", "%d-%d".format(a.redZoneTouchdowns, a.redZoneTrips),
+        "%d-%d".format(h.redZoneTouchdowns, h.redZoneTrips))
+    row("Turnovers", a.turnovers, h.turnovers)
+    row("Penalties-yards", "%d-%d".format(a.penalties, a.penaltyYards), "%d-%d".format(h.penalties, h.penaltyYards))
+    row("Possession", a.possessionText, h.possessionText)
+    println()
+
+    fun leaders(side: Side, teamObj: GameTeam) {
+        println("${teamObj.team.name}")
+        val ids = teamObj.roster.map { it.id.v }.toSet()
+        val lines = g.boxScore.players.filterKeys { it in ids }
+        val byId = teamObj.roster.associateBy { it.id.v }
+
+        lines.entries.filter { it.value.passAttempts > 0 }
+            .sortedByDescending { it.value.passYards }.take(1).forEach { (id, s) ->
+                println("  PASS  %-22s %d-%d, %d yds, %d TD, %d INT, rating %.1f".format(
+                    byId[id]!!.name, s.completions, s.passAttempts, s.passYards,
+                    s.passTouchdowns, s.interceptionsThrown, s.passerRating))
+            }
+        lines.entries.filter { it.value.carries > 0 }
+            .sortedByDescending { it.value.rushYards }.take(3).forEach { (id, s) ->
+                println("  RUSH  %-22s %d car, %d yds (%.1f), %d TD".format(
+                    byId[id]!!.name, s.carries, s.rushYards, s.yardsPerCarry, s.rushTouchdowns))
+            }
+        lines.entries.filter { it.value.receptions > 0 }
+            .sortedByDescending { it.value.receivingYards }.take(4).forEach { (id, s) ->
+                println("  REC   %-22s %d rec on %d, %d yds, %d TD".format(
+                    byId[id]!!.name, s.receptions, s.targets, s.receivingYards, s.receivingTouchdowns))
+            }
+        println()
+    }
+    leaders(Side.AWAY, away)
+    leaders(Side.HOME, home)
+
+    println("SCORING DRIVES")
+    g.drives.filter { it.isScore }.forEach { d ->
+        val who = if (d.offense == Side.HOME) homeAbbr else awayAbbr
+        println("  Q%d %2d:%02d  %-4s %-16s %2d plays, %3d yds, %d:%02d".format(
+            d.startQuarter, d.startClock / 60, d.startClock % 60, who,
+            d.ending.label, d.plays, d.yards, d.seconds / 60, d.seconds % 60))
+    }
+    println()
+    println("Play by play: ${g.playByPlay.size} entries. Add --pbp to print them.")
+    if (args.any { it == "--pbp" }) {
+        println()
+        g.playByPlay.forEach {
+            println("Q%d %s  %s".format(it.quarter, it.clockText, it.text))
+        }
+    }
+}
+
+private fun gameCal(args: Array<String>) {
+    val games = intArg(args, "games", 240)
+    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
+    println("Simulating $games full games across the league.")
+    println()
+    val t0 = System.nanoTime()
+    val report = GameCalibration.run(league, games = games, seed = DEFAULT_SEED)
+    val ms = (System.nanoTime() - t0) / 1_000_000
+    print(report.table())
+    println("${report.plays} total plays, ${ms}ms")
+    println("Bands from docs/SPEC.md 13.2 - the half that needs whole games to measure.")
 }
