@@ -33,13 +33,13 @@ data class TuningTable(
         /** Completion probability at a dead-even matchup, before depth. */
         val baseCompletion: Float = 0.80f,
         /** Completion penalty per yard of intended air distance. */
-        val depthPenaltyPerYard: Float = 0.0120f,
+        val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
         val interceptionBase: Float = 0.025f,
         /** How much a badly-lost route matchup raises interception odds. */
         val interceptionCoverageScale: Float = 0.042f,
-        val yacScale: Float = 1.06f,
+        val yacScale: Float = 0.43f,
         val throwawayRate: Float = 0.34f,
     )
 

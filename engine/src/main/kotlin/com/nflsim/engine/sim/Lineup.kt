@@ -42,6 +42,12 @@ data class OffenseUnit(
     val receivers: List<Player>,
     val line: List<Player>,
     val scheme: Scheme,
+    /**
+     * The whole backfield depth chart, not just who lines up. Carries rotate
+     * through this - without it the starter takes every handoff and finishes
+     * the year with 649 attempts.
+     */
+    val backfield: List<Player> = backs,
 ) {
     /** Everyone eligible to catch a pass, ordered by how good they are. */
     val skillPlayers: List<Player> get() = receivers + tightEnds + backs
@@ -60,6 +66,8 @@ data class OffenseUnit(
                 line = listOf(Position.LT, Position.LG, Position.C, Position.RG, Position.RT)
                     .mapNotNull { depth.starter(it) },
                 scheme = scheme,
+                backfield = depth.at(Position.RB).take(3)
+                    .ifEmpty { depth.at(Position.FB).take(1) },
             )
         }
     }

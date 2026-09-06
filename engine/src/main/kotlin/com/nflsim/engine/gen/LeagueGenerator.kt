@@ -44,7 +44,12 @@ object LeagueGenerator {
 
             // Team quality. Most teams cluster near average; a few are genuinely
             // good or genuinely bad, which is what makes a league worth watching.
-            val strength = teamRng.gaussian(0f, 3.6f).coerceIn(-8f, 8f)
+            //
+            // The spread was wider and it produced too many blowouts - only 17%
+            // of games finished within a field goal against a real 18-26%. A
+            // league where the gap between best and worst is enormous is not
+            // more dramatic, it is less: every result is known in advance.
+            val strength = teamRng.gaussian(0f, 2.9f).coerceIn(-6.5f, 6.5f)
 
             val roster = RosterGenerator.generate(
                 teamId = teamId,

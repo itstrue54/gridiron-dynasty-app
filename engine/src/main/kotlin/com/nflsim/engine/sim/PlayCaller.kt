@@ -98,11 +98,23 @@ object PlayCaller {
             else -> if (rng.nextFloat() < 0.25f) 1 else 0
         }
 
-        // Progression: the best receiver is not always the read.
-        val target = when {
-            rng.nextFloat() < 0.42f -> 0
-            rng.nextFloat() < 0.55f -> 1
-            else -> 2
+        // Where the ball goes, correlated with how deep it is going.
+        // skillPlayers orders WR1, WR2, WR3, tight ends, then backs.
+        //
+        // Choosing target and concept independently meant running backs were
+        // being thrown twenty-two yard posts, which cratered completion
+        // percentage and doubled the interception rate. Backs catch flats and
+        // checkdowns; nobody throws a go route to a fullback.
+        val shares = when {
+            concept.airYards <= 6 -> floatArrayOf(0.21f, 0.15f, 0.10f, 0.24f, 0.30f)
+            concept.airYards <= 15 -> floatArrayOf(0.29f, 0.23f, 0.16f, 0.23f, 0.09f)
+            else -> floatArrayOf(0.37f, 0.29f, 0.20f, 0.13f, 0.01f)
+        }
+        var roll = rng.nextFloat()
+        var target = shares.size - 1
+        for (i in shares.indices) {
+            roll -= shares[i]
+            if (roll <= 0f) { target = i; break }
         }
 
         return OffensivePlayCall.Pass(concept, Personnel.P_11, playAction, extraProtectors, target)

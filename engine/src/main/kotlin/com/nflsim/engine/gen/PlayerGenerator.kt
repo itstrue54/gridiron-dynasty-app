@@ -24,6 +24,40 @@ import kotlin.math.roundToInt
  */
 object PlayerGenerator {
 
+    /**
+     * Ratings a position uses but that do not appear in its overall formula.
+     *
+     * A running back's overall does not weigh route running, so without this
+     * these came out at the irrelevant-position baseline of 34 - and a back
+     * running a checkdown with 34 route running is uncoverable in the wrong
+     * direction. They generate at a discount to the player's level: real, but
+     * not what he is paid for.
+     */
+    private val SECONDARY: Map<PositionGroup, Set<RatingId>> = mapOf(
+        PositionGroup.RB to setOf(
+            RatingId.ROUTE_SHORT, RatingId.ROUTE_MID, RatingId.RELEASE,
+            RatingId.CATCH_IN_TRAFFIC, RatingId.RUN_BLOCK, RatingId.LEAD_BLOCK,
+        ),
+        PositionGroup.TE to setOf(
+            RatingId.ROUTE_DEEP, RatingId.RELEASE, RatingId.SPECTACULAR_CATCH,
+            RatingId.PASS_BLOCK_POWER, RatingId.LEAD_BLOCK,
+        ),
+        PositionGroup.WR to setOf(
+            RatingId.CARRYING, RatingId.BREAK_TACKLE, RatingId.ELUSIVENESS,
+            RatingId.RUN_BLOCK,
+        ),
+        PositionGroup.QB to setOf(RatingId.CARRYING, RatingId.BALL_SECURITY),
+        PositionGroup.OL to setOf(RatingId.PASS_BLOCK_FINESSE, RatingId.RUN_BLOCK_FINESSE),
+        PositionGroup.EDGE to setOf(RatingId.MAN_COVERAGE, RatingId.ZONE_COVERAGE, RatingId.HIT_POWER),
+        PositionGroup.DT to setOf(RatingId.HIT_POWER),
+        PositionGroup.LB to setOf(RatingId.POWER_MOVES, RatingId.FINESSE_MOVES, RatingId.PRESS),
+        PositionGroup.CB to setOf(RatingId.PURSUIT, RatingId.HIT_POWER, RatingId.SPECTACULAR_CATCH),
+        PositionGroup.S to setOf(RatingId.PRESS, RatingId.BLOCK_SHEDDING, RatingId.SPECTACULAR_CATCH),
+    )
+
+    /** How far below his position ratings a player's secondary skills sit. */
+    private const val SECONDARY_DISCOUNT = 12
+
     /** Ratings every player has some version of, regardless of position. */
     private val UNIVERSAL = setOf(
         RatingId.SPEED, RatingId.ACCELERATION, RatingId.AGILITY, RatingId.STRENGTH,
@@ -80,12 +114,16 @@ object PlayerGenerator {
     ): Ratings {
         val weighted = OverallWeights.forPosition(position).keys
         val relevant = weighted + UNIVERSAL
+        val secondary = SECONDARY[position.group] ?: emptySet()
         val offsets = ArchetypeProfile.offsetsFor(archetype)
 
         val values = IntArray(RatingId.COUNT)
         for (rating in RatingId.entries) {
             val base = if (rating in relevant) {
                 target + (offsets[rating] ?: 0) + rng.gaussian(0f, 4.5f).roundToInt()
+            } else if (rating in secondary) {
+                target - SECONDARY_DISCOUNT + (offsets[rating] ?: 0) +
+                    rng.gaussian(0f, 6f).roundToInt()
             } else {
                 // A quarterback does not have useful man coverage. Keep the
                 // irrelevant parts of the sheet low so player cards read true.

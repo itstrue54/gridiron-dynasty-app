@@ -23,6 +23,18 @@ data class StatLine(
     val sacks: Int = 0,
     val interceptions: Int = 0,
 ) {
+    operator fun plus(other: StatLine) = StatLine(
+        passAttempts + other.passAttempts, completions + other.completions,
+        passYards + other.passYards, passTouchdowns + other.passTouchdowns,
+        interceptionsThrown + other.interceptionsThrown, timesSacked + other.timesSacked,
+        carries + other.carries, rushYards + other.rushYards,
+        rushTouchdowns + other.rushTouchdowns, fumblesLost + other.fumblesLost,
+        targets + other.targets, receptions + other.receptions,
+        receivingYards + other.receivingYards, receivingTouchdowns + other.receivingTouchdowns,
+        tackles + other.tackles, sacks + other.sacks, interceptions + other.interceptions,
+    )
+
+    val totalTouchdowns: Int get() = rushTouchdowns + receivingTouchdowns
     val touches: Int get() = carries + receptions
     val scrimmageYards: Int get() = rushYards + receivingYards
     val yardsPerCarry: Double get() = if (carries == 0) 0.0 else rushYards.toDouble() / carries

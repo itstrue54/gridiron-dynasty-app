@@ -100,3 +100,21 @@ class SplitMixRng(private val seed: Long) : Rng {
         const val DOUBLE_DIVISOR = 9_007_199_254_740_992.0
     }
 }
+
+/**
+ * Fisher-Yates, drawing from the engine's own Rng.
+ *
+ * Deliberately not kotlin.random's shuffled(): that takes a kotlin.random.Random
+ * and would pull from a stream outside the league seed, which quietly breaks the
+ * guarantee that a save reproduces exactly (docs/SPEC.md 5.11).
+ */
+fun <T> Iterable<T>.shuffled(rng: Rng): List<T> {
+    val out = toMutableList()
+    for (i in out.indices.reversed()) {
+        val j = rng.nextInt(i + 1)
+        val swap = out[i]
+        out[i] = out[j]
+        out[j] = swap
+    }
+    return out
+}

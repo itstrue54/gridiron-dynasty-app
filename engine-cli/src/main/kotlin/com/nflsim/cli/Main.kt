@@ -11,6 +11,11 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Ratings
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.model.Conference
+import com.nflsim.engine.season.LeagueLeaders
+import com.nflsim.engine.season.PlayoffRound
+import com.nflsim.engine.season.SeasonSimulator
+import com.nflsim.engine.season.Standings
 import com.nflsim.engine.sim.GameCalibration
 import com.nflsim.engine.sim.GameSimulator
 import com.nflsim.engine.sim.GameTeam
@@ -42,12 +47,13 @@ fun main(args: Array<String>) {
         "snap" -> snap(args)
         "game" -> game(args)
         "gamecal" -> gameCal(args)
+        "season" -> season(args)
         "roster" -> roster(args.getOrNull(1)?.uppercase(), seedFrom(args))
         "schemes" -> listSchemes()
         "schemefit" -> schemeFitDemo()
         "rngdemo" -> rngDemo()
         "calibrate" -> gameCal(args)
-        "simseason" -> println("simseason: not implemented yet (milestone M5)")
+        "simseason" -> season(args)
         else -> help()
     }
 }
@@ -68,6 +74,7 @@ private fun help() {
           template [--out=F]      Write a starter roster CSV you can fill in
           snap [--n=N]            Sim N snaps and show the engine's working
           game [HOME] [AWAY]      Sim one full game and print the box score
+          season [--seed=N]       Sim a full season: standings, playoffs, leaders, awards
           gamecal [--games=N]     Sim N games and check every stat against target bands
                                   (playdemo and calibrate are aliases)
           schemes               List the shipped schemes
@@ -485,4 +492,85 @@ private fun gameCal(args: Array<String>) {
     print(report.table())
     println("${report.plays} total plays, ${ms}ms")
     println("Bands from docs/SPEC.md 13.2 - the half that needs whole games to measure.")
+}
+
+// ---------------------------------------------------------------------------
+// Season
+// ---------------------------------------------------------------------------
+
+private fun season(args: Array<String>) {
+    val seed = intArg(args, "seed", 2026).toLong()
+    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
+
+    val t0 = System.nanoTime()
+    val s = SeasonSimulator(league, YEAR, seed).simulate()
+    val ms = (System.nanoTime() - t0) / 1_000_000
+
+    println("=".repeat(74))
+    println("  ${s.year} SEASON".padEnd(50) + "seed $seed")
+    println("=".repeat(74))
+    println()
+
+    val standings = Standings(league, s.results, SplitMixRng(seed))
+    Conference.entries.forEach { conference ->
+        val seeds = s.seedsFor(conference)
+        println("${conference.label.uppercase()} CONFERENCE")
+        com.nflsim.engine.model.Division.entries.forEach { division ->
+            println("  ${division.name.lowercase().replaceFirstChar { it.uppercase() }}")
+            standings.division(conference, division).forEach { id ->
+                val r = s.record(id)
+                val seed = seeds.indexOf(id).let { if (it >= 0) "(${it + 1})" else "" }
+                println("    %-24s %-7s  PF %4d  PA %4d  %+4d  %s".format(
+                    league.team(id).name, r.recordText, r.pointsFor, r.pointsAgainst,
+                    r.pointDifferential, seed))
+            }
+        }
+        println()
+    }
+
+    println("PLAYOFFS")
+    PlayoffRound.entries.forEach { round ->
+        val games = s.playoffs.filter { it.round == round }
+        if (games.isEmpty()) return@forEach
+        println("  ${round.label}")
+        games.forEach { g ->
+            val h = league.team(g.home); val a = league.team(g.away)
+            val mark = { id: com.nflsim.engine.model.TeamId -> if (g.winner == id) "*" else " " }
+            println("    %s(%d) %-22s %3d    %s(%d) %-22s %3d".format(
+                mark(g.away), g.awaySeed, a.name, g.awayScore,
+                mark(g.home), g.homeSeed, h.name, g.homeScore))
+        }
+    }
+    println()
+    s.champion?.let { println("  CHAMPION: ${league.team(it).name}") }
+    println()
+
+    println("AWARDS")
+    fun award(label: String, w: com.nflsim.engine.season.AwardWinner?) {
+        if (w == null) return
+        val p = league.player(com.nflsim.engine.model.PlayerId(w.player))
+        val team = league.teamsById.values.firstOrNull { it.id.v == w.team }?.abbrev ?: ""
+        println("  %-28s %-22s %-4s %-5s %s".format(label, p.name, team, p.position.label, w.summary))
+    }
+    award("Most Valuable Player", s.awards.mostValuablePlayer)
+    award("Offensive Player of the Year", s.awards.offensivePlayerOfTheYear)
+    award("Defensive Player of the Year", s.awards.defensivePlayerOfTheYear)
+    award("Offensive Rookie of the Year", s.awards.offensiveRookieOfTheYear)
+    award("Defensive Rookie of the Year", s.awards.defensiveRookieOfTheYear)
+    println()
+
+    fun leaders(title: String, entries: List<LeagueLeaders.Entry>) {
+        println(title)
+        entries.forEach { e ->
+            val team = e.team?.let { league.team(it).abbrev } ?: ""
+            println("  %5d  %-22s %-4s %s".format(e.value, e.name, team, e.detail))
+        }
+        println()
+    }
+    leaders("PASSING YARDS", LeagueLeaders.passingYards(league, s.playerStats, 5))
+    leaders("RUSHING YARDS", LeagueLeaders.rushingYards(league, s.playerStats, 5))
+    leaders("RECEIVING YARDS", LeagueLeaders.receivingYards(league, s.playerStats, 5))
+    leaders("SACKS", LeagueLeaders.sacks(league, s.playerStats, 5))
+
+    println("${s.results.size} regular season games, ${s.playoffs.size} playoff games, ${ms}ms")
 }

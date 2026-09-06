@@ -99,7 +99,7 @@ penalties.perPlayBase          0.095
 
 ## Pass 2 — September 2026 (milestone M3/M4)
 
-**17 of 18 bands passing**, measured over 500 games.
+**18 of 18 bands passing**, measured over 500 games.
 
 | Group | Metric | Result | Target |
 |---|---|---|---|
@@ -112,19 +112,21 @@ penalties.perPlayBase          0.095
 | Passing | interception rate | 0.026 | 0.020 – 0.028 |
 | Passing | sack rate | 0.070 | 0.055 – 0.085 |
 | Discipline | penalties per snap | 0.099 | 0.06 – 0.12 |
-| Scoring | points per team per game | 21.4 | 21.0 – 24.5 |
-| Scoring | yards per team per game | 357 | 320 – 360 |
+| Scoring | points per team per game | 21.1 | 21.0 – 24.5 |
+| Scoring | yards per team per game | 356 | 320 – 360 |
 | Scoring | plays per team per game | 64.6 | 62 – 67 |
-| Efficiency | third down conversion | 0.40 | 0.37 – 0.42 |
+| Efficiency | third down conversion | 0.41 | 0.37 – 0.42 |
 | Efficiency | red zone touchdown rate | 0.58 | 0.53 – 0.60 |
 | Efficiency | turnovers per team per game | 1.15 | 1.0 – 1.8 |
 | Efficiency | penalties per team per game | 6.4 | 5.5 – 7.0 |
 | Outcomes | home win rate | 0.57 | 0.52 – 0.60 |
-| Outcomes | games decided by 3 or less | 0.18 | 0.18 – 0.26 |
+| Outcomes | games decided by 3 or less | 0.19 | 0.18 – 0.26 |
 
-The last one sits on its band floor. With 500 games the standard error on that
-statistic is around 0.018, so it is not distinguishable from the middle of the
-band and is not worth tuning toward.
+That last figure read 0.18 and failed at 240 games, then passed at 0.19 with
+500. Nothing changed but the sample size. The standard error on a proportion
+that size is around 0.026 at 240 games and 0.018 at 500, so the earlier reading
+was never distinguishable from the middle of the band. Worth remembering before
+tuning toward a metric that is sitting on its own noise floor.
 
 ### The two real lessons
 
@@ -195,11 +197,78 @@ through that mechanism - road teams commit more penalties (6.78 against 6.03),
 gain fewer yards (350 against 364) and score less (20.4 against 22.3). The 0.57
 home win rate is a consequence of those, not an input.
 
+
+---
+
+## Pass 3 — September 2026 (milestone M5)
+
+**18 of 18 bands passing**, measured over 500 games. Re-tuned after the season
+simulator exposed several bugs that the play and game harnesses could not see,
+because they only appear across a whole schedule.
+
+### What the season print-out found
+
+**A rotation that was not mutual.** Each division chose its intra-conference
+opponent with an offset formula, so division 0 could choose 1 while 1 chose 2 -
+leaving division 1 playing eight extra games. Records came out 11-4-1 and
+10-9-1, which read as football until you count them. Fixed by using the three
+fixed pairings of four divisions, cycling every three years.
+
+**A silent fallback that hid it.** The week assigner had a "never leave a season
+unplayable" branch that quietly stuffed leftover games into any week with room.
+That is what turned a broken rotation into plausible standings instead of a
+crash. It is gone, and there is now an assertion at construction that every team
+comes out at exactly seventeen games. A generator that quietly produces a
+twenty game season is worse than one that stops.
+
+**Greedy week filling does not work.** Two teams who still owe each other a game
+can each have every remaining week booked. Each week needs a perfect matching on
+the available teams over unplayed games; the assigner backtracks and branches on
+the most constrained team, which is what makes the search finish instantly.
+
+**Everything concentrated on one player per position.** The starting back took
+every carry (649 in a season), the best pass rusher took every sack (62), and
+the top three receivers took every target. Carries now rotate 60/28/12, sacks
+are awarded weighted by rush skill, and targets spread across receivers, tight
+ends and backs.
+
+**Positions had no ratings for skills they use but are not rated on.** Relevant
+ratings were taken from the overall formula, and a running back's overall does
+not weigh route running - so backs generated with 34 route running and could not
+catch. Invisible until targets started going to them, at which point completion
+percentage fell to 0.60 and the interception rate hit 0.035. Secondary skills
+now generate twelve points below a player's level.
+
+**Playoff statistics were inflating regular season leaderboards.** A deep run
+adds four games and was winning rushing titles on volume. Kept separate now.
+
+### The trap worth remembering
+
+Fixing the route-running bug made the numbers *worse*: five bands went out at
+once. `yacScale` had been tuned in an earlier pass while receivers had 34
+elusiveness, so the coefficient had silently absorbed the defect. Correcting the
+ratings released about two extra yards a catch.
+
+That is the cost of tuning against symptoms rather than causes - the dial ends up
+encoding the bug, and the bug fix then looks like a regression. The tell was that
+five bands moved together in the same direction, which is the signature of a
+global change rather than a local one.
+
+### Method notes added this pass
+
+- When several bands fail at once, find the one thing upstream of all of them.
+  Every time dials were turned on a multi-band failure in this project it was
+  wrong; every time the shared cause was found it was right.
+- Two metrics failing in opposite directions is one cause, not two.
+- A guard that fails on its own sampling noise is worse than no guard, because
+  it teaches you to ignore it. The regression test now runs 260 games rather
+  than 90 for exactly this reason.
+
 ---
 
 ## Still unmeasured
 
-These need a full season before they mean anything, and are what M5 unlocks:
+Multi-season shape, which needs the offseason (M7) before it means anything:
 
-best record in the league · teams at 4 wins or fewer · standard deviation of
-team wins · repeat division winners year over year
+repeat division winners year over year · how fast a rebuild turns around ·
+whether a dynasty can sustain itself · draft class quality drift

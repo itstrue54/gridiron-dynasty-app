@@ -93,8 +93,13 @@ internal object RunResolution {
             redZone - noiseCost
         val advantage = rawAdvantage / ADVANTAGE_DIVISOR
 
-        val carrier = if (call.concept == RunConcept.QB_SNEAK || call.concept == RunConcept.QB_KEEP)
-            ctx.offense.quarterback else ctx.offense.backs.first()
+        // Backs rotate. A lead back takes most of the work but not all of it,
+        // which is why a depth chart matters and why RB2 is worth rostering.
+        val carrier = when {
+            call.concept == RunConcept.QB_SNEAK || call.concept == RunConcept.QB_KEEP ->
+                ctx.offense.quarterback
+            else -> pickCarrier(ctx.offense.backfield.ifEmpty { ctx.offense.backs }, rng)
+        }
 
         val vision = rate(carrier, RatingId.VISION, offScheme)
         val elusiveness = rate(carrier, RatingId.ELUSIVENESS, offScheme)
@@ -182,6 +187,17 @@ internal object RunResolution {
     /** Weighted toward the players most likely to be near the ball. */
     private fun List<Player>.randomBy(rng: Rng): Player? =
         if (isEmpty()) null else this[rng.nextInt(size)]
+
+    /** Roughly a 60/28/12 split, the shape of a real committee. */
+    private fun pickCarrier(backs: List<Player>, rng: Rng): Player {
+        if (backs.size <= 1) return backs.first()
+        val roll = rng.nextFloat()
+        return when {
+            roll < 0.60f -> backs[0]
+            roll < 0.88f -> backs.getOrElse(1) { backs[0] }
+            else -> backs.getOrElse(2) { backs[0] }
+        }
+    }
 
     private const val ADVANTAGE_DIVISOR = 26f
 

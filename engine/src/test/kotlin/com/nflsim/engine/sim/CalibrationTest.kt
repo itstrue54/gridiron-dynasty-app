@@ -20,12 +20,16 @@ import kotlin.test.assertTrue
  */
 class CalibrationTest {
 
-    private val tolerance = 0.30 // fraction of a band's width
+    // Fraction of a band's width. The sample here is smaller than a real
+    // calibration pass so CI stays fast, and several of these metrics are
+    // proportions whose standard error at this size is a meaningful share of
+    // the band. A genuine regression moves a metric far further than this.
+    private val tolerance = 0.30
 
     @Test
     fun `the league still looks like football`() {
         val league = LeagueGenerator.generate(2026, 2026L)
-        val report = GameCalibration.run(league, games = 90, seed = 2026L)
+        val report = GameCalibration.run(league, games = 260, seed = 2026L)
 
         val badlyOff = report.failures.filter { it.miss > tolerance }
         assertTrue(
@@ -42,9 +46,9 @@ class CalibrationTest {
     @Test
     fun `the sample is big enough to mean something`() {
         val league = LeagueGenerator.generate(2026, 2026L)
-        val report = GameCalibration.run(league, games = 90, seed = 2026L)
-        assertTrue(report.carries > 2_000, "only ${report.carries} carries in the sample")
-        assertTrue(report.attempts > 3_000, "only ${report.attempts} pass attempts in the sample")
+        val report = GameCalibration.run(league, games = 260, seed = 2026L)
+        assertTrue(report.carries > 6_000, "only ${report.carries} carries in the sample")
+        assertTrue(report.attempts > 9_000, "only ${report.attempts} pass attempts in the sample")
     }
 
     @Test

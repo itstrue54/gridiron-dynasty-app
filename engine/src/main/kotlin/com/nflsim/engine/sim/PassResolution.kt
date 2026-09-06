@@ -8,6 +8,25 @@ import kotlin.math.roundToInt
 
 internal object PassResolution {
 
+    private fun weightedRusher(
+        rushers: List<Player>,
+        scheme: com.nflsim.engine.ratings.Scheme,
+        rng: Rng,
+    ): Player? {
+        if (rushers.isEmpty()) return null
+        val weights = rushers.map {
+            (rate(it, RatingId.FINESSE_MOVES, scheme) + rate(it, RatingId.POWER_MOVES, scheme))
+                .toFloat()
+        }
+        var roll = rng.nextFloat() * weights.sum()
+        weights.forEachIndexed { i, w ->
+            roll -= w
+            if (roll <= 0f) return rushers[i]
+        }
+        return rushers.last()
+    }
+
+
     fun resolve(
         ctx: PlayContext,
         call: OffensivePlayCall.Pass,
@@ -51,7 +70,9 @@ internal object PassResolution {
                 // An uncapped exponential draw produced a 27 yard loss.
                 val rawLoss = (3f + rng.exponential(4.0f)).coerceAtMost(15f).roundToInt()
                 val loss = -minOf(rawLoss, (ctx.state.yardLine - 1).coerceAtLeast(1))
-                val sacker = rushers.maxByOrNull { rate(it, RatingId.FINESSE_MOVES, dfs) }
+                // Weighted by rush skill rather than always the best man, or
+                // one edge rusher finishes the season with 62 sacks.
+                val sacker = weightedRusher(rushers, dfs, rng)
                 return PlayResult(
                     outcome = PlayOutcome.SACK,
                     yards = loss,
