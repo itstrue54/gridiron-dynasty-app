@@ -18,9 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Both guards ignore comment lines - otherwise the documentation that
+      # explains a rule trips the rule that it explains.
       - name: engine must not import android
         run: |
-          if [ -d engine/src ] && grep -rn --include=*.kt "^import android\." engine/src; then
+          HITS=$(grep -rn --include=*.kt "^import android\." engine/src 2>/dev/null \
+                 | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(\*|//|/\*)' || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
             echo "::error::engine imported android.* - that belongs in app or data (SPEC 2.2)"
             exit 1
           fi
@@ -28,10 +33,13 @@ jobs:
 
       - name: engine must be deterministic
         run: |
-          if [ -d engine/src/main ] && grep -rnE --include=*.kt \
-             "Math\.random|java\.util\.Random|System\.currentTimeMillis|System\.nanoTime|UUID\.randomUUID|kotlin\.random\.Random\.Default" \
-             engine/src/main; then
-            echo "::error::Nondeterministic call in engine - use the injected Rng (SPEC 5.11)"
+          HITS=$(grep -rnE --include=*.kt \
+                 "Math\.random|java\.util\.Random|System\.currentTimeMillis|System\.nanoTime|UUID\.randomUUID|kotlin\.random\.Random\.Default" \
+                 engine/src/main 2>/dev/null \
+                 | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(\*|//|/\*)' || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "::error::Nondeterministic call in :engine - use the injected Rng (SPEC 5.11)"
             exit 1
           fi
           echo "OK: engine is deterministic"
@@ -45,15 +53,16 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run engine tests
-        run: |
-          if ./gradlew projects | grep -q "engine"; then
-            ./gradlew :engine:test --stacktrace
-          else
-            echo "engine module does not exist yet - skipping"
-          fi
+        run: ./gradlew :engine:test :data:test --stacktrace
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-test-report
+          path: engine/build/reports/tests/
 
   android:
     name: Android build
@@ -64,7 +73,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --stacktrace
