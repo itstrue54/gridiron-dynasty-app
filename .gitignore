@@ -1,0 +1,57 @@
+# .gitignore for NFL Sim Text
+
+# ---- Gradle & build output ----
+.gradle/
+build/
+*/build/
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+local.properties
+
+# ---- Secrets: NEVER commit these ----
+keystore.properties
+*.jks
+*.keystore
+google-services.json
+secrets.properties
+*.env
+
+# ---- Android Studio / IntelliJ ----
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+*.iml
+*.ipr
+*.iws
+.navigation/
+freeline/
+freeline_project_description.json
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Logs, temp, profiling ----
+*.log
+*.hprof
+/reports/
+/out/
+
+# ---- Project-specific ----
+# Local sim output and calibration scratch runs.
+# Committed calibration reports live in docs/CALIBRATION.md instead.
+/engine-cli/out/
+*.sav
+*.sav.gz
+/testdata/generated/
+
+# ---- Keep these (negations for clarity) ----
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradle/libs.versions.toml
