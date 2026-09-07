@@ -168,17 +168,11 @@ object OffseasonEngine {
 
         // ---- 2. development -----------------------------------------
         state = stepDepthChart(ctx, state)
-        state = stepDevelopment(ctx, state, rng)
 
         // Bridge back to the names the rest of this function still uses.
         // Every further extraction shortens this list; when it is empty the
         // run function is a phase loop.
-        val developments = state.developments
         val depthRank = state.depthRank
-        val deltaSum = state.deltaSum
-        val deltaCount = state.deltaCount
-        val ageSum = state.ageSum
-        val ageCount = state.ageCount
 
         // ---- 3. contracts expire ------------------------------------
         state = stepContractsExpire(ctx, state)
@@ -233,6 +227,12 @@ object OffseasonEngine {
         state = stepRosterLimit(ctx, state)
         // ---- 13. players who did not catch on -----------------------
         state = stepResolveUnsigned(ctx, state, rng)
+        state = stepDevelopment(ctx, state, rng)
+        val developments = state.developments
+        val deltaSum = state.deltaSum
+        val deltaCount = state.deltaCount
+        val ageSum = state.ageSum
+        val ageCount = state.ageCount
         val retirements = state.retirements
         val gapSignings = state.gapSignings
         val signings = extendedSignings + auction.signings + gapSignings
