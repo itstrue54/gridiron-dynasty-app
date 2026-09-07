@@ -201,60 +201,21 @@ object OffseasonEngine {
         // What everyone did last season is what teams actually pay for
         // (ADR-007). Stats are season-scoped and still in hand here; they are
         // cleared when the year rolls over at the end of this function.
-        val rosteredAfterCap = afterCap.filter { it.teamId != null }
-        val capRosters = rosteredAfterCap.groupBy { it.teamId!! }
-        val leagueSpace = league.teams.sumOf { t ->
-            CapManagement.spaceFor(
-                capRosters[t.id] ?: emptyList(), newYear, deadMoney[t.id.v] ?: 0).toLong()
-        }.coerceAtLeast(1L)
-
-        // The draft will fill 224 of the league's open spots for nothing.
-        val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE -
-            rosteredAfterCap.size - DraftRunner.ROUNDS * League.TEAM_COUNT).coerceAtLeast(1)
-        val marketPool = afterCap
-            .filter { it.teamId == null }
-            .sortedByDescending {
-                MarketValue.score(it, sideScheme(null, it.position), newYear) *
-                    (production[it.id.v] ?: 1f)
-            }
-            .take(openSpots)
-
-        val pricer = MarketValue.pricer(
-            rostered = marketPool,
-            scheme = { p -> sideScheme(p.teamId, p.position) },
-            year = newYear,
-            payroll = (leagueSpace * SPEND_SHARE).toLong(),
-            cap = CapManagement.capFor(newYear),
-            production = production,
-        )
+        // ---- 5. what the market can pay -----------------------------
+        state = stepBuildPricer(ctx, state)
 
         // ---- 6. what players want -----------------------------------
-        // Players are not furniture. A veteran on a bad team, a good player
-        // buried on the depth chart, or an underpaid one will say so - and
-        // some of them ask out.
-        val intentCtx = PlayerIntent.Context(
-            winPct = winPct,
-            scheme = ::sideScheme,
-            pricer = pricer,
-            depthRank = depthRank,
-            year = newYear,
-        )
-        val wishes = PlayerIntent.assess(
-            league, afterCap, intentCtx, rng.split("wishes|$newYear"))
-        val (afterTrades, deadAfterTrades, trades) = PlayerIntent.resolveTrades(
-            league, afterCap, wishes, deadMoney, intentCtx, rng.split("trades|$newYear"))
+        state = stepPlayerIntent(ctx, state, rng)
 
         // ---- 7. cut the contracts that are not worth it --------------
-        // February. Not compliance - judgement. This player costs more than
-        // he is worth and the money buys somebody better.
-        val (afterPrune, deadAfterPrune, valueCuts) = CapManagement.pruneBadValue(
-            league = league,
-            players = afterTrades,
-            year = newYear,
-            scheme = ::sideScheme,
-            price = { p, sch -> pricer.annual(p, sch, newYear) },
-            deadMoney = deadAfterTrades,
-        )
+        state = stepPruneBadValue(ctx, state)
+
+        val pricer = state.requirePricer()
+        val wishes = state.wishes
+        val trades = state.trades
+        val valueCuts = state.valueCuts
+        val afterPrune = state.players
+        val deadAfterPrune = state.deadMoney
 
         // ---- 8. keep your own ----------------------------------------
         val extended = Extensions.run(
@@ -399,7 +360,7 @@ object OffseasonEngine {
             extensionSpend = extended.signings.sumOf { it.value },
             auctionSpend = auction.signings.sumOf { it.value },
             fillSpend = gapSignings.sumOf { it.value },
-            underContract = rosteredAfterCap.size / League.TEAM_COUNT,
+            underContract = state.underContract / League.TEAM_COUNT,
             overpaidBy30 = overpayRatios.count { it > 1.3f },
             overpaidBy50 = overpayRatios.count { it > 1.5f },
             overpaidBy70 = overpayRatios.count { it > 1.7f },
@@ -431,6 +392,85 @@ object OffseasonEngine {
     }
 
     // ---- extracted steps ---------------------------------------------
+
+    /** Not a SPEC 7 phase - setup the phases after it depend on. */
+    private fun stepBuildPricer(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val rostered = state.players.filter { it.teamId != null }
+        val capRosters = rostered.groupBy { it.teamId!! }
+        val leagueSpace = ctx.league.teams.sumOf { t ->
+            CapManagement.spaceFor(
+                capRosters[t.id] ?: emptyList(), ctx.newYear,
+                state.deadMoney[t.id.v] ?: 0).toLong()
+        }.coerceAtLeast(1L)
+        val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE -
+            rostered.size - DraftRunner.ROUNDS * League.TEAM_COUNT).coerceAtLeast(1)
+        val marketPool = state.players
+            .filter { it.teamId == null }
+            .sortedByDescending {
+                MarketValue.score(it, ctx.scheme(null, it.position), ctx.newYear) *
+                    (ctx.production[it.id.v] ?: 1f)
+            }
+            .take(openSpots)
+        val pricer = MarketValue.pricer(
+            rostered = marketPool,
+            scheme = { p -> ctx.scheme(p.teamId, p.position) },
+            year = ctx.newYear,
+            payroll = (leagueSpace * SPEND_SHARE).toLong(),
+            cap = CapManagement.capFor(ctx.newYear),
+            production = ctx.production,
+        )
+        return state.copy(pricer = pricer, underContract = rostered.size)
+    }
+
+    /** Not a SPEC 7 phase in itself - what players want feeds several. */
+    private fun stepPlayerIntent(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val intentCtx = PlayerIntent.Context(
+            winPct = ctx.winPct,
+            scheme = ctx.scheme,
+            pricer = state.requirePricer(),
+            depthRank = state.depthRank,
+            year = ctx.newYear,
+        )
+        val wishes = PlayerIntent.assess(
+            ctx.league, state.players, intentCtx, rng.split("wishes|${ctx.newYear}"))
+        val (players, deadMoney, trades) = PlayerIntent.resolveTrades(
+            ctx.league, state.players, wishes, state.deadMoney, intentCtx,
+            rng.split("trades|${ctx.newYear}"))
+        return state.copy(
+            players = players,
+            deadMoney = deadMoney,
+            wishes = state.wishes + wishes,
+            trades = state.trades + trades,
+        )
+    }
+
+    /** Part of SPEC 7 phase 4. Judgement, not compliance. */
+    private fun stepPruneBadValue(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val pricer = state.requirePricer()
+        val (players, deadMoney, cuts) = CapManagement.pruneBadValue(
+            league = ctx.league,
+            players = state.players,
+            year = ctx.newYear,
+            scheme = ctx.scheme,
+            price = { p, sch -> pricer.annual(p, sch, ctx.newYear) },
+            deadMoney = state.deadMoney,
+        )
+        return state.copy(
+            players = players,
+            deadMoney = deadMoney,
+            valueCuts = state.valueCuts + cuts,
+        )
+    }
 
     /**
      * Part of SPEC 7 phase 4. Deals that ran out do exactly that.
