@@ -85,3 +85,44 @@ Consequences: Selection, not rating inflation, is where the league's talent
 comes from. Nothing about what a prospect is worth changed. Undrafted players
 still flow into free agency. A deeper board also makes scouting error matter,
 since there is more of a board to be wrong about.
+
+## ADR-006: Player prices are relative to the league, not absolute
+Date: 2026-09-07
+Status: Accepted
+
+Context: The price curve was calibrated against a league whose starters average
+79, which is what the generator produces. Leagues settle around 73. The curve
+is steeply convex, so a few points of league-wide compression collapsed the
+cost of a roster from about 440m to 60m - teams spent 63m of a 255m cap, no
+team came within 10m of it, and the cap forced no releases in ten seasons.
+
+Decision: `MarketValue.score()` gives a player's standing in arbitrary units;
+`MarketValue.pricer()` turns standing into money by dividing the money actually
+chasing players (total league cap space x 0.85) by the total standing of the
+free agents who will fill the league's open roster spots.
+
+Consequences: A cap-rich offseason with a thin market is expensive, which is
+how it works in reality, and the system stays honest as ratings drift instead
+of needing recalibration every time the talent curve moves. Mean cap space fell
+from 192m to 54m. One contract is capped at 24% of a team's cap, near where
+the real quarterback market sits.
+
+## ADR-007: Salaries are paid on production, not ratings
+Date: 2026-09-07
+Status: Accepted
+
+Context: Prices were computed from ratings. Nobody in a front office can see a
+rating (SPEC 4.6 says the same thing about the UI); they see what a player did.
+
+Decision: `econ/Production` reduces a player's season to one number, normalised
+against the median at his position group, and that multiplier scales his price.
+Season stats only - career totals would pay a thirty-four year old for what he
+did at twenty-six. Linemen and specialists have no counting stats and are
+priced on ability, roughly as they are paid in reality.
+
+Consequences: Two properties the market needs, for free. A player coming off a
+big year gets paid for it even when the year was partly his offence, his
+quarterback or luck - which is where genuinely bad contracts come from, and bad
+contracts are what make the cap a game rather than an accounting exercise. And
+a good player who sat behind a starter is cheap, because he has not proved
+anything, so scouting properly is rewarded.

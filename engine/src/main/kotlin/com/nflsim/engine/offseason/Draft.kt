@@ -1,7 +1,6 @@
 package com.nflsim.engine.offseason
 
 import com.nflsim.engine.gen.PlayerGenerator
-import com.nflsim.engine.econ.MarketValue
 import com.nflsim.engine.model.Archetype
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerId
@@ -248,7 +247,4 @@ object TeamNeeds {
         return options[rng.nextInt(options.size)]
     }
 
-    /** Delegates to the one price curve the whole league uses (econ/MarketValue). */
-    fun marketValue(player: Player, scheme: Scheme, year: Int): Int =
-        MarketValue.annual(player, scheme, year)
 }

@@ -648,6 +648,25 @@ Day-based, not instant:
 3. Players sign when an offer clears their reservation price, with top FAs holding out a few days to let the market form.
 4. Prices deflate as the pool thins; bargains appear on days 5–10. Your patience becomes a real decision.
 
+**Implemented (M8 stage 1).** `engine/offseason/FreeAgency` runs the ten days.
+Asking prices open at 1.20x market and decay 4.5% a day; teams look at four
+targets a day, pay a premium for positions they need, and each front office has
+its own appetite until `GmProfile` (§8.2) exists. Players worth more than a
+quarter of the cap hold out three days to let the market form. Whatever is
+unsigned after ten days is filled at the minimum.
+
+The auction exists for two things that only happen when teams bid against each
+other: the winner's curse (a player signs with the team that values him most,
+which is usually the team that is wrong about him) and need premiums (the team
+without a quarterback pays more for one). Both are how a hole on the roster
+becomes a hole on the cap sheet two years later.
+
+Still to do: restructures and extensions during the season, franchise and
+transition tags, and proactive cap cuts - a team that wants a player it cannot
+afford should be able to release a bad contract to fund the signing. Until
+that exists, teams only cut to become compliant, and a team that is never over
+the cap never cuts anyone.
+
 ### 8.4 Trades
 
 Value function combining a draft-pick chart (make it a tunable table, not Jimmy Johnson gospel), player surplus value (production − cap hit, adjusted for age and years of control), and team-fit modifiers. AI teams both propose and evaluate. Deadline behavior shifts based on whether they're in contention.

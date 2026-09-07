@@ -57,7 +57,7 @@ object RosterGenerator {
     ): List<Player> {
         val roster = mutableListOf<Player>()
         val depths = mutableListOf<Int>()
-        val quotes = mutableListOf<Int>()
+        val quotes = mutableListOf<Float>()
         for ((position, slots) in TEMPLATE) {
             slots.forEachIndexed { depth, slotTarget ->
                 // Strength matters most at the top of the depth chart: a good
@@ -88,8 +88,8 @@ object RosterGenerator {
                 )
                 roster += player
                 depths += depth
-                quotes += (MarketValue.annual(position, target, player.age(year)) *
-                    careerDiscount(depth, player.age(year))).roundToInt()
+                quotes += MarketValue.score(position, target, player.age(year)) *
+                    careerDiscount(depth, player.age(year))
             }
         }
         return sign(roster, depths, quotes, year, rng)
@@ -107,7 +107,7 @@ object RosterGenerator {
     private fun sign(
         roster: List<Player>,
         depths: List<Int>,
-        quotes: List<Int>,
+        quotes: List<Float>,
         year: Int,
         rng: Rng,
     ): List<Player> {
@@ -149,9 +149,13 @@ object RosterGenerator {
         // roster costs this year is not what it averages. Pricing off the
         // average left teams 15% over the cap on day one.
         val budget = (TeamFinances.LEAGUE_CAP * CAP_TARGET).roundToInt()
-        val trial = build(1f)
+        // Scores are relative, so the first pass converts them to money at a
+        // rate that spends the budget; the second corrects for what the deals
+        // actually cost once back-loading and the salary floor are applied.
+        val opening = if (quotes.sum() <= 0f) 1f else budget / quotes.sum()
+        val trial = build(opening)
         val committed = trial.sumOf { it.capHit(year) }
-        return if (committed <= budget) trial else build(budget.toFloat() / committed)
+        return if (committed <= budget) trial else build(opening * budget / committed)
     }
 
     /**

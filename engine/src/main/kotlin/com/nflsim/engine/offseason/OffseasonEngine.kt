@@ -1,6 +1,8 @@
 package com.nflsim.engine.offseason
 
 import com.nflsim.engine.gen.PlayerGenerator
+import com.nflsim.engine.econ.MarketValue
+import com.nflsim.engine.econ.Production
 import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
@@ -37,7 +39,19 @@ data class Retirement(
 data class Development(val player: Int, val name: String, val position: String, val delta: Int, val note: String?)
 
 @Serializable
-data class Signing(val player: Int, val name: String, val position: String, val team: Int, val value: Int)
+data class Signing(
+    val player: Int,
+    val name: String,
+    val position: String,
+    val team: Int,
+    /** Annual value, in thousands. */
+    val value: Int,
+    val years: Int = 1,
+    /** What he was worth. value over market is what the auction cost. */
+    val market: Int = 0,
+    /** How many teams were bidding. One is a bargain; four is a problem. */
+    val suitors: Int = 1,
+)
 
 /** What happened between seasons, for the news screen. */
 @Serializable
@@ -54,6 +68,14 @@ data class OffseasonReport(
     val capCasualties: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
+    /** Auction signings only, and what they cost against market. */
+    val auctionCount: Int = 0,
+    val auctionOverpay: Float = 0f,
+    val auctionContested: Int = 0,
+    /** Cap space left league-wide once the market closed, per team. */
+    val meanCapSpace: Int = 0,
+    /** Teams with less than ten million to their name. */
+    val teamsTightOnCap: Int = 0,
     // ---- talent flow, for the health check ----
     /** Mean overall of everyone who left the league this offseason. */
     val retiredMean: Float = 0f,
@@ -77,8 +99,11 @@ data class OffseasonReport(
  *
  * Order matters and is not arbitrary: players retire before anyone develops
  * (a 38 year old should not gain a point on his way out), contracts expire
- * before the draft so needs are honest, and rosters are filled after the draft
- * so a team that took a corner in round one is not still shopping for one.
+ * before the draft so needs are honest, the cap is enforced before the draft
+ * so team needs reflect the roster a team can afford, and free agency runs
+ * after the draft so a team that took a corner in round one is not still
+ * shopping for one. Whatever the market leaves unfilled is filled last, at
+ * the minimum, by players nobody bid on.
  */
 object OffseasonEngine {
 
@@ -185,20 +210,72 @@ object OffseasonEngine {
             it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
         }
 
-        // ---- 6. fill the rosters ------------------------------------
-        val (filled, signings) = fillRosters(
+        // ---- 6. what the market can pay -----------------------------
+        // Prices are set by the money actually chasing players, not by a
+        // fixed curve (ADR-006). Total cap space is what teams have to spend;
+        // the free agents who will fill the league's open roster spots are
+        // what they are spending it on. A cap-rich offseason with a thin
+        // market is expensive, which is exactly how it works in reality.
+        val rosteredNow = afterDraft.filter { it.teamId != null }
+        val byTeamNow = rosteredNow.groupBy { it.teamId!! }
+        val leagueSpace = league.teams.sumOf { t ->
+            CapManagement.spaceFor(
+                byTeamNow[t.id] ?: emptyList(), newYear, deadMoney[t.id.v] ?: 0).toLong()
+        }.coerceAtLeast(1L)
+
+        // What everyone did last season, which is what teams actually pay for.
+        // Stats are season-scoped and still in hand at this point; they are
+        // cleared when the year rolls over a few lines below.
+        val production = Production.index(league.players, dynasty.playerStats)
+
+        val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE - rosteredNow.size)
+            .coerceAtLeast(1)
+        val marketPool = (afterDraft + undraftedPool)
+            .filter { it.teamId == null }
+            .sortedByDescending {
+                MarketValue.score(it, sideScheme(null, it.position), newYear) *
+                    (production[it.id.v] ?: 1f)
+            }
+            .take(openSpots)
+
+        val pricer = MarketValue.pricer(
+            rostered = marketPool,
+            scheme = { p -> sideScheme(p.teamId, p.position) },
+            year = newYear,
+            payroll = (leagueSpace * SPEND_SHARE).toLong(),
+            cap = CapManagement.capFor(newYear),
+            production = production,
+        )
+
+        // ---- 7. free agency -----------------------------------------
+        // Ten days of bidding. Teams overpay here, and that is the point: it
+        // is what puts a team against the cap next spring.
+        val auction = FreeAgency.run(
             league = league,
             players = afterDraft + undraftedPool,
             year = newYear,
             deadMoney = deadMoney,
             scheme = ::sideScheme,
-            rng = rng.split("fa|$newYear"),
+            pricer = pricer,
+            rng = rng.split("auction|$newYear"),
         )
 
-        // ---- 7. cut to the limit ------------------------------------
+        // ---- 8. fill whatever the market did not ---------------------
+        val (filled, gapSignings) = fillRosters(
+            league = league,
+            players = auction.players,
+            year = newYear,
+            deadMoney = deadMoney,
+            scheme = ::sideScheme,
+            pricer = pricer,
+            rng = rng.split("fa|$newYear"),
+        )
+        val signings = auction.signings + gapSignings
+
+        // ---- 9. cut to the limit ------------------------------------
         val trimmed = enforceRosterLimit(league, filled, newYear, ::sideScheme)
 
-        // ---- 8. players who did not catch on ------------------------
+        // ---- 10. players who did not catch on -----------------------
         // Getting cut and not signing anywhere is how most careers actually
         // end - not with a decision in February but with a phone that stops
         // ringing in August. Older players take the hint; younger ones hang
@@ -207,7 +284,7 @@ object OffseasonEngine {
             trimmed, newYear, ::sideScheme, rng.split("waiver|$newYear"))
         retirements += washedOut
 
-        // ---- 9. rebuild ---------------------------------------------
+        // ---- 11. rebuild --------------------------------------------
         val byTeam = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val teams: List<Team> = league.teams.map { t ->
             t.copy(
@@ -226,6 +303,14 @@ object OffseasonEngine {
         val schedule = ScheduleGenerator.generate(
             newLeague, newYear, rng.split("schedule|$newYear"))
 
+        // How much room the league has left. A cap that never binds is a
+        // number on a screen, and the only way to know is to look.
+        val finalRosters = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
+        val capSpace = league.teams.map { t ->
+            CapManagement.spaceFor(
+                finalRosters[t.id] ?: emptyList(), newYear, (deadMoney[t.id.v] ?: 0) / 2)
+        }
+
         val report = OffseasonReport(
             year = newYear,
             retirementCount = retirements.size,
@@ -235,6 +320,20 @@ object OffseasonEngine {
             draftPicks = draft.picks.take(32),
             signings = signings.sortedByDescending { it.value }.take(20),
             signingCount = signings.size,
+            auctionCount = auction.signings.size,
+            // Measured over every auction signing, not the twenty the news
+            // screen keeps. Computing a statistic from a list truncated for
+            // display is how "free agents signed" read exactly 20 every year.
+            auctionOverpay = auction.signings
+                .filter { it.market > 0 }
+                .let { all ->
+                    if (all.isEmpty()) 0f
+                    else all.sumOf { it.value.toDouble() }
+                        .div(all.sumOf { it.market.toDouble() }).toFloat()
+                },
+            auctionContested = auction.signings.count { it.suitors > 1 },
+            meanCapSpace = capSpace.average().toInt(),
+            teamsTightOnCap = capSpace.count { it < 10_000 },
             releases = releases.sortedByDescending { it.overall }.take(20),
             capCasualties = releases.size,
             retiredMean = retirements.map { it.overall }.averageOrZero(),
@@ -372,28 +471,6 @@ object OffseasonEngine {
     private const val ROSTER_LIMIT = 53
 
     /** Roughly eight per team, which is about what a real wire holds. */
-    /**
-     * How a front office ranks a player for a roster spot: what he is now, how
-     * well he fits, and how much of him is left.
-     *
-     * Two players of equal ability are not equal to a team - the younger one is
-     * cheaper, has upside, and is not about to fall off. Without this term the
-     * league ages a year every eight seasons: a declining thirty-two year old
-     * still outrates a rookie, so he keeps the roster spot, keeps losing three
-     * points a year, and never reaches the free agency that would end his
-     * career. Rosters skew young because of decisions like this one, not
-     * because players spontaneously retire.
-     */
-    private fun rosterValue(player: Player, scheme: Scheme, year: Int): Float =
-        overall(player, scheme) + schemeFit(player, scheme) * 8f -
-            (player.age(year) - AGE_CLIFF).coerceAtLeast(0) * AGE_PENALTY
-
-    /** Age past which a team starts discounting a player. */
-    private const val AGE_CLIFF = 29
-
-    /** Rating points of discount per year past the cliff. */
-    private const val AGE_PENALTY = 2.2f
-
     /** Brackets match the age histogram in the CLI health check. */
     fun ageBracket(age: Int): String = when {
         age <= 24 -> "21-24"
@@ -404,6 +481,13 @@ object OffseasonEngine {
 
     private fun List<Int>.averageOrZero(): Float =
         if (isEmpty()) 0f else sum().toFloat() / size
+
+    /**
+     * How much of its cap space the league commits in a single offseason.
+     * Not all of it: teams keep room for the season's injuries and for the
+     * extensions they will hand their own players in the spring.
+     */
+    private const val SPEND_SHARE = 0.85f
 
     private const val FREE_AGENT_POOL = 260
 
@@ -423,6 +507,7 @@ object OffseasonEngine {
         year: Int,
         deadMoney: Map<Int, Int>,
         scheme: (TeamId?, Position) -> Scheme,
+        pricer: MarketValue.Pricer,
         rng: Rng,
     ): Pair<List<Player>, List<Signing>> {
         val roster = players.filter { it.teamId != null }
@@ -467,7 +552,7 @@ object OffseasonEngine {
                     // What he is worth, or what the team can afford, whichever
                     // is less. A capped-out team fills its roster with minimum
                     // deals, which is exactly how a good roster gets thin.
-                    val worth = TeamNeeds.marketValue(pick, scheme(teamId, position), year)
+                    val worth = pricer.annual(pick, scheme(teamId, position), year)
                     val space = CapManagement.spaceFor(current, year, deadMoney[teamId.v] ?: 0)
                     val value = when {
                         space <= Contract.MIN_BASE_SALARY * 2 -> Contract.MIN_BASE_SALARY

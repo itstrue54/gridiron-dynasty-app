@@ -669,6 +669,16 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("retirements last offseason", report.retirementCount))
         println("  %-34s %d".format("free agents signed", report.signingCount))
         println("  %-34s %d".format("cap casualties", report.capCasualties))
+
+        // What the auction cost, measured over every signing rather than the
+        // twenty the news screen keeps.
+        if (report.auctionCount > 0) {
+            println("  %-34s %.2fx market".format("free agent prices", report.auctionOverpay))
+            println("  %-34s %d of %d".format(
+                "contested signings", report.auctionContested, report.auctionCount))
+        }
+        println("  %-34s %,d".format("mean cap space per team", report.meanCapSpace))
+        println("  %-34s %d of 32".format("teams under 10m of space", report.teamsTightOnCap))
     }
 
     val rosterSizes = d.league.teams.map { d.league.roster(it.id).size }
