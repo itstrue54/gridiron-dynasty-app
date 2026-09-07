@@ -57,10 +57,30 @@ data class Contract(
      * once; post-June-1 this year takes one more year of proration and the
      * rest lands next season.
      */
+    /**
+     * Guaranteed money still owed. Guarantees are consumed as they are paid,
+     * which is what makes the back of a contract cuttable.
+     *
+     * Treating the whole `guaranteed` figure as covering every year's base
+     * made a release mathematically incapable of saving money - the saving
+     * works out to proration minus unamortised bonus, which is never positive
+     * - so no team in a ten season league ever cut anybody, whatever the
+     * contract was worth. Guarantees are front-loaded in reality: the first
+     * year or two are locked, and the last years are where a team gets out.
+     */
+    fun guaranteedRemaining(currentYear: Int): Int {
+        val i = yearIndex(currentYear).coerceAtLeast(0)
+        val alreadyPaid = baseSalary.take(i).sum()
+        return (guaranteed - alreadyPaid).coerceAtLeast(0)
+    }
+
     fun deadCap(currentYear: Int, postJune1: Boolean = false): DeadMoney {
         if (!isActive(currentYear)) return DeadMoney(0, 0)
         val remaining = unamortised(currentYear)
-        val guaranteedBase = min(guaranteed, baseSalary.getOrElse(yearIndex(currentYear)) { 0 })
+        val guaranteedBase = min(
+            guaranteedRemaining(currentYear),
+            baseSalary.getOrElse(yearIndex(currentYear)) { 0 },
+        )
         return if (!postJune1) {
             DeadMoney(remaining + guaranteedBase, 0)
         } else {

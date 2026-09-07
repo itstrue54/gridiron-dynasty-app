@@ -1,5 +1,6 @@
 package com.nflsim.engine.gen
 
+import com.nflsim.engine.model.GmProfile
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerId
@@ -71,6 +72,7 @@ object LeagueGenerator {
                 offenseScheme = offense.id,
                 defenseScheme = defense.id,
                 roster = roster.map { it.id },
+                gm = GmProfile.generate(teamRng.split("gm")),
             )
         }
 

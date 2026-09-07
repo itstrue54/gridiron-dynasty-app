@@ -669,6 +669,18 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("retirements last offseason", report.retirementCount))
         println("  %-34s %d".format("free agents signed", report.signingCount))
         println("  %-34s %d".format("cap casualties", report.capCasualties))
+        println("  %-34s %d".format("players kept by their own team", report.extensionCount))
+        println("  %-34s %d asked out, %d moved".format(
+            "trade requests", report.tradeRequests, report.trades.size))
+        report.wishes.take(4).forEach { w ->
+            println("      %-22s %-4s %s".format(w.name.take(22), w.position, w.note))
+        }
+        println("  %-34s %d per team".format("under contract before signing", report.underContract))
+        println("  %-34s %d over 1.3x  %d over 1.5x  %d over 1.7x".format(
+            "contracts above player value",
+            report.overpaidBy30, report.overpaidBy50, report.overpaidBy70))
+        println("  %-34s %,d kept  %,d market  %,d minimum".format(
+            "money committed", report.extensionSpend, report.auctionSpend, report.fillSpend))
 
         // What the auction cost, measured over every signing rather than the
         // twenty the news screen keeps.

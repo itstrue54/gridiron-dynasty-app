@@ -1,5 +1,6 @@
 package com.nflsim.engine.offseason
 
+import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerStatus
@@ -74,6 +75,25 @@ object CapManagement {
             var dead = team.finances.deadMoney
             var guard = 0
 
+            // A front office restructures before it releases anybody. It is
+            // the cheapest thing to do this year and the most expensive thing
+            // to have done three years from now, which is the trap the cap is
+            // supposed to set (SPEC 8.1).
+            var restructured = 0
+            while (committed(roster, year) + dead > cap && restructured < team.gm.restructures) {
+                val target = roster
+                    .filter { it.contract?.isActive(year) == true && it.capHit(year) > BIG_DEAL }
+                    .maxByOrNull { it.capHit(year) } ?: break
+                val room = (target.contract!!.baseSalary
+                    .getOrElse(target.contract!!.yearIndex(year)) { 0 } - Contract.MIN_BASE_SALARY)
+                if (room <= 0) break
+                val moved = (room * RESTRUCTURE_SHARE).toInt()
+                if (moved <= 0) break
+                roster[roster.indexOf(target)] = target.copy(
+                    contract = target.contract!!.restructure(year, moved))
+                restructured++
+            }
+
             while (committed(roster, year) + dead > cap && roster.size > MIN_ROSTER && guard < 60) {
                 guard++
                 val candidate = roster
@@ -119,5 +139,76 @@ object CapManagement {
         return atPosition > TeamNeeds.requiredStarters(player.position)
     }
 
+    /**
+     * Releasing a player who is not worth his cap hit, to fund one who is.
+     *
+     * Teams that only cut to become compliant never cut anybody, because a
+     * team that is never over the cap is never forced to act. Real releases
+     * are a value judgement made in February: this player costs more than he
+     * is worth, and the money buys somebody better.
+     */
+    fun pruneBadValue(
+        league: League,
+        players: List<Player>,
+        year: Int,
+        scheme: (TeamId?, Position) -> Scheme,
+        price: (Player, Scheme) -> Int,
+        deadMoney: Map<Int, Int>,
+    ): Triple<List<Player>, Map<Int, Int>, List<Release>> {
+        val byTeam = players.filter { it.teamId != null }.groupBy { it.teamId!! }
+        val kept = mutableListOf<Player>()
+        val released = mutableListOf<Player>()
+        val notes = mutableListOf<Release>()
+        val dead = deadMoney.toMutableMap()
+
+        league.teams.forEach { team ->
+            val roster = (byTeam[team.id] ?: emptyList()).toMutableList()
+            var cuts = 0
+
+            while (cuts < MAX_VALUE_CUTS) {
+                val candidate = roster
+                    .filter { p ->
+                        val worth = price(p, scheme(team.id, p.position))
+                        val hit = p.capHit(year)
+                        val saving = hit - (p.contract?.deadCap(year)?.thisYear ?: 0)
+                        hit > worth * team.gm.patience &&
+                            hit > BIG_DEAL &&
+                            saving > MEANINGFUL_SAVING &&
+                            roster.count { it.position == p.position } >
+                                TeamNeeds.requiredStarters(p.position)
+                    }
+                    .maxByOrNull { p -> p.capHit(year) - price(p, scheme(team.id, p.position)) }
+                    ?: break
+
+                val deadCap = candidate.contract?.deadCap(year)?.thisYear ?: 0
+                val saving = candidate.capHit(year) - deadCap
+                roster.remove(candidate)
+                dead[team.id.v] = (dead[team.id.v] ?: 0) + deadCap
+                released += candidate.copy(
+                    teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
+                notes += Release(
+                    candidate.id.v, candidate.name, candidate.position.label, team.id.v,
+                    overall(candidate, scheme(team.id, candidate.position)),
+                    saving, deadCap,
+                )
+                cuts++
+            }
+            kept += roster
+        }
+
+        val untouched = players.filter { it.teamId == null }
+        return Triple(kept + released + untouched, dead, notes)
+    }
+
     private const val MIN_ROSTER = 46
+
+    /** Cap hit worth restructuring or cutting over, in thousands. */
+    private const val BIG_DEAL = 6_000
+
+    /** How much of a restructurable base salary gets converted. */
+    private const val RESTRUCTURE_SHARE = 0.6f
+
+    private const val MEANINGFUL_SAVING = 2_500
+
+    private const val MAX_VALUE_CUTS = 3
 }

@@ -60,6 +60,8 @@ object FreeAgency {
         deadMoney: Map<Int, Int>,
         scheme: (TeamId?, Position) -> Scheme,
         pricer: MarketValue.Pricer,
+        /** Last season's record. Players notice who wins. */
+        winPct: (TeamId) -> Float,
         rng: Rng,
     ): Result {
         val roster = players.filter { it.teamId != null }
@@ -68,13 +70,6 @@ object FreeAgency {
             .toMutableMap()
         val pool = players.filter { it.teamId == null }.toMutableList()
         val signings = mutableListOf<Signing>()
-
-        // Some front offices simply pay more than others. A real GmProfile
-        // (SPEC 8.2) will replace this; until then it is a stable per-team
-        // draw so a team's reputation is at least consistent across a career.
-        val aggression = league.teams.associate { t ->
-            t.id.v to 0.92f + rng.split("gm|${t.id.v}|$year").nextFloat() * 0.34f
-        }
 
         // What each player is asking, and what he is actually worth. The gap
         // between them is the negotiation.
@@ -89,8 +84,15 @@ object FreeAgency {
             league.teams.forEach { team ->
                 val current = roster.getOrPut(team.id) { mutableListOf() }
                 if (current.size >= ROSTER_TARGET) return@forEach
+                // Front offices are not interchangeable (SPEC 8.2). An
+                // aggressive one puts a third of its cap on one player and
+                // goes past market to win a bidding war; a careful one does
+                // not. That difference is where bad contracts come from, and
+                // bad contracts are what the cap is for.
+                val front = team.gm
 
-                val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0)
+                val space = (CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0) *
+                    front.spendShare).toInt()
                 if (space < Contract.MIN_BASE_SALARY * 3) return@forEach
 
                 val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year)
@@ -120,8 +122,9 @@ object FreeAgency {
                     val need = needs[p.position] ?: 0f
                     val willing = (worth *
                         (1f + need * NEED_PREMIUM) *
-                        (aggression[team.id.v] ?: 1f)).roundToInt()
-                        .coerceAtMost((space / 3).coerceAtLeast(Contract.MIN_BASE_SALARY))
+                        front.premium).roundToInt()
+                        .coerceAtMost((space * front.singleDealShare).toInt()
+                            .coerceAtLeast(Contract.MIN_BASE_SALARY))
                         .coerceAtMost(pricer.maxAnnual)
 
                     if (willing < worth * LOWBALL_FLOOR) return@forEach
@@ -130,7 +133,7 @@ object FreeAgency {
                         team = team.id,
                         annual = willing,
                         years = MarketValue.termFor(p.age(year), depth = 0),
-                        appeal = appealOf(p, team.id, willing, worth, scheme),
+                        appeal = appealOf(p, team.id, willing, worth, scheme, winPct),
                     )
                 }
             }
@@ -192,15 +195,20 @@ object FreeAgency {
         annual: Int,
         worth: Int,
         scheme: (TeamId?, Position) -> Scheme,
+        winPct: (TeamId) -> Float,
     ): Float {
         val money = annual.toFloat() / worth.coerceAtLeast(1)
         val fit = com.nflsim.engine.ratings.schemeFit(player, scheme(team, player.position))
         val loyalty = if (player.teamId == team) player.traits.loyalty / 400f else 0f
-        return money + fit * FIT_APPEAL + loyalty
+        // Players notice who wins, and the ones running out of seasons notice
+        // hardest. It is not enough to outbid a contender for a thirty-three
+        // year old - which is the whole reason a good team can sign anyone.
+        val winning = winPct(team) * WINNING_APPEAL
+        return money + fit * FIT_APPEAL + loyalty + winning
     }
 
-    /** Leave room for the draft picks and camp bodies that fill out a 53. */
-    private const val ROSTER_TARGET = 49
+    /** Leave a couple of spots for the camp bodies that fill out a 53. */
+    private const val ROSTER_TARGET = 51
 
     /** Opening ask, as a multiple of market. */
     private const val OPENING_PREMIUM = 1.20f
@@ -231,4 +239,7 @@ object FreeAgency {
     private const val HOLDOUT_OVERRIDE = 1.25f
 
     private const val FIT_APPEAL = 0.30f
+
+    /** How much a winning team is worth against money. */
+    private const val WINNING_APPEAL = 0.35f
 }

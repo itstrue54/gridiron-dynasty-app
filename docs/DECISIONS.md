@@ -126,3 +126,63 @@ quarterback or luck - which is where genuinely bad contracts come from, and bad
 contracts are what make the cap a game rather than an accounting exercise. And
 a good player who sat behind a starter is cheap, because he has not proved
 anything, so scouting properly is rewarded.
+
+## ADR-008: Guarantees are consumed as they are paid
+Date: 2026-09-07
+Status: Accepted
+
+Context: Ten simulated seasons produced zero cap casualties while 64 contracts
+ran at more than 1.7x the player's value. The rule could not fire. Dead money
+on release was unamortised bonus plus the current year's base, with `guaranteed`
+treated as covering every year, so the saving from a release works out to
+proration minus unamortised bonus - never positive. Releasing a player could
+not save money in any year of any contract.
+
+Decision: `Contract.guaranteedRemaining(year)` subtracts base salary already
+paid from the guarantee, and `deadCap` charges only what is still owed.
+
+Consequences: Year one of a deal is unescapable and the back of it is where a
+team gets out, which is when real cap casualties happen. Cap casualties went
+from 0 to 49 per offseason. This was a modelling bug wearing the costume of a
+tuning problem - the third time this project has hit that, and the second time
+the tell was a statistic that could not move rather than one that moved wrongly.
+
+## ADR-009: General managers are not interchangeable
+Date: 2026-09-07
+Status: Accepted
+
+Context: Every AI team bid the same fraction of its space, kept the same share
+of its own players, and cut at the same threshold. A league of thirty-two
+identically prudent front offices produces no bad contracts, and cap trouble is
+not an accident of arithmetic - it is a decision somebody makes every March.
+
+Decision: `GmProfile` (SPEC 8.2) carries aggression, winNowVsFuture,
+loyaltyToOwnPlayers and riskTolerance, drawn once per team at league
+generation. They drive the share of space committed in an offseason, the most
+that goes on one player, how far past market a club goes to win a bidding war,
+how readily it restructures, and how overpriced a contract gets before it cuts
+the player.
+
+Consequences: The spread is wide on purpose. Some clubs are reckless, and their
+recklessness is what fills the league with the contracts the cap then punishes.
+
+## ADR-010: Players ask for things
+Date: 2026-09-07
+Status: Accepted
+
+Context: Players went wherever the money was and never had a view about it.
+
+Decision: `PlayerIntent` scores three grievances - losing (weighted by age,
+because winning matters more at thirty-three), not playing when good enough to
+start elsewhere, and being underpaid against market - and the largest decides
+what a player asks for. Loyalty decides whether he says it out loud. Free
+agency appeal now includes the signing team's record, so a contender has pull
+against money.
+
+Consequences: A money grievance pushes a player toward the door at 42% the
+force of the others. Treating them equally had 173 players a year demanding
+trades, nearly all of them rookies on slotted deals and minimum-salary players
+who had got good - underpaid by construction, which is what a rookie contract
+is. Trades move contracts, not picks: the new club takes the deal as it stands
+and the old club eats the bonus it already paid. Pick compensation waits for
+the asset model in SPEC 8.4.

@@ -68,6 +68,26 @@ data class OffseasonReport(
     val capCasualties: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
+    /** What players told their clubs they wanted. */
+    val wishes: List<Wish> = emptyList(),
+    val tradeRequests: Int = 0,
+    val trades: List<TradeMove> = emptyList(),
+    /** Players a team kept before the market opened. */
+    val extensionCount: Int = 0,
+    /** Where the offseason's money went, in thousands per year committed. */
+    val extensionSpend: Int = 0,
+    val auctionSpend: Int = 0,
+    val fillSpend: Int = 0,
+    /** Mean roster size once the cap was enforced, before anyone was signed. */
+    val underContract: Int = 0,
+    /**
+     * Contracts worth cutting, by how far past the player's value they run.
+     * Zero cap casualties is either a market with no bad contracts in it or a
+     * threshold set where nothing can reach; this is how to tell.
+     */
+    val overpaidBy30: Int = 0,
+    val overpaidBy50: Int = 0,
+    val overpaidBy70: Int = 0,
     /** Auction signings only, and what they cost against market. */
     val auctionCount: Int = 0,
     val auctionOverpay: Float = 0f,
@@ -172,10 +192,17 @@ object OffseasonEngine {
         }
 
         // ---- 3. contracts expire ------------------------------------
+        // Remember who each expiring player was with. A team gets first call
+        // on its own before the market opens, and that is where most of the
+        // money in a real offseason goes.
+        val previousTeam = mutableMapOf<Int, TeamId>()
         val afterContracts = developed.map { p ->
             val stillUnder = p.contract?.isActive(newYear) == true
-            if (stillUnder) p else p.copy(teamId = null, contract = null,
-                status = PlayerStatus.FREE_AGENT, yearsInSystem = 0)
+            if (stillUnder) p else {
+                p.teamId?.let { previousTeam[p.id.v] = it }
+                p.copy(teamId = null, contract = null,
+                    status = PlayerStatus.FREE_AGENT, yearsInSystem = 0)
+            }
         }
 
         // ---- 4. get under the cap -----------------------------------
@@ -184,53 +211,34 @@ object OffseasonEngine {
         val (afterCap, deadMoney, releases) = CapManagement.enforce(
             league, afterContracts, newYear, ::sideScheme, rng.split("cap|$newYear"))
 
-        // ---- 5. the draft -------------------------------------------
-        val nextId = (afterCap.maxOfOrNull { it.id.v } ?: 0) + 1
-        val prospects = SyntheticDraftClass.generate(newYear, nextId, rng.split("draft|$newYear"))
-
+        // Last season's record, which drives the draft order and - more
+        // interestingly - what players think of where they are.
         val standings = Standings(league, dynasty.results, rng.split("order|$newYear"))
-        val draftOrder = league.teams
-            .sortedWith(compareBy({ standings.record(it.id).winPct }, { standings.record(it.id).pointsFor }))
-            .map { it.id }
+        val winPct: (TeamId) -> Float = { id -> standings.record(id).winPct.toFloat() }
 
-        val rosterNow = afterCap.filter { it.teamId != null }.groupBy { it.teamId!! }
-        val draft = DraftRunner.run(
-            order = draftOrder,
-            prospects = prospects,
-            schemeFor = { id -> schemeFor(id).first },
-            needsFor = { id ->
-                TeamNeeds.assess(rosterNow[id] ?: emptyList(), { pos -> sideScheme(id, pos) }, newYear)
-            },
-            year = newYear,
-            rng = rng.split("picks|$newYear"),
-        )
-
-        val afterDraft = afterCap + draft.drafted.values
-        val undraftedPool = draft.undrafted.map {
-            it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
-        }
-
-        // ---- 6. what the market can pay -----------------------------
+        // ---- 5. what the market can pay -----------------------------
         // Prices are set by the money actually chasing players, not by a
         // fixed curve (ADR-006). Total cap space is what teams have to spend;
         // the free agents who will fill the league's open roster spots are
         // what they are spending it on. A cap-rich offseason with a thin
         // market is expensive, which is exactly how it works in reality.
-        val rosteredNow = afterDraft.filter { it.teamId != null }
-        val byTeamNow = rosteredNow.groupBy { it.teamId!! }
-        val leagueSpace = league.teams.sumOf { t ->
-            CapManagement.spaceFor(
-                byTeamNow[t.id] ?: emptyList(), newYear, deadMoney[t.id.v] ?: 0).toLong()
-        }.coerceAtLeast(1L)
-
-        // What everyone did last season, which is what teams actually pay for.
-        // Stats are season-scoped and still in hand at this point; they are
-        // cleared when the year rolls over a few lines below.
+        //
+        // What everyone did last season is what teams actually pay for
+        // (ADR-007). Stats are season-scoped and still in hand here; they are
+        // cleared when the year rolls over at the end of this function.
         val production = Production.index(league.players, dynasty.playerStats)
 
-        val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE - rosteredNow.size)
-            .coerceAtLeast(1)
-        val marketPool = (afterDraft + undraftedPool)
+        val rosteredAfterCap = afterCap.filter { it.teamId != null }
+        val capRosters = rosteredAfterCap.groupBy { it.teamId!! }
+        val leagueSpace = league.teams.sumOf { t ->
+            CapManagement.spaceFor(
+                capRosters[t.id] ?: emptyList(), newYear, deadMoney[t.id.v] ?: 0).toLong()
+        }.coerceAtLeast(1L)
+
+        // The draft will fill 224 of the league's open spots for nothing.
+        val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE -
+            rosteredAfterCap.size - DraftRunner.ROUNDS * League.TEAM_COUNT).coerceAtLeast(1)
+        val marketPool = afterCap
             .filter { it.teamId == null }
             .sortedByDescending {
                 MarketValue.score(it, sideScheme(null, it.position), newYear) *
@@ -247,35 +255,101 @@ object OffseasonEngine {
             production = production,
         )
 
-        // ---- 7. free agency -----------------------------------------
+        // ---- 6. what players want -----------------------------------
+        // Players are not furniture. A veteran on a bad team, a good player
+        // buried on the depth chart, or an underpaid one will say so - and
+        // some of them ask out.
+        val intentCtx = PlayerIntent.Context(
+            winPct = winPct,
+            scheme = ::sideScheme,
+            pricer = pricer,
+            depthRank = depthRank,
+            year = newYear,
+        )
+        val wishes = PlayerIntent.assess(
+            league, afterCap, intentCtx, rng.split("wishes|$newYear"))
+        val (afterTrades, deadAfterTrades, trades) = PlayerIntent.resolveTrades(
+            league, afterCap, wishes, deadMoney, intentCtx, rng.split("trades|$newYear"))
+
+        // ---- 7. cut the contracts that are not worth it --------------
+        // February. Not compliance - judgement. This player costs more than
+        // he is worth and the money buys somebody better.
+        val (afterPrune, deadAfterPrune, valueCuts) = CapManagement.pruneBadValue(
+            league = league,
+            players = afterTrades,
+            year = newYear,
+            scheme = ::sideScheme,
+            price = { p, sch -> pricer.annual(p, sch, newYear) },
+            deadMoney = deadAfterTrades,
+        )
+
+        // ---- 8. keep your own ----------------------------------------
+        val extended = Extensions.run(
+            league = league,
+            players = afterPrune,
+            previousTeam = previousTeam,
+            year = newYear,
+            deadMoney = deadAfterPrune,
+            scheme = ::sideScheme,
+            pricer = pricer,
+            rng = rng.split("extend|$newYear"),
+        )
+
+        // ---- 9. the draft -------------------------------------------
+        val nextId = (extended.players.maxOfOrNull { it.id.v } ?: 0) + 1
+        val prospects = SyntheticDraftClass.generate(newYear, nextId, rng.split("draft|$newYear"))
+
+        val draftOrder = league.teams
+            .sortedWith(compareBy({ standings.record(it.id).winPct }, { standings.record(it.id).pointsFor }))
+            .map { it.id }
+
+        val rosterNow = extended.players.filter { it.teamId != null }.groupBy { it.teamId!! }
+        val draft = DraftRunner.run(
+            order = draftOrder,
+            prospects = prospects,
+            schemeFor = { id -> schemeFor(id).first },
+            needsFor = { id ->
+                TeamNeeds.assess(rosterNow[id] ?: emptyList(), { pos -> sideScheme(id, pos) }, newYear)
+            },
+            year = newYear,
+            rng = rng.split("picks|$newYear"),
+        )
+
+        val afterDraft = extended.players + draft.drafted.values
+        val undraftedPool = draft.undrafted.map {
+            it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
+        }
+
+        // ---- 10. free agency ----------------------------------------
         // Ten days of bidding. Teams overpay here, and that is the point: it
         // is what puts a team against the cap next spring.
         val auction = FreeAgency.run(
             league = league,
             players = afterDraft + undraftedPool,
             year = newYear,
-            deadMoney = deadMoney,
+            deadMoney = deadAfterPrune,
             scheme = ::sideScheme,
             pricer = pricer,
+            winPct = winPct,
             rng = rng.split("auction|$newYear"),
         )
 
-        // ---- 8. fill whatever the market did not ---------------------
+        // ---- 11. fill whatever the market did not -------------------
         val (filled, gapSignings) = fillRosters(
             league = league,
             players = auction.players,
             year = newYear,
-            deadMoney = deadMoney,
+            deadMoney = deadAfterPrune,
             scheme = ::sideScheme,
             pricer = pricer,
             rng = rng.split("fa|$newYear"),
         )
-        val signings = auction.signings + gapSignings
+        val signings = extended.signings + auction.signings + gapSignings
 
-        // ---- 9. cut to the limit ------------------------------------
+        // ---- 12. cut to the limit -----------------------------------
         val trimmed = enforceRosterLimit(league, filled, newYear, ::sideScheme)
 
-        // ---- 10. players who did not catch on -----------------------
+        // ---- 13. players who did not catch on -----------------------
         // Getting cut and not signing anywhere is how most careers actually
         // end - not with a decision in February but with a phone that stops
         // ringing in August. Older players take the hint; younger ones hang
@@ -284,7 +358,7 @@ object OffseasonEngine {
             trimmed, newYear, ::sideScheme, rng.split("waiver|$newYear"))
         retirements += washedOut
 
-        // ---- 11. rebuild --------------------------------------------
+        // ---- 14. rebuild --------------------------------------------
         val byTeam = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val teams: List<Team> = league.teams.map { t ->
             t.copy(
@@ -294,7 +368,7 @@ object OffseasonEngine {
                     // Dead money is carried forward: a cut you make this year
                     // is still on the books next year, which is what makes a
                     // bad contract hurt for seasons rather than one afternoon.
-                    deadMoney = (deadMoney[t.id.v] ?: 0) / 2,
+                    deadMoney = (deadAfterPrune[t.id.v] ?: 0) / 2,
                 ),
             )
         }
@@ -308,8 +382,17 @@ object OffseasonEngine {
         val finalRosters = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val capSpace = league.teams.map { t ->
             CapManagement.spaceFor(
-                finalRosters[t.id] ?: emptyList(), newYear, (deadMoney[t.id.v] ?: 0) / 2)
+                finalRosters[t.id] ?: emptyList(), newYear, (deadAfterPrune[t.id.v] ?: 0) / 2)
         }
+
+        // Every contract big enough to be worth cutting, against what the
+        // player is actually worth now.
+        val overpayRatios = survivors
+            .filter { it.teamId != null && it.capHit(newYear) > 6_000 }
+            .map { p ->
+                val worth = pricer.annual(p, sideScheme(p.teamId, p.position), newYear)
+                p.capHit(newYear).toFloat() / worth.coerceAtLeast(1)
+            }
 
         val report = OffseasonReport(
             year = newYear,
@@ -334,8 +417,19 @@ object OffseasonEngine {
             auctionContested = auction.signings.count { it.suitors > 1 },
             meanCapSpace = capSpace.average().toInt(),
             teamsTightOnCap = capSpace.count { it < 10_000 },
-            releases = releases.sortedByDescending { it.overall }.take(20),
-            capCasualties = releases.size,
+            releases = (releases + valueCuts).sortedByDescending { it.overall }.take(20),
+            capCasualties = releases.size + valueCuts.size,
+            wishes = wishes.sortedByDescending { it.overall }.take(25),
+            tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
+            trades = trades.sortedByDescending { it.overall }.take(15),
+            extensionCount = extended.signings.size,
+            extensionSpend = extended.signings.sumOf { it.value },
+            auctionSpend = auction.signings.sumOf { it.value },
+            fillSpend = gapSignings.sumOf { it.value },
+            underContract = rosteredAfterCap.size / League.TEAM_COUNT,
+            overpaidBy30 = overpayRatios.count { it > 1.3f },
+            overpaidBy50 = overpayRatios.count { it > 1.5f },
+            overpaidBy70 = overpayRatios.count { it > 1.7f },
             retiredMean = retirements.map { it.overall }.averageOrZero(),
             draftedCount = draft.drafted.size,
             draftedStarters = draft.drafted.values.count {

@@ -36,6 +36,8 @@ data class Team(
     val defenseScheme: String,
     val roster: List<PlayerId> = emptyList(),
     val finances: TeamFinances = TeamFinances(),
+    /** How this front office behaves in the market (SPEC 8.2). */
+    val gm: GmProfile = GmProfile(),
 ) {
     val name: String get() = "$city $nickname"
     val divisionName: String get() = "${conference.label} ${division.name.lowercase().replaceFirstChar { it.uppercase() }}"

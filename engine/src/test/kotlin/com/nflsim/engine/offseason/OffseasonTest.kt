@@ -67,6 +67,21 @@ class OffseasonTest {
     }
 
     @Test
+    fun `guarantees are consumed as they are paid, so the back of a deal is cuttable`() {
+        val c = Contract.of(years = 5, totalValue = 60_000, signedYear = 2026)
+
+        // Year one: fully protected. Cutting him costs more than keeping him.
+        val early = c.capHit(2026) - c.deadCap(2026).thisYear
+        assertTrue(early <= 0, "a team should not be able to profit from an early cut")
+
+        // Year five: the guarantee is spent and the bonus nearly amortised,
+        // so releasing him finally frees money. This is the year real cap
+        // casualties happen, and without it no team ever cuts anyone.
+        val late = c.capHit(2030) - c.deadCap(2030).thisYear
+        assertTrue(late > 0, "the last year of a deal must be escapable, saved $late")
+    }
+
+    @Test
     fun `restructuring lowers this year and raises the dead money`() {
         val c = Contract.of(years = 4, totalValue = 40_000, signedYear = 2026)
         val before = c.capHit(2026)
