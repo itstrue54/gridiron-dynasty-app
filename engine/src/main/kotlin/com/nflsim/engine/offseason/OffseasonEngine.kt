@@ -211,21 +211,20 @@ object OffseasonEngine {
         val afterPrune = state.players
         val deadAfterPrune = state.deadMoney
 
-        // ---- 8. keep your own ----------------------------------------
+        // ---- phase 6: re-signing ------------------------------------
         state = stepReSigning(ctx, state, rng)
-        // ---- 9. the draft -------------------------------------------
-        state = stepDraft(ctx, state, rng)
-        // ---- 10. free agency ----------------------------------------
+        // ---- phase 7: free agency -----------------------------------
         state = stepFreeAgency(ctx, state, rng)
+        // ---- phase 9: draft -----------------------------------------
+        state = stepDraft(ctx, state, rng)
         val extendedSignings = state.extensionSignings
         val draft = state.draft!!
         val auction = state.auction!!
 
-        // ---- 11. fill whatever the market did not -------------------
+        // ---- phase 10: undrafted free agents ------------------------
         state = stepFillRosters(ctx, state, rng)
-        // ---- 12. cut to the limit -----------------------------------
+        // ---- phase 11: OTAs and camp --------------------------------
         state = stepRosterLimit(ctx, state)
-        // ---- 13. players who did not catch on -----------------------
         state = stepResolveUnsigned(ctx, state, rng)
         state = stepDevelopment(ctx, state, rng)
         val developments = state.developments
