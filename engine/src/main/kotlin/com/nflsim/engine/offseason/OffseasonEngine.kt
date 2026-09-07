@@ -218,55 +218,14 @@ object OffseasonEngine {
         val deadAfterPrune = state.deadMoney
 
         // ---- 8. keep your own ----------------------------------------
-        val extended = Extensions.run(
-            league = league,
-            players = afterPrune,
-            previousTeam = previousTeam,
-            year = newYear,
-            deadMoney = deadAfterPrune,
-            scheme = ::sideScheme,
-            pricer = pricer,
-            rng = rng.split("extend|$newYear"),
-        )
-
+        state = stepReSigning(ctx, state, rng)
         // ---- 9. the draft -------------------------------------------
-        val nextId = (extended.players.maxOfOrNull { it.id.v } ?: 0) + 1
-        val prospects = SyntheticDraftClass.generate(newYear, nextId, rng.split("draft|$newYear"))
-
-        val draftOrder = league.teams
-            .sortedWith(compareBy({ standings.record(it.id).winPct }, { standings.record(it.id).pointsFor }))
-            .map { it.id }
-
-        val rosterNow = extended.players.filter { it.teamId != null }.groupBy { it.teamId!! }
-        val draft = DraftRunner.run(
-            order = draftOrder,
-            prospects = prospects,
-            schemeFor = { id -> schemeFor(id).first },
-            needsFor = { id ->
-                TeamNeeds.assess(rosterNow[id] ?: emptyList(), { pos -> sideScheme(id, pos) }, newYear)
-            },
-            year = newYear,
-            rng = rng.split("picks|$newYear"),
-        )
-
-        val afterDraft = extended.players + draft.drafted.values
-        val undraftedPool = draft.undrafted.map {
-            it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
-        }
-
+        state = stepDraft(ctx, state, rng)
         // ---- 10. free agency ----------------------------------------
-        // Ten days of bidding. Teams overpay here, and that is the point: it
-        // is what puts a team against the cap next spring.
-        val auction = FreeAgency.run(
-            league = league,
-            players = afterDraft + undraftedPool,
-            year = newYear,
-            deadMoney = deadAfterPrune,
-            scheme = ::sideScheme,
-            pricer = pricer,
-            winPct = winPct,
-            rng = rng.split("auction|$newYear"),
-        )
+        state = stepFreeAgency(ctx, state, rng)
+        val extendedSignings = state.extensionSignings
+        val draft = state.draft!!
+        val auction = state.auction!!
 
         // ---- 11. fill whatever the market did not -------------------
         val (filled, gapSignings) = fillRosters(
@@ -278,7 +237,7 @@ object OffseasonEngine {
             pricer = pricer,
             rng = rng.split("fa|$newYear"),
         )
-        val signings = extended.signings + auction.signings + gapSignings
+        val signings = extendedSignings + auction.signings + gapSignings
 
         // ---- 12. cut to the limit -----------------------------------
         val trimmed = enforceRosterLimit(league, filled, newYear, ::sideScheme)
@@ -356,8 +315,8 @@ object OffseasonEngine {
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
-            extensionCount = extended.signings.size,
-            extensionSpend = extended.signings.sumOf { it.value },
+            extensionCount = extendedSignings.size,
+            extensionSpend = extendedSignings.sumOf { it.value },
             auctionSpend = auction.signings.sumOf { it.value },
             fillSpend = gapSignings.sumOf { it.value },
             underContract = state.underContract / League.TEAM_COUNT,
@@ -392,6 +351,84 @@ object OffseasonEngine {
     }
 
     // ---- extracted steps ---------------------------------------------
+
+    /** SPEC 7 phase 6. First call on your own pending free agents. */
+    private fun stepReSigning(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val result = Extensions.run(
+            league = ctx.league,
+            players = state.players,
+            previousTeam = state.previousTeam,
+            year = ctx.newYear,
+            deadMoney = state.deadMoney,
+            scheme = ctx.scheme,
+            pricer = state.requirePricer(),
+            rng = rng.split("extend|${ctx.newYear}"),
+        )
+        return state.copy(
+            players = result.players,
+            extensionSignings = state.extensionSignings + result.signings,
+        )
+    }
+
+    /** SPEC 7 phase 9. Seven rounds, worst record picking first. */
+    private fun stepDraft(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val nextId = (state.players.maxOfOrNull { it.id.v } ?: 0) + 1
+        val prospects = SyntheticDraftClass.generate(
+            ctx.newYear, nextId, rng.split("draft|${ctx.newYear}"))
+        val order = ctx.league.teams
+            .sortedWith(compareBy(
+                { ctx.standings.record(it.id).winPct },
+                { ctx.standings.record(it.id).pointsFor }))
+            .map { it.id }
+        val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
+        val draft = DraftRunner.run(
+            order = order,
+            prospects = prospects,
+            schemeFor = { id -> ctx.schemePair(id).first },
+            needsFor = { id ->
+                TeamNeeds.assess(
+                    rosterNow[id] ?: emptyList(),
+                    { pos -> ctx.scheme(id, pos) },
+                    ctx.newYear)
+            },
+            year = ctx.newYear,
+            rng = rng.split("picks|${ctx.newYear}"),
+        )
+        val undrafted = draft.undrafted.map {
+            it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
+        }
+        return state.copy(
+            players = state.players + draft.drafted.values + undrafted,
+            draft = draft,
+        )
+    }
+
+    /** SPEC 7 phase 7. Ten days of bidding; teams overpay, and that is the point. */
+    private fun stepFreeAgency(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val auction = FreeAgency.run(
+            league = ctx.league,
+            players = state.players,
+            year = ctx.newYear,
+            deadMoney = state.deadMoney,
+            scheme = ctx.scheme,
+            pricer = state.requirePricer(),
+            winPct = ctx.winPct,
+            rng = rng.split("auction|${ctx.newYear}"),
+        )
+        return state.copy(players = auction.players, auction = auction)
+    }
 
     /** Not a SPEC 7 phase - setup the phases after it depend on. */
     private fun stepBuildPricer(
