@@ -142,54 +142,44 @@ object OffseasonEngine {
             return if (position.isOffense) off else def
         }
 
+        // ---- context, fixed for the whole run -----------------------
+        // Standings and production both read the league as it finished the
+        // season, and standings takes a named rng split rather than drawing
+        // from the caller's stream, so building them here changes nothing.
+        val standings = Standings(league, dynasty.results, rng.split("order|$newYear"))
+        val winPct: (TeamId) -> Float = { id -> standings.record(id).winPct.toFloat() }
+        val production = Production.index(league.players, dynasty.playerStats)
+
+        val ctx = OffseasonContext(
+            dynasty = dynasty,
+            oldYear = oldYear,
+            newYear = newYear,
+            scheme = ::sideScheme,
+            schemePair = schemeFor,
+            standings = standings,
+            winPct = winPct,
+            production = production,
+        )
+
+        var state = OffseasonState(players = league.players)
+
         // ---- 1. retirements -----------------------------------------
-        val retirements = mutableListOf<Retirement>()
-        val afterRetirement = league.players.filter { p ->
-            val ovr = overall(p, sideScheme(p.teamId, p.position))
-            val retiring = Progression.retires(p, oldYear, ovr, rng)
-            if (retiring) {
-                retirements += Retirement(p.id.v, p.name, p.position.label, p.age(oldYear), ovr,
-                    reason = "retired")
-            }
-            !retiring
-        }
+        state = stepRetirements(ctx, state, rng)
 
         // ---- 2. development -----------------------------------------
-        // Depth rank, not statistics. Inferring playing time from a stat line
-        // gives every offensive lineman zero snaps, so linemen never developed
-        // and the whole league's average slid a third of a point a year.
-        val depthRank: Map<Int, Int> = afterRetirement
-            .filter { it.teamId != null }
-            .groupBy { it.teamId!! to it.position }
-            .flatMap { (key, group) ->
-                group.sortedByDescending { overall(it, sideScheme(key.first, key.second)) }
-                    .mapIndexed { rank, p -> p.id.v to rank }
-            }
-            .toMap()
+        state = stepDevelopment(ctx, state, rng)
 
-        val developments = mutableListOf<Development>()
-        var deltaSum = 0
-        var deltaCount = 0
-        val ageSum = mutableMapOf<String, Int>()
-        val ageCount = mutableMapOf<String, Int>()
-        val developed = afterRetirement.map { p ->
-            val ctx = Progression.Context(
-                year = oldYear,
-                coaching = 55 + (p.teamId?.v ?: 0) % 25,
-                snaps = snapsFromDepth(p, depthRank[p.id.v]),
-            )
-            val change = Progression.progress(p, ctx, rng)
-            deltaSum += change.delta
-            deltaCount++
-            val bracket = ageBracket(p.age(oldYear))
-            ageSum[bracket] = (ageSum[bracket] ?: 0) + change.delta
-            ageCount[bracket] = (ageCount[bracket] ?: 0) + 1
-            if (kotlin.math.abs(change.delta) >= 4 || change.note != null) {
-                developments += Development(
-                    p.id.v, p.name, p.position.label, change.delta, change.note)
-            }
-            change.player
-        }
+        // Bridge back to the names the rest of this function still uses.
+        // Every further extraction shortens this list; when it is empty the
+        // run function is a phase loop.
+        val retirements = state.retirements.toMutableList()
+        val developments = state.developments
+        val depthRank = state.depthRank
+        val deltaSum = state.deltaSum
+        val deltaCount = state.deltaCount
+        val ageSum = state.ageSum
+        val ageCount = state.ageCount
+        val developed = state.players
 
         // ---- 3. contracts expire ------------------------------------
         // Remember who each expiring player was with. A team gets first call
@@ -211,11 +201,6 @@ object OffseasonEngine {
         val (afterCap, deadMoney, releases) = CapManagement.enforce(
             league, afterContracts, newYear, ::sideScheme, rng.split("cap|$newYear"))
 
-        // Last season's record, which drives the draft order and - more
-        // interestingly - what players think of where they are.
-        val standings = Standings(league, dynasty.results, rng.split("order|$newYear"))
-        val winPct: (TeamId) -> Float = { id -> standings.record(id).winPct.toFloat() }
-
         // ---- 5. what the market can pay -----------------------------
         // Prices are set by the money actually chasing players, not by a
         // fixed curve (ADR-006). Total cap space is what teams have to spend;
@@ -226,8 +211,6 @@ object OffseasonEngine {
         // What everyone did last season is what teams actually pay for
         // (ADR-007). Stats are season-scoped and still in hand here; they are
         // cleared when the year rolls over at the end of this function.
-        val production = Production.index(league.players, dynasty.playerStats)
-
         val rosteredAfterCap = afterCap.filter { it.teamId != null }
         val capRosters = rosteredAfterCap.groupBy { it.teamId!! }
         val leagueSpace = league.teams.sumOf { t ->
@@ -455,6 +438,86 @@ object OffseasonEngine {
             lastGame = null,
         )
         return next to report
+    }
+
+    // ---- extracted steps ---------------------------------------------
+
+    /** SPEC 7 phase 3. Age, decline and contract decide who walks away. */
+    private fun stepRetirements(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val retired = mutableListOf<Retirement>()
+        val survivors = state.players.filter { p ->
+            val ovr = overall(p, ctx.scheme(p.teamId, p.position))
+            val retiring = Progression.retires(p, ctx.oldYear, ovr, rng)
+            if (retiring) {
+                retired += Retirement(p.id.v, p.name, p.position.label, p.age(ctx.oldYear), ovr,
+                    reason = "retired")
+            }
+            !retiring
+        }
+        return state.copy(
+            players = survivors,
+            retirements = state.retirements + retired,
+        )
+    }
+
+    /**
+     * Part of SPEC 7 phase 11, though it runs first today.
+     *
+     * Depth rank, not statistics. Inferring playing time from a stat line
+     * gives every offensive lineman zero snaps, so linemen never developed
+     * and the whole league's average slid a third of a point a year.
+     */
+    private fun stepDevelopment(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val depthRank: Map<Int, Int> = state.players
+            .filter { it.teamId != null }
+            .groupBy { it.teamId!! to it.position }
+            .flatMap { (key, group) ->
+                group.sortedByDescending { overall(it, ctx.scheme(key.first, key.second)) }
+                    .mapIndexed { rank, p -> p.id.v to rank }
+            }
+            .toMap()
+
+        val developments = mutableListOf<Development>()
+        var deltaSum = 0
+        var deltaCount = 0
+        val ageSum = mutableMapOf<String, Int>()
+        val ageCount = mutableMapOf<String, Int>()
+        val developed = state.players.map { p ->
+            val progCtx = Progression.Context(
+                year = ctx.oldYear,
+                coaching = 55 + (p.teamId?.v ?: 0) % 25,
+                snaps = snapsFromDepth(p, depthRank[p.id.v]),
+            )
+            val change = Progression.progress(p, progCtx, rng)
+            deltaSum += change.delta
+            deltaCount++
+            val bracket = ageBracket(p.age(ctx.oldYear))
+            ageSum[bracket] = (ageSum[bracket] ?: 0) + change.delta
+            ageCount[bracket] = (ageCount[bracket] ?: 0) + 1
+            if (kotlin.math.abs(change.delta) >= 4 || change.note != null) {
+                developments += Development(
+                    p.id.v, p.name, p.position.label, change.delta, change.note)
+            }
+            change.player
+        }
+
+        return state.copy(
+            players = developed,
+            depthRank = depthRank,
+            developments = state.developments + developments,
+            deltaSum = state.deltaSum + deltaSum,
+            deltaCount = state.deltaCount + deltaCount,
+            ageSum = ageSum,
+            ageCount = ageCount,
+        )
     }
 
     /**
