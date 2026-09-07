@@ -1,6 +1,7 @@
 package com.nflsim.data.roster
 
 import com.nflsim.engine.model.Archetype
+import com.nflsim.engine.model.PositionGroup
 import com.nflsim.engine.model.DevCurve
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.RatingId
@@ -111,12 +112,15 @@ object RosterFormat {
         put("puntpower", RatingId.PUNT_POWER); put("puntaccuracy", RatingId.PUNT_ACCURACY)
     }
 
-    val ARCHETYPE_ALIASES: Map<String, Archetype> = buildMap {
-        Archetype.entries.forEach {
-            put(it.name.lowercase().replace("_", ""), it)
-            put(it.label.lowercase().replace(Regex("[^a-z0-9]"), ""), it)
+    val ARCHETYPE_ALIASES: Map<PositionGroup, Map<String, Archetype>> =
+        Archetype.entries.groupBy { it.group }.mapValues { (_, list) ->
+            buildMap {
+                list.forEach {
+                    put(it.label.lowercase().replace(Regex("[^a-z0-9]"), ""), it)
+                    put(it.name.lowercase().replace("_", ""), it)
+                }
+            }
         }
-    }
 
     val DEV_ALIASES: Map<String, DevCurve> = buildMap {
         DevCurve.entries.forEach {

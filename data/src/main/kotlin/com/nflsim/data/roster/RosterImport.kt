@@ -249,11 +249,11 @@ object RosterImporter {
     ): Archetype {
         val raw = get(RosterFormat.Columns.ARCHETYPE)
         if (!raw.isNullOrBlank()) {
-            val found = RosterFormat.ARCHETYPE_ALIASES[RosterFormat.normalise(raw)]
-            if (found != null && found.group == position.group) return found
+            val found = RosterFormat.ARCHETYPE_ALIASES[position.group]
+                ?.get(RosterFormat.normalise(raw))
+            if (found != null) return found
             warnings += RowIssue(row, name,
-                if (found == null) "unknown archetype '$raw', inferred from ratings"
-                else "archetype '$raw' does not belong at ${position.label}, inferred instead")
+                "unknown archetype '$raw' at ${position.label}, inferred from ratings")
         }
         val inference = ArchetypeInference.infer(position, ratings)
         if (inference.confidence < 0.15f) {

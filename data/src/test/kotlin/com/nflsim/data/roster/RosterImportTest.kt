@@ -95,7 +95,7 @@ class RosterImportTest {
         val result = RosterImporter.import(csv, 2026)
         val p = result.players.single()
         assertTrue(p.archetype.group == Position.RB.group, "got ${p.archetype}")
-        assertTrue(result.report.warnings.any { it.message.contains("does not belong") },
+        assertTrue(result.report.warnings.any { it.message.contains("unknown archetype") },
             result.report.summary())
     }
 
