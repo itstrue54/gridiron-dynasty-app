@@ -8,9 +8,11 @@ The design target is CPU-vs-CPU slow-sim play: the fun lives in roster construct
 
 ## Status
 
-**Milestone:** M7 — the offseason. Retirement, progression, the draft, free
-agency and the salary cap all run; a dynasty can be simulated for decades.
-Next: the free agency auction (SPEC §8.3) and an offseason news screen in the app.
+**Milestone:** M8 — the front office. Free agency is an auction priced by the
+market and paid on production; teams keep their own, cut for value, restructure,
+and get punished for it. Players ask out. The app has a Front Office screen with
+your cap sheet, your locker room, trades, the draft and the market.
+Next: draft pick assets so trades can exchange them (SPEC §8.4).
 
 See [`docs/SPEC.md`](docs/SPEC.md) §14 for the full roadmap.
 

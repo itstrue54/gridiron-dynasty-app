@@ -1,6 +1,8 @@
 package com.example.nflsimtext.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +39,8 @@ enum class Tab(val label: String) {
     STANDINGS("Standings"),
     ROSTER("Roster"),
     SCHEDULE("Schedule"),
-    BOX("Box Score"),
+    OFFSEASON("Front Office"),
+    BOX("Box"),
 }
 
 /** Numbers line up or tables are unreadable. */
@@ -60,6 +63,7 @@ fun DynastyApp(store: DynastyStore) {
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(dynasty)
                     Tab.SCHEDULE -> ScheduleScreen(dynasty)
+                    Tab.OFFSEASON -> OffseasonScreen(dynasty)
                     Tab.BOX -> BoxScoreScreen(dynasty)
                 }
             }
@@ -77,9 +81,13 @@ fun DynastyApp(store: DynastyStore) {
 @Composable
 private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     Surface(tonalElevation = 3.dp) {
+        // Scrolls, because the tab bar grows every milestone and six labels
+        // do not fit across a phone.
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            Modifier.fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(vertical = 4.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Tab.entries.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
