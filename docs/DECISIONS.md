@@ -186,3 +186,33 @@ who had got good - underpaid by construction, which is what a rookie contract
 is. Trades move contracts, not picks: the new club takes the deal as it stands
 and the old club eats the bonus it already paid. Pick compensation waits for
 the asset model in SPEC 8.4.
+
+## ADR-0xx — Offseason runs as a step machine in SPEC 7 order
+
+`OffseasonEngine.run` was a single 696-line pipeline. It is now thirteen
+step functions threading `OffseasonState`, with `OffseasonPhase` declared
+in spec order. Extraction and reorder were separate commits so the
+reorder's effect on the league is a readable diff.
+
+Two orderings changed. Development moved from first to last (spec phase
+11), so teams price, draft and sign against last season's ratings.
+Free agency moved ahead of the draft (phases 7 then 9), the real NFL
+sequence.
+
+Measured over ten seasons, against `docs/baseline-dynasty.txt`:
+- NET DEV terminal value 0.02 -> 0.32
+- retirement mean +1.5 points
+- mean cap space 78,472 -> 67,238
+
+### Open, found while doing this
+- **The cap does not bind.** 67m mean headroom, zero teams under 10m in
+  any of ten seasons. SPEC 8.1 says the cap is the strategy game. It is
+  not one yet. Pricing, not ordering — look at SPEND_SHARE and the
+  marketPool cap in stepBuildPricer.
+- **NET DEV still decays**, 0.61 -> 0.32 across ten years. Better than
+  the 0.02 baseline, still sloping.
+- **Coaching quality is fake.** `coaching = 55 + teamId % 25` in
+  stepDevelopment derives development quality from team index, so team 0
+  is permanently worse at developing players than team 24. There is a
+  CoachId but no Coach model. Building the carousel will move progression
+  league-wide and require a recalibration pass.
