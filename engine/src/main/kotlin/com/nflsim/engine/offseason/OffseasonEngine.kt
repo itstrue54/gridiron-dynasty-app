@@ -172,7 +172,6 @@ object OffseasonEngine {
         // Bridge back to the names the rest of this function still uses.
         // Every further extraction shortens this list; when it is empty the
         // run function is a phase loop.
-        val retirements = state.retirements.toMutableList()
         val developments = state.developments
         val depthRank = state.depthRank
         val deltaSum = state.deltaSum
@@ -228,28 +227,15 @@ object OffseasonEngine {
         val auction = state.auction!!
 
         // ---- 11. fill whatever the market did not -------------------
-        val (filled, gapSignings) = fillRosters(
-            league = league,
-            players = auction.players,
-            year = newYear,
-            deadMoney = deadAfterPrune,
-            scheme = ::sideScheme,
-            pricer = pricer,
-            rng = rng.split("fa|$newYear"),
-        )
-        val signings = extendedSignings + auction.signings + gapSignings
-
+        state = stepFillRosters(ctx, state, rng)
         // ---- 12. cut to the limit -----------------------------------
-        val trimmed = enforceRosterLimit(league, filled, newYear, ::sideScheme)
-
+        state = stepRosterLimit(ctx, state)
         // ---- 13. players who did not catch on -----------------------
-        // Getting cut and not signing anywhere is how most careers actually
-        // end - not with a decision in February but with a phone that stops
-        // ringing in August. Older players take the hint; younger ones hang
-        // around the practice squad circuit and wait.
-        val (survivors, washedOut) = resolveUnsigned(
-            trimmed, newYear, ::sideScheme, rng.split("waiver|$newYear"))
-        retirements += washedOut
+        state = stepResolveUnsigned(ctx, state, rng)
+        val retirements = state.retirements
+        val gapSignings = state.gapSignings
+        val signings = extendedSignings + auction.signings + gapSignings
+        val survivors = state.players
 
         // ---- 14. rebuild --------------------------------------------
         val byTeam = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
@@ -351,6 +337,50 @@ object OffseasonEngine {
     }
 
     // ---- extracted steps ---------------------------------------------
+
+    /** SPEC 7 phase 10. Whatever the market left unfilled, at the minimum. */
+    private fun stepFillRosters(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val (players, signings) = fillRosters(
+            league = ctx.league,
+            players = state.players,
+            year = ctx.newYear,
+            deadMoney = state.deadMoney,
+            scheme = ctx.scheme,
+            pricer = state.requirePricer(),
+            rng = rng.split("fa|${ctx.newYear}"),
+        )
+        return state.copy(
+            players = players,
+            gapSignings = state.gapSignings + signings,
+        )
+    }
+
+    /** Part of SPEC 7 phase 11. Every roster down to 53. */
+    private fun stepRosterLimit(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState =
+        state.copy(players = enforceRosterLimit(
+            ctx.league, state.players, ctx.newYear, ctx.scheme))
+
+    /** Part of SPEC 7 phase 11. A phone that stops ringing in August. */
+    private fun stepResolveUnsigned(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val (survivors, washedOut) = resolveUnsigned(
+            state.players, ctx.newYear, ctx.scheme,
+            rng.split("waiver|${ctx.newYear}"))
+        return state.copy(
+            players = survivors,
+            retirements = state.retirements + washedOut,
+        )
+    }
 
     /** SPEC 7 phase 6. First call on your own pending free agents. */
     private fun stepReSigning(
