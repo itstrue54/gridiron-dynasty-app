@@ -1,0 +1,76 @@
+Calculating task graph as no cached configuration is available for tasks: :engine-cli:run --args=calibrate
+> Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :engine-cli:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :engine:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :data:processResources NO-SOURCE
+> Task :engine-cli:processResources NO-SOURCE
+> Task :engine:processResources UP-TO-DATE
+> Task :engine:compileKotlin UP-TO-DATE
+> Task :engine:compileJava NO-SOURCE
+> Task :engine:classes UP-TO-DATE
+> Task :engine:jar UP-TO-DATE
+> Task :data:compileKotlin
+> Task :data:compileJava NO-SOURCE
+> Task :data:classes UP-TO-DATE
+> Task :data:jar UP-TO-DATE
+> Task :engine-cli:compileKotlin
+> Task :engine-cli:compileJava NO-SOURCE
+> Task :engine-cli:classes UP-TO-DATE
+
+> Task :engine-cli:run
+Simulating 500 full games across the league.
+
+RUSHING
+  yards per carry                  4.29   target 4.10-4.60   PASS
+  carries losing yardage           0.14   target 0.08-0.18   PASS
+  carries of 20+                  0.010   target 0.008-0.030   PASS
+  fumbles per carry               0.011   target 0.004-0.014   PASS
+
+PASSING
+  completion percentage            0.65   target 0.63-0.68   PASS
+  yards per attempt                7.46   target 6.80-7.50   PASS
+  interception rate               0.028   target 0.020-0.028   PASS
+  sack rate                       0.070   target 0.055-0.085   PASS
+
+DISCIPLINE
+  penalties per snap              0.097   target 0.060-0.120   PASS
+
+SCORING
+  points per team per game         21.6   target 21.0-24.5   PASS
+  yards per team per game           357   target 320-360   PASS
+  plays per team per game          64.9   target 62.0-67.0   PASS
+
+EFFICIENCY
+  third down conversion            0.41   target 0.37-0.42   PASS
+  red zone touchdown rate          0.59   target 0.53-0.60   PASS
+  turnovers per team per game      1.25   target 1.00-1.80   PASS
+  penalties per team per game       6.3   target 5.5-7.0   PASS
+
+OUTCOMES
+  home win rate                    0.59   target 0.52-0.60   PASS
+  games decided by 3 or less       0.18   target 0.18-0.26   PASS
+
+HOME FIELD
+  home points per game             23.2   
+  away points per game             20.1   
+  home yards per game               368   
+  away yards per game               345   
+  home penalties per game          5.95   
+  away penalties per game          6.63   
+
+DRIVES
+  drives per team per game         10.4   
+  red zone trips per team per game     3.73   
+  touchdown drives per team        2.29   
+  field goals made-attempted       1.90   
+  field goal attempts per team     2.23   
+  punts per team per game          3.42   
+  turnovers on downs per team      0.35   
+
+18 of 18 bands passing.
+64949 total plays, 567ms
+Bands from docs/SPEC.md 13.2 - the half that needs whole games to measure.
+
+BUILD SUCCESSFUL in 1s
+7 actionable tasks: 3 executed, 4 up-to-date
+Configuration cache entry stored.
