@@ -34,7 +34,12 @@ import kotlinx.coroutines.launch
 // ---------------------------------------------------------------------------
 
 @Composable
-fun HubScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
+fun HubScreen(
+    dynasty: Dynasty,
+    store: DynastyStore,
+    scope: CoroutineScope,
+    onNavigate: (Tab) -> Unit = {},
+) {
     val team = dynasty.team
     val record = dynasty.record()
     val next = dynasty.nextGame()
@@ -67,6 +72,12 @@ fun HubScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                             dynasty.league.team(com.nflsim.engine.model.TeamId(it)).name
                         }
                         Text("Season complete.", fontFamily = Mono, fontSize = 14.sp)
+                        Text(
+                            "Players retire and develop, contracts expire, the draft " +
+                                "runs and the market opens.",
+                            fontFamily = Mono, fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         champ?.let {
                             Text("Champion: $it", fontFamily = Mono, fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
@@ -96,13 +107,23 @@ fun HubScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
 
                 Spacer(Modifier.height(14.dp))
                 Button(
-                    onClick = { scope.launch { store.advance() } },
-                    enabled = !store.busy && dynasty.phase != DynastyPhase.OFFSEASON,
+                    // The offseason used to be a dead end - this button was
+                    // disabled and read "Season over", written before there
+                    // was an offseason to run. There is one now, and it is
+                    // the most interesting turn of the year.
+                    onClick = {
+                        val rollingOver = dynasty.phase == DynastyPhase.OFFSEASON
+                        scope.launch {
+                            store.advance()
+                            if (rollingOver) onNavigate(Tab.OFFSEASON)
+                        }
+                    },
+                    enabled = !store.busy,
                 ) {
                     Text(
                         when (dynasty.phase) {
                             DynastyPhase.PLAYOFFS -> "Play the postseason"
-                            DynastyPhase.OFFSEASON -> "Season over"
+                            DynastyPhase.OFFSEASON -> "Run the offseason"
                             else -> "Advance week"
                         }
                     )

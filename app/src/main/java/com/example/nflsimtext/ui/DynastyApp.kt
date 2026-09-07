@@ -59,7 +59,7 @@ fun DynastyApp(store: DynastyStore) {
             when {
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope)
+                    Tab.HUB -> HubScreen(dynasty, store, scope) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(dynasty)
                     Tab.SCHEDULE -> ScheduleScreen(dynasty)
