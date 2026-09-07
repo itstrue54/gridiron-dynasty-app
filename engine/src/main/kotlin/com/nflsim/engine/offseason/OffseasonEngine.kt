@@ -179,27 +179,17 @@ object OffseasonEngine {
         val deltaCount = state.deltaCount
         val ageSum = state.ageSum
         val ageCount = state.ageCount
-        val developed = state.players
 
         // ---- 3. contracts expire ------------------------------------
-        // Remember who each expiring player was with. A team gets first call
-        // on its own before the market opens, and that is where most of the
-        // money in a real offseason goes.
-        val previousTeam = mutableMapOf<Int, TeamId>()
-        val afterContracts = developed.map { p ->
-            val stillUnder = p.contract?.isActive(newYear) == true
-            if (stillUnder) p else {
-                p.teamId?.let { previousTeam[p.id.v] = it }
-                p.copy(teamId = null, contract = null,
-                    status = PlayerStatus.FREE_AGENT, yearsInSystem = 0)
-            }
-        }
+        state = stepContractsExpire(ctx, state)
 
         // ---- 4. get under the cap -----------------------------------
-        // Before the draft, so team needs reflect the roster a team can
-        // actually afford rather than the one it wishes it had.
-        val (afterCap, deadMoney, releases) = CapManagement.enforce(
-            league, afterContracts, newYear, ::sideScheme, rng.split("cap|$newYear"))
+        state = stepCapCompliance(ctx, state, rng)
+
+        val previousTeam = state.previousTeam
+        val afterCap = state.players
+        val deadMoney = state.deadMoney
+        val releases = state.releases
 
         // ---- 5. what the market can pay -----------------------------
         // Prices are set by the money actually chasing players, not by a
@@ -441,6 +431,53 @@ object OffseasonEngine {
     }
 
     // ---- extracted steps ---------------------------------------------
+
+    /**
+     * Part of SPEC 7 phase 4. Deals that ran out do exactly that.
+     *
+     * Who each expiring player was with is remembered: a team gets first
+     * call on its own before the market opens, and that is where most of
+     * the money in a real offseason goes.
+     */
+    private fun stepContractsExpire(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val previousTeam = mutableMapOf<Int, TeamId>()
+        val players = state.players.map { p ->
+            val stillUnder = p.contract?.isActive(ctx.newYear) == true
+            if (stillUnder) p else {
+                p.teamId?.let { previousTeam[p.id.v] = it }
+                p.copy(teamId = null, contract = null,
+                    status = PlayerStatus.FREE_AGENT, yearsInSystem = 0)
+            }
+        }
+        return state.copy(
+            players = players,
+            previousTeam = state.previousTeam + previousTeam,
+        )
+    }
+
+    /**
+     * Part of SPEC 7 phase 4, the compliance deadline.
+     *
+     * Runs before the draft so team needs reflect the roster a team can
+     * actually afford rather than the one it wishes it had.
+     */
+    private fun stepCapCompliance(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val (players, deadMoney, releases) = CapManagement.enforce(
+            ctx.league, state.players, ctx.newYear, ctx.scheme,
+            rng.split("cap|${ctx.newYear}"))
+        return state.copy(
+            players = players,
+            deadMoney = deadMoney,
+            releases = state.releases + releases,
+        )
+    }
 
     /** SPEC 7 phase 3. Age, decline and contract decide who walks away. */
     private fun stepRetirements(
