@@ -167,6 +167,7 @@ object OffseasonEngine {
         state = stepRetirements(ctx, state, rng)
 
         // ---- 2. development -----------------------------------------
+        state = stepDepthChart(ctx, state)
         state = stepDevelopment(ctx, state, rng)
 
         // Bridge back to the names the rest of this function still uses.
@@ -337,6 +338,32 @@ object OffseasonEngine {
     }
 
     // ---- extracted steps ---------------------------------------------
+
+    /**
+     * Where everyone sits on the depth chart, which is how playing time is
+     * inferred.
+     *
+     * Depth rank, not statistics. Inferring playing time from a stat line
+     * gives every offensive lineman zero snaps, so linemen never developed
+     * and the whole league's average slid a third of a point a year.
+     *
+     * Ranked before anyone moves, so it describes the roster as the season
+     * ended - which is the roster the snaps were actually taken on.
+     */
+    private fun stepDepthChart(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val depthRank: Map<Int, Int> = state.players
+            .filter { it.teamId != null }
+            .groupBy { it.teamId!! to it.position }
+            .flatMap { (key, group) ->
+                group.sortedByDescending { overall(it, ctx.scheme(key.first, key.second)) }
+                    .mapIndexed { rank, p -> p.id.v to rank }
+            }
+            .toMap()
+        return state.copy(depthRank = depthRank)
+    }
 
     /** SPEC 7 phase 10. Whatever the market left unfilled, at the minimum. */
     private fun stepFillRosters(
@@ -620,14 +647,6 @@ object OffseasonEngine {
         state: OffseasonState,
         rng: Rng,
     ): OffseasonState {
-        val depthRank: Map<Int, Int> = state.players
-            .filter { it.teamId != null }
-            .groupBy { it.teamId!! to it.position }
-            .flatMap { (key, group) ->
-                group.sortedByDescending { overall(it, ctx.scheme(key.first, key.second)) }
-                    .mapIndexed { rank, p -> p.id.v to rank }
-            }
-            .toMap()
 
         val developments = mutableListOf<Development>()
         var deltaSum = 0
@@ -638,7 +657,7 @@ object OffseasonEngine {
             val progCtx = Progression.Context(
                 year = ctx.oldYear,
                 coaching = 55 + (p.teamId?.v ?: 0) % 25,
-                snaps = snapsFromDepth(p, depthRank[p.id.v]),
+                snaps = snapsFromDepth(p, state.depthRank[p.id.v]),
             )
             val change = Progression.progress(p, progCtx, rng)
             deltaSum += change.delta
@@ -655,7 +674,6 @@ object OffseasonEngine {
 
         return state.copy(
             players = developed,
-            depthRank = depthRank,
             developments = state.developments + developments,
             deltaSum = state.deltaSum + deltaSum,
             deltaCount = state.deltaCount + deltaCount,
