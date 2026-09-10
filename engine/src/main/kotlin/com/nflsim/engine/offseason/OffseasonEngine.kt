@@ -112,6 +112,19 @@ data class OffseasonReport(
      * hard, and the aggregate cannot tell those apart.
      */
     val developmentByAge: Map<String, Float> = emptyMap(),
+    /**
+     * The same figure per team, keyed by team id. Coaching is only worth a
+     * hiring screen if a good staff visibly out-develops a bad one, and a
+     * league-wide average is exactly the number that cannot show it.
+     */
+    val developmentByTeam: Map<Int, Float> = emptyMap(),
+    /**
+     * Per team again, but only players 24 and under - the ones coaching can
+     * actually reach. SPEC 7.1 applies the coach multiplier to the growth
+     * branch and not to decline, so a whole-roster average measures a team's
+     * age profile far more than it measures its staff.
+     */
+    val youngDevelopmentByTeam: Map<Int, Float> = emptyMap(),
 )
 
 /**
@@ -318,6 +331,12 @@ object OffseasonEngine {
                 .map { overall(it, sideScheme(it.teamId, it.position)) }.averageOrZero(),
             developmentNet = if (deltaCount == 0) 0f else deltaSum.toFloat() / deltaCount,
             developmentByAge = ageSum.mapValues { (k, v) -> v.toFloat() / (ageCount[k] ?: 1) },
+            developmentByTeam = state.teamDeltaSum.mapValues { (k, v) ->
+                v.toFloat() / (state.teamDeltaCount[k] ?: 1)
+            },
+            youngDevelopmentByTeam = state.teamYoungSum.mapValues { (k, v) ->
+                v.toFloat() / (state.teamYoungCount[k] ?: 1)
+            },
             yourPicks = draft.picks.filter { it.team == dynasty.userTeam },
         )
 
@@ -652,6 +671,10 @@ object OffseasonEngine {
         var deltaCount = 0
         val ageSum = mutableMapOf<String, Int>()
         val ageCount = mutableMapOf<String, Int>()
+        val teamSum = mutableMapOf<Int, Int>()
+        val teamCount = mutableMapOf<Int, Int>()
+        val youngSum = mutableMapOf<Int, Int>()
+        val youngCount = mutableMapOf<Int, Int>()
         val developed = state.players.map { p ->
             val progCtx = Progression.Context(
                 year = ctx.oldYear,
@@ -664,6 +687,17 @@ object OffseasonEngine {
             val bracket = ageBracket(p.age(ctx.oldYear))
             ageSum[bracket] = (ageSum[bracket] ?: 0) + change.delta
             ageCount[bracket] = (ageCount[bracket] ?: 0) + 1
+            p.teamId?.let {
+                teamSum[it.v] = (teamSum[it.v] ?: 0) + change.delta
+                teamCount[it.v] = (teamCount[it.v] ?: 0) + 1
+                // Coaching only touches players who are still growing - SPEC
+                // 7.1 leaves it out of the decline branch entirely. Mixing the
+                // two hides the coaching signal under roster age.
+                if (p.age(ctx.oldYear) <= 24) {
+                    youngSum[it.v] = (youngSum[it.v] ?: 0) + change.delta
+                    youngCount[it.v] = (youngCount[it.v] ?: 0) + 1
+                }
+            }
             if (kotlin.math.abs(change.delta) >= 4 || change.note != null) {
                 developments += Development(
                     p.id.v, p.name, p.position.label, change.delta, change.note)
@@ -678,6 +712,10 @@ object OffseasonEngine {
             deltaCount = state.deltaCount + deltaCount,
             ageSum = ageSum,
             ageCount = ageCount,
+            teamDeltaSum = teamSum,
+            teamDeltaCount = teamCount,
+            teamYoungSum = youngSum,
+            teamYoungCount = youngCount,
         )
     }
 

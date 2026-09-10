@@ -60,6 +60,10 @@ data class OffseasonState(
     val deltaCount: Int = 0,
     val ageSum: Map<String, Int> = emptyMap(),
     val ageCount: Map<String, Int> = emptyMap(),
+    val teamDeltaSum: Map<Int, Int> = emptyMap(),
+    val teamDeltaCount: Map<Int, Int> = emptyMap(),
+    val teamYoungSum: Map<Int, Int> = emptyMap(),
+    val teamYoungCount: Map<Int, Int> = emptyMap(),
 ) {
     fun requirePricer(): MarketValue.Pricer =
         pricer ?: error("pricer is not built until the cap is enforced")

@@ -588,6 +588,22 @@ private fun season(args: Array<String>) {
 // is the only view that shows it.
 // ---------------------------------------------------------------------------
 
+private fun pearson(xs: List<Float>, ys: List<Float>): Float {
+    val mx = xs.average()
+    val my = ys.average()
+    var cov = 0.0
+    var varX = 0.0
+    var varY = 0.0
+    xs.indices.forEach { i ->
+        val a = xs[i] - mx
+        val b = ys[i] - my
+        cov += a * b
+        varX += a * a
+        varY += b * b
+    }
+    return if (varX == 0.0 || varY == 0.0) 0f else (cov / kotlin.math.sqrt(varX * varY)).toFloat()
+}
+
 private fun dynasty(args: Array<String>) {
     val years = intArg(args, "years", 10)
     val seed = intArg(args, "seed", 2026).toLong()
@@ -720,6 +736,68 @@ private fun dynasty(args: Array<String>) {
                 year, r.retirementCount, r.retiredMean,
                 r.draftedCount, r.draftedMean, r.draftedStarters, r.developmentNet,
                 brackets.joinToString(" ") { "%7.2f".format(r.developmentByAge[it] ?: 0f) }))
+        }
+    }
+
+    // Coaching is only worth a hiring screen if a good staff visibly
+    // out-develops a bad one. The league-wide net dev figure is exactly the
+    // number that cannot show that. Staffs do not move until the M8 carousel,
+    // so each team's rating is fixed across the run and the pairing is clean.
+    if (flow.isNotEmpty()) {
+        val staffRating = d.league.teams.mapNotNull { t ->
+            val hc = d.league.coaches[t.staff.headCoach]?.ratings?.development
+            val posDevs = t.staff.positionCoaches.values.mapNotNull {
+                d.league.coaches[it]?.ratings?.development
+            }
+            val blended = when {
+                posDevs.isNotEmpty() && hc != null ->
+                    posDevs.map { it * 0.65f + hc * 0.35f }.average().toFloat()
+                posDevs.isNotEmpty() -> posDevs.average().toFloat()
+                hc != null -> hc.toFloat()
+                else -> null
+            }
+            blended?.let { t.id.v to it }
+        }.toMap()
+
+        // Whole-roster dev is mostly a team's age profile: SPEC 7.1 leaves
+        // coaching out of the decline branch, so old rosters read as badly
+        // coached ones. The under-25 figure is the only one that isolates it.
+        fun paired(pick: (com.nflsim.engine.offseason.OffseasonReport) -> Map<Int, Float>) =
+            d.league.teams.mapNotNull { t ->
+                val staff = staffRating[t.id.v] ?: return@mapNotNull null
+                val years = flow.mapNotNull { (_, r) -> pick(r)[t.id.v] }
+                if (years.isEmpty()) null else Triple(t, staff, years.average().toFloat())
+            }.sortedByDescending { it.second }
+
+        val all = paired { it.developmentByTeam }
+        val young = paired { it.youngDevelopmentByTeam }
+
+        if (all.size >= 8) {
+            val band = all.size / 4
+            println()
+            println("COACHING EFFECT")
+            println("  %-34s %.0f worst  %.0f mean  %.0f best".format(
+                "staff development rating",
+                all.minOf { it.second }, all.map { it.second }.average(),
+                all.maxOf { it.second }))
+
+            listOf("whole roster" to all, "under 25 only" to young).forEach { (label, rows) ->
+                if (rows.size < 8) return@forEach
+                val best = rows.take(band).map { it.third }.average()
+                val worst = rows.takeLast(band).map { it.third }.average()
+                val byDev = rows.sortedByDescending { it.third }
+                println("  $label")
+                println("    %-32s %.2f  vs  %.2f".format(
+                    "net dev, top $band staffs vs bottom", best, worst))
+                println("    %-32s %.2f".format("top minus bottom", best - worst))
+                println("    %-32s %.2f to %.2f".format("best team to worst",
+                    byDev.first().third, byDev.last().third))
+                println("    %-32s %.2f".format("correlation, staff vs dev",
+                    pearson(rows.map { it.second }, rows.map { it.third })))
+            }
+            listOf("best staff" to all.first(), "worst staff" to all.last()).forEach { (label, t) ->
+                println("    %-14s %-24s %3.0f staff".format(label, t.first.name.take(24), t.second))
+            }
         }
     }
 
