@@ -144,7 +144,8 @@ object FreeAgency {
                     val need = needs[p.position] ?: 0f
                     val willing = (worth *
                         (1f + need * NEED_PREMIUM) *
-                        front.premium).roundToInt()
+                        front.premium *
+                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual)).roundToInt()
                         .coerceAtMost((space * front.singleDealShare).toInt()
                             .coerceAtLeast(Contract.MIN_BASE_SALARY))
                         .coerceAtMost(pricer.maxAnnual)
@@ -280,7 +281,8 @@ object FreeAgency {
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
             val budget = ((rawSpace + freed) * front.spendShare).toInt()
             if (budget < Contract.MIN_BASE_SALARY) return@mapNotNull null
-            val willing = (worth * front.premium).roundToInt()
+            val willing = (worth * front.premium *
+                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual)).roundToInt()
                 .coerceAtMost((budget * front.singleDealShare).toInt()
                     .coerceAtLeast(Contract.MIN_BASE_SALARY))
                 .coerceAtMost(pricer.maxAnnual)
@@ -305,6 +307,23 @@ object FreeAgency {
 
     /** Most players a full roster will swap out in one market. */
     private const val MAX_UPGRADES = 3
+
+    /**
+     * What a losing club adds to win a key veteran. Free agents prefer a
+     * winner - it is in how they rank offers - so a bad club that wants a
+     * proven starter has to pay for being bad. A .500 club adds nothing.
+     */
+    internal fun losingPremium(player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int): Float {
+        val key = player.age(year) >= AGE_CLIFF && worth >= maxAnnual * KEY_VETERAN_SHARE
+        if (!key) return 1f
+        return 1f + ((0.5f - winPct) * 2f).coerceAtLeast(0f) * LOSING_PREMIUM
+    }
+
+    /** A veteran worth this share of the biggest deal allowed is a key signing. */
+    private const val KEY_VETERAN_SHARE = 0.10f
+
+    /** Most a winless club adds to a key veteran's price. */
+    private const val LOSING_PREMIUM = 0.25f
 
     /**
      * What a player thinks of an offer. Money leads by a distance, but not so

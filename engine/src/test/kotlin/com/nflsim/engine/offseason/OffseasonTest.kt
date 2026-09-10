@@ -387,6 +387,25 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a losing club pays a premium for a key veteran and a winning one does not`() {
+        val year = 2027
+        val template = league.players.first { it.position == Position.WR }
+        val veteran = template.copy(birthYear = year - 31)
+        val young = template.copy(birthYear = year - 24)
+        val maxAnnual = 60_000
+        val key = 20_000
+
+        assertTrue(FreeAgency.losingPremium(veteran, key, 0.1f, year, maxAnnual) > 1.15f,
+            "a bad club should pay up for a key veteran")
+        assertEquals(1f, FreeAgency.losingPremium(veteran, key, 0.6f, year, maxAnnual),
+            "a winning club needs no premium")
+        assertEquals(1f, FreeAgency.losingPremium(young, key, 0.1f, year, maxAnnual),
+            "the premium is for veterans")
+        assertEquals(1f, FreeAgency.losingPremium(veteran, 2_000, 0.1f, year, maxAnnual),
+            "and for key veterans, not depth")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }
