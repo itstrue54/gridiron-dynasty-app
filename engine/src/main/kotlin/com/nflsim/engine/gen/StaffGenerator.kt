@@ -7,6 +7,7 @@ import com.nflsim.engine.model.CoachRole
 import com.nflsim.engine.model.PositionGroup
 import com.nflsim.engine.model.Staff
 import com.nflsim.engine.rng.Rng
+import kotlin.math.roundToInt
 
 /**
  * Builds a full coaching staff for one team: a head coach, three
@@ -75,7 +76,9 @@ object StaffGenerator {
      * sd 12 team ratings bunched into 53-74 and staffs barely differed.
      */
     private fun randomRatings(rng: Rng): CoachRatings {
-        fun stat() = (65 + rng.gaussian(0f, 20f)).toInt().coerceIn(20, 99)
+        // Rounded, and clamped the same distance either side of 65, so the
+        // generated mean is the 65 that DEFAULT_COACHING and SPEC 7.1 assume.
+        fun stat() = (65 + rng.gaussian(0f, 20f)).roundToInt().coerceIn(30, 100)
         return CoachRatings(
             development = stat(),
             gameplan = stat(),
