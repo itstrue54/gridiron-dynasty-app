@@ -406,6 +406,62 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a contender a player away trades young players for a star`() {
+        val year = 2027
+        val offense = SchemeCatalog[league.teams.first().offenseScheme]
+        val defense = SchemeCatalog[league.teams.first().defenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
+            if (pos.isOffense) offense else defense
+        }
+        fun holes(roster: List<com.nflsim.engine.model.Player>) =
+            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year).count { it.value >= 0.35f }
+
+        // The buyer: the club with the fewest holes, its receivers made weak so
+        // that receiver is the one hole a star would fill.
+        val buyerBase = league.teams.minBy { holes(league.roster(it.id)) }
+        val buyerRoster = league.roster(buyerBase.id).map {
+            if (it.position == Position.WR) it.copy(ratings = com.nflsim.engine.model.Ratings.uniform(55)) else it
+        }
+        // Two good young players at the position it is deepest at.
+        val deep = buyerRoster.filter { it.position != Position.WR }
+            .groupBy { it.position }
+            .maxBy { (_, group) -> group.maxOf { overall(it, scheme(null, it.position)) } }
+        val youngsters = listOf(900_201, 900_202).map { id ->
+            deep.value.first().copy(
+                id = com.nflsim.engine.model.PlayerId(id), birthYear = year - 23,
+                ratings = com.nflsim.engine.model.Ratings.uniform(72),
+                contract = Contract.of(years = 4, totalValue = 4_000, signedYear = 2026,
+                    bonusShare = 0.2f, guaranteedShare = 0.2f))
+        }
+
+        val sellerBase = league.teams.first { it.id != buyerBase.id }
+        val star = league.players
+            .filter { it.position == Position.WR && it.teamId != buyerBase.id }
+            .maxBy { overall(it, offense) }
+            .copy(teamId = sellerBase.id, birthYear = year - 28,
+                contract = Contract.of(years = 3, totalValue = 30_000, signedYear = 2026))
+        assertTrue(overall(star, offense) >= 78, "the best receiver in the league should be a star")
+        val sellerRoster = league.roster(sellerBase.id).filter { it.id != star.id } + star
+        val winPct = { id: com.nflsim.engine.model.TeamId -> if (id == buyerBase.id) 0.7f else 0.3f }
+
+        fun trade(buyerWinNow: Float): ContenderTrades.Result {
+            val buyer = buyerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = buyerWinNow))
+            val seller = sellerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = 0f))
+            return ContenderTrades.run(
+                league.copy(teams = listOf(buyer, seller)),
+                buyerRoster + youngsters + sellerRoster, emptyMap(), scheme, winPct, year)
+        }
+
+        val allIn = trade(1f)
+        assertEquals(buyerBase.id, allIn.players.first { it.id == star.id }.teamId,
+            "an all-in contender should trade for the star")
+        assertTrue(allIn.moves.any { it.reason == ContenderTrades.YOUNG_REASON && it.to == sellerBase.id.v },
+            "young players should go the other way")
+
+        assertTrue(trade(0.5f).moves.isEmpty(), "a club in the middle should not go buying stars")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

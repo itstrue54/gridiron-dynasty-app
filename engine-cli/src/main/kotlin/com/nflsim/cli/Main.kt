@@ -688,6 +688,24 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("full rosters trading up", report.upgradeCount))
         println("  %-34s %d, %d signed this offseason, %,d dead".format(
             "cut at the 53", report.cutdownCount, report.cutdownFresh, report.cutdownDeadMoney))
+        println("  %-34s %d last offseason, %d over the run, %d young players back".format(
+            "stars traded to contenders", report.starTrades,
+            flow.sumOf { it.second.starTrades }, flow.sumOf { it.second.youngTraded }))
+
+        // Whether buying a star paid: the buyer's record the season before the
+        // trade against the season after, beside contenders who stood pat -
+        // good teams regress, so the buyers alone would flatter nobody.
+        fun records(bought: Boolean) = flow.zipWithNext().flatMap { (now, next) ->
+            now.second.moneyByTeam
+                .filter { (_, m) -> m.winPermille >= 550 && (m.starsBought > 0) == bought }
+                .mapNotNull { (id, m) -> next.second.moneyByTeam[id]?.let { m.winPermille to it.winPermille } }
+        }
+        listOf("star buyers' record" to records(true), "contenders who stood pat" to records(false))
+            .filter { it.second.isNotEmpty() }
+            .forEach { (label, r) ->
+                println("  %-34s .%03d before, .%03d after (%d clubs)".format(label,
+                    r.map { it.first }.average().toInt(), r.map { it.second }.average().toInt(), r.size))
+            }
         println("  %-34s %d".format("players kept by their own team", report.extensionCount))
         println("  %-34s %d asked out, %d moved".format(
             "trade requests", report.tradeRequests, report.trades.size))

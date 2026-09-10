@@ -81,6 +81,8 @@ data class TeamMoney(
     val vetMarket: Int = 0,
     /** Last season's win percentage in thousandths - the record a free agent sees. */
     val winPermille: Int = 0,
+    /** Stars this club traded young players for. */
+    val starsBought: Int = 0,
 )
 
 /** What happened between seasons, for the news screen. */
@@ -104,6 +106,9 @@ data class OffseasonReport(
     val cutdownCount: Int = 0,
     val cutdownFresh: Int = 0,
     val cutdownDeadMoney: Int = 0,
+    /** Stars traded to contenders, and the young players who went the other way. */
+    val starTrades: Int = 0,
+    val youngTraded: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -254,6 +259,9 @@ object OffseasonEngine {
         // ---- 6. what players want -----------------------------------
         state = stepPlayerIntent(ctx, state, rng)
 
+        // ---- contenders buy a star (SPEC 8.4, without picks) --------
+        state = stepContenderTrades(ctx, state)
+
         // ---- 7. cut the contracts that are not worth it --------------
         state = stepPruneBadValue(ctx, state)
 
@@ -352,6 +360,7 @@ object OffseasonEngine {
                 vetPaid = vets.sumOf { it.value },
                 vetMarket = vets.sumOf { it.market },
                 winPermille = (winPct(t.id) * 1000).toInt(),
+                starsBought = trades.count { it.to == id && it.reason == ContenderTrades.STAR_REASON },
             )
         }
 
@@ -387,6 +396,8 @@ object OffseasonEngine {
             cutdownCount = state.cutdownCount,
             cutdownFresh = state.cutdownFresh,
             cutdownDeadMoney = state.cutdownDeadMoney,
+            starTrades = trades.count { it.reason == ContenderTrades.STAR_REASON },
+            youngTraded = trades.count { it.reason == ContenderTrades.YOUNG_REASON },
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
@@ -653,6 +664,24 @@ object OffseasonEngine {
             deadMoney = deadMoney,
             wishes = state.wishes + wishes,
             trades = state.trades + trades,
+        )
+    }
+
+    /**
+     * Contenders a player or two from a title trading young players for a
+     * star, before anyone re-signs - so they trade from the rosters under
+     * contract (SPEC 8.4, without picks).
+     */
+    private fun stepContenderTrades(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val result = ContenderTrades.run(
+            ctx.league, state.players, state.deadMoney, ctx.scheme, ctx.winPct, ctx.newYear)
+        return state.copy(
+            players = result.players,
+            deadMoney = result.deadMoney,
+            trades = state.trades + result.moves,
         )
     }
 
