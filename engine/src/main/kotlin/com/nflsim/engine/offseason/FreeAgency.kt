@@ -131,7 +131,7 @@ object FreeAgency {
                 val board = pool
                     .filter { (needs[it.position] ?: 0f) > NEED_FLOOR }
                     .map { p ->
-                        p to rosterValue(p, scheme(team.id, p.position), year) +
+                        p to rosterValue(p, scheme(team.id, p.position), year, front.winNowVsFuture) +
                             (needs[p.position] ?: 0f) * NEED_WEIGHT +
                             dayRng.gaussian(0f, 4f)
                     }
@@ -264,8 +264,9 @@ object FreeAgency {
         bids: MutableMap<Int, MutableList<Bid>>,
     ) {
         val front = team.gm
+        val winNow = front.winNowVsFuture
         val weakest = current.groupBy { it.position }.mapValues { (pos, group) ->
-            group.minByOrNull { rosterValue(it, scheme(team.id, pos), year) }
+            group.minByOrNull { rosterValue(it, scheme(team.id, pos), year, winNow) }
         }
         // Affordability is checked before ranking. Ranking by gain first put
         // the best players on the market - none within one deal's share of
@@ -273,7 +274,7 @@ object FreeAgency {
         pool.mapNotNull { p ->
             val out = weakest[p.position] ?: return@mapNotNull null
             val sch = scheme(team.id, p.position)
-            val gain = rosterValue(p, sch, year) - rosterValue(out, sch, year)
+            val gain = rosterValue(p, sch, year, winNow) - rosterValue(out, sch, year, winNow)
             if (gain < UPGRADE_MARGIN) return@mapNotNull null
             val worth = market[p.id.v] ?: return@mapNotNull null
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)

@@ -828,7 +828,8 @@ object OffseasonEngine {
             val roster = byTeam[team.id] ?: emptyList()
             if (roster.size <= ROSTER_LIMIT) { kept += roster; return@forEach }
 
-            fun keepValue(p: Player) = rosterValue(p, scheme(team.id, p.position), year) +
+            fun keepValue(p: Player) =
+                rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
                 (p.contract?.deadCap(year)?.thisYear ?: 0) / 1_000f * DEAD_MONEY_WEIGHT
 
             // Protect the positional minimums first, then keep the best of the
@@ -976,7 +977,8 @@ object OffseasonEngine {
                 while (have < required) {
                     val candidates = freeAgents.filter { it.position == position }
                     val best = candidates.maxByOrNull { p ->
-                        rosterValue(p, scheme(teamId, position), year) + rng.gaussian(0f, 3f)
+                        rosterValue(p, scheme(teamId, position), year,
+                            league.team(teamId).gm.winNowVsFuture) + rng.gaussian(0f, 3f)
                     }
 
                     // A league genuinely runs out of long snappers - only 32

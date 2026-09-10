@@ -61,7 +61,7 @@ object Extensions {
             val mine = free
                 .filter { previousTeam[it.id.v] == team.id }
                 .map { p ->
-                    p to rosterValue(p, scheme(team.id, p.position), year) +
+                    p to rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
                         (needs[p.position] ?: 0f) * NEED_WEIGHT +
                         p.traits.loyalty / 25f +
                         teamRng.gaussian(0f, 5f)

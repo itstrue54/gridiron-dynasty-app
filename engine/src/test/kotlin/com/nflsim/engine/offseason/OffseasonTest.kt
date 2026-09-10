@@ -350,6 +350,23 @@ class OffseasonTest {
     }
 
     @Test
+    fun `an all-in club discounts age less and a rebuilding club pays for youth`() {
+        val year = 2027
+        val scheme = SchemeCatalog[league.teams.first().offenseScheme]
+        val template = league.players.first { it.position == Position.WR }
+        val veteran = template.copy(birthYear = year - 32)
+        val prime = template.copy(birthYear = year - 27)
+        val rookie = template.copy(birthYear = year - 22)
+        fun value(p: com.nflsim.engine.model.Player, winNow: Float) = rosterValue(p, scheme, year, winNow)
+
+        assertTrue(value(veteran, 1f) > value(veteran, 0f), "an all-in club should discount a veteran less")
+        assertTrue(value(rookie, 0f) > value(rookie, 1f), "a rebuilding club should pay for youth")
+        // The middle of the scale is the ranking the league was tuned with.
+        assertEquals(value(prime, 0.5f) - (32 - AGE_CLIFF) * AGE_PENALTY, value(veteran, 0.5f), 0.01f)
+        assertEquals(value(prime, 0.5f), value(rookie, 0.5f), 0.01f)
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }
