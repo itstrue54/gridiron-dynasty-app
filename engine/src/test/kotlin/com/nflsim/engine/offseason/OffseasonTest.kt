@@ -610,6 +610,60 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a contender can pay for a star with a pick`() {
+        val year = 2027
+        val offense = SchemeCatalog[league.teams.first().offenseScheme]
+        val defense = SchemeCatalog[league.teams.first().defenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
+            if (pos.isOffense) offense else defense
+        }
+        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }) { _, pos ->
+            scheme(null, pos)
+        }
+        fun holes(roster: List<com.nflsim.engine.model.Player>) =
+            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar).count { it.value >= 0.35f }
+
+        // The buyer: fewest holes, receivers made weak, and every young player
+        // aged past 25 so it has nobody to spare - only a pick can pay.
+        val buyerBase = league.teams.minBy { holes(league.roster(it.id)) }
+        val buyerRoster = league.roster(buyerBase.id).map { p ->
+            val weak = if (p.position == Position.WR) p.copy(ratings = com.nflsim.engine.model.Ratings.uniform(55)) else p
+            if (weak.age(year) <= 25) weak.copy(birthYear = year - 26) else weak
+        }
+        val sellerBase = league.teams.first { it.id != buyerBase.id }
+        val star = league.players
+            .filter { it.position == Position.WR && it.teamId != buyerBase.id }
+            .maxBy { overall(it, offense) }
+            .copy(teamId = sellerBase.id, birthYear = year - 28,
+                contract = Contract.of(years = 3, totalValue = 30_000, signedYear = 2026))
+        val sellerRoster = league.roster(sellerBase.id).filter { it.id != star.id } + star
+
+        val buyer = buyerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = 1f))
+        val seller = sellerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = 0f))
+        // The buyer holds the first pick of the coming draft.
+        val order = listOf(buyer.id, seller.id)
+        val picks = Picks.own(order, 2027..2029)
+        val winPct = { id: com.nflsim.engine.model.TeamId -> if (id == buyer.id) 0.7f else 0.3f }
+        // Everyone else's roster too, so the need bar is the league's.
+        val everyoneElse = league.players.filter {
+            it.teamId != null && it.teamId != buyer.id && it.teamId != seller.id && it.id != star.id
+        }
+
+        val result = ContenderTrades.run(
+            league.copy(teams = listOf(buyer, seller)), buyerRoster + sellerRoster + everyoneElse, emptyMap(),
+            scheme, winPct, year, picks, order)
+
+        assertEquals(buyer.id, result.players.first { it.id == star.id }.teamId, "the contender should get the star")
+        assertTrue(result.pickTrades.isNotEmpty(), "only a pick could pay")
+        result.pickTrades.forEach { t ->
+            assertEquals(seller.id.v, t.to)
+            val moved = result.picks.first { it.year == t.year && it.round == t.round && it.original == t.original }
+            assertEquals(seller.id.v, moved.owner, "a traded pick belongs to the rebuilding club")
+        }
+        assertTrue(result.moves.none { it.reason == ContenderTrades.YOUNG_REASON }, "no young players were needed")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

@@ -696,6 +696,8 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d last offseason, %d over the run, %d young players back".format(
             "stars traded to contenders", report.starTrades,
             flow.sumOf { it.second.starTrades }, flow.sumOf { it.second.youngTraded }))
+        println("  %-34s %d last offseason, %d over the run".format(
+            "draft picks traded", report.pickTrades.size, flow.sumOf { it.second.pickTrades.size }))
 
         // Whether buying a star paid: the buyer's record the season before the
         // trade against the season after, beside contenders who stood pat -

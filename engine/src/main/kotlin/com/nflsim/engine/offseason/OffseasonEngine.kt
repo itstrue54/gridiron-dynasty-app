@@ -112,6 +112,8 @@ data class OffseasonReport(
     /** Fifth-year options on first-round rookie deals, taken and turned down. */
     val optionsExercised: Int = 0,
     val optionsDeclined: Int = 0,
+    /** Draft picks that changed hands this offseason. */
+    val pickTrades: List<PickTrade> = emptyList(),
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -222,7 +224,7 @@ object OffseasonEngine {
             production = production,
         )
 
-        var state = OffseasonState(players = league.players)
+        var state = OffseasonState(players = league.players, picks = league.picks)
 
         // ---- 1. retirements -----------------------------------------
         state = stepRetirements(ctx, state, rng)
@@ -323,7 +325,7 @@ object OffseasonEngine {
             auction.signings, previousTeam, CapManagement.capFor(newYear), newYear + 1)
         val newLeague = league.copy(
             year = newYear, teams = teams, players = survivors,
-            picks = Picks.rollOver(league.picks + compensation, league.teams.map { it.id }, newYear),
+            picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )
 
         val schedule = ScheduleGenerator.generate(
@@ -413,6 +415,7 @@ object OffseasonEngine {
             youngTraded = trades.count { it.reason == ContenderTrades.YOUNG_REASON },
             optionsExercised = state.optionsExercised,
             optionsDeclined = state.optionsDeclined,
+            pickTrades = state.pickTrades,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
@@ -584,9 +587,9 @@ object OffseasonEngine {
             ctx.dynasty.results,
             ctx.dynasty.playoffs,
         )
-        val owners = Picks.owners(ctx.league.picks, ctx.newYear)
+        val owners = Picks.owners(state.picks, ctx.newYear)
         // Compensatory picks go at the end of their round, most valuable first.
-        val comp = ctx.league.picks.filter { it.year == ctx.newYear && it.compensatory }
+        val comp = state.picks.filter { it.year == ctx.newYear && it.compensatory }
         val slots = (1..DraftRunner.ROUNDS).flatMap { round ->
             order.map { original -> round to (owners[round to original.v]?.let { TeamId(it) } ?: original) } +
                 comp.filter { it.round == round }.sortedBy { it.compOrder }.map { round to TeamId(it.owner) }
@@ -703,12 +706,22 @@ object OffseasonEngine {
         ctx: OffseasonContext,
         state: OffseasonState,
     ): OffseasonState {
+        // This year's picks are valued by where they fall in the coming draft.
+        val order = Picks.draftOrder(
+            ctx.league.teams.map { it.id },
+            { id -> ctx.standings.record(id).winPct },
+            ctx.dynasty.results,
+            ctx.dynasty.playoffs,
+        )
         val result = ContenderTrades.run(
-            ctx.league, state.players, state.deadMoney, ctx.scheme, ctx.winPct, ctx.newYear)
+            ctx.league, state.players, state.deadMoney, ctx.scheme, ctx.winPct, ctx.newYear,
+            state.picks, order)
         return state.copy(
             players = result.players,
             deadMoney = result.deadMoney,
             trades = state.trades + result.moves,
+            picks = result.picks,
+            pickTrades = state.pickTrades + result.pickTrades,
         )
     }
 

@@ -74,6 +74,10 @@ data class OffseasonState(
     // ---- fifth-year options ----
     val optionsExercised: Int = 0,
     val optionsDeclined: Int = 0,
+
+    // ---- draft picks, which trades move before the draft uses them ----
+    val picks: List<com.nflsim.engine.model.PickAsset> = emptyList(),
+    val pickTrades: List<PickTrade> = emptyList(),
 ) {
     fun requirePricer(): MarketValue.Pricer =
         pricer ?: error("pricer is not built until the cap is enforced")
