@@ -362,7 +362,8 @@ object OffseasonEngine {
             meanCapSpace = capSpace.average().toInt(),
             teamsTightOnCap = capSpace.count { it < 10_000 },
             capSpaceByTeam = league.teams.zip(capSpace).associate { (t, s) -> t.id.v to s },
-            releases = (releases + valueCuts).sortedByDescending { it.overall }.take(20),
+            releases = (releases + valueCuts + auction.upgradeCuts)
+                .sortedByDescending { it.overall }.take(20),
             capCasualties = releases.size + valueCuts.size,
             upgradeCount = auction.upgradeCuts.size,
             moneyByTeam = moneyByTeam,
