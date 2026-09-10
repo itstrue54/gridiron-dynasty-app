@@ -109,6 +109,9 @@ data class OffseasonReport(
     /** Stars traded to contenders, and the young players who went the other way. */
     val starTrades: Int = 0,
     val youngTraded: Int = 0,
+    /** Fifth-year options on first-round rookie deals, taken and turned down. */
+    val optionsExercised: Int = 0,
+    val optionsDeclined: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -265,6 +268,9 @@ object OffseasonEngine {
         // ---- 7. cut the contracts that are not worth it --------------
         state = stepPruneBadValue(ctx, state)
 
+        // ---- fifth-year options on first-round rookie deals (CBA) ------
+        state = stepFifthYearOptions(ctx, state)
+
         val pricer = state.requirePricer()
         val wishes = state.wishes
         val trades = state.trades
@@ -405,6 +411,8 @@ object OffseasonEngine {
             cutdownDeadMoney = state.cutdownDeadMoney,
             starTrades = trades.count { it.reason == ContenderTrades.STAR_REASON },
             youngTraded = trades.count { it.reason == ContenderTrades.YOUNG_REASON },
+            optionsExercised = state.optionsExercised,
+            optionsDeclined = state.optionsDeclined,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
@@ -701,6 +709,24 @@ object OffseasonEngine {
             players = result.players,
             deadMoney = result.deadMoney,
             trades = state.trades + result.moves,
+        )
+    }
+
+    /**
+     * CBA Article 7: after a first-rounder's third season his club decides on
+     * the fifth-year option. Decided before re-signing, so a club knows what
+     * it has committed before it budgets for keeping its own.
+     */
+    private fun stepFifthYearOptions(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+    ): OffseasonState {
+        val result = FifthYearOptions.decide(
+            state.players, ctx.newYear, ctx.scheme, state.requirePricer(), state.depthRank)
+        return state.copy(
+            players = result.players,
+            optionsExercised = result.exercised,
+            optionsDeclined = result.declined,
         )
     }
 
@@ -1073,7 +1099,13 @@ object OffseasonEngine {
                         status = PlayerStatus.ACTIVE,
                         yearsInSystem = 0,
                         contract = Contract.of(
-                            years = if (value > 12_000) 4 else if (value > 5_000) 3 else 2,
+                            // An undrafted rookie signs for three years (CBA Article 7).
+                            years = when {
+                                pick.accruedSeasons == 0 -> 3
+                                value > 12_000 -> 4
+                                value > 5_000 -> 3
+                                else -> 2
+                            },
                             totalValue = value * 3,
                             signedYear = year,
                         ),

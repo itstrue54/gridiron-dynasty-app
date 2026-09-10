@@ -22,6 +22,8 @@ data class Contract(
     /** Base salary that is guaranteed regardless of release. */
     val guaranteed: Int = 0,
     val signedYear: Int,
+    /** A first-round rookie deal the club can extend by a fifth year (CBA Article 7). */
+    val fifthYearOption: Boolean = false,
 ) {
     init {
         require(years >= 1) { "a contract must run at least a year" }

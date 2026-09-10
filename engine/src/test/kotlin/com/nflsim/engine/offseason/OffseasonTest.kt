@@ -540,6 +540,56 @@ class OffseasonTest {
             "every compensatory pick should be used in the 2028 draft")
     }
 
+    // ---- rookie scale and the fifth-year option ------------------------
+
+    @Test
+    fun `rookie deals are slotted by pick and first-rounders carry the option`() {
+        val year = 2027
+        val cap = CapManagement.capFor(year)
+        fun deal(pick: Int) = DraftRunner.rookieContract(pick, 1 + (pick - 1) / 32, year)
+
+        assertEquals(4, deal(1).years)
+        assertEquals(cap * 0.1748, deal(1).totalValue.toDouble(), cap * 0.002, "the first pick near 17.5% of the cap")
+        assertEquals(cap * 0.0478, deal(32).totalValue.toDouble(), cap * 0.002, "the 32nd near 4.8%")
+        assertTrue((2..250).all { deal(it).totalValue <= deal(it - 1).totalValue },
+            "a later pick should never be paid more than an earlier one")
+        assertTrue(deal(1).fifthYearOption && deal(32).fifthYearOption, "first-rounders carry the option")
+        assertTrue(!deal(33).fifthYearOption, "second-rounders do not")
+    }
+
+    @Test
+    fun `a club takes the fifth-year option on a star and declines it on a bust`() {
+        val year = 2027
+        val offense = SchemeCatalog[league.teams.first().offenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, _: Position -> offense }
+        val club = league.teams.first().id
+        val template = league.players.first { it.position == Position.WR }
+        fun receiver(id: Int, rating: Int, contract: Contract) = template.copy(
+            id = com.nflsim.engine.model.PlayerId(id), teamId = club,
+            ratings = com.nflsim.engine.model.Ratings.uniform(rating), contract = contract)
+        // Drafted in round one of 2024, so 2027 is the decision year.
+        val star = receiver(900_301, 90, DraftRunner.rookieContract(5, 1, 2024))
+        val bust = receiver(900_302, 50, DraftRunner.rookieContract(20, 1, 2024))
+        val veterans = (1..6).map {
+            receiver(900_310 + it, 70, Contract.of(years = 3, totalValue = 30_000, signedYear = 2026))
+        }
+        val pricer = com.nflsim.engine.econ.MarketValue.pricer(
+            rostered = listOf(star, bust), scheme = { offense }, year = year,
+            payroll = 100_000L, cap = CapManagement.capFor(year))
+
+        val result = FifthYearOptions.decide(listOf(star, bust) + veterans, year, scheme, pricer, emptyMap())
+        val starDeal = result.players.first { it.id == star.id }.contract!!
+        val bustDeal = result.players.first { it.id == bust.id }.contract!!
+
+        assertEquals(1, result.exercised)
+        assertEquals(1, result.declined)
+        assertEquals(5, starDeal.years, "the option adds a fifth year")
+        assertTrue(starDeal.guaranteed - star.contract!!.guaranteed == starDeal.baseSalary.last(),
+            "the fifth year is fully guaranteed")
+        assertEquals(4, bustDeal.years, "a declined option leaves the deal at four years")
+        assertTrue(!starDeal.fifthYearOption && !bustDeal.fifthYearOption, "the option is decided once")
+    }
+
     @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())

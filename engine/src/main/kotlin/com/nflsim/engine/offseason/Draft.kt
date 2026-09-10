@@ -165,7 +165,7 @@ object DraftRunner {
             available.remove(choice)
             val signed = choice.copy(
                 teamId = team,
-                contract = rookieContract(round, year),
+                contract = rookieContract(overallPick, round, year),
                 accruedSeasons = 0,
                 yearsInSystem = 0,
             )
@@ -176,23 +176,51 @@ object DraftRunner {
         return Result(picks, drafted, available.toList())
     }
 
-    /** Slotted rookie deals, four years, cheap and getting cheaper by round. */
-    fun rookieContract(round: Int, year: Int): com.nflsim.engine.model.Contract {
-        val total = when (round) {
-            1 -> 18_000
-            2 -> 8_500
-            3 -> 5_400
-            4 -> 4_300
-            5 -> 3_900
-            6 -> 3_700
-            else -> 3_500
+    /**
+     * The CBA's rookie wage scale: every drafted player signs a four-year deal
+     * slotted by where he was picked. The league derives each slot from the
+     * rookie pool, so this follows 2025's actual contracts as shares of that
+     * year's cap - the first pick near 17.5% over four years, the last of
+     * round one near 4.8%, everyone after the hundredth near the 1.5-2% floor -
+     * and grows with the cap. A compensatory pick is slotted where it falls,
+     * which is the CBA's midpoint of its neighbours. First-rounders are fully
+     * guaranteed and carry the club's fifth-year option.
+     */
+    fun rookieContract(overallPick: Int, round: Int, year: Int): com.nflsim.engine.model.Contract {
+        val total = (CapManagement.capFor(year) * interpolate(overallPick, SCALE)).roundToInt()
+        val bonus = interpolate(overallPick, BONUS_SHARE)
+        val guaranteedBase = when (round) {
+            1 -> 1f
+            2 -> 0.5f
+            3 -> 0.2f
+            else -> 0f
         }
         return com.nflsim.engine.model.Contract.of(
             years = 4, totalValue = total, signedYear = year,
-            bonusShare = if (round == 1) 0.55f else 0.25f,
-            guaranteedShare = if (round <= 2) 0.85f else 0.35f,
-        )
+            bonusShare = bonus,
+            guaranteedShare = guaranteedBase * (1f - bonus),
+        ).copy(fifthYearOption = round == 1)
     }
+
+    private fun interpolate(pick: Int, points: List<Pair<Int, Float>>): Float {
+        if (pick <= points.first().first) return points.first().second
+        if (pick >= points.last().first) return points.last().second
+        val (lo, hi) = points.zipWithNext().first { (a, b) -> pick in a.first..b.first }
+        return lo.second + (hi.second - lo.second) * (pick - lo.first) / (hi.first - lo.first)
+    }
+
+    /**
+     * Four-year rookie totals by overall pick, as shares of the cap: 2025's
+     * contracts over its 279.2m cap - 48.8m for the first pick, 13.35m for the
+     * 32nd, 6.6m by the 100th, 4.3m at the end.
+     */
+    private val SCALE = listOf(
+        1 to 0.1748f, 5 to 0.1433f, 15 to 0.0716f, 32 to 0.0478f, 33 to 0.0394f,
+        49 to 0.0358f, 64 to 0.0258f, 100 to 0.0236f, 101 to 0.0201f, 257 to 0.0154f,
+    )
+
+    /** How much of a rookie deal is signing bonus, by overall pick: two-thirds at the top, a sliver at the end. */
+    private val BONUS_SHARE = listOf(1 to 0.66f, 32 to 0.50f, 64 to 0.30f, 100 to 0.15f, 257 to 0.05f)
 
     /** Scouting error in overall points. Bigger than most people expect. */
     private const val SCOUTING_ERROR = 7.5f

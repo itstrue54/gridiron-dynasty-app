@@ -70,6 +70,10 @@ data class OffseasonState(
     val cutdownDeadMoney: Int = 0,
     /** Cut in the same offseason they were signed or drafted. */
     val cutdownFresh: Int = 0,
+
+    // ---- fifth-year options ----
+    val optionsExercised: Int = 0,
+    val optionsDeclined: Int = 0,
 ) {
     fun requirePricer(): MarketValue.Pricer =
         pricer ?: error("pricer is not built until the cap is enforced")

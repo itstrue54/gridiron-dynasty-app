@@ -688,6 +688,8 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("full rosters trading up", report.upgradeCount))
         println("  %-34s %d, %d signed this offseason, %,d dead".format(
             "cut at the 53", report.cutdownCount, report.cutdownFresh, report.cutdownDeadMoney))
+        println("  %-34s %d exercised, %d declined".format(
+            "fifth-year options", report.optionsExercised, report.optionsDeclined))
         val comp = d.league.picks.filter { it.compensatory && it.year == d.year + 1 }
         println("  %-34s %d for the %d draft, to %d clubs".format(
             "compensatory picks", comp.size, d.year + 1, comp.map { it.original }.toSet().size))
