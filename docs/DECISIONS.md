@@ -427,7 +427,41 @@ seasons.
 - **The payoff is small and noisy.** Fifty-two buyer seasons across five
   seeds cannot say whether twenty points is real; more seeds or longer
   runs would.
-- **Specialists read as holes everywhere.** TeamNeeds rates K, P, LS and
-  FB as needs at nearly every club because their ratings run low. Trades
-  now ignore those positions; free agency's need premium still counts
-  them.
+- **Specialists read as holes everywhere.** *Resolved - see "Needs are
+  judged against each position's own league".* Centers had it worst.
+
+## ADR-0xx — Needs are judged against each position's own league
+
+Every position's need was measured against one bar: a starting unit
+rated under 74 was a need. Centers rate around 63 and fullbacks and
+specialists around 45, so every club looked short at all of them, and a
+flat no-backup penalty added 0.29 of need at every position the roster
+template carries only one of. Free agency's shopping threshold is 0.2,
+so every club kept bidding for a second center, kicker, punter, snapper
+and fullback, paid 1.5-1.6x market for them, and the 53-man cut sent the
+extras straight back: 17.9 centers a season were cut in the offseason
+they arrived, the most of any position.
+
+Decision: TeamNeeds.bar measures each position's typical starting unit
+across the league, recomputed at each phase, and a club is judged
+against that less two points - ADR-006's relative-not-absolute, applied
+to needs. No backup counts only where the roster template carries one.
+A club with nobody at a position still scores a full need: that is a
+real hole.
+
+Measured over five seeds, steady state, before -> after:
+
+    position     need             FA signed      same-offseason cuts
+    C            0.49 -> 0.24     16.9 -> 10.2   17.9 -> 10.8
+    FB           0.74 -> 0.32      6.9 ->  7.4    4.4 ->  3.8
+    K / P / LS   ~0.74 -> ~0.38    ~7.2 -> ~7.6   ~3.4 -> ~3.3
+
+League age, cap space, starters and champions do not move. The bar alone
+did little: quality was a small part of these needs, and the flat depth
+penalty was most of it - found only by splitting need into its parts.
+
+### Open, found while doing this
+- **A club with no specialist still pays about 1.6x for one.** 16-30% of
+  clubs open free agency with nobody at C, FB, K, P or LS, and the need
+  premium applies in full. It is a real hole but a cheap one; whether a
+  replacement-level position should carry the full premium is open.
