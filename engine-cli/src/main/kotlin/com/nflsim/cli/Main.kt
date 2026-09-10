@@ -739,6 +739,43 @@ private fun dynasty(args: Array<String>) {
         }
     }
 
+    // Whether the cap binds, year by year - a league that leaves more room
+    // every season is one where the cap stops forcing decisions. Space against
+    // each GM's spend share says whether the room is a choice some front
+    // offices made or a market that ran out of players worth paying.
+    if (flow.isNotEmpty()) {
+        println()
+        println("CAP")
+        // Spend columns are annual value committed, as a share of the whole
+        // league's cap. Falling market spend while space piles up is demand
+        // drying up, not money running out.
+        println("  %-6s %9s %11s %7s %10s %7s %7s %7s %7s".format(
+            "YEAR", "CAP", "MEAN SPACE", "OF CAP", "UNDER 10M", "FA SIGN", "MARKET", "KEPT", "MIN"))
+        flow.forEach { (year, r) ->
+            val cap = com.nflsim.engine.offseason.CapManagement.capFor(year)
+            val leagueCap = cap * 32f / 100f
+            println("  %-6d %,9d %,11d %6.1f%% %4d of 32 %7d %6.1f%% %6.1f%% %6.1f%%".format(
+                year, cap, r.meanCapSpace, r.meanCapSpace * 100f / cap, r.teamsTightOnCap,
+                r.auctionCount, r.auctionSpend / leagueCap, r.extensionSpend / leagueCap,
+                r.fillSpend / leagueCap))
+        }
+        val last = flow.last().second.capSpaceByTeam
+        val rows = d.league.teams.mapNotNull { t ->
+            last[t.id.v]?.let { t.gm.spendShare to it.toFloat() }
+        }
+        if (rows.size >= 8) {
+            val band = rows.size / 4
+            val bySpend = rows.sortedByDescending { it.first }
+            println("  %-34s %,.0f vs %,.0f".format("space, top $band spenders vs bottom",
+                bySpend.take(band).map { it.second }.average(),
+                bySpend.takeLast(band).map { it.second }.average()))
+            println("  %-34s %.2f".format("correlation, spend share vs space",
+                pearson(rows.map { it.first }, rows.map { it.second })))
+            println("  %-34s %,.0f to %,.0f".format("space, tightest team to loosest",
+                rows.minOf { it.second }, rows.maxOf { it.second }))
+        }
+    }
+
     // Coaching is only worth a hiring screen if a good staff visibly
     // out-develops a bad one. The league-wide net dev figure is exactly the
     // number that cannot show that. Staffs do not move until the M8 carousel,

@@ -96,6 +96,8 @@ data class OffseasonReport(
     val meanCapSpace: Int = 0,
     /** Teams with less than ten million to their name. */
     val teamsTightOnCap: Int = 0,
+    /** Cap space per team, keyed by team id, once the market has closed. */
+    val capSpaceByTeam: Map<Int, Int> = emptyMap(),
     // ---- talent flow, for the health check ----
     /** Mean overall of everyone who left the league this offseason. */
     val retiredMean: Float = 0f,
@@ -309,6 +311,7 @@ object OffseasonEngine {
             auctionContested = auction.signings.count { it.suitors > 1 },
             meanCapSpace = capSpace.average().toInt(),
             teamsTightOnCap = capSpace.count { it < 10_000 },
+            capSpaceByTeam = league.teams.zip(capSpace).associate { (t, s) -> t.id.v to s },
             releases = (releases + valueCuts).sortedByDescending { it.overall }.take(20),
             capCasualties = releases.size + valueCuts.size,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
