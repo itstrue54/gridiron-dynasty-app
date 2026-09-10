@@ -424,9 +424,12 @@ seasons.
 - **Trades carry no picks.** SPEC 8.4 wants a pick chart; until the
   engine has a pick asset model a rebuilding club can only take players
   back.
-- **The payoff is small and noisy.** Fifty-two buyer seasons across five
-  seeds cannot say whether twenty points is real; more seeds or longer
-  runs would.
+- **The payoff is small and noisy.** *Resolved - real, and modest.* Over
+  twenty seeds (328 buyer club-seasons) buyers' records fell 81 points the
+  season after a trade against 110 for contenders who stood pat: +28
+  points, standard error 10 per seed, so roughly +7 to +48 - about half a
+  win in seventeen games. Since the need bar (b326de8) about two stars
+  move a season rather than 1.2.
 - **Specialists read as holes everywhere.** *Resolved - see "Needs are
   judged against each position's own league".* Centers had it worst.
 
@@ -461,7 +464,9 @@ did little: quality was a small part of these needs, and the flat depth
 penalty was most of it - found only by splitting need into its parts.
 
 ### Open, found while doing this
-- **A club with no specialist still pays about 1.6x for one.** 16-30% of
-  clubs open free agency with nobody at C, FB, K, P or LS, and the need
-  premium applies in full. It is a real hole but a cheap one; whether a
-  replacement-level position should carry the full premium is open.
+- **A club with no specialist still pays about 1.6x for one.** *Closed,
+  no change.* Over five seeds the premium at FB, K, P and LS together
+  costs about 0.16% of the league cap a season, against 3.1% for every
+  free agent premium; at C, a real starter priced near 5.7m, 0.22%. A
+  club with no kicker has to get one, and paying over the odds for him is
+  right - it never costs enough to matter.
