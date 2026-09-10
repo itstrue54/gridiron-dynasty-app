@@ -820,6 +820,25 @@ private fun dynasty(args: Array<String>) {
         }
     }
 
+    // Whether a losing club pays to be worth joining. Free agents prefer a
+    // winner, so a bad club that wants a veteran has to outbid for him.
+    // Records change every year, so the bands are club-offseasons.
+    val clubSeasons = flow.flatMap { it.second.moneyByTeam.values }
+    if (clubSeasons.size >= 8) {
+        fun ratio(a: Long, b: Long) = if (b == 0L) 0.0 else a.toDouble() / b
+        val quarter = clubSeasons.size / 4
+        val byRecord = clubSeasons.sortedBy { it.winPermille }
+        println()
+        println("BY RECORD  (worst vs best $quarter club-offseasons by last season's record)")
+        println("  %-8s %9s %9s %9s".format("", "FA/MKT", "VET/MKT", "VETS/YR"))
+        listOf("worst" to byRecord.take(quarter), "best" to byRecord.takeLast(quarter)).forEach { (label, g) ->
+            println("  %-8s %8.2fx %8.2fx %9.2f".format(label,
+                ratio(g.sumOf { it.faPaid.toLong() }, g.sumOf { it.faMarket.toLong() }),
+                ratio(g.sumOf { it.vetPaid.toLong() }, g.sumOf { it.vetMarket.toLong() }),
+                g.map { it.vetSigned }.average()))
+        }
+    }
+
     // Coaching is only worth a hiring screen if a good staff visibly
     // out-develops a bad one. The league-wide net dev figure is exactly the
     // number that cannot show that. Staffs do not move until the M8 carousel,

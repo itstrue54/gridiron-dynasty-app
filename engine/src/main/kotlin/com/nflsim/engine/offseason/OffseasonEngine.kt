@@ -75,6 +75,12 @@ data class TeamMoney(
     /** Summed ages and head count of the roster the club takes into the season. */
     val rosterAgeSum: Int = 0,
     val rosterSize: Int = 0,
+    /** Auction signings aged 29 and over, and what they cost against market. */
+    val vetSigned: Int = 0,
+    val vetPaid: Int = 0,
+    val vetMarket: Int = 0,
+    /** Last season's win percentage in thousandths - the record a free agent sees. */
+    val winPermille: Int = 0,
 )
 
 /** What happened between seasons, for the news screen. */
@@ -323,9 +329,11 @@ object OffseasonEngine {
         // The same books per club, so a front office's habits can be read off
         // what it signed rather than guessed from a league-wide average.
         val bigByTeam = bigContracts.groupBy({ it.first }, { it.second })
+        val ageById = survivors.associate { it.id.v to it.age(newYear) }
         val moneyByTeam = league.teams.associate { t ->
             val id = t.id.v
             val fa = auction.signings.filter { it.team == id }
+            val vets = fa.filter { (ageById[it.player] ?: 0) >= AGE_CLIFF }
             val kept = extendedSignings.filter { it.team == id }
             val big = bigByTeam[id] ?: emptyList()
             id to TeamMoney(
@@ -340,6 +348,10 @@ object OffseasonEngine {
                 casualties = (releases + valueCuts).count { it.team == id },
                 rosterAgeSum = (finalRosters[t.id] ?: emptyList()).sumOf { it.age(newYear) },
                 rosterSize = (finalRosters[t.id] ?: emptyList()).size,
+                vetSigned = vets.size,
+                vetPaid = vets.sumOf { it.value },
+                vetMarket = vets.sumOf { it.market },
+                winPermille = (winPct(t.id) * 1000).toInt(),
             )
         }
 
