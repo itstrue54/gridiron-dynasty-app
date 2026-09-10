@@ -655,7 +655,7 @@ object OffseasonEngine {
         val developed = state.players.map { p ->
             val progCtx = Progression.Context(
                 year = ctx.oldYear,
-                coaching = 55 + (p.teamId?.v ?: 0) % 25,
+                coaching = coachDevRating(ctx.league, p),
                 snaps = snapsFromDepth(p, state.depthRank[p.id.v]),
             )
             val change = Progression.progress(p, progCtx, rng)
@@ -899,6 +899,30 @@ object OffseasonEngine {
         val stillFree = freeAgents.map { it.copy(teamId = null, status = PlayerStatus.FREE_AGENT) }
         return (assigned + stillFree) to signings
     }
+
+    /**
+     * How well a player's coaches develop him: his position coach mostly,
+     * his head coach some - the head coach sets the culture, but it is the
+     * position coach who runs his individual drills every day.
+     *
+     * A free agent between teams and a camp body with no staff assigned yet
+     * get a league-average guess rather than a hole in the calculation.
+     */
+    private fun coachDevRating(league: League, player: Player): Int {
+        val staff = player.teamId?.let { league.team(it).staff } ?: return DEFAULT_COACHING
+        val positionDev = staff.positionCoaches[player.position.group]
+            ?.let { league.coaches[it] }?.ratings?.development
+        val headDev = league.coaches[staff.headCoach]?.ratings?.development
+        return when {
+            positionDev != null && headDev != null -> (positionDev * 0.65f + headDev * 0.35f).toInt()
+            positionDev != null -> positionDev
+            headDev != null -> headDev
+            else -> DEFAULT_COACHING
+        }
+    }
+
+    /** Tracks the generator's mean, so an unattached player is not quietly penalised. */
+    private const val DEFAULT_COACHING = 65
 
     /**
      * Playing time from where a player sits on the depth chart.

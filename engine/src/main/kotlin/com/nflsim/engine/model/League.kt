@@ -15,12 +15,14 @@ data class League(
     val year: Int,
     val teams: List<Team>,
     val players: List<Player>,
+    val coaches: Map<CoachId, Coach> = emptyMap(),
 ) {
     val teamsById: Map<TeamId, Team> by lazy { teams.associateBy { it.id } }
     val playersById: Map<PlayerId, Player> by lazy { players.associateBy { it.id } }
 
     fun team(id: TeamId): Team = teamsById[id] ?: error("no team $id")
     fun player(id: PlayerId): Player = playersById[id] ?: error("no player $id")
+    fun coach(id: CoachId): Coach = coaches[id] ?: error("no coach $id")
 
     fun roster(teamId: TeamId): List<Player> = team(teamId).roster.map { player(it) }
 

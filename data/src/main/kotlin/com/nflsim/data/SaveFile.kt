@@ -1,5 +1,9 @@
 package com.nflsim.data
 
+import com.nflsim.engine.gen.StaffGenerator
+import com.nflsim.engine.model.CoachId
+import com.nflsim.engine.model.Staff
+import com.nflsim.engine.rng.SplitMixRng
 import com.nflsim.engine.season.Dynasty
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
@@ -44,8 +48,38 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
+        1 -> hireStaffs(envelope.dynasty)
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
+    }
+
+    /**
+     * 1 -> 2: coaching staffs arrived in M7. A save written before them has no
+     * staff field, so every team decodes as [Staff.UNASSIGNED] and would
+     * develop its players at a flat league average forever. Hire each of them
+     * a staff off the dynasty's own seed, so the same save always migrates to
+     * the same coaches.
+     */
+    private fun hireStaffs(dynasty: Dynasty): Dynasty {
+        val league = dynasty.league
+        if (league.teams.none { it.staff == Staff.UNASSIGNED }) return dynasty
+
+        val coaches = league.coaches.toMutableMap()
+        var nextCoachId = (coaches.keys.maxOfOrNull { it.v } ?: 0) + 1
+        val rng = SplitMixRng(dynasty.seed)
+
+        val teams = league.teams.map { team ->
+            if (team.staff != Staff.UNASSIGNED) return@map team
+            val (staff, hired) = StaffGenerator.generate(
+                offenseScheme = team.offenseScheme,
+                defenseScheme = team.defenseScheme,
+                nextId = { CoachId(nextCoachId++) },
+                rng = rng.split("staff|team=${team.id.v}"),
+            )
+            hired.forEach { coaches[it.id] = it }
+            team.copy(staff = staff)
+        }
+        return dynasty.copy(league = league.copy(teams = teams, coaches = coaches))
     }
 
     @kotlinx.serialization.Serializable
