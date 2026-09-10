@@ -9,6 +9,7 @@ gained per player per offseason - first year to last.
   after phase reorder            0.61 -> 0.32   development moved to SPEC phase 11
   coaching, N(50,15) ratings     0.59 -> 0.29   real staffs, honest rating spread
   coaching, N(65,12) ratings     0.61 -> 0.23   recentred on the old league mean
+  coach slope 0.30 -> 2.00       0.61 -> 0.31   SPEC 7.1, league mean held fixed
 
 Read those four rows carefully, because the obvious reading is wrong.
 
@@ -81,27 +82,36 @@ points per year between the top eight staffs and the bottom eight, on players
   wider ratings only   0.30     20       46-78      0.02   -0.00
   slope x3.3 + wider   1.00     20       46-78      0.11    0.26
   slope x6.7 + wider   2.00     20       46-78      0.26    0.53
+  slope x6.7, shipped  2.00     12       53-74      0.15    0.41
 
-Measurement noise on the gap is about +/-0.04, so everything above the last two
-rows is zero. Read three things off this table:
+Measurement noise on the gap is about +/-0.04, so only the last three rows are
+clearly above zero. Read three things off this table:
 
 - Widening the ratings alone does nothing (0.02, correlation -0.00). The
   generator is not the problem, and re-rolling coach ratings will not fix it.
 - The slope is the lever, but it has to move a long way. Only at k = 2.00 does
-  staff quality explain a meaningful share of young-player development
-  (correlation 0.53, about 28% of variance).
+  staff quality explain a real share of young-player development: correlation
+  0.41 with ratings as they are, 0.53 if they were also widened.
 - Holding the mean fixed, k cannot exceed ~2.9 before the base term goes
   negative and bad coaching starts actively shrinking players. k = 2.00 is
   close to the structural ceiling of this formula, not a comfortable setting
   inside it.
 
-The formula is [LOCKED], so this is a spec question. Worth noting that SPEC 7.1
-states its own intent as "coaching quality matters most for coachable young
-players - which makes the position-coach hiring screen meaningful." The formula
-as written does not deliver that; the change would bring it in line with what
-the section already says it is for.
+Shipped: slope 2.00, base 0.2975, ratings left at N(65,12). SPEC 7.1 is
+updated, with the reasoning in DECISIONS.md, "The coach slope is 2.00".
+Per seed at k = 2.00:
 
-Full run below (seed 2026, current settings).
+  SEED   U25 GAP  CORREL  STAFF RANGE  NET DEV        UNDER 10M
+  2026      0.18    0.50       52-75   0.61 -> 0.31   2 of 32
+  7331      0.24    0.60       54-74   0.57 -> 0.24   0 of 32
+  4242      0.12    0.28       49-73   0.52 -> 0.28   0 of 32
+  8815      0.13    0.39       56-78   0.64 -> 0.31   1 of 32
+  1907      0.09    0.28       55-69   0.59 -> 0.26   2 of 32
+  mean      0.15    0.41
+
+Two full runs follow, both seed 2026: the slope at 0.30, then at 2.00.
+
+Full run, seed 2026, slope 0.30.
 
 Simulating 10 seasons from 2026. You are the Kansas City Drovers.
 
@@ -176,3 +186,80 @@ AGE DISTRIBUTION
   34+         27  
 
 10 seasons in 9985ms
+
+
+Full run, seed 2026, slope 2.00.
+
+Simulating 10 seasons from 2026. You are the Kansas City Drovers.
+
+YEAR   CHAMPION                 MVP                    YOUR REC   MEAN STARTERS    AGE   80+
+--------------------------------------------------------------------------------------------
+2026   Cleveland Forge          Parker Gill            8-6-3      66.6     73.9   25.6   140
+2027   Atlanta Firebirds        Parker Gill            9-8        67.7     73.9   25.9   192
+2028   Denver Summit            Nolan Rutledge         9-6-2      68.7     74.3   26.1   224
+2029   Nashville Stampede       Austin Webb            11-5-1     69.4     74.8   26.3   254
+2030   Charlotte Crowns         Austin Webb            7-9-1      69.4     74.7   26.5   242
+2031   Pittsburgh Furnace       Peyton Chase           5-10-2     69.4     75.0   26.4   245
+2032   Pittsburgh Furnace       Peyton Chase           7-10       69.6     75.2   26.6   249
+2033   Portland Rain            Nash Wilson            5-11-1     69.6     75.1   26.6   248
+2034   Boston Colonials         Mitchell Ashford       7-10       69.7     75.2   26.8   249
+2035   San Antonio Vaqueros     Garrett Jimenez        7-10       69.3     74.7   26.9   242
+
+HEALTH CHECK
+  distinct champions                 9 of 10
+    Pittsburgh Furnace               2 titles
+  retirements last offseason         223
+  free agents signed                 479
+  cap casualties                     44
+  players kept by their own team     82
+  trade requests                     13 asked out, 1 moved
+      Damon Gaines           RG   wants his contract addressed
+      Lamar Castillo         DT   has told the club he wants to win now
+      Emmanuel Gentry        LT   wants his contract addressed
+      Isaiah Chase           LT   has told the club he wants to win now
+  under contract before signing      38 per team
+  contracts above player value       145 over 1.3x  109 over 1.5x  89 over 1.7x
+  money committed                    1,542,370 kept  2,235,189 market  616,738 minimum
+  free agent prices                  1.27x market
+  contested signings                 47 of 215
+  mean cap space per team            58,250
+  teams under 10m of space           2 of 32
+  roster sizes                       53 to 53
+  players in the league              1956
+
+TALENT FLOW
+  YEAR    RETIRED    MEAN  DRAFTED    MEAN    70+  NET DEV     21-24   25-27   28-30     31+
+  2027        119    59.8      224    61.5     21     0.61      1.51    0.45   -0.89   -4.02
+  2028        183    58.8      224    61.0     21     0.56      1.40    0.50   -0.79   -3.65
+  2029        183    59.9      224    60.5     20     0.51      1.32    0.60   -0.82   -3.16
+  2030        182    61.8      224    60.2     13     0.47      1.37    0.53   -1.22   -2.61
+  2031        206    61.3      224    61.0     17     0.51      1.36    0.65   -0.92   -2.35
+  2032        209    61.2      224    60.6     20     0.46      1.35    0.67   -0.92   -2.91
+  2033        216    61.0      224    59.5     14     0.40      1.33    0.46   -0.98   -2.74
+  2034        205    60.8      224    60.6     23     0.38      1.40    0.45   -0.73   -2.98
+  2035        196    62.2      224    60.0     19     0.31      1.42    0.50   -0.81   -3.34
+  2036        223    61.9      224    60.9     20     0.31      1.35    0.60   -1.07   -2.71
+
+COACHING EFFECT
+  staff development rating           52 worst  65 mean  75 best
+  whole roster
+    net dev, top 8 staffs vs bottom  0.45  vs  0.30
+    top minus bottom                 0.14
+    best team to worst               0.66 to 0.06
+    correlation, staff vs dev        0.42
+  under 25 only
+    net dev, top 8 staffs vs bottom  1.53  vs  1.35
+    top minus bottom                 0.18
+    best team to worst               1.85 to 1.06
+    correlation, staff vs dev        0.50
+    best staff     San Francisco Fog         75 staff
+    worst staff    Green Bay Loggers         52 staff
+
+AGE DISTRIBUTION
+  21-24      489  ##############
+  25-27      507  ##############
+  28-30      410  ############
+  31-33      262  #######
+  34+         28  
+
+10 seasons in 9436ms

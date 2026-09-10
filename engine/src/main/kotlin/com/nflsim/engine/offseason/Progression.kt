@@ -50,7 +50,10 @@ object Progression {
         val ageFactor = ageFactor(age, peak)
         val devMultiplier = player.traits.developmentCurve.multiplier
         val work = 0.75f + 0.5f * (player.traits.workEthic / 100f)
-        val coach = 0.85f + 0.30f * (ctx.coaching / 100f) * (player.traits.coachability / 100f)
+        // The base keeps league-mean coaching (65) at mean coachability (50) at
+        // 0.9475, so the slope widens the gap between staffs without changing
+        // how much the league develops overall.
+        val coach = 0.2975f + 2.00f * (ctx.coaching / 100f) * (player.traits.coachability / 100f)
         val snaps = snapFactor(ctx.snaps)
 
         // Growth is helped by everything; decline is not. A hard worker with a

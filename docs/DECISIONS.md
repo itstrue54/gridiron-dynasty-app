@@ -216,3 +216,43 @@ Measured over ten seasons, against `docs/baseline-dynasty.txt`:
   is permanently worse at developing players than team 24. There is a
   CoachId but no Coach model. Building the carousel will move progression
   league-wide and require a recalibration pass.
+
+## ADR-0xx — The coach slope is 2.00
+
+Staffs are real as of 7fc12d6, which resolves "coaching quality is fake"
+above - and exposed that SPEC 7.1 barely lets coaching matter. Its
+multiplier was `0.85 + 0.30 * (coaching/100) * (coachability/100)`. Over
+five seeds, the top quarter of staffs out-developed the bottom quarter by
+0.03 rating points a year on players 24 and under, correlation 0.09:
+no difference at all. The section says coaching should matter most for
+coachable young players and make the position-coach hiring screen
+meaningful. At 0.30 it did neither.
+
+The multiplier is now `0.2975 + 2.00 * ...`. The base is picked so
+league-mean coaching (65) at mean coachability (50) still gives 0.9475:
+the change widens the gap between staffs without moving how much the
+league develops overall.
+
+Measured over five seeds, ten seasons, against `docs/baseline-coaching.txt`:
+- under-25 gap, top quarter of staffs vs bottom: 0.03 -> 0.15 a year
+- correlation, staff rating vs under-25 development: 0.09 -> 0.41
+- NET DEV, seed 2026: 0.61 -> 0.23 becomes 0.61 -> 0.31
+
+### Rejected
+- **Wider coach ratings.** N(65,20) at the old slope: gap 0.02,
+  correlation 0.00. A team's effective rating blends one head coach with
+  ten position coaches, so most of the rating spread averages away.
+
+### Open, found while doing this
+- **Near the ceiling.** With the mean held, the slope cannot pass ~2.9
+  before the base goes negative and bad coaching starts shrinking
+  players. If the hiring screen needs more than 2.00 gives, the
+  multiplicative shape is the problem, not the coefficient.
+- **Coachability is now a big trait.** At league-average coaching, young
+  players' growth multiplier spans ~0.56x to ~1.34x across coachability
+  20-80, against 0.94x to 1.06x before. That is what 7.1 asks for, but it
+  makes a hidden trait carry a lot of development - worth surfacing
+  through scouting before it feels arbitrary.
+- **Staff ratings stay narrow.** Team ratings run ~53-74. The same slope
+  with N(65,20) ratings reached correlation 0.53 against 0.41 here;
+  ratings were left at N(65,12) on purpose.

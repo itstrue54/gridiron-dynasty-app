@@ -145,6 +145,25 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a good position coach is worth most to a coachable young player`() {
+        val rng = SplitMixRng(4L)
+        val template = league.players.first { it.position == Position.WR }.copy(birthYear = 2004)
+        fun mean(coaching: Int, coachability: Int): Double {
+            val p = template.copy(traits = template.traits.copy(coachability = coachability))
+            var total = 0.0
+            repeat(1000) {
+                total += Progression.progress(p, Progression.Context(2026, coaching, 700), rng).delta
+            }
+            return total / 1000
+        }
+        val coachable = mean(85, 80) - mean(45, 80)
+        val stubborn = mean(85, 20) - mean(45, 20)
+        assertTrue(coachable > 0.5, "a great coach should be worth half a point a year, got $coachable")
+        assertTrue(coachable > stubborn * 2,
+            "coaching should matter most to the coachable: $coachable vs $stubborn")
+    }
+
+    @Test
     fun `retirement rates climb with age`() {
         val rng = SplitMixRng(4L)
         fun rate(age: Int): Double {
