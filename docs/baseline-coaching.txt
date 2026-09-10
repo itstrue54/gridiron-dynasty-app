@@ -1,0 +1,178 @@
+Coaching staffs: what they did to development
+=============================================
+
+Seed 2026, 10 seasons, `dynasty --years=10`. NET DEV is mean rating points
+gained per player per offseason - first year to last.
+
+  POINT                          NET DEV        WHAT CHANGED
+  original (pre-reorder)         0.40 -> 0.02   docs/baseline-dynasty.txt
+  after phase reorder            0.61 -> 0.32   development moved to SPEC phase 11
+  coaching, N(50,15) ratings     0.59 -> 0.29   real staffs, honest rating spread
+  coaching, N(65,12) ratings     0.61 -> 0.23   recentred on the old league mean
+
+Read those four rows carefully, because the obvious reading is wrong.
+
+The phase reorder is what fixed development. Coaching did not improve it and
+was never going to: it replaced a stand-in formula (55 + teamId % 25, range
+55-79, mean ~67) with generated coaches, and the first attempt generated them
+at N(50,15). That dropped league-average coaching by seventeen points and took
+progression down with it. Recentring to N(65,12) clamped 35-95 puts the mean
+back where SPEC 7.1 was calibrated and restores year one exactly (0.61).
+
+The last-year figure falling to 0.23 is not a regression in development. It is
+the age mix moving: this league now carries 459 players aged 21-24 against the
+original baseline's 534, and 423 aged 28-30 against 385. Per bracket,
+development is slightly *up* on the original baseline -
+
+  BRACKET   ORIGINAL   NOW
+  21-24       1.34     1.41
+  25-27       0.51     0.63
+  28-30      -1.18    -1.21
+  31+        -3.03    -3.14
+
+- so the aggregate falls because there are more old players in it, not because
+anyone develops worse. NET DEV alone cannot tell those apart, which is why the
+bracket split is the number to watch.
+
+What coaching is actually worth
+-------------------------------
+
+Best eight staffs develop their players 0.09 rating points a year faster than
+the worst eight, correlation 0.33.
+
+Both of those numbers are the wrong measurement, and the right one is worse.
+SPEC 7.1 applies the coach multiplier only where `ageFactor > 0` - coaching is
+absent from the decline branch entirely. So a whole-roster average measures a
+team's age profile far more than it measures its staff, and an old roster reads
+as a badly coached one. Restricted to the players coaching can actually reach,
+the under-25s, the gap is 0.03 a year at correlation 0.09: indistinguishable
+from nothing. (That is the five-seed mean from the table below. The single run
+appended at the end reads 0.08 on seed 2026 alone, which is the same number
+plus noise - one seed cannot resolve a gap this small, which is rather the
+point.)
+
+Three compressions stack up, and the ratings are the smallest of them:
+
+1. SPEC 7.1 caps it. `coachMult = 0.85 + 0.30 * (coaching/100) * (coachability/100)`
+   gives coaching at most 0.30 of the multiplier. Across the observed staff
+   range of 52 to 75 that is a 3.7% swing in development rate.
+
+2. Coachability halves it again. It multiplies the coaching term, so the
+   average player at coachability 50 receives half of whatever range remains.
+
+3. Team staff rating barely varies. Coaches are N(65,12), but a team's
+   effective rating is one head coach blended with ten position coaches, and
+   averaging ten draws collapses the spread to about sd 5 - an observed league
+   range of 52 to 75, not the 35-95 the generator can produce.
+
+What it would take
+------------------
+
+Five seeds per config, ten seasons each. The league-average multiplier is held
+constant throughout (base = 0.9475 - 0.325k), so these change only the spread
+between staffs, never how much the league develops overall. U25 GAP is rating
+points per year between the top eight staffs and the bottom eight, on players
+24 and under.
+
+  CONFIG                  K     SD  STAFF RANGE  U25 GAP  CORREL
+  current              0.30     12       53-74      0.03    0.09
+  slope x2             0.60     12       53-74      0.00    0.02
+  slope x3.3           1.00     12       53-74      0.07    0.16
+  wider ratings only   0.30     20       46-78      0.02   -0.00
+  slope x3.3 + wider   1.00     20       46-78      0.11    0.26
+  slope x6.7 + wider   2.00     20       46-78      0.26    0.53
+
+Measurement noise on the gap is about +/-0.04, so everything above the last two
+rows is zero. Read three things off this table:
+
+- Widening the ratings alone does nothing (0.02, correlation -0.00). The
+  generator is not the problem, and re-rolling coach ratings will not fix it.
+- The slope is the lever, but it has to move a long way. Only at k = 2.00 does
+  staff quality explain a meaningful share of young-player development
+  (correlation 0.53, about 28% of variance).
+- Holding the mean fixed, k cannot exceed ~2.9 before the base term goes
+  negative and bad coaching starts actively shrinking players. k = 2.00 is
+  close to the structural ceiling of this formula, not a comfortable setting
+  inside it.
+
+The formula is [LOCKED], so this is a spec question. Worth noting that SPEC 7.1
+states its own intent as "coaching quality matters most for coachable young
+players - which makes the position-coach hiring screen meaningful." The formula
+as written does not deliver that; the change would bring it in line with what
+the section already says it is for.
+
+Full run below (seed 2026, current settings).
+
+Simulating 10 seasons from 2026. You are the Kansas City Drovers.
+
+YEAR   CHAMPION                 MVP                    YOUR REC   MEAN STARTERS    AGE   80+
+--------------------------------------------------------------------------------------------
+2026   Cleveland Forge          Parker Gill            8-6-3      66.6     73.9   25.6   140
+2027   Atlanta Firebirds        Parker Gill            10-7       67.7     73.9   25.9   193
+2028   Portland Rain            Austin Webb            8-9        68.7     74.5   26.1   232
+2029   San Antonio Vaqueros     Liam Henderson         6-8-3      69.3     74.9   26.3   252
+2030   Buffalo Gale             Zane Christian         5-12       69.5     75.1   26.4   240
+2031   Miami Tarpons            Easton Hines           4-11-2     69.6     75.1   26.5   247
+2032   New Orleans Krewe        Zane Christian         7-10       69.7     75.1   26.5   242
+2033   New Orleans Krewe        Zane Christian         5-11-1     69.8     75.3   26.7   246
+2034   Pittsburgh Furnace       Peyton Chase           8-9        69.7     75.3   26.9   244
+2035   Baltimore Watchmen       Peyton Chase           10-6-1     69.5     75.1   27.0   222
+
+HEALTH CHECK
+  distinct champions                 9 of 10
+    New Orleans Krewe                2 titles
+  retirements last offseason         199
+  free agents signed                 579
+  cap casualties                     47
+  players kept by their own team     121
+  trade requests                     10 asked out, 3 moved
+      Zachary Curtis         RT   has told the club he wants to win now
+      Hendrix Murray         LB   wants his contract addressed
+      Lamar Castillo         DT   wants his contract addressed
+      Spencer Owens          TE   wants his contract addressed
+  under contract before signing      37 per team
+  contracts above player value       131 over 1.3x  100 over 1.5x  76 over 1.7x
+  money committed                    2,483,880 kept  1,840,611 market  619,714 minimum
+  free agent prices                  1.27x market
+  contested signings                 80 of 275
+  mean cap space per team            65,876
+  teams under 10m of space           1 of 32
+  roster sizes                       53 to 53
+  players in the league              1956
+
+TALENT FLOW
+  YEAR    RETIRED    MEAN  DRAFTED    MEAN    70+  NET DEV     21-24   25-27   28-30     31+
+  2027        119    59.8      224    61.5     21     0.61      1.51    0.45   -0.90   -4.02
+  2028        175    58.5      224    60.7     22     0.54      1.46    0.47   -0.84   -3.84
+  2029        190    60.5      224    60.5     18     0.50      1.29    0.61   -0.92   -2.93
+  2030        191    61.3      224    60.0     13     0.55      1.38    0.59   -1.01   -2.49
+  2031        189    61.6      224    60.8     18     0.53      1.33    0.67   -0.80   -2.31
+  2032        207    61.9      224    60.6     19     0.50      1.32    0.68   -0.82   -2.82
+  2033        184    60.9      224    59.7     17     0.40      1.35    0.48   -0.99   -2.67
+  2034        203    61.5      224    60.6     21     0.36      1.37    0.54   -0.74   -3.08
+  2035        198    61.3      224    59.7     19     0.30      1.32    0.63   -0.86   -2.59
+  2036        199    62.8      224    61.2     18     0.23      1.41    0.63   -1.21   -3.14
+
+COACHING EFFECT
+  staff development rating           52 worst  65 mean  75 best
+  whole roster
+    net dev, top 8 staffs vs bottom  0.42  vs  0.33
+    top minus bottom                 0.09
+    best team to worst               0.72 to 0.13
+    correlation, staff vs dev        0.33
+  under 25 only
+    net dev, top 8 staffs vs bottom  1.48  vs  1.40
+    top minus bottom                 0.08
+    best team to worst               1.73 to 1.08
+    correlation, staff vs dev        0.26
+    best staff     San Francisco Fog         75 staff
+    worst staff    Green Bay Loggers         52 staff
+
+AGE DISTRIBUTION
+  21-24      459  #############
+  25-27      494  ##############
+  28-30      423  ############
+  31-33      293  ########
+  34+         27  
+
+10 seasons in 9985ms
