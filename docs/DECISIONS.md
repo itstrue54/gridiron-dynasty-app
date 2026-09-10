@@ -238,10 +238,21 @@ Measured over five seeds, ten seasons, against `docs/baseline-coaching.txt`:
 - correlation, staff rating vs under-25 development: 0.09 -> 0.41
 - NET DEV, seed 2026: 0.61 -> 0.23 becomes 0.61 -> 0.31
 
+Coach ratings then widened from N(65,12) clamped 35-95 to N(65,20)
+clamped 20-99. A team's effective rating blends one head coach with ten
+position coaches, so at sd 12 team ratings bunched into 53-74 and most
+of the difference between staffs averaged away. At sd 20 they run about
+46-78, and over the same five seeds:
+- under-25 gap 0.15 -> 0.26 a year
+- correlation 0.41 -> 0.53: staff explains about a quarter of
+  young-player development
+- league development unchanged: mean NET DEV 0.59 -> 0.28 at sd 12,
+  0.58 -> 0.29 at sd 20
+
 ### Rejected
-- **Wider coach ratings.** N(65,20) at the old slope: gap 0.02,
-  correlation 0.00. A team's effective rating blends one head coach with
-  ten position coaches, so most of the rating spread averages away.
+- **Wider coach ratings alone.** N(65,20) at the old slope: gap 0.02,
+  correlation 0.00. Rating spread only shows once the slope lets it
+  through.
 
 ### Open, found while doing this
 - **Near the ceiling.** With the mean held, the slope cannot pass ~2.9
@@ -253,6 +264,8 @@ Measured over five seeds, ten seasons, against `docs/baseline-coaching.txt`:
   20-80, against 0.94x to 1.06x before. That is what 7.1 asks for, but it
   makes a hidden trait carry a lot of development - worth surfacing
   through scouting before it feels arbitrary.
-- **Staff ratings stay narrow.** Team ratings run ~53-74. The same slope
-  with N(65,20) ratings reached correlation 0.53 against 0.41 here;
-  ratings were left at N(65,12) on purpose.
+- **The clamp is not symmetric.** 20-99 trims the top tail harder than
+  the bottom, and truncating to Int shaves about half a point, so the
+  generated mean sits nearer 64 than 65. Team-level means read 61-65
+  across seeds, inside sampling noise, and league development did not
+  move - but DEFAULT_COACHING and the 0.2975 base both assume 65.

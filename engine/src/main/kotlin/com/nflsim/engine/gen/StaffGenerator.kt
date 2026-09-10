@@ -69,9 +69,13 @@ object StaffGenerator {
      * N(50,15) coaches dropped league-average coaching by seventeen points and
      * took progression down with it - so the spread is the new information
      * here, and the mean has to stay where the curve was tuned.
+     *
+     * The spread is wide because a player's coaching blends his position
+     * coach with the head coach, and a team's staff is eleven such draws: at
+     * sd 12 team ratings bunched into 53-74 and staffs barely differed.
      */
     private fun randomRatings(rng: Rng): CoachRatings {
-        fun stat() = (65 + rng.gaussian(0f, 12f)).toInt().coerceIn(35, 95)
+        fun stat() = (65 + rng.gaussian(0f, 20f)).toInt().coerceIn(20, 99)
         return CoachRatings(
             development = stat(),
             gameplan = stat(),
