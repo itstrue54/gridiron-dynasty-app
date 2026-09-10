@@ -264,6 +264,18 @@ class OffseasonTest {
     }
 
     @Test
+    fun `club money adds up to the league totals`() {
+        val report = playYear(freshDynasty()).lastOffseason!!
+        val clubs = report.moneyByTeam.values
+        assertEquals(League.TEAM_COUNT, report.moneyByTeam.size)
+        assertEquals(report.auctionSpend, clubs.sumOf { it.faPaid })
+        assertEquals(report.extensionSpend, clubs.sumOf { it.keptPaid })
+        assertEquals(report.overpaidBy50, clubs.sumOf { it.overpaid })
+        assertEquals(report.capCasualties, clubs.sumOf { it.casualties })
+        assertEquals(report.extensionCount, clubs.sumOf { it.keptCount })
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

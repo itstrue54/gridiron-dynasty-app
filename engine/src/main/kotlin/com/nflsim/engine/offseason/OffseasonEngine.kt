@@ -53,6 +53,27 @@ data class Signing(
     val suitors: Int = 1,
 )
 
+/**
+ * One club's offseason in money, in thousands - enough to tell a reckless
+ * front office from a careful one by its books rather than its profile.
+ */
+@Serializable
+data class TeamMoney(
+    val faPaid: Int = 0,
+    val faMarket: Int = 0,
+    val keptPaid: Int = 0,
+    val keptMarket: Int = 0,
+    /** Own players kept before the market opened. */
+    val keptCount: Int = 0,
+    /** Contracts above 6m on the books once the offseason is done. */
+    val bigContracts: Int = 0,
+    /** Of those, how many run past 1.5x what the player is worth now. */
+    val overpaid: Int = 0,
+    /** Dead money on the books this offseason, carried and new. */
+    val deadMoney: Int = 0,
+    val casualties: Int = 0,
+)
+
 /** What happened between seasons, for the news screen. */
 @Serializable
 data class OffseasonReport(
@@ -68,6 +89,8 @@ data class OffseasonReport(
     val capCasualties: Int = 0,
     /** Signings a full roster made by releasing a worse player at the position. */
     val upgradeCount: Int = 0,
+    /** Every club's money, keyed by team id. The lists above are cut to twenty. */
+    val moneyByTeam: Map<Int, TeamMoney> = emptyMap(),
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -282,12 +305,34 @@ object OffseasonEngine {
 
         // Every contract big enough to be worth cutting, against what the
         // player is actually worth now.
-        val overpayRatios = survivors
+        val bigContracts = survivors
             .filter { it.teamId != null && it.capHit(newYear) > 6_000 }
             .map { p ->
                 val worth = pricer.annual(p, sideScheme(p.teamId, p.position), newYear)
-                p.capHit(newYear).toFloat() / worth.coerceAtLeast(1)
+                p.teamId!!.v to p.capHit(newYear).toFloat() / worth.coerceAtLeast(1)
             }
+        val overpayRatios = bigContracts.map { it.second }
+
+        // The same books per club, so a front office's habits can be read off
+        // what it signed rather than guessed from a league-wide average.
+        val bigByTeam = bigContracts.groupBy({ it.first }, { it.second })
+        val moneyByTeam = league.teams.associate { t ->
+            val id = t.id.v
+            val fa = auction.signings.filter { it.team == id }
+            val kept = extendedSignings.filter { it.team == id }
+            val big = bigByTeam[id] ?: emptyList()
+            id to TeamMoney(
+                faPaid = fa.sumOf { it.value },
+                faMarket = fa.sumOf { it.market },
+                keptPaid = kept.sumOf { it.value },
+                keptMarket = kept.sumOf { it.market },
+                keptCount = kept.size,
+                bigContracts = big.size,
+                overpaid = big.count { it > 1.5f },
+                deadMoney = state.deadMoney[id] ?: 0,
+                casualties = (releases + valueCuts).count { it.team == id },
+            )
+        }
 
         val report = OffseasonReport(
             year = newYear,
@@ -316,6 +361,7 @@ object OffseasonEngine {
             releases = (releases + valueCuts).sortedByDescending { it.overall }.take(20),
             capCasualties = releases.size + valueCuts.size,
             upgradeCount = auction.upgradeCuts.size,
+            moneyByTeam = moneyByTeam,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),

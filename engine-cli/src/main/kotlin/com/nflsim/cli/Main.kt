@@ -777,6 +777,45 @@ private fun dynasty(args: Array<String>) {
         }
     }
 
+    // Whether front offices actually behave differently with money. ADR-009
+    // says the reckless ones fill the league with bad contracts; this is the
+    // only place that claim gets checked, club by club.
+    if (flow.any { it.second.moneyByTeam.isNotEmpty() }) {
+        val traits = listOf<Pair<String, (com.nflsim.engine.model.GmProfile) -> Float>>(
+            "aggression" to { it.aggression },
+            "win now" to { it.winNowVsFuture },
+            "loyalty" to { it.loyaltyToOwnPlayers },
+            "risk tolerance" to { it.riskTolerance },
+        )
+        val band = d.league.teams.size / 4
+        fun ratio(a: Long, b: Long) = if (b == 0L) 0.0 else a.toDouble() / b
+        println()
+        println("GM  (top vs bottom $band clubs on each trait, over every offseason)")
+        println("  %-16s %-5s %9s %9s %8s %10s %9s %11s".format(
+            "TRAIT", "", "FA/MKT", "KEPT/MKT", "KEPT/YR", "OVER 1.5X", "DEAD/CAP", "CASUALTIES"))
+        traits.forEach { (name, trait) ->
+            val ranked = d.league.teams.sortedByDescending { trait(it.gm) }
+            listOf("high" to ranked.take(band), "low" to ranked.takeLast(band)).forEach { (label, clubs) ->
+                val ids = clubs.map { it.id.v }.toSet()
+                val rows = flow.flatMap { (year, r) ->
+                    r.moneyByTeam.filterKeys { it in ids }.values.map { year to it }
+                }
+                val dead = rows.map { (y, m) ->
+                    m.deadMoney * 100.0 / com.nflsim.engine.offseason.CapManagement.capFor(y)
+                }.average()
+                println("  %-16s %-5s %8.2fx %8.2fx %8.1f %9.1f%% %8.1f%% %11.1f".format(
+                    if (label == "high") name else "", label,
+                    ratio(rows.sumOf { it.second.faPaid.toLong() }, rows.sumOf { it.second.faMarket.toLong() }),
+                    ratio(rows.sumOf { it.second.keptPaid.toLong() }, rows.sumOf { it.second.keptMarket.toLong() }),
+                    rows.map { it.second.keptCount }.average(),
+                    ratio(rows.sumOf { it.second.overpaid.toLong() },
+                        rows.sumOf { it.second.bigContracts.toLong() }) * 100,
+                    dead,
+                    rows.map { it.second.casualties }.average()))
+            }
+        }
+    }
+
     // Coaching is only worth a hiring screen if a good staff visibly
     // out-develops a bad one. The league-wide net dev figure is exactly the
     // number that cannot show that. Staffs do not move until the M8 carousel,
