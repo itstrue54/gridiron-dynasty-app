@@ -324,3 +324,52 @@ the pricer will need.
 - **GM spend share barely shows.** It correlates with a team's space at
   only -0.1 to -0.3. ADR-009's spread of front offices shows up in the
   contracts they sign, not in how much of the cap they use.
+
+## ADR-0xx — Loyalty is the player's; the club decides how far to go
+
+ADR-009 said reckless front offices fill the league with bad contracts,
+and nothing had measured it. The GM section of the dynasty health check
+now compares the top and bottom eight clubs on each trait over every
+offseason. Five seeds, before this change:
+
+- **Aggression does it.** 1.41x market in free agency against 1.06x, 19%
+  of big contracts over 1.5x value against 14%, 14% of the cap in dead
+  money against 10%.
+- **Win now shows nothing** on any measure - the same finding as the
+  pricer ADR, from the other side.
+- **Risk tolerance works, mildly.** Patient clubs cut 1.0 players a year,
+  impatient ones 1.3.
+- **Loyalty ran backwards.** The hometown discount was 0.93 + GM loyalty
+  x 0.10, so the most loyal clubs paid 1.02x market to keep their own and
+  the least loyal got 0.94x.
+
+Decision: re-signing has two sides. The player names a price from his
+own loyalty trait - 1.06x market for the least loyal down to 0.90x for
+the most - and the club sets a limit from its GM's loyalty, 0.94x up to
+1.08x. Under the limit he re-signs at his ask; over it he walks.
+Team-friendly deals now come from loyal players, and a loyal club keeps
+a mercenary by paying him.
+
+Also fixed: free agency's loyalty bonus checked `player.teamId` against
+the bidder, and every free agent's teamId is null, so player loyalty
+never counted in free agency. It now reads last season's club.
+
+Five seeds, after:
+
+    GM loyalty, high / low    kept vs market   kept a year   over 1.5x
+    before                    1.02x / 0.94x        -         15.6% / 16.3%
+    after                     0.98x / 0.94x    2.8 / 1.3     14.6% / 18.9%
+
+League-wide, 104 players kept an offseason becomes 87, free agents
+signed 232 becomes 237, and cap space 11.5% becomes 11.3%.
+
+Consequences: a hard-nosed club now pays for it. It lets mercenaries
+walk, replaces them in free agency at 1.27x market, and carries more
+overpaid contracts than a loyal one - loyalty protects a club's books
+where before it only cost money.
+
+### Open, found while doing this
+- **Win now has no visible effect.** It drives spend share and
+  restructures, and neither shows in a club's books.
+- **The club's side is loyalty alone.** Aggression and win now do not
+  change how far a club goes to keep a star it cannot afford to lose.
