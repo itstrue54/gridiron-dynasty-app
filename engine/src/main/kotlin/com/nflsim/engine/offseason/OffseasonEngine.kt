@@ -794,14 +794,21 @@ object OffseasonEngine {
         )
     }
 
+    /** Rating points a million of dead money is worth when choosing who to cut. */
+    private const val DEAD_MONEY_WEIGHT = 1f
+
     /**
      * Cuts every roster to 53, releasing the worst players in scheme terms.
      *
      * Filling rosters without cutting them let teams carry sixty players -
      * everyone under contract, plus seven draft picks, plus whatever free
      * agency added. A roster limit is what makes the draft a decision.
+     *
+     * Ability alone released guaranteed rookies to keep slightly better
+     * minimum veterans. A player the club pays either way costs nothing
+     * extra to keep, so his dead money counts in his favour.
      */
-    private fun enforceRosterLimit(
+    internal fun enforceRosterLimit(
         league: League,
         players: List<Player>,
         year: Int,
@@ -815,20 +822,23 @@ object OffseasonEngine {
             val roster = byTeam[team.id] ?: emptyList()
             if (roster.size <= ROSTER_LIMIT) { kept += roster; return@forEach }
 
+            fun keepValue(p: Player) = rosterValue(p, scheme(team.id, p.position), year) +
+                (p.contract?.deadCap(year)?.thisYear ?: 0) / 1_000f * DEAD_MONEY_WEIGHT
+
             // Protect the positional minimums first, then keep the best of the
             // rest - otherwise a team cuts its only long snapper to keep a
             // seventh receiver.
             val protectedIds = mutableSetOf<Int>()
             TeamNeeds.ROSTER_TEMPLATE.forEach { (position, required) ->
                 roster.filter { it.position == position }
-                    .sortedByDescending { rosterValue(it, scheme(team.id, position), year) }
+                    .sortedByDescending { keepValue(it) }
                     .take(required)
                     .forEach { protectedIds += it.id.v }
             }
 
             val core = roster.filter { it.id.v in protectedIds }
             val fringe = roster.filter { it.id.v !in protectedIds }
-                .sortedByDescending { rosterValue(it, scheme(team.id, it.position), year) }
+                .sortedByDescending { keepValue(it) }
 
             val room = (ROSTER_LIMIT - core.size).coerceAtLeast(0)
             kept += core + fringe.take(room)

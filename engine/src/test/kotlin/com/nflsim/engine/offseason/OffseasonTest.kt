@@ -311,6 +311,45 @@ class OffseasonTest {
     }
 
     @Test
+    fun `the 53-man cut keeps a guaranteed rookie over a slightly better minimum veteran`() {
+        val year = 2027
+        val team = league.teams.first()
+        val offense = SchemeCatalog[team.offenseScheme]
+        val defense = SchemeCatalog[team.defenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
+            if (pos.isOffense) offense else defense
+        }
+
+        // Exactly the positional template less one receiver, so the two
+        // receivers added below leave the roster one over the limit.
+        val byPosition = league.roster(team.id).groupBy { it.position }
+        val base = TeamNeeds.ROSTER_TEMPLATE.flatMap { (pos, n) -> (byPosition[pos] ?: emptyList()).take(n) }
+        assertEquals(League.ROSTER_SIZE, base.size, "a generated roster should fill the template")
+        val receivers = base.filter { it.position == Position.WR }
+        val roster = base - receivers.minBy { overall(it, offense) }
+
+        val template = receivers.first()
+        val rookie = template.copy(
+            id = com.nflsim.engine.model.PlayerId(900_001), birthYear = year - 22,
+            ratings = com.nflsim.engine.model.Ratings.uniform(40),
+            contract = Contract.of(years = 4, totalValue = 20_000, signedYear = year,
+                bonusShare = 0.55f, guaranteedShare = 0.85f))
+        val veteran = template.copy(
+            id = com.nflsim.engine.model.PlayerId(900_002), birthYear = year - 26,
+            ratings = com.nflsim.engine.model.Ratings.uniform(42),
+            contract = Contract.of(years = 1, totalValue = 900, signedYear = year,
+                bonusShare = 0f, guaranteedShare = 0f))
+        assertTrue(rosterValue(veteran, offense, year) > rosterValue(rookie, offense, year),
+            "the veteran should be the better player on ability alone")
+
+        val after = OffseasonEngine.enforceRosterLimit(
+            league.copy(teams = listOf(team)), roster + rookie + veteran, year, scheme)
+
+        assertEquals(team.id, after.first { it.id == rookie.id }.teamId, "the guaranteed rookie was cut")
+        assertEquals(null, after.first { it.id == veteran.id }.teamId, "the veteran was kept instead")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }
