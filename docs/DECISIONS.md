@@ -369,7 +369,65 @@ overpaid contracts than a loyal one - loyalty protects a club's books
 where before it only cost money.
 
 ### Open, found while doing this
-- **Win now has no visible effect.** It drives spend share and
-  restructures, and neither shows in a club's books.
-- **The club's side is loyalty alone.** Aggression and win now do not
-  change how far a club goes to keep a star it cannot afford to lose.
+- **Win now has no visible effect.** *Resolved:* it now sets how a club
+  values age and whether a good club trades youth for a star - see "Front
+  offices act on their personalities" below.
+- **The club's side is loyalty alone.** *Resolved in 4e3b83b:* a starter
+  the market cannot replace, win now for players in their prime, and
+  aggression all add to how far a club goes.
+
+## ADR-0xx — Front offices act on their personalities
+
+Win now did nothing. Over 1,600 club-offseasons a club was over the cap
+at compliance 0.2% of the time, so its restructure allowance never
+fired, and its free agency budget share never bound. GmProfile said it
+drove old players; nothing read it for age. Only loyalty set how far a
+club went to keep its own, and nothing made a losing club pay to be
+worth joining.
+
+Four decisions, each measured on five seeds and committed on its own:
+
+- **Win now values age** (f02ac9b). rosterValue takes the club's win
+  now: an all-in club discounts age past 29 at half the usual rate and a
+  rebuild at one and a half, and a rebuild pays for youth under 26 that
+  an all-in club counts against. At 0.5 it is ADR-004's ranking. All-in
+  rosters average 27.3 against 26.0 for rebuilds, and all-in clubs carry
+  more deals over 1.5x value, 21.6% against 13.2%.
+- **Keeping a star is more than loyalty** (4e3b83b). The re-signing
+  limit rises for a starter the market cannot replace, moves 8% either
+  way with win now for players 27 and over, and 6% either way with
+  aggression. All-in clubs keep 3.2 of their own a year and rebuilds 1.4;
+  aggressive clubs 2.6 and careful ones 1.8.
+- **Bad clubs pay for key veterans** (4c470d0). Free agents prefer
+  winners, so a losing club adds up to 25% to its offer for a veteran
+  worth a tenth of the largest deal allowed. The worst clubs now pay
+  1.35x market for veterans against the best clubs' 1.26x; before, it
+  was 1.22x against 1.25x.
+- **Contenders trade youth for a star** ("Let contenders trade young
+  players for a star"). A club that won .550+, is all in, and has one or
+  two real holes trades one or two young players for a 27-plus star from
+  a losing or rebuilding club, each side valuing on its own win now.
+  Aggression sets how far past break-even it goes and whether it deals
+  twice; risk tolerance sets how old a star it takes. About 1.2 stars
+  move a season, each for about two young players.
+
+Whether buying a star pays: buyers' records fall from .682 to .595 the
+next season against .671 to .564 for contenders who stood pat - about
+twenty points less regression, on 52 buyer club-seasons, and noisy by
+seed.
+
+League health across all four: cap space 11.2-11.6%, starters
+74.8-75.0, league age 26.9-27.0, and 7.4-8.0 distinct champions in ten
+seasons.
+
+### Open, found while doing this
+- **Trades carry no picks.** SPEC 8.4 wants a pick chart; until the
+  engine has a pick asset model a rebuilding club can only take players
+  back.
+- **The payoff is small and noisy.** Fifty-two buyer seasons across five
+  seeds cannot say whether twenty points is real; more seeds or longer
+  runs would.
+- **Specialists read as holes everywhere.** TeamNeeds rates K, P, LS and
+  FB as needs at nearly every club because their ratings run low. Trades
+  now ignore those positions; free agency's need premium still counts
+  them.
