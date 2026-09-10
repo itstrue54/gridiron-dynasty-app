@@ -66,6 +66,8 @@ data class OffseasonReport(
     val releases: List<Release> = emptyList(),
     val yourPicks: List<DraftPick> = emptyList(),
     val capCasualties: Int = 0,
+    /** Signings a full roster made by releasing a worse player at the position. */
+    val upgradeCount: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -313,6 +315,7 @@ object OffseasonEngine {
             capSpaceByTeam = league.teams.zip(capSpace).associate { (t, s) -> t.id.v to s },
             releases = (releases + valueCuts).sortedByDescending { it.overall }.take(20),
             capCasualties = releases.size + valueCuts.size,
+            upgradeCount = auction.upgradeCuts.size,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
@@ -514,7 +517,7 @@ object OffseasonEngine {
             winPct = ctx.winPct,
             rng = rng.split("auction|${ctx.newYear}"),
         )
-        return state.copy(players = auction.players, auction = auction)
+        return state.copy(players = auction.players, deadMoney = auction.deadMoney, auction = auction)
     }
 
     /** Not a SPEC 7 phase - setup the phases after it depend on. */

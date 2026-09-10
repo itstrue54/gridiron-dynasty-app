@@ -163,6 +163,47 @@ class OffseasonTest {
             "coaching should matter most to the coachable: $coachable vs $stubborn")
     }
 
+    // ---- free agency --------------------------------------------------
+
+    @Test
+    fun `a full roster trades up and the player it drops leaves dead money`() {
+        val year = 2027
+        val team = league.teams.first()
+        val offense = SchemeCatalog[team.offenseScheme]
+        val defense = SchemeCatalog[team.defenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
+            if (pos.isOffense) offense else defense
+        }
+
+        // Exactly at the free agency target, receivers kept so there is one to replace.
+        val target = League.ROSTER_SIZE - DraftRunner.ROUNDS
+        val own = league.roster(team.id)
+        val receivers = own.filter { it.position == Position.WR }
+        val roster = receivers + own.filter { it.position != Position.WR }.take(target - receivers.size)
+        val weakest = receivers.minBy { rosterValue(it, offense, year) }
+
+        val star = league.players
+            .filter { it.position == Position.WR && it.teamId != team.id }
+            .maxBy { overall(it, offense) }
+            .copy(teamId = null, contract = null,
+                status = com.nflsim.engine.model.PlayerStatus.FREE_AGENT)
+        val pricer = com.nflsim.engine.econ.MarketValue.pricer(
+            rostered = listOf(star), scheme = { offense }, year = year,
+            payroll = 8_000L, cap = CapManagement.capFor(year))
+
+        val result = FreeAgency.run(
+            league.copy(teams = listOf(team)), roster + star, year, emptyMap(),
+            scheme, pricer, { 0.5f }, SplitMixRng(5L))
+
+        val after = result.players.filter { it.teamId == team.id }
+        assertEquals(target, after.size, "trading up should not change the roster size")
+        assertTrue(after.any { it.id == star.id }, "the better receiver was not signed")
+        assertTrue(after.none { it.id == weakest.id }, "the weakest receiver was not released")
+        assertEquals(weakest.contract?.deadCap(year)?.thisYear ?: 0, result.deadMoney[team.id.v] ?: 0,
+            "the released receiver's dead money did not land on the books")
+        assertEquals(1, result.upgradeCuts.size)
+    }
+
     @Test
     fun `retirement rates climb with age`() {
         val rng = SplitMixRng(4L)
