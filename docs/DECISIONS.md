@@ -269,3 +269,58 @@ of the difference between staffs averaged away. At sd 20 they run about
   generated mean sits nearer 64 than 65. Team-level means read 61-65
   across seeds, inside sampling noise, and league development did not
   move - but DEFAULT_COACHING and the 0.2975 base both assume 65.
+
+## ADR-0xx — The cap's steady state is set by the pricer
+
+"The cap does not bind" has been open since the step-machine ADR. The
+CAP table in the dynasty health check shows it does bind in the first
+offseason - about 12 of 32 teams under 10m - then comes loose as
+generated contracts expire, settling near 11.5% of the cap unspent with
+one or two teams under 10m from year five on. Year one is tight only
+because the generator signs rosters to 88% of the cap.
+
+Two bugs came out on the way and are fixed (8bc535c): 53-man cuts left
+no dead money, and free agency still filled rosters to 51 after it
+moved ahead of the draft. Neither was the drift.
+
+Everything tried after that, years 5-10, five seeds:
+
+    lever                               space   under 10m   side effect
+    none                                11.7%      1.5
+    SPEND_SHARE 0.85 -> 1.30             8.4%      3.0      FA signings 180 -> 90
+    GM spend-share floor 0.62 -> 0.95   10.8%      2.8
+    12 targets a day, up from 4         12.4%      3.8      paid vs market 1.28x -> 1.37x
+    full rosters trade up (kept)        11.5%      2.1      FA 180 -> 232, 62 swaps a year
+
+Recording why each team stopped bidding showed almost none stop for
+money, need or price: 69% stop on a full roster and 30% when the market
+closes. Removing either gate leaves space where it was. Only
+SPEND_SHARE moves it.
+
+Decision: park it. The likely reason is ADR-006 itself. The pricer sets
+the market's payroll at 85% of the league's remaining cap space before
+free agency opens, so whatever teams do - bid longer, trade up, commit
+a bigger share - they are dividing a pot that is already fixed. More
+demand comes out as lower prices, not more spending: trading up added
+about fifty signings a year and the premium over market fell from 1.28x
+to 1.22x. That explanation fits all six runs; it has not been proven.
+
+Kept: full rosters trade up (margin 4, at most 3 swaps). It does not
+bind the cap, but it makes cap room usable, which any future change to
+the pricer will need.
+
+### If the cap should bind harder
+- The lever is what the pricer sizes against. SPEND_SHARE alone halves
+  free agency, so the thing to test is anchoring market payroll to the
+  cap rather than to remaining space - a change to ADR-006.
+
+### Open, found while doing this
+- **The 53-man cut ignores dead money.** It picks by roster value alone,
+  so it will release a guaranteed second-round pick to keep a slightly
+  better minimum veteran. About 110 players a year are still cut in the
+  offseason they arrived.
+- **Upgrade releases stand apart.** They are counted separately from cap
+  casualties and do not reach the news screen's release list.
+- **GM spend share barely shows.** It correlates with a team's space at
+  only -0.1 to -0.3. ADR-009's spread of front offices shows up in the
+  contracts they sign, not in how much of the cap they use.
