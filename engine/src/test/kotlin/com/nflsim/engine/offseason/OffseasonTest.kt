@@ -518,20 +518,24 @@ class OffseasonTest {
     }
 
     @Test
-    fun `the league does not get older every year`() {
+    fun `the league settles at an age and stays there`() {
+        // The generated league starts young and settles over its first eight
+        // or so seasons, then holds. A league that keeps ageing after that is
+        // one where nobody is displaced by a younger player, and its mean
+        // overall slides for years afterwards because the decline curve does
+        // the rest.
         var d = freshDynasty(13L)
         val start = meanAge(d)
-        repeat(5) { d = playYear(d) }
+        repeat(8) { d = playYear(d) }
+        val settled = meanAge(d)
+        repeat(4) { d = playYear(d) }
         val end = meanAge(d)
 
-        // Rosters turn over. A league that ages steadily is one where nobody
-        // is ever displaced by a younger player, and its mean overall slides
-        // for years afterwards because the decline curve does the rest.
-        assertTrue(
-            end - start < 1.0,
-            "league aged from %.1f to %.1f over five years".format(start, end),
-        )
-        assertTrue(end > 24.0, "league is implausibly young at %.1f".format(end))
+        assertTrue(abs(end - settled) < 0.4,
+            "league age moved from %.1f to %.1f after settling".format(settled, end))
+        assertTrue(end - start < 2.0,
+            "league aged from %.1f to %.1f in twelve seasons".format(start, end))
+        assertTrue(end in 24.0..29.0, "league settled at an implausible %.1f".format(end))
     }
 
     @Test
