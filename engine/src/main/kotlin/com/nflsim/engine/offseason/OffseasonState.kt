@@ -64,6 +64,12 @@ data class OffseasonState(
     val teamDeltaCount: Map<Int, Int> = emptyMap(),
     val teamYoungSum: Map<Int, Int> = emptyMap(),
     val teamYoungCount: Map<Int, Int> = emptyMap(),
+
+    // ---- the 53-man cut ----
+    val cutdownCount: Int = 0,
+    val cutdownDeadMoney: Int = 0,
+    /** Cut in the same offseason they were signed or drafted. */
+    val cutdownFresh: Int = 0,
 ) {
     fun requirePricer(): MarketValue.Pricer =
         pricer ?: error("pricer is not built until the cap is enforced")

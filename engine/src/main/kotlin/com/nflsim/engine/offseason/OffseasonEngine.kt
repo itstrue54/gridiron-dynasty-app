@@ -91,6 +91,10 @@ data class OffseasonReport(
     val upgradeCount: Int = 0,
     /** Every club's money, keyed by team id. The lists above are cut to twenty. */
     val moneyByTeam: Map<Int, TeamMoney> = emptyMap(),
+    /** Players cut to reach 53, how many had only just arrived, and their dead money. */
+    val cutdownCount: Int = 0,
+    val cutdownFresh: Int = 0,
+    val cutdownDeadMoney: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -362,6 +366,9 @@ object OffseasonEngine {
             capCasualties = releases.size + valueCuts.size,
             upgradeCount = auction.upgradeCuts.size,
             moneyByTeam = moneyByTeam,
+            cutdownCount = state.cutdownCount,
+            cutdownFresh = state.cutdownFresh,
+            cutdownDeadMoney = state.cutdownDeadMoney,
             wishes = wishes.sortedByDescending { it.overall }.take(25),
             tradeRequests = wishes.count { it.intent == Intent.TRADE_REQUEST },
             trades = trades.sortedByDescending { it.overall }.take(15),
@@ -470,7 +477,13 @@ object OffseasonEngine {
             val team = p.teamId!!.v
             dead[team] = (dead[team] ?: 0) + (p.contract?.deadCap(ctx.newYear)?.thisYear ?: 0)
         }
-        return state.copy(players = after, deadMoney = dead)
+        return state.copy(
+            players = after,
+            deadMoney = dead,
+            cutdownCount = cut.size,
+            cutdownDeadMoney = cut.sumOf { it.contract?.deadCap(ctx.newYear)?.thisYear ?: 0 },
+            cutdownFresh = cut.count { it.contract?.signedYear == ctx.newYear },
+        )
     }
 
     /** Part of SPEC 7 phase 11. A phone that stops ringing in August. */

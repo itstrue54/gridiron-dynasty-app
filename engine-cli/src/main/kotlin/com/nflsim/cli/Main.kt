@@ -686,6 +686,8 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("free agents signed", report.signingCount))
         println("  %-34s %d".format("cap casualties", report.capCasualties))
         println("  %-34s %d".format("full rosters trading up", report.upgradeCount))
+        println("  %-34s %d, %d signed this offseason, %,d dead".format(
+            "cut at the 53", report.cutdownCount, report.cutdownFresh, report.cutdownDeadMoney))
         println("  %-34s %d".format("players kept by their own team", report.extensionCount))
         println("  %-34s %d asked out, %d moved".format(
             "trade requests", report.tradeRequests, report.trades.size))
