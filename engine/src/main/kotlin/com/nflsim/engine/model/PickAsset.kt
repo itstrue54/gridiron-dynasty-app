@@ -17,4 +17,6 @@ data class PickAsset(
     val owner: Int,
     /** Awarded for free agents lost; sits at the end of its round (NFL rules). */
     val compensatory: Boolean = false,
+    /** Where a compensatory pick falls among its round's others, most valuable first. */
+    val compOrder: Int = 0,
 )

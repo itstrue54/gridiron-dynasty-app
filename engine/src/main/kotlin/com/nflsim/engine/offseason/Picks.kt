@@ -65,4 +65,54 @@ object Picks {
 
         return teams.sortedWith(compareBy({ exit[it] ?: 0 }, { winPct(it) }, { schedule(it) }, { it.v }))
     }
+
+    /**
+     * Compensatory picks for next year's draft (NFL rules). A club that loses
+     * more or better free agents than it signs gets picks at the end of rounds
+     * 3-7, the round set by what the player it lost signed for. Only players
+     * whose contracts ran out count - a released player is not a compensatory
+     * free agent. Each one a club signs cancels the most valuable it lost that
+     * was worth no more; at most four picks a club and 32 a league, the most
+     * valuable kept.
+     */
+    fun compensatory(
+        signings: List<Signing>,
+        previousTeam: Map<Int, TeamId>,
+        cap: Int,
+        draftYear: Int,
+    ): List<PickAsset> {
+        fun round(value: Int): Int? = COMP_ROUNDS.firstOrNull { (share, _) -> value >= cap * share }?.second
+
+        val moved = signings.filter { s ->
+            val from = previousTeam[s.player] ?: return@filter false
+            from.v != s.team && round(s.value) != null
+        }
+        val lost = moved.groupBy { previousTeam.getValue(it.player).v }
+        val gained = moved.groupBy { it.team }
+
+        val awards = lost.flatMap { (club, losses) ->
+            val left = losses.sortedByDescending { it.value }.toMutableList()
+            gained[club].orEmpty().sortedByDescending { it.value }.forEach { gain ->
+                val cancel = left.firstOrNull { it.value <= gain.value } ?: left.lastOrNull()
+                if (cancel != null) left.remove(cancel)
+            }
+            left.take(COMP_CLUB_MAX).map { club to it.value }
+        }
+
+        return awards.sortedByDescending { it.second }
+            .take(COMP_LEAGUE_MAX)
+            .groupBy { round(it.second)!! }
+            .flatMap { (round, inRound) ->
+                inRound.mapIndexed { i, (club, _) ->
+                    PickAsset(draftYear, round, club, club, compensatory = true, compOrder = i)
+                }
+            }
+    }
+
+    /** Compensatory picks the league hands out a year, and the most one club can get. */
+    private const val COMP_LEAGUE_MAX = 32
+    private const val COMP_CLUB_MAX = 4
+
+    /** What a lost free agent signed for, as a share of the cap, and the round it earns back. */
+    private val COMP_ROUNDS = listOf(0.05f to 3, 0.035f to 4, 0.025f to 5, 0.015f to 6, 0.008f to 7)
 }

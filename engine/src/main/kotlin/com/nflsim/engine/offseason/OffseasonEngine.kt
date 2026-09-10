@@ -311,9 +311,13 @@ object OffseasonEngine {
                 ),
             )
         }
+        // Clubs that lost more free agents than they signed are paid back in
+        // next year's draft (NFL compensatory picks).
+        val compensation = Picks.compensatory(
+            auction.signings, previousTeam, CapManagement.capFor(newYear), newYear + 1)
         val newLeague = league.copy(
             year = newYear, teams = teams, players = survivors,
-            picks = Picks.rollOver(league.picks, league.teams.map { it.id }, newYear),
+            picks = Picks.rollOver(league.picks + compensation, league.teams.map { it.id }, newYear),
         )
 
         val schedule = ScheduleGenerator.generate(
@@ -573,8 +577,11 @@ object OffseasonEngine {
             ctx.dynasty.playoffs,
         )
         val owners = Picks.owners(ctx.league.picks, ctx.newYear)
+        // Compensatory picks go at the end of their round, most valuable first.
+        val comp = ctx.league.picks.filter { it.year == ctx.newYear && it.compensatory }
         val slots = (1..DraftRunner.ROUNDS).flatMap { round ->
-            order.map { original -> round to (owners[round to original.v]?.let { TeamId(it) } ?: original) }
+            order.map { original -> round to (owners[round to original.v]?.let { TeamId(it) } ?: original) } +
+                comp.filter { it.round == round }.sortedBy { it.compOrder }.map { round to TeamId(it.owner) }
         }
         val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
         val needBar = TeamNeeds.bar(rosterNow) { id, pos -> ctx.scheme(id, pos) }

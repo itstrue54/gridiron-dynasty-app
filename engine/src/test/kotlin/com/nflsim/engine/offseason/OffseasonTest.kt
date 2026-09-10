@@ -497,8 +497,47 @@ class OffseasonTest {
         val years = after.league.picks.map { it.year }.toSet()
         assertEquals(setOf(2028, 2029, 2030), years, "the 2027 draft is spent and 2030 has joined")
         years.forEach { year ->
-            assertEquals(DraftRunner.ROUNDS * League.TEAM_COUNT, after.league.picks.count { it.year == year })
+            assertEquals(DraftRunner.ROUNDS * League.TEAM_COUNT,
+                after.league.picks.count { it.year == year && !it.compensatory })
         }
+    }
+
+    @Test
+    fun `a club that loses free agents and signs none is compensated in rounds 3 to 7`() {
+        val cap = 300_000
+        val loser = com.nflsim.engine.model.TeamId(1)
+        val other = com.nflsim.engine.model.TeamId(2)
+        fun signing(player: Int, team: Int, value: Int) = Signing(player, "P$player", "WR", team, value)
+        val previous = (1..5).associateWith { loser } + (6 to other)
+        val signings = listOf(
+            // The loser lets five go to club 3, worth rounds 3 to 7 ...
+            signing(1, 3, 20_000), signing(2, 3, 12_000), signing(3, 3, 8_000),
+            signing(4, 3, 5_000), signing(5, 3, 3_000),
+            // ... and signs one as good as its best loss, which cancels it.
+            signing(6, 1, 20_000),
+        )
+
+        val comp = Picks.compensatory(signings, previous, cap, 2028)
+
+        assertTrue(comp.all { it.compensatory && it.year == 2028 && it.owner == it.original })
+        assertEquals(listOf(4, 5, 6, 7), comp.filter { it.original == 1 }.map { it.round }.sorted(),
+            "four losses left after the cancellation, one pick each")
+        assertEquals(listOf(3), comp.filter { it.original == 2 }.map { it.round },
+            "the club that lost the best player gets a third-rounder")
+        assertTrue(comp.none { it.original == 3 }, "a club that only signs gets nothing")
+    }
+
+    @Test
+    fun `compensatory picks keep to the league's caps and are used the next spring`() {
+        val first = playYear(freshDynasty())
+        val comp = first.league.picks.filter { it.compensatory }
+        assertTrue(comp.size in 1..32, "${comp.size} compensatory picks")
+        assertTrue(comp.groupBy { it.original }.values.all { it.size <= 4 }, "no club gets more than four")
+        assertTrue(comp.all { it.round in 3..7 && it.year == 2028 })
+
+        val second = playYear(first)
+        assertEquals(DraftRunner.ROUNDS * League.TEAM_COUNT + comp.size, second.lastOffseason!!.draftedCount,
+            "every compensatory pick should be used in the 2028 draft")
     }
 
     @Test
