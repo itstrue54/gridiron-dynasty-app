@@ -77,7 +77,8 @@ object Extensions {
                 // would pay - and the club decides how far it will go before
                 // it lets him test the market.
                 val ask = market * (PLAYER_ASK - p.traits.loyalty / 100f * PLAYER_LOYALTY)
-                val limit = market * (CLUB_LIMIT + team.gm.loyaltyToOwnPlayers * CLUB_LOYALTY)
+                val limit = market * (CLUB_LIMIT + team.gm.loyaltyToOwnPlayers * CLUB_LOYALTY +
+                    keepPremium(p, team.gm, needs, free, scheme(team.id, p.position), year))
                 if (ask > limit) return@forEach
                 val offer = ask.roundToInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
                 if (offer > budget) return@forEach
@@ -133,6 +134,45 @@ object Extensions {
     /** How far a club goes to keep its own: 0.94 of market up to 1.08. */
     private const val CLUB_LIMIT = 0.94f
     private const val CLUB_LOYALTY = 0.14f
+
+    /**
+     * What else makes a club stretch for its own player besides loyalty: a
+     * starter the market cannot replace, a player in his prime for a club
+     * trying to win now, and an aggressive front office's habit of paying.
+     * As a share of market, added to the club's limit.
+     */
+    private fun keepPremium(
+        player: Player,
+        gm: com.nflsim.engine.model.GmProfile,
+        needs: Map<Position, Float>,
+        market: List<Player>,
+        scheme: Scheme,
+        year: Int,
+    ): Float {
+        val value = rosterValue(player, scheme, year, gm.winNowVsFuture)
+        val alternative = market
+            .filter { it.position == player.position && it.id != player.id }
+            .maxOfOrNull { rosterValue(it, scheme, year, gm.winNowVsFuture) }
+        val gap = if (alternative == null) IRREPLACEABLE_GAP else value - alternative
+        val irreplaceable = (needs[player.position] ?: 0f) *
+            (gap / IRREPLACEABLE_GAP).coerceIn(0f, 1f) * IRREPLACEABLE
+        val prime = if (player.age(year) >= PRIME_AGE) (2f * gm.winNowVsFuture - 1f) * WIN_NOW_KEEP else 0f
+        val aggression = (2f * gm.aggression - 1f) * AGGRESSION_KEEP
+        return irreplaceable + prime + aggression
+    }
+
+    /** Most that a starter the market cannot replace adds to the limit. */
+    private const val IRREPLACEABLE = 0.12f
+
+    /** Rating points over the best free agent at his position that make a player irreplaceable. */
+    private const val IRREPLACEABLE_GAP = 10f
+
+    /** From this age win now moves the limit: all-in clubs stretch for their prime players, rebuilds pull back. */
+    private const val PRIME_AGE = 27
+    private const val WIN_NOW_KEEP = 0.08f
+
+    /** How far an aggressive front office stretches past a careful one, either side of the middle. */
+    private const val AGGRESSION_KEEP = 0.06f
 
     /** Below this multiple of the minimum, let him hit the market. */
     private const val KEEP_THRESHOLD = 1.6f

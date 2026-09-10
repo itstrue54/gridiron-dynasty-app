@@ -276,7 +276,7 @@ class OffseasonTest {
     }
 
     @Test
-    fun `a loyal player takes less to stay and a mercenary walks from a hard-nosed club`() {
+    fun `re-signing weighs a player's loyalty against how far his club will go`() {
         val year = 2027
         val base = league.teams.first()
         val offense = SchemeCatalog[base.offenseScheme]
@@ -285,18 +285,38 @@ class OffseasonTest {
             if (pos.isOffense) offense else defense
         }
         val template = league.players.filter { it.position == Position.WR }.maxBy { overall(it, offense) }
-        fun expiring(loyalty: Int) = template.copy(
-            teamId = null, contract = null, traits = template.traits.copy(loyalty = loyalty))
+        fun expiring(loyalty: Int, age: Int = 25) = template.copy(
+            teamId = null, contract = null, birthYear = year - age,
+            traits = template.traits.copy(loyalty = loyalty))
+        // An equally good receiver on the market, so the club only stretches
+        // because he is irreplaceable when a check says so.
+        val alternative = template.copy(
+            id = com.nflsim.engine.model.PlayerId(900_101), teamId = null, contract = null)
 
-        fun keep(p: com.nflsim.engine.model.Player, gmLoyalty: Float): Signing? {
-            val club = base.copy(gm = com.nflsim.engine.model.GmProfile(loyaltyToOwnPlayers = gmLoyalty))
+        fun keep(
+            p: com.nflsim.engine.model.Player,
+            gmLoyalty: Float,
+            winNow: Float = 0.5f,
+            replaceable: Boolean = true,
+        ): Signing? {
+            val club = base.copy(gm = com.nflsim.engine.model.GmProfile(
+                loyaltyToOwnPlayers = gmLoyalty, winNowVsFuture = winNow))
             val pricer = com.nflsim.engine.econ.MarketValue.pricer(
                 rostered = listOf(p), scheme = { offense }, year = year,
                 payroll = 10_000L, cap = CapManagement.capFor(year))
+            val market = if (replaceable) listOf(p, alternative.copy(birthYear = p.birthYear)) else listOf(p)
             return Extensions.run(
-                league.copy(teams = listOf(club)), listOf(p), mapOf(p.id.v to club.id),
+                league.copy(teams = listOf(club)), market, mapOf(p.id.v to club.id),
                 year, emptyMap(), scheme, pricer, SplitMixRng(1L)).signings.firstOrNull()
         }
+
+        kotlin.test.assertNotNull(keep(expiring(10), 0f, replaceable = false),
+            "a hard-nosed club should still stretch for a starter the market cannot replace")
+
+        kotlin.test.assertNotNull(keep(expiring(30, age = 28), 0.5f, winNow = 1f),
+            "an all-in club should keep a player in his prime")
+        assertEquals(null, keep(expiring(30, age = 28), 0.5f, winNow = 0f),
+            "a rebuilding club should let a player in his prime test the market")
 
         val loyal = kotlin.test.assertNotNull(keep(expiring(90), 0f),
             "a loyal player should re-sign even with a hard-nosed club")
