@@ -55,6 +55,7 @@ object ContenderTrades {
         val dead = deadMoney.toMutableMap()
         val moves = mutableListOf<TradeMove>()
         val sold = mutableSetOf<TeamId>()
+        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         fun value(p: Player, club: Team): Float =
             (rosterValue(p, scheme(club.id, p.position), year, club.gm.winNowVsFuture) -
@@ -72,9 +73,8 @@ object ContenderTrades {
                 val mine = roster.getOrPut(buyer.id) { mutableListOf() }
                 // A player or two away: one or two real holes at positions a
                 // star can play. A club with more than that is not one trade
-                // from anything. Specialists and fullbacks rate low on the need
-                // scale everywhere, so they would make every club look far off.
-                val holes = TeamNeeds.assess(mine, { pos -> scheme(buyer.id, pos) }, year)
+                // from anything.
+                val holes = TeamNeeds.assess(mine, { pos -> scheme(buyer.id, pos) }, year, needBar)
                     .filter { (pos, need) -> need >= HOLE && pos !in NOT_A_HOLE }.keys
                 if (holes.isEmpty() || holes.size > MAX_HOLES) break
 

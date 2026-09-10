@@ -567,6 +567,7 @@ object OffseasonEngine {
                 { ctx.standings.record(it.id).pointsFor }))
             .map { it.id }
         val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
+        val needBar = TeamNeeds.bar(rosterNow) { id, pos -> ctx.scheme(id, pos) }
         val draft = DraftRunner.run(
             order = order,
             prospects = prospects,
@@ -575,7 +576,8 @@ object OffseasonEngine {
                 TeamNeeds.assess(
                     rosterNow[id] ?: emptyList(),
                     { pos -> ctx.scheme(id, pos) },
-                    ctx.newYear)
+                    ctx.newYear,
+                    needBar)
             },
             year = ctx.newYear,
             rng = rng.split("picks|${ctx.newYear}"),

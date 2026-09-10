@@ -212,7 +212,33 @@ object TeamNeeds {
         Position.K to 1, Position.P to 1, Position.LS to 1,
     )
 
-    fun assess(roster: List<Player>, scheme: (Position) -> Scheme, year: Int): Map<Position, Float> =
+    /**
+     * What a typical starting unit looks like at each position in this
+     * league: the mean, across clubs, of the starter average [assess] scores.
+     * Needs are judged against it rather than one number for every position -
+     * centers, fullbacks and specialists rate well below other starters by
+     * construction, and a single bar of 74 made every club look short at all
+     * of them. Relative, not absolute, for the same reason as ADR-006.
+     */
+    fun bar(rosters: Map<TeamId, List<Player>>, scheme: (TeamId, Position) -> Scheme): Map<Position, Float> =
+        Position.entries.associateWith { position ->
+            val required = STARTERS[position] ?: 1
+            val units = rosters.mapNotNull { (id, roster) ->
+                roster.filter { it.position == position }
+                    .map { overall(it, scheme(id, position)) }
+                    .sortedDescending()
+                    .takeIf { it.size >= required }
+                    ?.take(required)?.average()
+            }
+            if (units.isEmpty()) FALLBACK_BAR else units.average().toFloat()
+        }
+
+    fun assess(
+        roster: List<Player>,
+        scheme: (Position) -> Scheme,
+        year: Int,
+        bar: Map<Position, Float>,
+    ): Map<Position, Float> =
         Position.entries.associateWith { position ->
             val group = roster.filter { it.position == position }
                 .sortedByDescending { overall(it, scheme(position)) }
@@ -224,12 +250,24 @@ object TeamNeeds {
             val quality = starters.map { overall(it, scheme(position)) }.average()
             val age = starters.map { it.age(year) }.average()
 
-            // A weak starter is a need. So is a good one about to fall apart.
-            val byQuality = ((74 - quality) / 26.0).coerceIn(0.0, 1.0)
+            // A starting unit short of this league's typical one at the
+            // position is a need. So is a good one about to fall apart.
+            val threshold = (bar[position] ?: FALLBACK_BAR) - NEED_SLACK
+            val byQuality = ((threshold - quality) / 26.0).coerceIn(0.0, 1.0)
             val byAge = ((age - 30) / 7.0).coerceIn(0.0, 0.6)
-            val byDepth = if (group.size <= required) 0.25 else 0.0
+            // No backup is a need only where the roster carries backups. The
+            // template has one center, fullback, kicker, punter and snapper,
+            // so flagging those left every club shopping for a second one.
+            val carriesBackups = (ROSTER_TEMPLATE[position] ?: required) > required
+            val byDepth = if (carriesBackups && group.size <= required) 0.25 else 0.0
             ((byQuality * 0.7 + byAge * 0.2 + byDepth) * 1.15).coerceIn(0.0, 1.0).toFloat()
         }
+
+    /** The old single bar, for a position no club fields enough players at. */
+    private const val FALLBACK_BAR = 74f
+
+    /** Points under the league's typical starting unit before a position reads as a need. */
+    private const val NEED_SLACK = 2f
 
     fun requiredStarters(position: Position): Int = STARTERS[position] ?: 1
 

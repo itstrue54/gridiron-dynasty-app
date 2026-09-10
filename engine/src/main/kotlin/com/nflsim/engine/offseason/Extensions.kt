@@ -46,6 +46,7 @@ object Extensions {
             .toMutableMap()
         val free = players.filter { it.teamId == null }.toMutableList()
         val signings = mutableListOf<Signing>()
+        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         league.teams.forEach { team ->
             val current = roster.getOrPut(team.id) { mutableListOf() }
@@ -56,7 +57,7 @@ object Extensions {
             // what a team takes into free agency and the draft.
             var budget = (space * team.gm.ownPlayerShare).roundToInt()
             val teamRng = rng.split("extend|${team.id.v}")
-            val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year)
+            val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
 
             val mine = free
                 .filter { previousTeam[it.id.v] == team.id }

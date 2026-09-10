@@ -88,6 +88,7 @@ object FreeAgency {
             p.id.v to pricer.annual(p, scheme(null, p.position), year)
         }.toMutableMap()
         val asking = market.mapValues { (_, v) -> v * OPENING_PREMIUM }.toMutableMap()
+        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         repeat(DAYS) { day ->
             val bids = mutableMapOf<Int, MutableList<Bid>>()
@@ -117,7 +118,7 @@ object FreeAgency {
                 val space = (rawSpace * front.spendShare).toInt()
                 if (space < Contract.MIN_BASE_SALARY * 3) return@forEach
 
-                val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year)
+                val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
                 val dayRng = rng.split("bid|${team.id.v}|$day")
 
                 // A team looks at a handful of players a day, not the whole

@@ -413,8 +413,11 @@ class OffseasonTest {
         val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
             if (pos.isOffense) offense else defense
         }
+        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }) { _, pos ->
+            scheme(null, pos)
+        }
         fun holes(roster: List<com.nflsim.engine.model.Player>) =
-            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year).count { it.value >= 0.35f }
+            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar).count { it.value >= 0.35f }
 
         // The buyer: the club with the fewest holes, its receivers made weak so
         // that receiver is the one hole a star would fill.
@@ -444,12 +447,20 @@ class OffseasonTest {
         val sellerRoster = league.roster(sellerBase.id).filter { it.id != star.id } + star
         val winPct = { id: com.nflsim.engine.model.TeamId -> if (id == buyerBase.id) 0.7f else 0.3f }
 
+        // Every other club's roster goes in as well. Only the two clubs are in
+        // the league, so nobody else trades, but the need bar is the whole
+        // league's - built from these two alone, the buyer's weakened
+        // receivers would drag the receiver bar down to their own level.
+        val everyoneElse = league.players.filter {
+            it.teamId != null && it.teamId != buyerBase.id && it.teamId != sellerBase.id && it.id != star.id
+        }
+
         fun trade(buyerWinNow: Float): ContenderTrades.Result {
             val buyer = buyerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = buyerWinNow))
             val seller = sellerBase.copy(gm = com.nflsim.engine.model.GmProfile(winNowVsFuture = 0f))
             return ContenderTrades.run(
                 league.copy(teams = listOf(buyer, seller)),
-                buyerRoster + youngsters + sellerRoster, emptyMap(), scheme, winPct, year)
+                everyoneElse + buyerRoster + youngsters + sellerRoster, emptyMap(), scheme, winPct, year)
         }
 
         val allIn = trade(1f)
