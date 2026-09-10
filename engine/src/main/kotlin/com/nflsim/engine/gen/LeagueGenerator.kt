@@ -89,7 +89,10 @@ object LeagueGenerator {
             )
         }
 
-        return League(seed = seed, year = year, teams = teams, players = players, coaches = coaches)
+        // Every club starts holding its own picks for the next three drafts.
+        val picks = com.nflsim.engine.offseason.Picks.own(
+            teams.map { it.id }, (year + 1)..(year + com.nflsim.engine.offseason.Picks.WINDOW))
+        return League(seed = seed, year = year, teams = teams, players = players, coaches = coaches, picks = picks)
     }
 
     /** Regenerates one team's roster in isolation - same seed, same players. */

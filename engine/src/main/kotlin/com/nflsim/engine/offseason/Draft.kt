@@ -135,7 +135,8 @@ object DraftRunner {
     )
 
     fun run(
-        order: List<TeamId>,
+        /** Every pick in the draft, in order: its round and the club using it. */
+        slots: List<Pair<Int, TeamId>>,
         prospects: List<Player>,
         schemeFor: (TeamId) -> Scheme,
         needsFor: (TeamId) -> Map<Position, Float>,
@@ -147,32 +148,30 @@ object DraftRunner {
         val drafted = mutableMapOf<Int, Player>()
 
         var overallPick = 1
-        for (round in 1..ROUNDS) {
-            order.forEach { team ->
-                if (available.isEmpty()) return@forEach
-                val scheme = schemeFor(team)
-                val needs = needsFor(team)
+        slots.forEach { (round, team) ->
+            if (available.isEmpty()) return@forEach
+            val scheme = schemeFor(team)
+            val needs = needsFor(team)
 
-                // Every team sees a slightly different board.
-                val choice = available.maxByOrNull { p ->
-                    val talent = overall(p).toFloat()
-                    val fit = schemeFit(p, scheme)
-                    val need = needs[p.position] ?: 0.4f
-                    val error = rng.gaussian(0f, SCOUTING_ERROR)
-                    talent + need * NEED_WEIGHT + fit * FIT_WEIGHT + error
-                } ?: return@forEach
+            // Every team sees a slightly different board.
+            val choice = available.maxByOrNull { p ->
+                val talent = overall(p).toFloat()
+                val fit = schemeFit(p, scheme)
+                val need = needs[p.position] ?: 0.4f
+                val error = rng.gaussian(0f, SCOUTING_ERROR)
+                talent + need * NEED_WEIGHT + fit * FIT_WEIGHT + error
+            } ?: return@forEach
 
-                available.remove(choice)
-                val signed = choice.copy(
-                    teamId = team,
-                    contract = rookieContract(round, year),
-                    accruedSeasons = 0,
-                    yearsInSystem = 0,
-                )
-                drafted[signed.id.v] = signed
-                picks += DraftPick(round, overallPick, team.v, signed.id.v)
-                overallPick++
-            }
+            available.remove(choice)
+            val signed = choice.copy(
+                teamId = team,
+                contract = rookieContract(round, year),
+                accruedSeasons = 0,
+                yearsInSystem = 0,
+            )
+            drafted[signed.id.v] = signed
+            picks += DraftPick(round, overallPick, team.v, signed.id.v)
+            overallPick++
         }
         return Result(picks, drafted, available.toList())
     }

@@ -311,7 +311,10 @@ object OffseasonEngine {
                 ),
             )
         }
-        val newLeague = league.copy(year = newYear, teams = teams, players = survivors)
+        val newLeague = league.copy(
+            year = newYear, teams = teams, players = survivors,
+            picks = Picks.rollOver(league.picks, league.teams.map { it.id }, newYear),
+        )
 
         val schedule = ScheduleGenerator.generate(
             newLeague, newYear, rng.split("schedule|$newYear"))
@@ -561,15 +564,22 @@ object OffseasonEngine {
         val nextId = (state.players.maxOfOrNull { it.id.v } ?: 0) + 1
         val prospects = SyntheticDraftClass.generate(
             ctx.newYear, nextId, rng.split("draft|${ctx.newYear}"))
-        val order = ctx.league.teams
-            .sortedWith(compareBy(
-                { ctx.standings.record(it.id).winPct },
-                { ctx.standings.record(it.id).pointsFor }))
-            .map { it.id }
+        // The NFL's order, each slot used by whoever owns that pick (SPEC 8.4).
+        // A pick the league has no record of stays with the club it came from.
+        val order = Picks.draftOrder(
+            ctx.league.teams.map { it.id },
+            { id -> ctx.standings.record(id).winPct },
+            ctx.dynasty.results,
+            ctx.dynasty.playoffs,
+        )
+        val owners = Picks.owners(ctx.league.picks, ctx.newYear)
+        val slots = (1..DraftRunner.ROUNDS).flatMap { round ->
+            order.map { original -> round to (owners[round to original.v]?.let { TeamId(it) } ?: original) }
+        }
         val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
         val needBar = TeamNeeds.bar(rosterNow) { id, pos -> ctx.scheme(id, pos) }
         val draft = DraftRunner.run(
-            order = order,
+            slots = slots,
             prospects = prospects,
             schemeFor = { id -> ctx.schemePair(id).first },
             needsFor = { id ->

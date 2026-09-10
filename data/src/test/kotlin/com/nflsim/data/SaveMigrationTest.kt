@@ -33,6 +33,7 @@ class SaveMigrationTest {
             league = dynasty.league.copy(
                 teams = dynasty.league.teams.map { it.copy(staff = Staff.UNASSIGNED) },
                 coaches = emptyMap(),
+                picks = emptyList(),
             )
         )
         val raw = cbor.encodeToByteArray(Envelope.serializer(), Envelope(1, stripped))

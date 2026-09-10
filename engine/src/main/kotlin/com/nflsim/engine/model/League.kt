@@ -16,6 +16,8 @@ data class League(
     val teams: List<Team>,
     val players: List<Player>,
     val coaches: Map<CoachId, Coach> = emptyMap(),
+    /** Every club's draft picks for the next three drafts (SPEC 8.4). */
+    val picks: List<PickAsset> = emptyList(),
 ) {
     val teamsById: Map<TeamId, Team> by lazy { teams.associateBy { it.id } }
     val playersById: Map<PlayerId, Player> by lazy { players.associateBy { it.id } }

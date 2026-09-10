@@ -472,6 +472,35 @@ class OffseasonTest {
         assertTrue(trade(0.5f).moves.isEmpty(), "a club in the middle should not go buying stars")
     }
 
+    // ---- draft picks --------------------------------------------------
+
+    @Test
+    fun `the draft runs in the NFL's order`() {
+        var d = freshDynasty()
+        repeat(Schedule.WEEKS) { d = DynastyEngine.advance(d) }
+        d = DynastyEngine.advance(d)   // playoffs
+        val champion = kotlin.test.assertNotNull(d.champion, "the season should have a champion")
+        val playoffClubs = d.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet()
+
+        val firstRound = DynastyEngine.advance(d).lastOffseason!!.draftPicks
+            .filter { it.round == 1 }.sortedBy { it.overallPick }
+
+        assertEquals(champion, firstRound.last().team, "the champion should pick last")
+        val missedOut = league.teams.count { it.id.v !in playoffClubs }
+        assertTrue(firstRound.take(missedOut).none { it.team in playoffClubs },
+            "every club that missed the playoffs should pick before any that made them")
+    }
+
+    @Test
+    fun `every club holds its picks for the next three drafts`() {
+        val after = playYear(freshDynasty())
+        val years = after.league.picks.map { it.year }.toSet()
+        assertEquals(setOf(2028, 2029, 2030), years, "the 2027 draft is spent and 2030 has joined")
+        years.forEach { year ->
+            assertEquals(DraftRunner.ROUNDS * League.TEAM_COUNT, after.league.picks.count { it.year == year })
+        }
+    }
+
     @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())

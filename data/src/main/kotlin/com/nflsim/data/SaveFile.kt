@@ -48,9 +48,25 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        1 -> hireStaffs(envelope.dynasty)
+        2 -> handOutPicks(envelope.dynasty)
+        1 -> handOutPicks(hireStaffs(envelope.dynasty))
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
+    }
+
+    /**
+     * 2 -> 3: draft picks became assets a club owns (SPEC 8.4). A save written
+     * before them has none, so every club is handed its own picks for the
+     * next three drafts - the one after the season in progress and the two
+     * after that.
+     */
+    private fun handOutPicks(dynasty: Dynasty): Dynasty {
+        val league = dynasty.league
+        if (league.picks.isNotEmpty()) return dynasty
+        val picks = com.nflsim.engine.offseason.Picks.own(
+            league.teams.map { it.id },
+            (dynasty.year + 1)..(dynasty.year + com.nflsim.engine.offseason.Picks.WINDOW))
+        return dynasty.copy(league = league.copy(picks = picks))
     }
 
     /**
