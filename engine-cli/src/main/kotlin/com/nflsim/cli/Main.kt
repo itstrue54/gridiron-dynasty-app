@@ -793,8 +793,8 @@ private fun dynasty(args: Array<String>) {
         fun ratio(a: Long, b: Long) = if (b == 0L) 0.0 else a.toDouble() / b
         println()
         println("GM  (top vs bottom $band clubs on each trait, over every offseason)")
-        println("  %-16s %-5s %9s %9s %8s %10s %9s %11s".format(
-            "TRAIT", "", "FA/MKT", "KEPT/MKT", "KEPT/YR", "OVER 1.5X", "DEAD/CAP", "CASUALTIES"))
+        println("  %-16s %-5s %9s %9s %8s %10s %9s %11s %6s".format(
+            "TRAIT", "", "FA/MKT", "KEPT/MKT", "KEPT/YR", "OVER 1.5X", "DEAD/CAP", "CASUALTIES", "AGE"))
         traits.forEach { (name, trait) ->
             val ranked = d.league.teams.sortedByDescending { trait(it.gm) }
             listOf("high" to ranked.take(band), "low" to ranked.takeLast(band)).forEach { (label, clubs) ->
@@ -805,7 +805,7 @@ private fun dynasty(args: Array<String>) {
                 val dead = rows.map { (y, m) ->
                     m.deadMoney * 100.0 / com.nflsim.engine.offseason.CapManagement.capFor(y)
                 }.average()
-                println("  %-16s %-5s %8.2fx %8.2fx %8.1f %9.1f%% %8.1f%% %11.1f".format(
+                println("  %-16s %-5s %8.2fx %8.2fx %8.1f %9.1f%% %8.1f%% %11.1f %6.1f".format(
                     if (label == "high") name else "", label,
                     ratio(rows.sumOf { it.second.faPaid.toLong() }, rows.sumOf { it.second.faMarket.toLong() }),
                     ratio(rows.sumOf { it.second.keptPaid.toLong() }, rows.sumOf { it.second.keptMarket.toLong() }),
@@ -813,7 +813,9 @@ private fun dynasty(args: Array<String>) {
                     ratio(rows.sumOf { it.second.overpaid.toLong() },
                         rows.sumOf { it.second.bigContracts.toLong() }) * 100,
                     dead,
-                    rows.map { it.second.casualties }.average()))
+                    rows.map { it.second.casualties }.average(),
+                    ratio(rows.sumOf { it.second.rosterAgeSum.toLong() },
+                        rows.sumOf { it.second.rosterSize.toLong() })))
             }
         }
     }

@@ -72,6 +72,9 @@ data class TeamMoney(
     /** Dead money on the books this offseason, carried and new. */
     val deadMoney: Int = 0,
     val casualties: Int = 0,
+    /** Summed ages and head count of the roster the club takes into the season. */
+    val rosterAgeSum: Int = 0,
+    val rosterSize: Int = 0,
 )
 
 /** What happened between seasons, for the news screen. */
@@ -335,6 +338,8 @@ object OffseasonEngine {
                 overpaid = big.count { it > 1.5f },
                 deadMoney = state.deadMoney[id] ?: 0,
                 casualties = (releases + valueCuts).count { it.team == id },
+                rosterAgeSum = (finalRosters[t.id] ?: emptyList()).sumOf { it.age(newYear) },
+                rosterSize = (finalRosters[t.id] ?: emptyList()).size,
             )
         }
 
