@@ -591,6 +591,25 @@ class OffseasonTest {
     }
 
     @Test
+    fun `picks are valued by the Johnson chart`() {
+        assertEquals(3000f, PickValue.points(1))
+        assertEquals(590f, PickValue.points(32))
+        assertEquals(2f, PickValue.points(224))
+        assertEquals(1f, PickValue.points(250), "past the chart a pick is worth a point")
+
+        val order = league.teams.map { it.id }
+        val fifth = order[4]
+        fun pick(year: Int, round: Int) = com.nflsim.engine.model.PickAsset(year, round, fifth.v, fifth.v)
+        assertEquals(37, PickValue.slot(pick(2027, 2), 2027, order), "this year's second-rounder falls by the order")
+        assertEquals(48, PickValue.slot(pick(2028, 1), 2027, order), "next year's first is valued mid-second")
+
+        val nowFirst = pick(2027, 1)
+        assertEquals(1700f / PickValue.POINTS_PER_VALUE, PickValue.value(nowFirst, 2027, order, 0.5f), 0.001f)
+        assertTrue(PickValue.value(nowFirst, 2027, order, 0f) > PickValue.value(nowFirst, 2027, order, 1f),
+            "a rebuilding club prizes a pick more than an all-in one")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }
