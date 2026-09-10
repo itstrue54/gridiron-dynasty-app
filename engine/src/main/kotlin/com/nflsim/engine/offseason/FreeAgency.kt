@@ -207,8 +207,12 @@ object FreeAgency {
         return money + fit * FIT_APPEAL + loyalty + winning
     }
 
-    /** Leave a couple of spots for the camp bodies that fill out a 53. */
-    private const val ROSTER_TARGET = 51
+    /**
+     * Leave room for the draft class. Free agency runs before the draft (SPEC
+     * 7), so filling to 51 and then drafting seven meant cutting straight back
+     * to 53 - buying players in March to release them in August.
+     */
+    private const val ROSTER_TARGET = League.ROSTER_SIZE - DraftRunner.ROUNDS
 
     /** Opening ask, as a multiple of market. */
     private const val OPENING_PREMIUM = 1.20f

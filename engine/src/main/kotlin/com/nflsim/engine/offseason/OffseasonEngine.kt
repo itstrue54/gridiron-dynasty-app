@@ -224,7 +224,6 @@ object OffseasonEngine {
         val trades = state.trades
         val valueCuts = state.valueCuts
         val afterPrune = state.players
-        val deadAfterPrune = state.deadMoney
 
         // ---- phase 6: re-signing ------------------------------------
         state = stepReSigning(ctx, state, rng)
@@ -262,7 +261,7 @@ object OffseasonEngine {
                     // Dead money is carried forward: a cut you make this year
                     // is still on the books next year, which is what makes a
                     // bad contract hurt for seasons rather than one afternoon.
-                    deadMoney = (deadAfterPrune[t.id.v] ?: 0) / 2,
+                    deadMoney = (state.deadMoney[t.id.v] ?: 0) / 2,
                 ),
             )
         }
@@ -276,7 +275,7 @@ object OffseasonEngine {
         val finalRosters = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val capSpace = league.teams.map { t ->
             CapManagement.spaceFor(
-                finalRosters[t.id] ?: emptyList(), newYear, (deadAfterPrune[t.id.v] ?: 0) / 2)
+                finalRosters[t.id] ?: emptyList(), newYear, (state.deadMoney[t.id.v] ?: 0) / 2)
         }
 
         // Every contract big enough to be worth cutting, against what the
@@ -411,9 +410,19 @@ object OffseasonEngine {
     private fun stepRosterLimit(
         ctx: OffseasonContext,
         state: OffseasonState,
-    ): OffseasonState =
-        state.copy(players = enforceRosterLimit(
-            ctx.league, state.players, ctx.newYear, ctx.scheme))
+    ): OffseasonState {
+        val after = enforceRosterLimit(ctx.league, state.players, ctx.newYear, ctx.scheme)
+        // A cut at the 53 is still a release: the unamortised bonus and the
+        // guaranteed base follow the player onto the books (SPEC 8.1).
+        val before = state.players.filter { it.teamId != null }.associateBy { it.id.v }
+        val cut = after.filter { it.teamId == null && it.id.v in before }.map { before.getValue(it.id.v) }
+        val dead = state.deadMoney.toMutableMap()
+        cut.forEach { p ->
+            val team = p.teamId!!.v
+            dead[team] = (dead[team] ?: 0) + (p.contract?.deadCap(ctx.newYear)?.thisYear ?: 0)
+        }
+        return state.copy(players = after, deadMoney = dead)
+    }
 
     /** Part of SPEC 7 phase 11. A phone that stops ringing in August. */
     private fun stepResolveUnsigned(
