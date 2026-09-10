@@ -72,11 +72,14 @@ object Extensions {
             mine.forEach { p ->
                 if (current.size >= ROSTER_TARGET) return@forEach
                 val market = pricer.annual(p, scheme(team.id, p.position), year)
-                // A loyal front office pays closer to market to avoid a
-                // bidding war; a ruthless one lets him test it.
-                val discount = HOMETOWN_DISCOUNT + team.gm.loyaltyToOwnPlayers * 0.10f
-                val offer = (market * discount).roundToInt()
-                    .coerceAtLeast(Contract.MIN_BASE_SALARY)
+                // Two sides to keeping a player. He names his price - a loyal
+                // one takes less to stay, a mercenary wants what the market
+                // would pay - and the club decides how far it will go before
+                // it lets him test the market.
+                val ask = market * (PLAYER_ASK - p.traits.loyalty / 100f * PLAYER_LOYALTY)
+                val limit = market * (CLUB_LIMIT + team.gm.loyaltyToOwnPlayers * CLUB_LOYALTY)
+                if (ask > limit) return@forEach
+                val offer = ask.roundToInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
                 if (offer > budget) return@forEach
 
                 // Nobody re-signs a replacement level body in February. Those
@@ -119,8 +122,17 @@ object Extensions {
      */
     private const val ROSTER_TARGET = 40
 
-    /** No bidding war, so the price is a little under market. */
-    private const val HOMETOWN_DISCOUNT = 0.93f
+    /**
+     * What a player asks to stay, as a share of market: 1.06 for the least
+     * loyal down to 0.90 for the most. There is no bidding war, so on average
+     * it comes in a little under market.
+     */
+    private const val PLAYER_ASK = 1.06f
+    private const val PLAYER_LOYALTY = 0.16f
+
+    /** How far a club goes to keep its own: 0.94 of market up to 1.08. */
+    private const val CLUB_LIMIT = 0.94f
+    private const val CLUB_LOYALTY = 0.14f
 
     /** Below this multiple of the minimum, let him hit the market. */
     private const val KEEP_THRESHOLD = 1.6f

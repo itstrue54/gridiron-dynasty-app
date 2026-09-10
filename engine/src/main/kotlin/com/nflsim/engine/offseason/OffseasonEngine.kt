@@ -562,6 +562,7 @@ object OffseasonEngine {
             pricer = state.requirePricer(),
             winPct = ctx.winPct,
             rng = rng.split("auction|${ctx.newYear}"),
+            previousTeam = state.previousTeam,
         )
         return state.copy(players = auction.players, deadMoney = auction.deadMoney, auction = auction)
     }

@@ -276,6 +276,41 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a loyal player takes less to stay and a mercenary walks from a hard-nosed club`() {
+        val year = 2027
+        val base = league.teams.first()
+        val offense = SchemeCatalog[base.offenseScheme]
+        val defense = SchemeCatalog[base.defenseScheme]
+        val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
+            if (pos.isOffense) offense else defense
+        }
+        val template = league.players.filter { it.position == Position.WR }.maxBy { overall(it, offense) }
+        fun expiring(loyalty: Int) = template.copy(
+            teamId = null, contract = null, traits = template.traits.copy(loyalty = loyalty))
+
+        fun keep(p: com.nflsim.engine.model.Player, gmLoyalty: Float): Signing? {
+            val club = base.copy(gm = com.nflsim.engine.model.GmProfile(loyaltyToOwnPlayers = gmLoyalty))
+            val pricer = com.nflsim.engine.econ.MarketValue.pricer(
+                rostered = listOf(p), scheme = { offense }, year = year,
+                payroll = 10_000L, cap = CapManagement.capFor(year))
+            return Extensions.run(
+                league.copy(teams = listOf(club)), listOf(p), mapOf(p.id.v to club.id),
+                year, emptyMap(), scheme, pricer, SplitMixRng(1L)).signings.firstOrNull()
+        }
+
+        val loyal = kotlin.test.assertNotNull(keep(expiring(90), 0f),
+            "a loyal player should re-sign even with a hard-nosed club")
+        assertTrue(loyal.value < loyal.market, "a loyal player should take less than market")
+
+        assertEquals(null, keep(expiring(10), 0f),
+            "a mercenary should walk from a club that will not pay market")
+
+        val paid = kotlin.test.assertNotNull(keep(expiring(10), 1f),
+            "a loyal club should keep a mercenary by paying him")
+        assertTrue(paid.value > paid.market, "keeping a mercenary should cost more than market")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

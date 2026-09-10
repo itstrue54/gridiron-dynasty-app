@@ -69,6 +69,8 @@ object FreeAgency {
         /** Last season's record. Players notice who wins. */
         winPct: (TeamId) -> Float,
         rng: Rng,
+        /** Who each free agent played for last season - his teamId is gone by now. */
+        previousTeam: Map<Int, TeamId> = emptyMap(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -171,7 +173,10 @@ object FreeAgency {
                     b.replaces == null || ((upgrades[b.team.v] ?: 0) < MAX_UPGRADES &&
                         roster[b.team]?.any { it.id.v == b.replaces } == true)
                 }
-                val best = live.maxByOrNull { it.appeal } ?: return@forEach
+                // A loyal player gives his old club the benefit of the doubt.
+                val best = live.maxByOrNull { b ->
+                    b.appeal + if (previousTeam[id] == b.team) player.traits.loyalty / 400f else 0f
+                } ?: return@forEach
                 val ask = asking[id] ?: return@forEach
 
                 // The best players let the market form before they sign. It is
@@ -315,12 +320,11 @@ object FreeAgency {
     ): Float {
         val money = annual.toFloat() / worth.coerceAtLeast(1)
         val fit = com.nflsim.engine.ratings.schemeFit(player, scheme(team, player.position))
-        val loyalty = if (player.teamId == team) player.traits.loyalty / 400f else 0f
         // Players notice who wins, and the ones running out of seasons notice
         // hardest. It is not enough to outbid a contender for a thirty-three
         // year old - which is the whole reason a good team can sign anyone.
         val winning = winPct(team) * WINNING_APPEAL
-        return money + fit * FIT_APPEAL + loyalty + winning
+        return money + fit * FIT_APPEAL + winning
     }
 
     /**
