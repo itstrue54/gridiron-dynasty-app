@@ -264,11 +264,10 @@ of the difference between staffs averaged away. At sd 20 they run about
   20-80, against 0.94x to 1.06x before. That is what 7.1 asks for, but it
   makes a hidden trait carry a lot of development - worth surfacing
   through scouting before it feels arbitrary.
-- **The clamp is not symmetric.** 20-99 trims the top tail harder than
-  the bottom, and truncating to Int shaves about half a point, so the
-  generated mean sits nearer 64 than 65. Team-level means read 61-65
-  across seeds, inside sampling noise, and league development did not
-  move - but DEFAULT_COACHING and the 0.2975 base both assume 65.
+- **The clamp is not symmetric.** *Resolved.* Ratings now round and clamp
+  30-100, the same distance either side of 65. Team-level means rise by
+  a point (62.8 to 63.8 over five seeds; single leagues read 62-66), and
+  young-player development and the coaching effect do not move.
 
 ## ADR-0xx — The cap's steady state is set by the pricer
 
@@ -315,12 +314,13 @@ the pricer will need.
   cap rather than to remaining space - a change to ADR-006.
 
 ### Open, found while doing this
-- **The 53-man cut ignores dead money.** It picks by roster value alone,
-  so it will release a guaranteed second-round pick to keep a slightly
-  better minimum veteran. About 110 players a year are still cut in the
-  offseason they arrived.
-- **Upgrade releases stand apart.** They are counted separately from cap
-  casualties and do not reach the news screen's release list.
+- **The 53-man cut ignores dead money.** *Resolved in 1ba00d6.* A
+  player's dead money now counts in his favour at the cut, one rating
+  point per million. Dead money thrown away at the cut fell from 3.1% to
+  2.4% of the cap per team; about 107 players a year are still cut in
+  the offseason they arrived.
+- **Upgrade releases stand apart.** *Resolved.* They now reach the news
+  screen's release list, and are still counted apart from cap casualties.
 - **GM spend share barely shows.** It correlates with a team's space at
   only -0.1 to -0.3. ADR-009's spread of front offices shows up in the
   contracts they sign, not in how much of the cap they use.
