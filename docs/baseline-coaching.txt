@@ -11,7 +11,8 @@ gained per player per offseason - first year to last.
   coaching, N(65,12) ratings     0.61 -> 0.23   recentred on the old league mean
   coach slope 0.30 -> 2.00       0.61 -> 0.31   SPEC 7.1, league mean held fixed
 
-Read those four rows carefully, because the obvious reading is wrong.
+Read the first four rows carefully, because the obvious reading is wrong. The
+fifth is the slope change, covered under "What it would take".
 
 The phase reorder is what fixed development. Coaching did not improve it and
 was never going to: it replaced a stand-in formula (55 + teamId % 25, range
@@ -47,10 +48,10 @@ absent from the decline branch entirely. So a whole-roster average measures a
 team's age profile far more than it measures its staff, and an old roster reads
 as a badly coached one. Restricted to the players coaching can actually reach,
 the under-25s, the gap is 0.03 a year at correlation 0.09: indistinguishable
-from nothing. (That is the five-seed mean from the table below. The single run
-appended at the end reads 0.08 on seed 2026 alone, which is the same number
-plus noise - one seed cannot resolve a gap this small, which is rather the
-point.)
+from nothing. (That is the five-seed mean from the table below. The first full
+run appended at the end, slope 0.30, reads 0.08 on seed 2026 alone - the same
+number plus noise. One seed cannot resolve a gap this small, which is rather
+the point.)
 
 Three compressions stack up, and the ratings are the smallest of them:
 
