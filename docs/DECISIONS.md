@@ -598,6 +598,13 @@ Awards draw on their own seed, so the simulation does not move.
 - **The fifth-year option still reads depth, not Pro Bowls.** The 2020
   CBA tiers are by Pro Bowls; with a Pro Bowl now voted, the option could
   use it. That changes who is exercised, so it needs its own measurement.
+  *Resolved.* Players count their Pro Bowls, and the option's tiers read
+  them: two or more set it at the franchise tag, one at the transition
+  tag, both priced by CBA tag position as the tag itself is; playing time
+  and the basic tier are unchanged. Five seeds, per year: 12.5 -> 13.0
+  options exercised, 8.8 -> 8.2 declined - fewer players now reach the
+  top tiers than the old top-ten-at-his-position stand-in allowed, so
+  options run a little cheaper. Cap space 10.4% -> 10.4%.
 
 ## ADR-0xx — The franchise and transition tags (2020 CBA)
 
@@ -672,9 +679,27 @@ every setting. Cap space 9.9% -> 10.3% and champions 8.0 -> 8.0.
   schemes are drawn from the whole catalog. Real hires more often keep
   one side, and weighting the draw toward the club's schemes would fix
   that.
+  *Resolved in b34e0d6.* Candidates run the club's
+  own scheme 30% of the time and otherwise lean to schemes the roster
+  suits, fit taken as a z-score across the catalog. A new staff now
+  changes a scheme 74% of the time, keeping the offence 48% and the
+  defence 50% - more continuity than the third aimed at, with no hard
+  NFL figure to set it by.
 - **A scheme change resets time in the system.** On the field that is
   the point, but it also resets the coachability grade's confidence
   (c760bb6), as if the new staff had never seen the player. A separate
   years-with-club count would split the two.
+  *Resolved in 0146443.* Players count seasons with the club apart from
+  seasons in the scheme. A new staff resets only the second, and the
+  coachability grade reads the first.
 - **Fired coaches never work again.** Every hire is an outside
   candidate, and a rehire pool is the natural next step.
+  *Resolved in b34e0d6.* Head coaches out of work are
+  candidates again. A club looks at two per vacancy, and a firing costs
+  a coach six points in its eyes. 22% of hires are rehires; development
+  0.42 -> 0.41, ages 21-24 1.38 -> 1.36, champions 8.0 -> 8.0.
+- **Generated rosters are not built for their schemes.** At league
+  creation a club's scheme is its roster's best fit for 4 of 32 offences
+  and 3 of 32 defences, and on average no better than the rest (z = 0.0);
+  schemes differ in fit by a few hundredths. Every club starts slightly
+  out of scheme, and generation could build rosters toward them.

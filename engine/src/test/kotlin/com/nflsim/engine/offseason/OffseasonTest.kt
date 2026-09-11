@@ -596,6 +596,21 @@ class OffseasonTest {
     }
 
     @Test
+    fun `Pro Bowls set the fifth-year option at the tag`() {
+        val year = 2026
+        val franchise = FranchiseTag.prices(league.players, year, FranchiseTag.FRANCHISE_TOP)
+        val transition = FranchiseTag.prices(league.players, year, FranchiseTag.TRANSITION_TOP)
+        val wr = league.players.first { it.position == Position.WR }
+        val pay = listOf(30_000, 25_000, 20_000, 15_000, 10_000)
+        fun salary(proBowls: Int) =
+            FifthYearOptions.salary(wr.copy(proBowls = proBowls), pay, franchise, transition, emptyMap())
+
+        assertEquals(franchise.getValue("WR"), salary(2), "two Pro Bowls: the franchise tag")
+        assertEquals(transition.getValue("WR"), salary(1), "one: the transition tag")
+        assertEquals(15_000, salary(0), "none: the 3rd to 25th highest salaries at his position")
+    }
+
+    @Test
     fun `picks are valued by the Johnson chart`() {
         assertEquals(3000f, PickValue.points(1))
         assertEquals(590f, PickValue.points(32))

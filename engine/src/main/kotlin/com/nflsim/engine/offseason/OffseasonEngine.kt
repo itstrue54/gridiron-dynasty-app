@@ -251,6 +251,11 @@ object OffseasonEngine {
             season.league, ctx.standings.records, season.playerStats, season.previousStats,
             previousWinPct, ctx.oldYear,
         )
+        // Pro Bowls count toward the fifth-year option's tiers (CBA Article 7).
+        val proBowlers = awards.honours.filter { it.tier == 3 }.map { it.player }.toSet()
+        state = state.copy(players = state.players.map {
+            if (it.id.v in proBowlers) it.copy(proBowls = it.proBowls + 1) else it
+        })
 
         // ---- 1. retirements -----------------------------------------
         state = stepRetirements(ctx, state, rng)

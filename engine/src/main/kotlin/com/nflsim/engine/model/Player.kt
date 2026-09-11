@@ -31,6 +31,8 @@ data class Player(
     val accruedSeasons: Int = 0,
     /** Consecutive franchise or transition tags from his club; the CBA escalates each. */
     val timesTagged: Int = 0,
+    /** Pro Bowls from the league's own vote; the fifth-year option's tiers count them. */
+    val proBowls: Int = 0,
     /** 0..100, resets weekly. */
     val fatigue: Int = 0,
     /** 0..100. */
