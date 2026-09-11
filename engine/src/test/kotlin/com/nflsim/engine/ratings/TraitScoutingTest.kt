@@ -8,7 +8,7 @@ class TraitScoutingTest {
 
     @Test
     fun `a trait is a question mark until the club has seen enough`() {
-        val arrival = TraitScouting.confidence(yearsInSystem = 0, scoutingDept = 40)
+        val arrival = TraitScouting.confidence(yearsWithClub = 0, scoutingDept = 40)
         assertEquals("?", TraitScouting.grade(75, arrival, 1, "coachability"))
     }
 

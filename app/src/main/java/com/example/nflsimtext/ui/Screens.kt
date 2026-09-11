@@ -253,7 +253,7 @@ fun RosterScreen(dynasty: Dynasty) {
                     dim = fit <= 0.55f,
                 )
                 // Coachability, as far as the staff has seen it (SPEC 4.6).
-                val seen = TraitScouting.confidence(p.yearsInSystem, team.staff.scoutingDept)
+                val seen = TraitScouting.confidence(p.clubYears, team.staff.scoutingDept)
                 Cell(TraitScouting.grade(p.traits.coachability, seen, p.id.v, "coachability"), 6f,
                     dim = seen < 0.7f)
             }

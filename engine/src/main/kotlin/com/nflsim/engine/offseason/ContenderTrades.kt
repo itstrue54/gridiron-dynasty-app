@@ -152,7 +152,7 @@ object ContenderTrades {
 
                 val starDead = deal.star.contract?.deadCap(year)?.thisYear ?: 0
                 dead[deal.seller.id.v] = (dead[deal.seller.id.v] ?: 0) + starDead
-                mine += deal.star.copy(teamId = buyer.id, yearsInSystem = 0)
+                mine += deal.star.copy(teamId = buyer.id, yearsInSystem = 0, yearsWithClub = 0)
                 moves += TradeMove(
                     deal.star.id.v, deal.star.name, deal.star.position.label,
                     deal.seller.id.v, buyer.id.v,
@@ -161,7 +161,7 @@ object ContenderTrades {
                 sentPlayers.forEach { young ->
                     val owed = young.contract?.deadCap(year)?.thisYear ?: 0
                     dead[buyer.id.v] = (dead[buyer.id.v] ?: 0) + owed
-                    theirs += young.copy(teamId = deal.seller.id, yearsInSystem = 0)
+                    theirs += young.copy(teamId = deal.seller.id, yearsInSystem = 0, yearsWithClub = 0)
                     moves += TradeMove(
                         young.id.v, young.name, young.position.label,
                         buyer.id.v, deal.seller.id.v,

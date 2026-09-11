@@ -745,6 +745,10 @@ class OffseasonTest {
         assertEquals(winner.staff.headCoach, result.league.teams.first { it.id == winner.id }.staff.headCoach,
             "a winning playoff club keeps its coach")
         assertEquals(1, result.changes.count { it.team == loser.id.v })
+        val before = league.players.associateBy { it.id }
+        assertTrue(result.league.players.filter { it.teamId == loser.id }
+            .all { it.clubYears == before.getValue(it.id).clubYears },
+            "a new staff changes the scheme, not how long a player has been at the club")
     }
 
     @Test

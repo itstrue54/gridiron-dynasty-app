@@ -117,7 +117,7 @@ object CoachingCarousel {
 
         val players = league.players.map { p ->
             val (off, def) = p.teamId?.let { relearn[it] } ?: return@map p
-            if (if (p.position.isOffense) off else def) p.copy(yearsInSystem = 0) else p
+            if (if (p.position.isOffense) off else def) p.copy(yearsInSystem = 0, yearsWithClub = p.clubYears) else p
         }
         return Result(league.copy(teams = teams, coaches = coaches, players = players), changes)
     }

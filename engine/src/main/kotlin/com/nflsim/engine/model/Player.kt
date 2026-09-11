@@ -25,6 +25,8 @@ data class Player(
     val status: PlayerStatus = PlayerStatus.ACTIVE,
     /** Seasons spent in the current scheme. Drives familiarity. */
     val yearsInSystem: Int = 0,
+    /** Seasons with his current club. Older saves carry none and fall back on years in the scheme. */
+    val yearsWithClub: Int? = null,
     /** Accrued seasons, for free agency eligibility. */
     val accruedSeasons: Int = 0,
     /** Consecutive franchise or transition tags from his club; the CBA escalates each. */
@@ -41,6 +43,8 @@ data class Player(
     }
 
     val name: String get() = "$firstName $lastName"
+    /** Seasons with his current club, which a new scheme does not reset. */
+    val clubYears: Int get() = yearsWithClub ?: yearsInSystem
 
     fun age(inYear: Int): Int = inYear - birthYear
 

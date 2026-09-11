@@ -221,7 +221,7 @@ object PlayerIntent {
             roster[from]?.remove(player)
             dead[from.v] = (dead[from.v] ?: 0) + deadCap
             roster.getOrPut(suitor) { mutableListOf() } +=
-                player.copy(teamId = suitor, yearsInSystem = 0)
+                player.copy(teamId = suitor, yearsInSystem = 0, yearsWithClub = 0)
 
             moves += TradeMove(
                 player.id.v, player.name, player.position.label,

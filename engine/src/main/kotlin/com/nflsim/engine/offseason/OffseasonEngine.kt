@@ -872,7 +872,7 @@ object OffseasonEngine {
             if (stillUnder) p else {
                 p.teamId?.let { previousTeam[p.id.v] = it }
                 p.copy(teamId = null, contract = null,
-                    status = PlayerStatus.FREE_AGENT, yearsInSystem = 0)
+                    status = PlayerStatus.FREE_AGENT, yearsInSystem = 0, yearsWithClub = 0)
             }
         }
         return state.copy(
@@ -1201,7 +1201,7 @@ object OffseasonEngine {
                     val signed = pick.copy(
                         teamId = teamId,
                         status = PlayerStatus.ACTIVE,
-                        yearsInSystem = 0,
+                        yearsInSystem = 0, yearsWithClub = 0,
                         contract = Contract.of(
                             // An undrafted rookie signs for three years (CBA Article 7).
                             years = when {

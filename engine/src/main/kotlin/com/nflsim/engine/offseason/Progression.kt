@@ -95,6 +95,7 @@ object Progression {
                 other = delta * 0.9f,
             ),
             yearsInSystem = player.yearsInSystem + 1,
+            yearsWithClub = player.clubYears + 1,
             accruedSeasons = player.accruedSeasons + 1,
         )
         return Change(updated, delta.toInt(), note)

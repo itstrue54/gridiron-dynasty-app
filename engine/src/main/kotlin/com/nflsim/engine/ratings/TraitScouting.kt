@@ -15,8 +15,8 @@ import com.nflsim.engine.rng.SplitMixRng
  */
 object TraitScouting {
 
-    fun confidence(yearsInSystem: Int, scoutingDept: Int): Float =
-        (BASE + DEPT * ((scoutingDept - 40) / 40f).coerceIn(0f, 1f) + PER_YEAR * yearsInSystem)
+    fun confidence(yearsWithClub: Int, scoutingDept: Int): Float =
+        (BASE + DEPT * ((scoutingDept - 40) / 40f).coerceIn(0f, 1f) + PER_YEAR * yearsWithClub)
             .coerceAtMost(CEILING)
 
     fun grade(trueValue: Int, confidence: Float, playerId: Int, trait: String): String {

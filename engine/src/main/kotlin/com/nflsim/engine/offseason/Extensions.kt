@@ -98,7 +98,7 @@ object Extensions {
                         signedYear = year,
                         guaranteedShare = 0.50f,
                     ),
-                    yearsInSystem = p.yearsInSystem + 1,
+                    yearsInSystem = p.yearsInSystem + 1, yearsWithClub = p.clubYears + 1,
                 )
                 current += kept
                 free.remove(p)

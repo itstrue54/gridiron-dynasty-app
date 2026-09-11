@@ -206,7 +206,7 @@ object FreeAgency {
                     teamId = team,
                     contract = contract,
                     status = PlayerStatus.ACTIVE,
-                    yearsInSystem = 0,
+                    yearsInSystem = 0, yearsWithClub = 0,
                 )
                 roster.getOrPut(team) { mutableListOf() } += hired
                 signings += Signing(

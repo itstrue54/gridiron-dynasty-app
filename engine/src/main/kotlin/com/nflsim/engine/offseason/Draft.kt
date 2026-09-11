@@ -82,7 +82,7 @@ object SyntheticDraftClass : DraftClassSource {
                 pool += generated.copy(
                     birthYear = year - prospectAge(rng),
                     accruedSeasons = 0,
-                    yearsInSystem = 0,
+                    yearsInSystem = 0, yearsWithClub = 0,
                 )
             }
         }
@@ -210,7 +210,7 @@ object DraftRunner {
                 teamId = team,
                 contract = rookieContract(overallPick, round, year),
                 accruedSeasons = 0,
-                yearsInSystem = 0,
+                yearsInSystem = 0, yearsWithClub = 0,
             )
             drafted[signed.id.v] = signed
             picks += DraftPick(round, overallPick, team.v, signed.id.v)
