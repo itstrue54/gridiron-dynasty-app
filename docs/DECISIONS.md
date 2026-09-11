@@ -703,3 +703,16 @@ every setting. Cap space 9.9% -> 10.3% and champions 8.0 -> 8.0.
   and 3 of 32 defences, and on average no better than the rest (z = 0.0);
   schemes differ in fit by a few hundredths. Every club starts slightly
   out of scheme, and generation could build rosters toward them.
+  *Shelved to M11.* Tried: generation picking each archetype weighted by
+  exp(lean x fit) for the club's scheme. Five seeds at creation, the
+  club's scheme is its best fit 16% -> 32% at lean 2, 56% at 4, 86% at
+  8; at 4, mean z 1.16 and mean fit 0.815 -> 0.864. The cost lands on
+  game calibration. At lean 4, 15 of SPEC 13.2's 18 bands pass (7.61
+  yards an attempt, 364 a game); at leans 2 and 3, 14. Lowering the
+  scheme multiplier's floor to 0.732 passes all 18, but deflates every
+  effective rating about 3% and breaks valuations set on the old scale
+  (the pick chart's rate, replacement 58, the star bar; the pick-trade
+  test fails). Holding the mean multiplier - floor 0.748, or range 0.20
+  with floor 0.783 - keeps valuations but fails the calibration and
+  season-leader tests, and range 0.20 the seven-point scheme-effect
+  test. It needs the passing game retuned with rosters in scheme: M11.
