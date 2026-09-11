@@ -78,6 +78,13 @@ data class OffseasonState(
     // ---- draft picks, which trades move before the draft uses them ----
     val picks: List<com.nflsim.engine.model.PickAsset> = emptyList(),
     val pickTrades: List<PickTrade> = emptyList(),
+
+    // ---- tags ----
+    val tags: List<Tag> = emptyList(),
+    /** Transition-tagged players, and the club that may match an offer for each. */
+    val transitionTags: Map<Int, TeamId> = emptyMap(),
+    /** Transition-tagged players who stayed, matched or on the tender. */
+    val transitionKept: Int = 0,
 ) {
     fun requirePricer(): MarketValue.Pricer =
         pricer ?: error("pricer is not built until the cap is enforced")

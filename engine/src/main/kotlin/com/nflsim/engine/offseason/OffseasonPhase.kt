@@ -16,7 +16,7 @@ enum class OffseasonPhase(val label: String, val implemented: Boolean) {
     COACHING_CARROUSEL("Coaching carousel", false),
     RETIREMENTS("Retirements", true),
     CONTRACT_DECISIONS("Contract decisions", true),
-    FRANCHISE_TAG("Franchise tag", false),
+    FRANCHISE_TAG("Franchise tag", true),
     RE_SIGNING("Re-signing", true),
     FREE_AGENCY("Free agency", true),
     PRE_DRAFT("Pre-draft", false),

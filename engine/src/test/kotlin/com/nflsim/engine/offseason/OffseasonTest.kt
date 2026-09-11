@@ -711,6 +711,25 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a tag costs the top five at his position and escalates`() {
+        val year = 2026
+        val qbs = league.players.filter { it.position == Position.QB && it.contract != null && it.teamId != null }
+        val top5 = qbs.map { it.capHit(year) }.sortedDescending().take(5).average().toInt()
+        val franchise = FranchiseTag.prices(league.players, year, FranchiseTag.FRANCHISE_TOP)
+        val transition = FranchiseTag.prices(league.players, year, FranchiseTag.TRANSITION_TOP)
+        assertEquals(top5, franchise["QB"])
+        assertTrue(transition.getValue("QB") <= top5, "the transition tag should cost no more")
+
+        val qb = qbs.first()
+        assertEquals(top5, FranchiseTag.price(qb, FranchiseTag.FRANCHISE, franchise, transition))
+        assertEquals((top5 * 1.2f).toInt(),
+            FranchiseTag.price(qb.copy(timesTagged = 1), FranchiseTag.FRANCHISE, franchise, transition))
+        val kicker = league.players.first { it.position == Position.K }.copy(timesTagged = 2)
+        assertEquals(top5, FranchiseTag.price(kicker, FranchiseTag.FRANCHISE, franchise, transition),
+            "a third tag costs at least the quarterback tag")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

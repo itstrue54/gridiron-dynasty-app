@@ -598,3 +598,37 @@ Awards draw on their own seed, so the simulation does not move.
 - **The fifth-year option still reads depth, not Pro Bowls.** The 2020
   CBA tiers are by Pro Bowls; with a Pro Bowl now voted, the option could
   use it. That changes who is exercised, so it needs its own measurement.
+
+## ADR-0xx — The franchise and transition tags (2020 CBA)
+
+Context: SPEC 7 phase 5 was a no-op. A club that could not re-sign its
+best expiring player lost him to the market.
+
+Decision: follow the CBA. After re-signing, each club may tag one player
+it could not keep.
+- **Franchise tag.** A fully guaranteed one-year tender at the mean of
+  the five biggest cap hits at his CBA position (QB, RB, WR, TE, OL, DE,
+  DT, LB, CB, S, K/P). He stays.
+- **Transition tag.** The top ten's mean. He goes to market, and his club
+  may match the offer he takes if it has the room. If nobody offers, he
+  plays on the tender.
+- **Consecutive tags** cost 120%, then 144% or the quarterback tag,
+  whichever is more. A new deal ends the run.
+- **AI clubs** tag the best player they could not keep, when he is worth
+  1.3x the franchise tag, or 1.6x the transition tag, and fits.
+
+Simplified: prices use this year's cap hits, not the CBA's five-year cap
+shares, and there are no offer sheets on a franchise tag. AI clubs would
+almost never give two firsts, and real ones rarely do.
+
+Swept over five seeds, ten-year runs, per year:
+
+    bar                          franchise   transition   cap space
+    franchise 0.9                  13.6         4.1         8.9%
+    franchise 1.3                   6.5         4.2         9.5%
+    + transition 1.6                7.2         0.5         9.9%
+    + transition 2.0                7.2         0.0        10.0%
+
+The NFL runs five to eight franchise tags a year and zero or one
+transition tag. Tenders tighten the cap a little: 10.6% mean space to
+9.9%, clubs under 10m 1.4 to 2.2.

@@ -71,6 +71,8 @@ object FreeAgency {
         rng: Rng,
         /** Who each free agent played for last season - his teamId is gone by now. */
         previousTeam: Map<Int, TeamId> = emptyMap(),
+        /** Transition-tagged players, and the club that may match any offer for each. */
+        rightToMatch: Map<Int, TeamId> = emptyMap(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -187,6 +189,13 @@ object FreeAgency {
                 if (holdout && best.annual < ask * HOLDOUT_OVERRIDE) return@forEach
                 if (best.annual < ask) return@forEach
 
+                // A transition tag: his old club may match the offer he takes (CBA).
+                val matcher = rightToMatch[id]?.takeIf { club ->
+                    club != best.team &&
+                        CapManagement.spaceFor(roster[club] ?: emptyList(), year, dead[club.v] ?: 0) >= best.annual
+                }
+                val team = matcher ?: best.team
+
                 val contract = Contract.of(
                     years = best.years,
                     totalValue = best.annual * best.years,
@@ -194,19 +203,19 @@ object FreeAgency {
                     guaranteedShare = 0.40f + (live.size - 1).coerceAtMost(4) * 0.04f,
                 )
                 val hired = player.copy(
-                    teamId = best.team,
+                    teamId = team,
                     contract = contract,
                     status = PlayerStatus.ACTIVE,
                     yearsInSystem = 0,
                 )
-                roster.getOrPut(best.team) { mutableListOf() } += hired
+                roster.getOrPut(team) { mutableListOf() } += hired
                 signings += Signing(
-                    hired.id.v, hired.name, hired.position.label, best.team.v,
+                    hired.id.v, hired.name, hired.position.label, team.v,
                     best.annual, best.years, market[id] ?: best.annual, live.size,
                 )
                 signed += id
 
-                best.replaces?.let { outId ->
+                best.replaces?.takeIf { matcher == null }?.let { outId ->
                     val list = roster.getValue(best.team)
                     val out = list.first { it.id.v == outId }
                     list.remove(out)

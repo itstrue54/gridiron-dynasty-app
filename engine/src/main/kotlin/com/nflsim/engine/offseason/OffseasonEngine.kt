@@ -118,6 +118,9 @@ data class OffseasonReport(
     val pickTrades: List<PickTrade> = emptyList(),
     /** SPEC 7 phase 1: the season's awards, All-Pro teams and Pro Bowl. */
     val awards: com.nflsim.engine.season.Awards = com.nflsim.engine.season.Awards(),
+    /** SPEC 7 phase 5: franchise and transition tags, and transition players kept. */
+    val tags: List<Tag> = emptyList(),
+    val transitionKept: Int = 0,
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -293,6 +296,7 @@ object OffseasonEngine {
 
         // ---- phase 6: re-signing ------------------------------------
         state = stepReSigning(ctx, state, rng)
+        state = stepFranchiseTag(ctx, state)
         // ---- phase 7: free agency -----------------------------------
         state = stepFreeAgency(ctx, state, rng)
         // ---- phase 9: draft -----------------------------------------
@@ -393,6 +397,8 @@ object OffseasonEngine {
 
         val report = OffseasonReport(
             awards = awards,
+            tags = state.tags,
+            transitionKept = state.transitionKept,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),
@@ -578,8 +584,10 @@ object OffseasonEngine {
             pricer = state.requirePricer(),
             rng = rng.split("extend|${ctx.newYear}"),
         )
+        // A new deal ends a run of tags; the CBA escalates consecutive ones only.
+        val kept = result.signings.map { it.player }.toSet()
         return state.copy(
-            players = result.players,
+            players = result.players.map { if (it.id.v in kept) it.copy(timesTagged = 0) else it },
             extensionSignings = state.extensionSignings + result.signings,
         )
     }
@@ -669,6 +677,13 @@ object OffseasonEngine {
         )
     }
 
+    /** SPEC 7 phase 5. One tag a club, on a player it could not keep (2020 CBA). */
+    private fun stepFranchiseTag(ctx: OffseasonContext, state: OffseasonState): OffseasonState {
+        val result = FranchiseTag.run(ctx.league, state.players, state.previousTeam, state.deadMoney,
+            ctx.scheme, state.requirePricer(), ctx.newYear)
+        return state.copy(players = result.players, tags = result.tags, transitionTags = result.rightToMatch)
+    }
+
     /** SPEC 7 phase 7. Ten days of bidding; teams overpay, and that is the point. */
     private fun stepFreeAgency(
         ctx: OffseasonContext,
@@ -685,8 +700,19 @@ object OffseasonEngine {
             winPct = ctx.winPct,
             rng = rng.split("auction|${ctx.newYear}"),
             previousTeam = state.previousTeam,
+            rightToMatch = state.transitionTags,
         )
-        return state.copy(players = auction.players, deadMoney = auction.deadMoney, auction = auction)
+        // A transition-tagged player nobody signed plays on the tender.
+        val tenders = state.tags.filter { it.kind == FranchiseTag.TRANSITION }.associateBy { it.player }
+        val players = auction.players.map { p ->
+            val t = tenders[p.id.v]
+            if (t == null || p.teamId != null) p
+            else p.copy(teamId = TeamId(t.team), status = PlayerStatus.ACTIVE,
+                contract = FranchiseTag.tender(t.price, ctx.newYear))
+        }
+        val byId = players.associateBy { it.id.v }
+        val kept = tenders.values.count { t -> byId[t.player]?.teamId?.v == t.team }
+        return state.copy(players = players, deadMoney = auction.deadMoney, auction = auction, transitionKept = kept)
     }
 
     /** Not a SPEC 7 phase - setup the phases after it depend on. */

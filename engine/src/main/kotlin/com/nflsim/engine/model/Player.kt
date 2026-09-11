@@ -27,6 +27,8 @@ data class Player(
     val yearsInSystem: Int = 0,
     /** Accrued seasons, for free agency eligibility. */
     val accruedSeasons: Int = 0,
+    /** Consecutive franchise or transition tags from his club; the CBA escalates each. */
+    val timesTagged: Int = 0,
     /** 0..100, resets weekly. */
     val fatigue: Int = 0,
     /** 0..100. */

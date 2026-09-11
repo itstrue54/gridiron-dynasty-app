@@ -701,6 +701,11 @@ private fun dynasty(args: Array<String>) {
         report.awards.mostValuablePlayer?.let {
             println("  %-34s %s %s, %s".format("MVP last season", it.name, it.position, it.summary))
         }
+        println("  %-34s %d last offseason, %d over the run, %d transition, %d kept".format("franchise tags",
+            report.tags.count { it.kind == "franchise" },
+            flow.sumOf { r -> r.second.tags.count { it.kind == "franchise" } },
+            flow.sumOf { r -> r.second.tags.count { it.kind == "transition" } },
+            flow.sumOf { it.second.transitionKept }))
 
         // Whether buying a star paid: the buyer's record the season before the
         // trade against the season after, beside contenders who stood pat -
