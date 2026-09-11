@@ -706,10 +706,13 @@ private fun dynasty(args: Array<String>) {
             flow.sumOf { r -> r.second.tags.count { it.kind == "franchise" } },
             flow.sumOf { r -> r.second.tags.count { it.kind == "transition" } },
             flow.sumOf { it.second.transitionKept }))
-        println("  %-34s %d last offseason, %d over the run, %d brought new schemes".format(
+        println("  %-34s %d last offseason, %d over the run, %d brought new schemes, %d rehired, %d kept offense, %d kept defense".format(
             "head coaches replaced", report.coachingChanges.size,
             flow.sumOf { it.second.coachingChanges.size },
-            flow.sumOf { r -> r.second.coachingChanges.count { it.schemeChanged } }))
+            flow.sumOf { r -> r.second.coachingChanges.count { it.schemeChanged } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.rehired } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.keptOffense } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.keptDefense } }))
 
         // Whether buying a star paid: the buyer's record the season before the
         // trade against the season after, beside contenders who stood pat -

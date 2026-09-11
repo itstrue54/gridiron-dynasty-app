@@ -8,9 +8,14 @@ import com.nflsim.engine.model.CoachRole
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Team
 import com.nflsim.engine.model.TeamId
+import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
 import kotlinx.serialization.Serializable
+import com.nflsim.engine.rng.shuffled
+import kotlin.math.exp
+import kotlin.math.sqrt
 import kotlin.math.roundToInt
 
 /** One club's new head coach, for the news screen. */
@@ -25,6 +30,10 @@ data class CoachingChange(
     val defense: String,
     /** Whether the new staff brought a scheme the club did not already run. */
     val schemeChanged: Boolean,
+    /** A coach out of work hired again, rather than an outside candidate. */
+    val rehired: Boolean = false,
+    val keptOffense: Boolean = false,
+    val keptDefense: Boolean = false,
 )
 
 /**
@@ -35,10 +44,15 @@ data class CoachingChange(
  * him when the seat passes its GM's bar - a win-now front office has less
  * patience - or lets him go when his contract runs out after a losing year.
  *
- * The club hires the best of a few outside candidates, as its view of them
- * sees it, and he brings his schemes: his offence, and a defensive
- * coordinator with a defence. Players on a side whose scheme changed start
- * learning it again. Position coaches stay, and nobody is poached.
+ * The club hires the best of a few outside candidates and the head coaches
+ * out of work, as its view of them sees it, and he brings his schemes: his
+ * offence, and a defensive coordinator with a defence. Some candidates run
+ * the club's own schemes, for continuity; the rest lean to schemes the
+ * roster suits better than the others, and the club counts that fit when it
+ * chooses. A coach out of work carries the stigma of his firing, and a club
+ * looks at only a couple of them. Players on a side
+ * whose scheme changed start learning it again. Position coaches stay, and
+ * nobody is poached. Coaches out of work age, and leave the pool at 68.
  *
  * Candidates are drawn below the league's coaching mean on purpose. The
  * best of several is hired, and drawn at the mean the league's coaching
@@ -60,6 +74,12 @@ object CoachingCarousel {
         val changes = mutableListOf<CoachingChange>()
         // Which sides of the ball changed scheme, per club.
         val relearn = mutableMapOf<TeamId, Pair<Boolean, Boolean>>()
+        val employed = league.teams.flatMap { t ->
+            listOf(t.staff.headCoach, t.staff.offCoordinator, t.staff.defCoordinator, t.staff.stCoordinator) +
+                t.staff.positionCoaches.values
+        }.toMutableSet()
+        coaches.replaceAll { id, c -> if (id in employed) c else c.copy(age = c.age + 1) }
+        coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= RETIRE_AGE }
 
         val teams = league.teams.map { team ->
             val hc = coaches[team.staff.headCoach] ?: return@map team
@@ -89,24 +109,55 @@ object CoachingCarousel {
             fun quality(c: Coach) = with(c.ratings) {
                 (development + gameplan + adjustments + discipline + motivation + evaluation) / 6f
             }
-            fun anyOf(schemes: List<com.nflsim.engine.ratings.Scheme>) = schemes[hireRng.nextInt(schemes.size)].id
+            // What the roster is built for: how well each scheme suits the
+            // club's players on that side of the ball.
+            val roster = league.players.filter { it.teamId == team.id }
+            // As z-scores across the catalog: schemes differ in fit by a few
+            // hundredths, so raw fit would barely tell them apart.
+            fun fits(schemes: List<Scheme>, offense: Boolean): Map<String, Float> {
+                val side = roster.filter { it.position.isOffense == offense }
+                val raw = schemes.associate { s ->
+                    s.id to if (side.isEmpty()) 0.0 else side.map { schemeFit(it, s).toDouble() }.average()
+                }
+                val mean = raw.values.average()
+                val sd = sqrt(raw.values.map { (it - mean) * (it - mean) }.average()).coerceAtLeast(1e-6)
+                return raw.mapValues { ((it.value - mean) / sd).toFloat() }
+            }
+            val offFit = fits(SchemeCatalog.offensive, true)
+            val defFit = fits(SchemeCatalog.defensive, false)
+            fun draw(fit: Map<String, Float>, current: String): String {
+                if (hireRng.nextFloat() < CONTINUITY) return current
+                val weights = fit.mapValues { (_, z) -> exp(FIT_Z * z) }
+                var r = hireRng.nextFloat().toDouble() * weights.values.sum()
+                for ((id, w) in weights) { r -= w; if (r <= 0) return id }
+                return weights.keys.last()
+            }
+            fun read(c: Coach, fit: Map<String, Float>) =
+                quality(c) + FIT_WEIGHT * (fit[c.scheme] ?: 0f) + hireRng.gaussian(0f, EVAL_NOISE)
 
-            val head = (1..CANDIDATES)
-                .map { candidate(CoachRole.HEAD_COACH, anyOf(SchemeCatalog.offensive)) }
-                .maxBy { quality(it) + hireRng.gaussian(0f, EVAL_NOISE) }
-                .copy(contractYearsLeft = NEW_CONTRACT)
+            val outside = (1..CANDIDATES).map { candidate(CoachRole.HEAD_COACH, draw(offFit, team.offenseScheme)) }
+            val outOfWork = coaches.values
+                .filter { it.id !in employed && it.role == CoachRole.HEAD_COACH }
+                .shuffled(hireRng).take(REHIRE_LOOK)
+            val chosen = (outside + outOfWork).maxBy { read(it, offFit) - if (it in outOfWork) STIGMA else 0f }
+            val head = chosen.copy(contractYearsLeft = NEW_CONTRACT, hotSeat = 0)
             val oc = candidate(CoachRole.OFFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id)
-            val dc = candidate(CoachRole.DEFENSIVE_COORDINATOR, anyOf(SchemeCatalog.defensive)).copy(tree = head.id)
+            val dc = (1..DC_CANDIDATES).map { candidate(CoachRole.DEFENSIVE_COORDINATOR, draw(defFit, team.defenseScheme)) }
+                .maxBy { read(it, defFit) }
+                .copy(tree = head.id)
             listOf(head, oc, dc).forEach { coaches[it.id] = it }
-            // Out of work, and available to nobody yet: there is no poaching.
+            // Out of work, and a candidate for the next club that fires someone.
             coaches[hc.id] = hc.copy(hotSeat = 0, age = hc.age + 1, contractYearsLeft = 0)
+            employed -= hc.id
+            employed += listOf(head.id, oc.id, dc.id)
 
             val offChanged = head.scheme != team.offenseScheme
             val defChanged = dc.scheme != team.defenseScheme
             relearn[team.id] = offChanged to defChanged
             changes += CoachingChange(
                 team.id.v, hc.name, head.name, (now * 1000).roundToInt(),
-                head.scheme, dc.scheme, offChanged || defChanged,
+                head.scheme, dc.scheme, offChanged || defChanged, rehired = chosen in outOfWork,
+                keptOffense = !offChanged, keptDefense = !defChanged,
             )
             team.copy(
                 offenseScheme = head.scheme,
@@ -144,4 +195,24 @@ object CoachingCarousel {
     private const val CANDIDATES = 4
     private const val CANDIDATE_MEAN = 58f
     private const val EVAL_NOISE = 8f
+
+    /** Defensive coordinator candidates per vacancy. */
+    private const val DC_CANDIDATES = 3
+
+    /** A candidate runs the club's own scheme this often, for continuity. */
+    private const val CONTINUITY = 0.3f
+
+    /**
+     * How strongly the other candidates' schemes lean to what the roster
+     * suits, and the rating points a club counts per standard deviation of fit.
+     */
+    private const val FIT_Z = 1.0
+    private const val FIT_WEIGHT = 3f
+
+    /** Coaches out of work a club looks at per vacancy, and what their firing costs them in its eyes. */
+    private const val REHIRE_LOOK = 2
+    private const val STIGMA = 6f
+
+    /** Coaches out of work leave the pool at this age. */
+    private const val RETIRE_AGE = 68
 }
