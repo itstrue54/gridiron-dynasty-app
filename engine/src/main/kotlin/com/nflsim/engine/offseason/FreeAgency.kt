@@ -115,7 +115,7 @@ object FreeAgency {
                     return@forEach
                 }
 
-                val space = (rawSpace * front.spendShare).toInt()
+                val space = rawSpace - reserve(front.spendShare, year)
                 if (space < Contract.MIN_BASE_SALARY * 3) return@forEach
 
                 val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
@@ -280,7 +280,7 @@ object FreeAgency {
             if (gain < UPGRADE_MARGIN) return@mapNotNull null
             val worth = market[p.id.v] ?: return@mapNotNull null
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
-            val budget = ((rawSpace + freed) * front.spendShare).toInt()
+            val budget = rawSpace + freed - reserve(front.spendShare, year)
             if (budget < Contract.MIN_BASE_SALARY) return@mapNotNull null
             val willing = (worth * front.premium *
                 losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual)).roundToInt()
@@ -304,6 +304,22 @@ object FreeAgency {
     }
 
     /** Rating points a free agent has to clear a full roster's weakest player by. */
+    /**
+     * The cap a front office keeps free through the market, in money. Spend
+     * share used to scale whatever space was left each day, and ten days of
+     * that spent nearly all of it whatever the GM - held as a sum set once,
+     * a careful club finishes the market with room and a reckless one without.
+     */
+    private fun reserve(spendShare: Float, year: Int): Int =
+        (CapManagement.capFor(year) * (1f - spendShare) * RESERVE_OF_CAP).toInt()
+
+    /**
+     * Scales 1 - spend share (0.02-0.38) to a reserve of about 1-15% of the
+     * cap, 8% at the mean. Swept over five seeds: 0.3 weakened the effect,
+     * 0.5 matched 0.4 and left more of the cap idle.
+     */
+    private const val RESERVE_OF_CAP = 0.4f
+
     private const val UPGRADE_MARGIN = 4f
 
     /** Most players a full roster will swap out in one market. */
