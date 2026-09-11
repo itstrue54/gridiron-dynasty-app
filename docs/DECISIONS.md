@@ -632,3 +632,49 @@ Swept over five seeds, ten-year runs, per year:
 The NFL runs five to eight franchise tags a year and zero or one
 transition tag. Tenders tighten the cap a little: 10.6% mean space to
 9.9%, clubs under 10m 1.4 to 2.2.
+
+## ADR-0xx — The coaching carousel: fire, hire, and schemes follow the head coach
+
+Context: SPEC 7 phase 2 was a no-op. Every club kept the staff it was
+generated with forever, so a bad staff developed players badly for good
+and schemes never changed.
+
+Decision: head coaches are fired and replaced, and the new one brings his
+schemes. No coordinator poaching.
+- **The hot seat** carries 60% of itself over. A season under .500 adds
+  to it, and a season worse than the last adds more. A playoff run takes
+  20 off.
+- **Firing.** A club fires its coach when the seat passes its GM's bar,
+  55 for the most patient GM down to 35 for the most win-now. It also
+  lets him go when his contract ends after a losing year. A kept coach
+  whose deal is up is extended three years.
+- **Hiring.** The club hires the best of four outside candidates, read
+  through noise, on a five-year deal. He brings his offence, and a
+  defensive coordinator with a defence. Players on a side whose scheme
+  changed start learning it again. Position coaches stay.
+- **Recalibration.** Candidates are drawn at a mean of 58, not the
+  league's 65. The best of four drawn at the mean would lift league
+  coaching every year, and development with it (SPEC 7.1).
+
+Measured over five seeds, ten-year runs:
+
+    fire bar   coaches replaced   new schemes   net dev   dev 21-24
+    (none)          0.0/yr            0.0          0.41       1.37
+    75              4.2               4.1          0.41       1.37
+    65              4.6               4.5          0.42       1.38
+    55              5.5               5.4          0.42       1.38
+
+The NFL replaces five to ten head coaches a year. Development holds at
+every setting. Cap space 9.9% -> 10.3% and champions 8.0 -> 8.0.
+
+### Open, found while doing this
+- **Almost every new head coach changes a scheme** (5.4 of 5.5). His
+  schemes are drawn from the whole catalog. Real hires more often keep
+  one side, and weighting the draw toward the club's schemes would fix
+  that.
+- **A scheme change resets time in the system.** On the field that is
+  the point, but it also resets the coachability grade's confidence
+  (c760bb6), as if the new staff had never seen the player. A separate
+  years-with-club count would split the two.
+- **Fired coaches never work again.** Every hire is an outside
+  candidate, and a rehire pool is the natural next step.

@@ -730,6 +730,24 @@ class OffseasonTest {
     }
 
     @Test
+    fun `a losing club fires its coach and takes on his schemes`() {
+        val loser = league.teams.first()
+        val winner = league.teams.last()
+        val winPct = { id: com.nflsim.engine.model.TeamId -> if (id == loser.id) 0.1f else 0.8f }
+        val result = CoachingCarousel.run(league, winPct, setOf(winner.id.v), emptyMap(), SplitMixRng(3L))
+
+        val after = result.league.teams.first { it.id == loser.id }
+        assertTrue(after.staff.headCoach != loser.staff.headCoach, "a .100 season should cost the coach his job")
+        assertEquals(result.league.coaches.getValue(after.staff.headCoach).scheme, after.offenseScheme,
+            "the new head coach brings his offence")
+        assertEquals(result.league.coaches.getValue(after.staff.defCoordinator).scheme, after.defenseScheme,
+            "and his defensive coordinator the defence")
+        assertEquals(winner.staff.headCoach, result.league.teams.first { it.id == winner.id }.staff.headCoach,
+            "a winning playoff club keeps its coach")
+        assertEquals(1, result.changes.count { it.team == loser.id.v })
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

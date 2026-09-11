@@ -13,7 +13,7 @@ package com.nflsim.engine.offseason
  */
 enum class OffseasonPhase(val label: String, val implemented: Boolean) {
     POST_SEASON_AWARDS("Awards", true),
-    COACHING_CARROUSEL("Coaching carousel", false),
+    COACHING_CARROUSEL("Coaching carousel", true),
     RETIREMENTS("Retirements", true),
     CONTRACT_DECISIONS("Contract decisions", true),
     FRANCHISE_TAG("Franchise tag", true),

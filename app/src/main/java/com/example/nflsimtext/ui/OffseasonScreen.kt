@@ -180,6 +180,21 @@ fun OffseasonScreen(dynasty: Dynasty) {
             }
         }
 
+        if (report.coachingChanges.isNotEmpty()) {
+            item {
+                Section("Coaching carousel") {
+                    report.coachingChanges.forEach { c ->
+                        val club = dynasty.league.teams.firstOrNull { it.id.v == c.team }?.abbrev ?: ""
+                        Line(
+                            "$club  ${c.fired} out, ${c.hired} in",
+                            if (c.schemeChanged) "new schemes" else "same schemes",
+                            bold = c.team == team.id.v,
+                        )
+                    }
+                }
+            }
+        }
+
         val awards = report.awards
         val winners = listOfNotNull(
             awards.mostValuablePlayer?.let { "MVP" to it },

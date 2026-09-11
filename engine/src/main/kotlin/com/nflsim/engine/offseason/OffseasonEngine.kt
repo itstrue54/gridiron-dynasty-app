@@ -121,6 +121,8 @@ data class OffseasonReport(
     /** SPEC 7 phase 5: franchise and transition tags, and transition players kept. */
     val tags: List<Tag> = emptyList(),
     val transitionKept: Int = 0,
+    /** SPEC 7 phase 2: head coaches replaced. */
+    val coachingChanges: List<CoachingChange> = emptyList(),
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -197,10 +199,25 @@ data class OffseasonReport(
  */
 object OffseasonEngine {
 
-    fun run(dynasty: Dynasty, rng: Rng = SplitMixRng(dynasty.seed + dynasty.year)): Pair<Dynasty, OffseasonReport> {
-        val league = dynasty.league
-        val oldYear = dynasty.year
+    fun run(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): Pair<Dynasty, OffseasonReport> {
+        val oldYear = season.year
         val newYear = oldYear + 1
+
+        // Standings read the league as it finished the season, and take a
+        // named rng split rather than drawing from the caller's stream, so
+        // building them first changes nothing.
+        val standings = Standings(season.league, season.results, rng.split("order|$newYear"))
+        val winPct: (TeamId) -> Float = { id -> standings.record(id).winPct.toFloat() }
+        val previousWinPct = season.lastOffseason?.moneyByTeam?.mapValues { it.value.winPermille / 1000f }
+            ?: emptyMap()
+
+        // SPEC 7 phase 2, ahead of everything that reads a staff or a scheme.
+        // The awards (phase 1) read the season as it finished - see below.
+        val carousel = CoachingCarousel.run(
+            season.league, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
+            previousWinPct, rng.split("carousel|$newYear"))
+        val dynasty = season.copy(league = carousel.league)
+        val league = dynasty.league
 
         val schemeFor: (TeamId) -> Pair<Scheme, Scheme> = { id ->
             val t = league.team(id)
@@ -213,11 +230,6 @@ object OffseasonEngine {
         }
 
         // ---- context, fixed for the whole run -----------------------
-        // Standings and production both read the league as it finished the
-        // season, and standings takes a named rng split rather than drawing
-        // from the caller's stream, so building them here changes nothing.
-        val standings = Standings(league, dynasty.results, rng.split("order|$newYear"))
-        val winPct: (TeamId) -> Float = { id -> standings.record(id).winPct.toFloat() }
         val production = Production.index(league.players, dynasty.playerStats)
 
         val ctx = OffseasonContext(
@@ -235,10 +247,9 @@ object OffseasonEngine {
 
         // SPEC 7 phase 1: the season's hardware, handed out before anyone retires.
         val awards = AwardVoting.honours(
-            AwardVoting.decide(league, ctx.standings.records, dynasty.playerStats, ctx.oldYear),
-            league, ctx.standings.records, dynasty.playerStats, dynasty.previousStats,
-            dynasty.lastOffseason?.moneyByTeam?.mapValues { it.value.winPermille / 1000f } ?: emptyMap(),
-            ctx.oldYear,
+            AwardVoting.decide(season.league, ctx.standings.records, season.playerStats, ctx.oldYear),
+            season.league, ctx.standings.records, season.playerStats, season.previousStats,
+            previousWinPct, ctx.oldYear,
         )
 
         // ---- 1. retirements -----------------------------------------
@@ -399,6 +410,7 @@ object OffseasonEngine {
             awards = awards,
             tags = state.tags,
             transitionKept = state.transitionKept,
+            coachingChanges = carousel.changes,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),
