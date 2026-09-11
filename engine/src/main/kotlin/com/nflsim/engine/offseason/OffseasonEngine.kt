@@ -19,6 +19,7 @@ import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.rng.shuffled
 import com.nflsim.engine.rng.SplitMixRng
+import com.nflsim.engine.season.AwardVoting
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.ScheduleGenerator
@@ -115,6 +116,8 @@ data class OffseasonReport(
     val optionsDeclined: Int = 0,
     /** Draft picks that changed hands this offseason. */
     val pickTrades: List<PickTrade> = emptyList(),
+    /** SPEC 7 phase 1: the season's awards, All-Pro teams and Pro Bowl. */
+    val awards: com.nflsim.engine.season.Awards = com.nflsim.engine.season.Awards(),
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -226,6 +229,14 @@ object OffseasonEngine {
         )
 
         var state = OffseasonState(players = league.players, picks = league.picks)
+
+        // SPEC 7 phase 1: the season's hardware, handed out before anyone retires.
+        val awards = AwardVoting.honours(
+            AwardVoting.decide(league, ctx.standings.records, dynasty.playerStats, ctx.oldYear),
+            league, ctx.standings.records, dynasty.playerStats, dynasty.previousStats,
+            dynasty.lastOffseason?.moneyByTeam?.mapValues { it.value.winPermille / 1000f } ?: emptyMap(),
+            ctx.oldYear,
+        )
 
         // ---- 1. retirements -----------------------------------------
         state = stepRetirements(ctx, state, rng)
@@ -381,6 +392,7 @@ object OffseasonEngine {
         }
 
         val report = OffseasonReport(
+            awards = awards,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),
@@ -454,6 +466,7 @@ object OffseasonEngine {
             phase = DynastyPhase.REGULAR_SEASON,
             results = emptyList(),
             playerStats = emptyMap(),
+            previousStats = dynasty.playerStats,
             playoffs = emptyList(),
             champion = null,
             lastGame = null,

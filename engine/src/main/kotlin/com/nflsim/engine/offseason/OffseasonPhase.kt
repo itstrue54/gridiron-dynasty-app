@@ -12,7 +12,7 @@ package com.nflsim.engine.offseason
  * while the missing phases get built.
  */
 enum class OffseasonPhase(val label: String, val implemented: Boolean) {
-    POST_SEASON_AWARDS("Awards", false),
+    POST_SEASON_AWARDS("Awards", true),
     COACHING_CARROUSEL("Coaching carousel", false),
     RETIREMENTS("Retirements", true),
     CONTRACT_DECISIONS("Contract decisions", true),

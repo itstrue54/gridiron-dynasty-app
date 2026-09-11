@@ -573,3 +573,28 @@ the three trade steps.
   later picks as well as future ones, reassigned as the draft runs, so
   the club moving down leaves with extra picks this year. Picks traded
   per ten-year run 51.4 -> 55.4.
+
+## ADR-0xx — Awards are the offseason's first phase
+
+Context: SPEC 7 opens the offseason with awards, All-Pro teams and
+retirements announced. The five awards existed but only the one-season
+simulator decided them; a dynasty never handed any out, and there was no
+Comeback Player, Coach of the Year, All-Pro team or Pro Bowl.
+
+Decision: the offseason decides every SPEC 6 award before anyone retires
+and keeps them in the report, winners named so a retiree still reads.
+- **All-Pro and Pro Bowl** go by rating plus up to eight points of
+  production and ballot noise, because a lineman has no stat line. AP
+  shape: 24 first-team places, 24 second; 42 Pro Bowlers a conference.
+- **Comeback Player** is the biggest rise in production from a veteran
+  who managed under 40% of it the season before. Last season's stat
+  lines now stay on the dynasty for this.
+- **Coach of the Year** is the head coach whose club won and rose most,
+  against last season's record from the previous report.
+
+Awards draw on their own seed, so the simulation does not move.
+
+### Open, found while doing this
+- **The fifth-year option still reads depth, not Pro Bowls.** The 2020
+  CBA tiers are by Pro Bowls; with a Pro Bowl now voted, the option could
+  use it. That changes who is exercised, so it needs its own measurement.

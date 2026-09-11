@@ -180,6 +180,30 @@ fun OffseasonScreen(dynasty: Dynasty) {
             }
         }
 
+        val awards = report.awards
+        val winners = listOfNotNull(
+            awards.mostValuablePlayer?.let { "MVP" to it },
+            awards.offensivePlayerOfTheYear?.let { "OPOY" to it },
+            awards.defensivePlayerOfTheYear?.let { "DPOY" to it },
+            awards.offensiveRookieOfTheYear?.let { "OROY" to it },
+            awards.defensiveRookieOfTheYear?.let { "DROY" to it },
+            awards.comebackPlayerOfTheYear?.let { "CPOY" to it },
+            awards.coachOfTheYear?.let { "COY" to it },
+        )
+        if (winners.isNotEmpty()) {
+            item {
+                Section("Awards") {
+                    winners.forEach { (label, w) ->
+                        val club = dynasty.league.teams.firstOrNull { it.id.v == w.team }?.abbrev ?: ""
+                        Line("$label  ${w.name}  ${w.position}", club, bold = w.team == team.id.v)
+                    }
+                    val yours = awards.honours.filter { it.club == team.id.v }
+                    Line("Your All-Pros", "${yours.count { it.tier == 1 }} first team, ${yours.count { it.tier == 2 }} second")
+                    Line("Your Pro Bowlers", "${yours.count { it.tier == 3 }}")
+                }
+            }
+        }
+
         if (report.retirements.isNotEmpty()) {
             item {
                 Section("Retirements") {

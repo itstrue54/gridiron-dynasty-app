@@ -698,6 +698,9 @@ private fun dynasty(args: Array<String>) {
             flow.sumOf { it.second.starTrades }, flow.sumOf { it.second.youngTraded }))
         println("  %-34s %d last offseason, %d over the run".format(
             "draft picks traded", report.pickTrades.size, flow.sumOf { it.second.pickTrades.size }))
+        report.awards.mostValuablePlayer?.let {
+            println("  %-34s %s %s, %s".format("MVP last season", it.name, it.position, it.summary))
+        }
 
         // Whether buying a star paid: the buyer's record the season before the
         // trade against the season after, beside contenders who stood pat -

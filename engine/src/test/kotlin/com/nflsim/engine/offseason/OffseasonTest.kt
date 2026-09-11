@@ -698,6 +698,19 @@ class OffseasonTest {
     }
 
     @Test
+    fun `the season's awards are handed out before anyone retires`() {
+        val awards = playYear(freshDynasty()).lastOffseason!!.awards
+        assertTrue(awards.mostValuablePlayer?.name?.isNotEmpty() == true, "the MVP should be named")
+        assertTrue(awards.coachOfTheYear != null, "there should be a coach of the year")
+        val first = awards.honours.filter { it.tier == 1 }
+        assertEquals(24, first.size, "an All-Pro first team has 24 places")
+        assertEquals(first.size, first.map { it.player }.toSet().size, "a player on the first team twice")
+        assertTrue(awards.honours.none { h -> h.tier == 2 && first.any { it.player == h.player } },
+            "a player on both All-Pro teams")
+        assertEquals(84, awards.honours.count { it.tier == 3 }, "42 Pro Bowlers a conference")
+    }
+
+    @Test
     fun `nobody is on two rosters and nobody is lost`() {
         val after = playYear(freshDynasty())
         val assigned = after.league.teams.flatMap { it.roster }

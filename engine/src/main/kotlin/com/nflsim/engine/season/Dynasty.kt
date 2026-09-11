@@ -39,6 +39,8 @@ data class Dynasty(
     val phase: DynastyPhase = DynastyPhase.REGULAR_SEASON,
     val results: List<GameOutcome> = emptyList(),
     val playerStats: Map<Int, StatLine> = emptyMap(),
+    /** Last season's lines, for the comeback award. */
+    val previousStats: Map<Int, StatLine> = emptyMap(),
     val playoffs: List<PlayoffGame> = emptyList(),
     val champion: Int? = null,
     /** The user's most recent game, kept for the box score screen. */
