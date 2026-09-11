@@ -482,12 +482,17 @@ class OffseasonTest {
         val champion = kotlin.test.assertNotNull(d.champion, "the season should have a champion")
         val playoffClubs = d.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet()
 
-        val firstRound = DynastyEngine.advance(d).lastOffseason!!.draftPicks
+        // A club that traded up used another club's slot; undo those swaps
+        // to see whose slot each pick was.
+        val report = DynastyEngine.advance(d).lastOffseason!!
+        val swaps = report.pickTrades.filter { it.round == 1 && it.reason == DraftRunner.TRADE_UP_REASON }
+        val firstRound = report.draftPicks
             .filter { it.round == 1 }.sortedBy { it.overallPick }
+            .map { pick -> swaps.lastOrNull { it.to == pick.team }?.original ?: pick.team }
 
-        assertEquals(champion, firstRound.last().team, "the champion should pick last")
+        assertEquals(champion, firstRound.last(), "the champion's slot should be last")
         val missedOut = league.teams.count { it.id.v !in playoffClubs }
-        assertTrue(firstRound.take(missedOut).none { it.team in playoffClubs },
+        assertTrue(firstRound.take(missedOut).none { it in playoffClubs },
             "every club that missed the playoffs should pick before any that made them")
     }
 
@@ -661,6 +666,30 @@ class OffseasonTest {
             assertEquals(seller.id.v, moved.owner, "a traded pick belongs to the rebuilding club")
         }
         assertTrue(result.moves.none { it.reason == ContenderTrades.YOUNG_REASON }, "no young players were needed")
+    }
+
+    @Test
+    fun `a club that needs the best prospect trades up for him`() {
+        val prospects = SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
+        val best = prospects.maxBy { overall(it) }
+        val scheme = SchemeCatalog[league.teams.first().offenseScheme]
+        val (a, b) = league.teams.take(2).map { it.id }
+        // The club on the clock has no use for him; the next club badly does.
+        val needs = { id: com.nflsim.engine.model.TeamId -> mapOf(best.position to if (id == b) 1f else 0f) }
+        val asked = mutableListOf<List<Int>>()
+        fun draft(pays: Boolean) = DraftRunner.run(
+            slots = listOf(1 to a, 1 to b), prospects = prospects,
+            schemeFor = { scheme }, needsFor = needs, year = 2027, rng = SplitMixRng(9L),
+            aggression = { 1f },
+            tradeUp = { buyer, seller, from, to -> asked += listOf(buyer.v, seller.v, from, to); pays },
+        )
+
+        val moved = draft(true)
+        assertEquals(listOf(b.v, a.v, 1, 0), asked.single(), "the needy club should be offered the move")
+        val (_, _, first) = moved.picks.first()
+        assertEquals(b.v, first, "the club that paid should pick first")
+        val (_, _, stayed) = draft(false).picks.first()
+        assertEquals(a.v, stayed, "a club that cannot pay stays where it is")
     }
 
     @Test

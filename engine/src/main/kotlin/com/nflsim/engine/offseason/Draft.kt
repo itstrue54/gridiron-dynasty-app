@@ -142,14 +142,51 @@ object DraftRunner {
         needsFor: (TeamId) -> Map<Position, Float>,
         year: Int,
         rng: Rng,
+        /** How far each club's GM will go; only the aggressive trade up. */
+        aggression: (TeamId) -> Float = { 0f },
+        /**
+         * Offered a round-one trade up: [buyer] moves from overall index [from]
+         * to [to], ahead of [seller]. True if the buyer could pay and has.
+         */
+        tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int) -> Boolean = { _, _, _, _ -> false },
     ): Result {
         val available = prospects.toMutableList()
         val picks = mutableListOf<DraftPick>()
         val drafted = mutableMapOf<Int, Player>()
 
+        val board = slots.toMutableList()
+        val movedUp = mutableSetOf<TeamId>()
         var overallPick = 1
-        slots.forEach { (round, team) ->
+        board.indices.forEach { i ->
             if (available.isEmpty()) return@forEach
+            val round = board[i].first
+            var team = board[i].second
+
+            // Draft day in round one: the club on the clock does not need the
+            // best player left, and an aggressive club a few picks later badly
+            // does. They swap firsts and the club moving up pays the chart
+            // difference in future picks. One move up per club.
+            if (round == 1) {
+                val best = available.maxBy { overall(it) }
+                if ((needsFor(team)[best.position] ?: 0.4f) <= PASS_NEED) {
+                    val needOf = { t: TeamId -> needsFor(t)[best.position] ?: 0f }
+                    val buyer = (i + 1 until minOf(board.size, i + 1 + TRADE_UP_RANGE))
+                        .filter { j ->
+                            val t = board[j].second
+                            board[j].first == 1 && t != team && t !in movedUp &&
+                                aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= TRADE_UP_NEED
+                        }
+                        .maxByOrNull { j -> needOf(board[j].second) + aggression(board[j].second) }
+                    if (buyer != null && tradeUp(board[buyer].second, team, buyer, i)) {
+                        val up = board[buyer].second
+                        board[buyer] = 1 to team
+                        board[i] = 1 to up
+                        movedUp += up
+                        team = up
+                    }
+                }
+            }
+
             val scheme = schemeFor(team)
             val needs = needsFor(team)
 
@@ -225,6 +262,17 @@ object DraftRunner {
     /** Scouting error in overall points. Bigger than most people expect. */
     private const val SCOUTING_ERROR = 7.5f
     private const val NEED_WEIGHT = 9f
+
+    /**
+     * Draft-day trades: round one only. The club on the clock needs the best
+     * player left no more than PASS_NEED, and a club within TRADE_UP_RANGE
+     * picks needs him at least TRADE_UP_NEED and is aggressive enough to move.
+     */
+    const val TRADE_UP_REASON = "draft-day trade up"
+    private const val PASS_NEED = 0.3f
+    private const val TRADE_UP_NEED = 0.6f
+    private const val TRADE_UP_AGGRESSION = 0.5f
+    private const val TRADE_UP_RANGE = 12
     private const val FIT_WEIGHT = 6f
 }
 

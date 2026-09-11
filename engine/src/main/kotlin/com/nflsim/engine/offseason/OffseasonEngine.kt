@@ -596,6 +596,12 @@ object OffseasonEngine {
         }
         val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
         val needBar = TeamNeeds.bar(rosterNow) { id, pos -> ctx.scheme(id, pos) }
+        // Who each slot originally belonged to, for the record of any trade up.
+        val slotOriginal = (1..DraftRunner.ROUNDS).flatMap { round ->
+            order.map { it.v } + comp.filter { it.round == round }.sortedBy { it.compOrder }.map { it.original }
+        }
+        val held = state.picks.toMutableList()
+        val draftTrades = mutableListOf<PickTrade>()
         val draft = DraftRunner.run(
             slots = slots,
             prospects = prospects,
@@ -609,6 +615,27 @@ object OffseasonEngine {
             },
             year = ctx.newYear,
             rng = rng.split("picks|${ctx.newYear}"),
+            aggression = { id -> ctx.league.teams.first { it.id == id }.gm.aggression },
+            tradeUp = { buyer, seller, from, to ->
+                // The chart price of the move, chart as-is with no timeline
+                // tilt, paid in the cheapest one or two future picks that cover it.
+                val gap = (PickValue.points(to + 1) - PickValue.points(from + 1)) / PickValue.POINTS_PER_VALUE
+                val future = held.filter { it.owner == buyer.v && it.year > ctx.newYear }
+                    .map { it to PickValue.value(it, ctx.newYear, order, 0.5f) }
+                val pay = (future.map { listOf(it) } +
+                    future.indices.flatMap { a -> (a + 1 until future.size).map { b -> listOf(future[a], future[b]) } })
+                    .filter { pkg -> pkg.sumOf { it.second.toDouble() } >= gap }
+                    .minByOrNull { pkg -> pkg.sumOf { it.second.toDouble() } }
+                pay?.forEach { (pick, _) ->
+                    held[held.indexOf(pick)] = pick.copy(owner = seller.v)
+                    draftTrades += PickTrade(pick.year, pick.round, pick.original, buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
+                }
+                if (pay != null) {
+                    draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[to], seller.v, buyer.v, DraftRunner.TRADE_UP_REASON)
+                    draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
+                }
+                pay != null
+            },
         )
         val undrafted = draft.undrafted.map {
             it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
@@ -616,6 +643,8 @@ object OffseasonEngine {
         return state.copy(
             players = state.players + draft.drafted.values + undrafted,
             draft = draft,
+            picks = held,
+            pickTrades = state.pickTrades + draftTrades,
         )
     }
 
