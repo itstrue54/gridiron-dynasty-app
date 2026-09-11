@@ -209,13 +209,25 @@ Measured over ten seasons, against `docs/baseline-dynasty.txt`:
   any of ten seasons. SPEC 8.1 says the cap is the strategy game. It is
   not one yet. Pricing, not ordering — look at SPEND_SHARE and the
   marketPool cap in stepBuildPricer.
+  *Resolved - it binds now.* Five seeds, steady state: mean space about
+  42m (9.8% of the cap) and 3.5 clubs a season under 10m. The rookie
+  scale did most of the last step, 11.9% to 9.7% (see "Draft picks are
+  assets").
 - **NET DEV still decays**, 0.61 -> 0.32 across ten years. Better than
   the 0.02 baseline, still sloping.
+  *Closed - the mix, not the rate.* Now 0.58 -> 0.29 over five seeds,
+  but no age bracket slopes: 21-24 1.43 -> 1.35, 25-27 0.59 -> 0.57,
+  28-30 -0.89 -> -1.05, 31+ -3.63 -> -2.82, first season to tenth. The
+  aggregate falls because the league's age mix shifts older, which the
+  league-age test already bounds.
 - **Coaching quality is fake.** `coaching = 55 + teamId % 25` in
   stepDevelopment derives development quality from team index, so team 0
   is permanently worse at developing players than team 24. There is a
   CoachId but no Coach model. Building the carousel will move progression
   league-wide and require a recalibration pass.
+  *Resolved.* Development reads each club's staff (Team.staff, hired at
+  league start and migrated into older saves), recalibrated in the
+  coaching ADRs above. The team-index formula is gone from the engine.
 
 ## ADR-0xx — The coach slope is 2.00
 
@@ -259,6 +271,8 @@ of the difference between staffs averaged away. At sd 20 they run about
   before the base goes negative and bad coaching starts shrinking
   players. If the hiring screen needs more than 2.00 gives, the
   multiplicative shape is the problem, not the coefficient.
+  *Closed, no change.* Nothing has asked for more than 2.00 gives; this
+  stands as a note on where the lever runs out.
 - **Coachability is now a big trait.** At league-average coaching, young
   players' growth multiplier spans ~0.56x to ~1.34x across coachability
   20-80, against 0.94x to 1.06x before. That is what 7.1 asks for, but it
@@ -324,6 +338,8 @@ the pricer will need.
 - **GM spend share barely shows.** It correlates with a team's space at
   only -0.1 to -0.3. ADR-009's spread of front offices shows up in the
   contracts they sign, not in how much of the cap they use.
+  Still true after the pick model: -0.28 over five seeds, from -0.06 to
+  -0.45.
 
 ## ADR-0xx — Loyalty is the player's; the club decides how far to go
 
@@ -424,6 +440,9 @@ seasons.
 - **Trades carry no picks.** SPEC 8.4 wants a pick chart; until the
   engine has a pick asset model a rebuilding club can only take players
   back.
+  *Resolved in 86b603c.* Contender trades pay in picks as well as young
+  players, and granted trade requests send one back - see "Draft picks
+  are assets".
 - **The payoff is small and noisy.** *Resolved - real, and modest.* Over
   twenty seeds (328 buyer club-seasons) buyers' records fell 81 points the
   season after a trade against 110 for contenders who stood pat: +28
@@ -529,7 +548,16 @@ the three trade steps.
 - **The chart overprices early picks against what they yield.** It is
   kept on purpose, so clubs overpay to move up the way real ones do. If
   that ever distorts rebuilds, the least-squares rate is the lever.
+  *Closed, no change.* Across the four pick-trade steps distinct
+  champions stayed 7.0-8.4 per ten years and steady cap space 9.5-10.0%.
+  The last step reads 7.63 -> 7.13 over eight seeds, -0.5 with a
+  standard error of 0.33 and differences both ways: noise. The chart
+  stays.
 - **Draft-day trades are only trade-ups in round one, paid in future
   picks.** There are no trade-downs for extra picks this year, and a
   club cannot pay with a later pick from the current draft. Adding either
   would mean reordering the slots while the draft runs.
+  *Resolved in 79b1081.* A club moving up can pay with this draft's
+  later picks as well as future ones, reassigned as the draft runs, so
+  the club moving down leaves with extra picks this year. Picks traded
+  per ten-year run 51.4 -> 55.4.
