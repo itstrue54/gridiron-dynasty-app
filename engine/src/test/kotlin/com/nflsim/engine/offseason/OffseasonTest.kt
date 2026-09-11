@@ -678,16 +678,21 @@ class OffseasonTest {
         val needs = { id: com.nflsim.engine.model.TeamId -> mapOf(best.position to if (id == b) 1f else 0f) }
         val asked = mutableListOf<List<Int>>()
         fun draft(pays: Boolean) = DraftRunner.run(
-            slots = listOf(1 to a, 1 to b), prospects = prospects,
+            slots = listOf(1 to a, 1 to b, 2 to b), prospects = prospects,
             schemeFor = { scheme }, needsFor = needs, year = 2027, rng = SplitMixRng(9L),
             aggression = { 1f },
-            tradeUp = { buyer, seller, from, to -> asked += listOf(buyer.v, seller.v, from, to); pays },
+            tradeUp = { buyer, seller, from, to, later ->
+                asked += listOf(buyer.v, seller.v, from, to) + later
+                if (pays) later else null
+            },
         )
 
         val moved = draft(true)
-        assertEquals(listOf(b.v, a.v, 1, 0), asked.single(), "the needy club should be offered the move")
+        assertEquals(listOf(b.v, a.v, 1, 0, 2), asked.single(), "the needy club should be offered the move")
         val (_, _, first) = moved.picks.first()
         assertEquals(b.v, first, "the club that paid should pick first")
+        val (_, _, third) = moved.picks[2]
+        assertEquals(a.v, third, "and the second-rounder it paid with goes to the club moving down")
         val (_, _, stayed) = draft(false).picks.first()
         assertEquals(a.v, stayed, "a club that cannot pay stays where it is")
     }

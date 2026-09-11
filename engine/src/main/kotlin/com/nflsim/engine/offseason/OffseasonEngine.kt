@@ -5,6 +5,7 @@ import com.nflsim.engine.econ.MarketValue
 import com.nflsim.engine.econ.Production
 import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.League
+import com.nflsim.engine.model.PickAsset
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.PlayerStatus
@@ -616,25 +617,32 @@ object OffseasonEngine {
             year = ctx.newYear,
             rng = rng.split("picks|${ctx.newYear}"),
             aggression = { id -> ctx.league.teams.first { it.id == id }.gm.aggression },
-            tradeUp = { buyer, seller, from, to ->
+            tradeUp = { buyer, seller, from, to, later ->
                 // The chart price of the move, chart as-is with no timeline
-                // tilt, paid in the cheapest one or two future picks that cover it.
+                // tilt, paid in the cheapest one or two later picks that cover
+                // it: this draft's at their slots, future ones by PickValue.
                 val gap = (PickValue.points(to + 1) - PickValue.points(from + 1)) / PickValue.POINTS_PER_VALUE
-                val future = held.filter { it.owner == buyer.v && it.year > ctx.newYear }
-                    .map { it to PickValue.value(it, ctx.newYear, order, 0.5f) }
-                val pay = (future.map { listOf(it) } +
-                    future.indices.flatMap { a -> (a + 1 until future.size).map { b -> listOf(future[a], future[b]) } })
-                    .filter { pkg -> pkg.sumOf { it.second.toDouble() } >= gap }
-                    .minByOrNull { pkg -> pkg.sumOf { it.second.toDouble() } }
-                pay?.forEach { (pick, _) ->
-                    held[held.indexOf(pick)] = pick.copy(owner = seller.v)
-                    draftTrades += PickTrade(pick.year, pick.round, pick.original, buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
+                val pieces = later.map { k -> Triple<PickAsset?, Int?, Float>(null, k, PickValue.points(k + 1) / PickValue.POINTS_PER_VALUE) } +
+                    held.filter { it.owner == buyer.v && it.year > ctx.newYear }
+                        .map { Triple<PickAsset?, Int?, Float>(it, null, PickValue.value(it, ctx.newYear, order, 0.5f)) }
+                val pay = (pieces.map { listOf(it) } +
+                    pieces.indices.flatMap { x -> (x + 1 until pieces.size).map { y -> listOf(pieces[x], pieces[y]) } })
+                    .filter { pkg -> pkg.sumOf { it.third.toDouble() } >= gap }
+                    .minByOrNull { pkg -> pkg.sumOf { it.third.toDouble() } }
+                pay?.forEach { (pick, k, _) ->
+                    if (pick != null) {
+                        held[held.indexOf(pick)] = pick.copy(owner = seller.v)
+                        draftTrades += PickTrade(pick.year, pick.round, pick.original, buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
+                    }
+                    if (k != null) {
+                        draftTrades += PickTrade(ctx.newYear, slots[k].first, slotOriginal[k], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
+                    }
                 }
                 if (pay != null) {
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[to], seller.v, buyer.v, DraftRunner.TRADE_UP_REASON)
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
                 }
-                pay != null
+                pay?.mapNotNull { it.second }
             },
         )
         val undrafted = draft.undrafted.map {

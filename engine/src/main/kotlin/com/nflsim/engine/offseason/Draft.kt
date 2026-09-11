@@ -146,9 +146,11 @@ object DraftRunner {
         aggression: (TeamId) -> Float = { 0f },
         /**
          * Offered a round-one trade up: [buyer] moves from overall index [from]
-         * to [to], ahead of [seller]. True if the buyer could pay and has.
+         * to [to], ahead of [seller], and may pay with any of its [later] picks
+         * in this draft. Returns the ones it gave up, or null if it cannot pay.
          */
-        tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int) -> Boolean = { _, _, _, _ -> false },
+        tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int, later: List<Int>) -> List<Int>? =
+            { _, _, _, _, _ -> null },
     ): Result {
         val available = prospects.toMutableList()
         val picks = mutableListOf<DraftPick>()
@@ -165,7 +167,8 @@ object DraftRunner {
             // Draft day in round one: the club on the clock does not need the
             // best player left, and an aggressive club a few picks later badly
             // does. They swap firsts and the club moving up pays the chart
-            // difference in future picks. One move up per club.
+            // difference in later picks, this year's or future ones, so the
+            // club moving down comes away with more. One move up per club.
             if (round == 1) {
                 val best = available.maxBy { overall(it) }
                 if ((needsFor(team)[best.position] ?: 0.4f) <= PASS_NEED) {
@@ -177,10 +180,13 @@ object DraftRunner {
                                 aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= TRADE_UP_NEED
                         }
                         .maxByOrNull { j -> needOf(board[j].second) + aggression(board[j].second) }
-                    if (buyer != null && tradeUp(board[buyer].second, team, buyer, i)) {
-                        val up = board[buyer].second
+                    val up = buyer?.let { board[it].second }
+                    val later = if (buyer == null) emptyList() else (buyer + 1 until board.size).filter { board[it].second == up }
+                    val paid = if (buyer == null || up == null) null else tradeUp(up, team, buyer, i, later)
+                    if (buyer != null && up != null && paid != null) {
                         board[buyer] = 1 to team
                         board[i] = 1 to up
+                        paid.forEach { k -> board[k] = board[k].first to team }
                         movedUp += up
                         team = up
                     }
