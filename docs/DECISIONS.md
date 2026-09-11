@@ -278,6 +278,11 @@ of the difference between staffs averaged away. At sd 20 they run about
   20-80, against 0.94x to 1.06x before. That is what 7.1 asks for, but it
   makes a hidden trait carry a lot of development - worth surfacing
   through scouting before it feels arbitrary.
+  *Resolved in c760bb6.* The roster shows coachability as a SPEC 4.6
+  grade: a question mark for a new arrival, a range from 0.4 confidence,
+  a grade from 0.7, the true grade from 0.9. Confidence starts at 0.2-0.4
+  by scouting department and adds 0.25 a year in the building; a scout's
+  miss is per player, drawn from the player's id, so saves need no field.
 - **The clamp is not symmetric.** *Resolved.* Ratings now round and clamp
   30-100, the same distance either side of 65. Team-level means rise by
   a point (62.8 to 63.8 over five seeds; single leagues read 62-66), and
@@ -340,6 +345,13 @@ the pricer will need.
   contracts they sign, not in how much of the cap they use.
   Still true after the pick model: -0.28 over five seeds, from -0.06 to
   -0.45.
+  *Resolved.* Spend share is now a reserve held through the market, in
+  money: cap x (1 - spend share) x 0.4, about 1-15% of the cap. As a
+  share of whatever space was left each day, ten days of bidding spent
+  nearly all of it whatever the GM. Five seeds, steady state: correlation
+  -0.28 -> -0.57, mean space 10.0% -> 10.6%, clubs under 10m 3.5 -> 1.4,
+  as reckless clubs no longer spend to nothing. At 0.3 the correlation
+  fell to -0.35; 0.5 matched 0.4 with more of the cap left idle.
 
 ## ADR-0xx — Loyalty is the player's; the club decides how far to go
 
