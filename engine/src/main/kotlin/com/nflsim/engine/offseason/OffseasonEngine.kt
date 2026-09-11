@@ -686,14 +686,17 @@ object OffseasonEngine {
         )
         val wishes = PlayerIntent.assess(
             ctx.league, state.players, intentCtx, rng.split("wishes|${ctx.newYear}"))
-        val (players, deadMoney, trades) = PlayerIntent.resolveTrades(
+        val order = Picks.draftOrder(ctx.league.teams.map { it.id }, { id -> ctx.standings.record(id).winPct }, ctx.dynasty.results, ctx.dynasty.playoffs)
+        val result = PlayerIntent.resolveTrades(
             ctx.league, state.players, wishes, state.deadMoney, intentCtx,
-            rng.split("trades|${ctx.newYear}"))
+            rng.split("trades|${ctx.newYear}"), state.picks, order)
         return state.copy(
-            players = players,
-            deadMoney = deadMoney,
+            players = result.players,
+            deadMoney = result.deadMoney,
             wishes = state.wishes + wishes,
-            trades = state.trades + trades,
+            trades = state.trades + result.moves,
+            picks = result.picks,
+            pickTrades = state.pickTrades + result.pickTrades,
         )
     }
 
