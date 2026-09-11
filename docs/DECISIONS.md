@@ -470,3 +470,66 @@ penalty was most of it - found only by splitting need into its parts.
   free agent premium; at C, a real starter priced near 5.7m, 0.22%. A
   club with no kicker has to get one, and paying over the odds for him is
   right - it never costs enough to matter.
+
+## ADR-0xx — Draft picks are assets, priced by the CBA and the Johnson chart
+
+Context: every club drafted once a round in a fixed order and a pick was
+worth nothing until it was used. Nothing could be traded for one, rookie
+pay did not depend on where a player went, and a club losing a free agent
+got nothing back.
+
+Decision: follow the current CBA and the NFL's trade rules.
+
+- **Order and ownership.** The NFL's order: non-playoff clubs worst
+  first, then playoff clubs by the round they went out, strength of
+  schedule breaking ties. Each club holds its picks for the coming draft
+  and the two after it (`League.picks`, save v3), and whoever owns a
+  pick uses it.
+- **Compensatory picks.** Awarded in rounds 3-7 for net free agent
+  losses, tiered by the lost contract's share of the cap, with the
+  cancellation rule, at most 4 a club and 32 a year.
+- **Rookie scale.** Pay is slotted by overall pick from 2025's contracts,
+  taken as shares of the cap. First-rounders are fully guaranteed and
+  carry the fifth-year option, which uses the 2020 CBA's tiers with depth
+  standing in for Pro Bowls. Undrafted rookies sign for three years.
+- **Value.** Picks are valued by the Jimmy Johnson chart, as-is. Measured
+  over four years of `overall - 58` a pick yields 19.2 at 1, 13.4 at 32
+  and 1.1 in round seven. That is a ratio of 1.43 from pick 1 to pick 32,
+  against 5.08 on the chart. The user chose the chart anyway, because
+  it is what front offices trade by. The least-squares rate is 59 chart
+  points per yield point. Future picks are valued mid-round, one round
+  later. Each club tilts values by its own win now,
+  `x(1 + (0.5 - winNow) x 0.5)`.
+- **Trades.**
+  - Contender trades can pay for a star with picks as well as young
+    players.
+  - A club granting a trade request gets back the best pick the suitor
+    holds that is worth no more than the player is to the club letting
+    him go.
+  - In round one, an aggressive club within twelve picks can trade up
+    when the club on the clock does not need the best player left. It
+    pays the chart difference in future picks.
+
+Measured over five seeds, ten-year runs:
+
+    step                         result
+    order + ownership            distinct champions 7.4 -> 8.2
+    compensatory picks           29.8 a year, to 14.8 clubs
+    rookie scale + options       steady cap space 11.9% -> 9.7%, 3.5 clubs
+                                 under 10m; 19.2 options exercised and
+                                 11.0 declined a year
+    picks traded, per run        0 -> 5.8 (contenders) -> 39.2 (requests)
+                                 -> 51.4 (draft day)
+    stars moved, per run         20.0 -> 21.0
+
+Champions (7.4-8.4) and cap space (9.5-9.9%) stay within seed noise across
+the three trade steps.
+
+### Open, found while doing this
+- **The chart overprices early picks against what they yield.** It is
+  kept on purpose, so clubs overpay to move up the way real ones do. If
+  that ever distorts rebuilds, the least-squares rate is the lever.
+- **Draft-day trades are only trade-ups in round one, paid in future
+  picks.** There are no trade-downs for extra picks this year, and a
+  club cannot pay with a later pick from the current draft. Adding either
+  would mean reordering the slots while the draft runs.
