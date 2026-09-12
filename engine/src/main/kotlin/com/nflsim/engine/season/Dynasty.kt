@@ -111,8 +111,8 @@ object DynastyEngine {
             team.id to GameTeam(
                 team = team,
                 roster = league.roster(team.id),
-                offScheme = SchemeCatalog[team.offenseScheme],
-                defScheme = SchemeCatalog[team.defenseScheme],
+                offScheme = SchemeCatalog.tuned(team.offenseScheme, league.tuning),
+                defScheme = SchemeCatalog.tuned(team.defenseScheme, league.tuning),
                 aggression = 0.35f + (team.id.v % 7) * 0.06f,
             )
         }

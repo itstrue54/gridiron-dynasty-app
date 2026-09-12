@@ -66,6 +66,18 @@ class TuningTableTest {
     }
 
     @Test
+    fun `scheme-fit tuning travels with the scheme`() {
+        val scheme = SchemeCatalog[league.teams.first().offenseScheme]
+        val player = league.players.first { it.position.isOffense && it.teamId != null }
+        val harsh = TuningTable(ratings = TuningTable.Ratings(schemeFloor = 0.5f))
+        assertTrue(
+            com.nflsim.engine.ratings.overall(player, scheme.copy(ratings = harsh.ratings)) <
+                com.nflsim.engine.ratings.overall(player, scheme),
+            "a lower floor should lower a rating in the scheme")
+        assertEquals(harsh.ratings, SchemeCatalog.tuned(scheme.id, harsh).ratings)
+    }
+
+    @Test
     fun `special teams read the table`() {
         val scheme = SchemeCatalog.offensive.first()
         val always = TuningTable.SpecialTeams(kickoffTouchbackRate = 1f)

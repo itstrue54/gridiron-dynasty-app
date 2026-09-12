@@ -24,6 +24,7 @@ data class TuningTable(
     val specialTeams: SpecialTeams = SpecialTeams(),
     val progression: Progression = Progression(),
     val ai: Ai = Ai(),
+    val ratings: Ratings = Ratings(),
 ) {
     @Serializable
     data class Passing(
@@ -319,6 +320,29 @@ data class TuningTable(
         /** Draft day: how badly a club must need the best player left, and how many picks back it looks, to move up. */
         val draftTradeUpNeed: Float = 0.6f,
         val draftTradeUpRange: Int = 12,
+    )
+
+    /**
+     * SPEC 4.9's scheme-fit math: how scheme, familiarity, emphasis, fatigue
+     * and morale shape a rating. A league's schemes carry this group, so every
+     * rating read from one uses it.
+     */
+    @Serializable
+    data class Ratings(
+        /** A rating in a scheme is multiplied by schemeFloor + schemeRange x fit. */
+        val schemeFloor: Float = 0.76f,
+        val schemeRange: Float = 0.24f,
+        /** Familiarity: familiarityFloor + familiarityRange x years in the scheme, full after yearsToLearn. */
+        val familiarityFloor: Float = 0.96f,
+        val familiarityRange: Float = 0.04f,
+        val yearsToLearn: Int = 3,
+        /** A rating the scheme leans on especially hard. */
+        val emphasisBonus: Float = 1.03f,
+        /** A fully fatigued player loses this share. */
+        val maxFatiguePenalty: Float = 0.15f,
+        /** Morale: moraleFloor + moraleRange x morale / 100. */
+        val moraleFloor: Float = 0.98f,
+        val moraleRange: Float = 0.04f,
     )
 
     companion object {

@@ -83,8 +83,8 @@ object GameCalibration {
             GameTeam(
                 team = team,
                 roster = league.roster(team.id),
-                offScheme = SchemeCatalog[team.offenseScheme],
-                defScheme = SchemeCatalog[team.defenseScheme],
+                offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
+                defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
                 aggression = 0.35f + rng.nextFloat() * 0.4f,
             )
         }

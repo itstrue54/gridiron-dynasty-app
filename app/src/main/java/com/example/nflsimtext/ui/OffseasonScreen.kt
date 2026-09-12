@@ -82,8 +82,8 @@ fun OffseasonScreen(dynasty: Dynasty) {
                 Text("BIGGEST HITS", fontFamily = Mono, fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->
-                    val sch = if (p.position.isOffense) SchemeCatalog[team.offenseScheme]
-                              else SchemeCatalog[team.defenseScheme]
+                    val sch = if (p.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
+                              else SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
                     Line(
                         "${p.name}  ${p.position.label} ${overall(p, sch)}",
                         money(p.capHit(dynasty.year)),
@@ -137,8 +137,8 @@ fun OffseasonScreen(dynasty: Dynasty) {
                         val p = dynasty.league.playersById[
                             com.nflsim.engine.model.PlayerId(pick.player)]
                         val grade = p?.let {
-                            val sch = if (it.position.isOffense) SchemeCatalog[team.offenseScheme]
-                                      else SchemeCatalog[team.defenseScheme]
+                            val sch = if (it.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
+                                      else SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
                             "${it.position.label} ${overall(it, sch)}"
                         } ?: ""
                         Line("R${pick.round}.${pick.overallPick}  ${p?.name ?: "-"}", grade)

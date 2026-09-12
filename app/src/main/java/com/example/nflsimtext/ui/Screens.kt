@@ -211,8 +211,8 @@ fun StandingsScreen(dynasty: Dynasty) {
 @Composable
 fun RosterScreen(dynasty: Dynasty) {
     val team = dynasty.team
-    val offense = SchemeCatalog[team.offenseScheme]
-    val defense = SchemeCatalog[team.defenseScheme]
+    val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
+    val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
     val order = listOf(
         Position.QB, Position.RB, Position.FB, Position.WR, Position.TE,
         Position.LT, Position.LG, Position.C, Position.RG, Position.RT,

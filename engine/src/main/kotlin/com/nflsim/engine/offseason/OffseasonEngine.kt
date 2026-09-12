@@ -219,9 +219,11 @@ object OffseasonEngine {
         val dynasty = season.copy(league = carousel.league)
         val league = dynasty.league
 
+        // The league's schemes, each carrying its scheme-fit tuning, built once.
+        val tunedSchemes = SchemeCatalog.all.associate { it.id to it.copy(ratings = league.tuning.ratings) }
         val schemeFor: (TeamId) -> Pair<Scheme, Scheme> = { id ->
             val t = league.team(id)
-            SchemeCatalog[t.offenseScheme] to SchemeCatalog[t.defenseScheme]
+            tunedSchemes.getValue(t.offenseScheme) to tunedSchemes.getValue(t.defenseScheme)
         }
         fun sideScheme(teamId: TeamId?, position: Position): Scheme {
             val id = teamId ?: league.teams.first().id

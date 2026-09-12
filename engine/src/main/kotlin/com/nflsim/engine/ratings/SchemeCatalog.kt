@@ -26,5 +26,8 @@ object SchemeCatalog {
 
     fun find(id: String): Scheme? = byId[id]
 
+    /** A scheme carrying a tuning table's scheme-fit group, which every rating read from it uses. */
+    fun tuned(id: String, tuning: com.nflsim.engine.tuning.TuningTable): Scheme = get(id).copy(ratings = tuning.ratings)
+
     private const val RESOURCE = "/schemes.json"
 }

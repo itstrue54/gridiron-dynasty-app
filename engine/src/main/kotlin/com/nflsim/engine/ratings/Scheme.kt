@@ -31,6 +31,12 @@ data class Scheme(
     val manZoneSplit: Float = 0.45f,
     val tempo: Float = 0.50f,
     val notes: String = "",
+    /**
+     * The scheme-fit tuning every rating read from this scheme uses. Never in
+     * schemes.json: a league's lookups attach its own (SchemeCatalog.tuned).
+     */
+    @kotlinx.serialization.Transient
+    val ratings: com.nflsim.engine.tuning.TuningTable.Ratings = com.nflsim.engine.tuning.TuningTable.REALISTIC.ratings,
 ) {
     /** How well this archetype suits the scheme at this position. */
     fun fitFor(position: Position, archetype: Archetype): Float {
