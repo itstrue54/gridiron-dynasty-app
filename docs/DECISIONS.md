@@ -716,3 +716,49 @@ every setting. Cap space 9.9% -> 10.3% and champions 8.0 -> 8.0.
   with floor 0.783 - keeps valuations but fails the calibration and
   season-leader tests, and range 0.20 the seven-point scheme-effect
   test. It needs the passing game retuned with rosters in scheme: M11.
+
+## ADR-0xx — The tuning table is the league's, and schemes carry its scheme-fit math
+
+Context: SPEC 12 puts every coefficient in the sim in one TuningTable,
+saved with the league and editable in-game behind an Advanced toggle,
+with three presets. The table existed with 7 of its groups and the
+presets, but the league did not carry it: every game ran on Realistic,
+special teams, progression, the AI and the scheme-fit math read none of
+it, and about forty play-resolution coefficients were still literals.
+
+Decision, in five slices. Each was verified against two seeded ten-year
+dynasties and the calibration report, which came out identical apart
+from their timings.
+- **The league carries its table** (2020355). Older saves load as
+  Realistic. Dynasty games, season sims and calibration default to it.
+  Special teams joined as a group: the field-goal curve and range,
+  clutch, extra points, punts, touchbacks and returns.
+- **Play resolution** (de87ea5). The pass, run and penalty resolvers'
+  coefficients moved into passing, coverage, blocking, rushing and
+  penalties. Probability clamps and fallbacks stay literal.
+- **Progression and AI** (feb7f02). Progression holds the development
+  model, including SPEC 7.1's coach slope, the age curve and retirement
+  by age. The ai group holds what SPEC 12 names: free-agent aggression,
+  trade frequency, and how the draft weighs need and fit against talent.
+- **The tuning screen** (5563c17). The Hub's Advanced button opens it:
+  the three presets in one tap, then every value, group by group, as a
+  slider from zero to twice its Realistic value. It reads the table
+  through its own serializer, so a value added later appears by itself.
+- **Scheme-fit math** (656794f). SPEC 4.9's constants (the scheme multiplier's floor and
+  range, familiarity, emphasis, fatigue, morale) joined as a ratings
+  group. Passing the table to every place that reads a rating meant 81
+  call sites and about 12 helper signatures. Instead a scheme carries
+  the group: the league's scheme lookups attach it (game teams, the
+  offseason's resolver, the app's screens), and the rating math reads it
+  from the scheme it is already given. Games, valuations and screens
+  agree. A lookup that skips the league gets Realistic, and one search
+  for SchemeCatalog finds any such lookup.
+
+### Open, found while doing this
+- **Fourth-down and play-calling literals stay in code.** They are coach
+  tendencies (SPEC 5.4), which belong with the coaches rather than the
+  table.
+- **Sliders run from zero to twice the Realistic value.** That is the
+  same rule for everything, so a probability near one can be set past
+  one. The code clamps most probabilities, but not all.
+- **The tuning screen has only been compiled,** not run on a device.
