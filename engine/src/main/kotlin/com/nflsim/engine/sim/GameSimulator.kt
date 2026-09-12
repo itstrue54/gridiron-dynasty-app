@@ -110,7 +110,7 @@ class GameSimulator(
         val receiving = teamFor(receiver)
         val (spot, _) = SpecialTeams.kickoff(
             SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme),
-            receiving.offScheme, rng)
+            receiving.offScheme, rng, st = tuning.specialTeams)
         return state.copy(possession = receiver, yardLine = spot, down = 1, distance = 10)
     }
 
@@ -145,7 +145,7 @@ class GameSimulator(
                         val punt = SpecialTeams.punt(
                             SpecialTeams.punterFor(punting.offDepth),
                             SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme),
-                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng)
+                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams)
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
                         state = advanceClock(state, 12)
@@ -162,7 +162,7 @@ class GameSimulator(
                             SpecialTeams.kickerFor(kicking.offDepth),
                             100 - state.yardLine, kicking.offScheme,
                             home.team.stadium.altitudeFt, rng,
-                            clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3)
+                            clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams)
                         log(state, kick.narrative)
                         state = advanceClock(state, 6)
                         if (kick.good) {
@@ -201,7 +201,7 @@ class GameSimulator(
                 state = addPoints(state, offense, 6)
                 val kicking = teamFor(offense)
                 if (SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
-                        kicking.offScheme, rng)) {
+                        kicking.offScheme, rng, st = tuning.specialTeams)) {
                     points += 1
                     state = addPoints(state, offense, 1)
                 }

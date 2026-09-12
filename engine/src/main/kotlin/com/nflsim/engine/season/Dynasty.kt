@@ -88,7 +88,7 @@ object DynastyEngine {
     }
 
     /** Plays the current week, or the next playoff round. */
-    fun advance(dynasty: Dynasty, tuning: TuningTable = TuningTable.REALISTIC): Dynasty =
+    fun advance(dynasty: Dynasty, tuning: TuningTable = dynasty.league.tuning): Dynasty =
         when (dynasty.phase) {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
             DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning)

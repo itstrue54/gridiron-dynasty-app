@@ -76,7 +76,7 @@ object GameCalibration {
         league: League,
         games: Int = 200,
         seed: Long = 2026L,
-        tuning: TuningTable = TuningTable.REALISTIC,
+        tuning: TuningTable = league.tuning,
     ): CalibrationReport {
         val rng = SplitMixRng(seed)
         val teams = league.teams.map { team ->

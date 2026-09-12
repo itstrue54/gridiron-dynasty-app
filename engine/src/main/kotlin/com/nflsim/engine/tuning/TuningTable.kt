@@ -21,6 +21,7 @@ data class TuningTable(
     val penalties: Penalties = Penalties(),
     val injuries: Injuries = Injuries(),
     val gameFlow: GameFlow = GameFlow(),
+    val specialTeams: SpecialTeams = SpecialTeams(),
 ) {
     @Serializable
     data class Passing(
@@ -118,6 +119,47 @@ data class TuningTable(
         val runPlayClockRunoff: Int = 31,
         val completionClockRunoff: Int = 29,
         val incompleteClockRunoff: Int = 6,
+    )
+
+    /** Kicking, punting and returns - SPEC 12's FG distance curve and return rates. */
+    @Serializable
+    data class SpecialTeams(
+        /** Inside this distance a field goal is a formality. */
+        val chipShotDistance: Int = 25,
+        val chipShotChance: Float = 0.985f,
+        /** A kicker's range: the base, up to fgRangePower more for the strongest leg, and altitude. */
+        val fgRangeBase: Float = 42f,
+        val fgRangePower: Float = 22f,
+        val fgAltitudeBonus: Float = 4f,
+        /** How quickly makes fall away toward the edge of his range, and the ceiling accuracy sets. */
+        val fgCurveWidth: Float = 6.2f,
+        val fgBaseAccuracy: Float = 0.72f,
+        val fgAccuracyScale: Float = 260f,
+        /** Yards past his range over which a make goes from likely to hopeless. */
+        val fgBeyondRange: Float = 26f,
+        /** With the game on the line a kicker's chance is multiplied by clutchFloor up to clutchFloor + clutchRange. */
+        val clutchFloor: Float = 0.94f,
+        val clutchRange: Float = 0.09f,
+        val extraPointNoKicker: Float = 0.90f,
+        val extraPointBase: Float = 0.905f,
+        val extraPointAccuracyScale: Float = 1400f,
+        val extraPointCeiling: Float = 0.985f,
+        /** Gross punt at a 70 leg, yards per point of power, and spread. */
+        val puntBase: Float = 38f,
+        val puntPowerScale: Float = 0.30f,
+        val puntVariance: Float = 5.5f,
+        /** Yards short of the goal line a punter aims, per point of placement below 99. */
+        val puntPlacementScale: Float = 0.08f,
+        /** A punt reaching the end zone goes for a touchback this often at 70 placement, less per point above. */
+        val puntTouchbackBase: Float = 0.62f,
+        val puntTouchbackPlacement: Float = 0.006f,
+        val puntReturnRate: Float = 0.42f,
+        val puntReturnMean: Float = 6.5f,
+        val puntReturnSkill: Float = 0.05f,
+        val kickoffTouchbackRate: Float = 0.63f,
+        val kickoffReturnBase: Int = 22,
+        val kickoffReturnSpeed: Float = 0.12f,
+        val kickoffReturnVariance: Float = 5f,
     )
 
     companion object {

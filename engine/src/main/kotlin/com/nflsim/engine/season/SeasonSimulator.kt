@@ -67,7 +67,7 @@ class SeasonSimulator(
     private val league: League,
     private val year: Int,
     private val seed: Long,
-    private val tuning: TuningTable = TuningTable.REALISTIC,
+    private val tuning: TuningTable = league.tuning,
 ) {
 
     private val gameTeams: Map<TeamId, GameTeam> = league.teams.associate { team ->
