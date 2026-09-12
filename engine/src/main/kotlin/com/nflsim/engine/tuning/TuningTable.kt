@@ -22,6 +22,8 @@ data class TuningTable(
     val injuries: Injuries = Injuries(),
     val gameFlow: GameFlow = GameFlow(),
     val specialTeams: SpecialTeams = SpecialTeams(),
+    val progression: Progression = Progression(),
+    val ai: Ai = Ai(),
 ) {
     @Serializable
     data class Passing(
@@ -224,6 +226,99 @@ data class TuningTable(
         val kickoffReturnBase: Int = 22,
         val kickoffReturnSpeed: Float = 0.12f,
         val kickoffReturnVariance: Float = 5f,
+    )
+
+    /** SPEC 7.1 and 12: how players grow and decline each offseason. */
+    @Serializable
+    data class Progression(
+        /** Work ethic multiplies growth by workBase + workRange x (work ethic / 100). */
+        val workBase: Float = 0.75f,
+        val workRange: Float = 0.5f,
+        /** Coaching: coachBase + coachSlope x coaching x coachability, both over 100. The slope is SPEC 7.1's. */
+        val coachBase: Float = 0.2975f,
+        val coachSlope: Float = 2.00f,
+        /** Decline is softened by work ethic: the age factor x (ageWorkBase - work x ageWorkScale). */
+        val ageWorkBase: Float = 1.20f,
+        val ageWorkScale: Float = 0.20f,
+        /** Year-to-year noise in rating points. */
+        val noise: Float = 1.5f,
+        /** A breakout adds breakoutBase plus up to breakoutRange; a collapse takes collapseBase plus up to collapseRange. */
+        val breakoutBase: Float = 4f,
+        val breakoutRange: Float = 5f,
+        val collapseBase: Float = 5f,
+        val collapseRange: Float = 6f,
+        /** How a change splits: physical ratings, mental ones growing and declining, the rest. */
+        val physicalShare: Float = 1.15f,
+        val mentalGrowth: Float = 0.7f,
+        val mentalDecline: Float = 0.35f,
+        val mentalFloor: Float = 0.55f,
+        val otherShare: Float = 0.9f,
+        /** The age curve: growth before the peak, at it, and the decline's exponent and scale after. */
+        val youthGrowth: Float = 2.6f,
+        val peakGrowth: Float = 0.3f,
+        val declineExponent: Float = 1.28f,
+        val declineScale: Float = 0.62f,
+        /** Playing time: snaps for each band, and what each band multiplies growth by. */
+        val snapsHeavy: Int = 800,
+        val snapsRegular: Int = 450,
+        val snapsSpot: Int = 150,
+        val snapHeavy: Float = 1.25f,
+        val snapRegular: Float = 1.05f,
+        val snapSpot: Float = 0.85f,
+        val snapBench: Float = 0.62f,
+        /** Breakout chance by development curve, scaled by breakoutWorkBase + work ethic / 100. */
+        val breakoutSlow: Float = 0.010f,
+        val breakoutNormal: Float = 0.025f,
+        val breakoutQuick: Float = 0.055f,
+        val breakoutSuperstar: Float = 0.090f,
+        val breakoutXFactor: Float = 0.140f,
+        val breakoutWorkBase: Float = 0.6f,
+        /** Collapse chance per year past the peak, scaled by collapseDurability - durability under load / 100. */
+        val collapseRate: Float = 0.012f,
+        val collapseDurability: Float = 1.4f,
+        /** Retirement chance by age band. */
+        val retireBy28: Float = 0.006f,
+        val retireBy30: Float = 0.030f,
+        val retireBy32: Float = 0.095f,
+        val retireBy34: Float = 0.230f,
+        val retireBy36: Float = 0.450f,
+    )
+
+    /** SPEC 12's ai group: how hard free agents are chased, how often clubs trade, how the draft weighs need. */
+    @Serializable
+    data class Ai(
+        /** Free agency: a club pays up to 1 + need x faNeedPremium over value to fill a hole. */
+        val faNeedPremium: Float = 0.55f,
+        /** A losing club pays up to this much more for a key veteran. */
+        val faLosingPremium: Float = 0.25f,
+        /** An offer below this share of a player's value is not made. */
+        val faLowballFloor: Float = 0.72f,
+        /**
+         * Scales 1 - spend share (0.02-0.38) to the cap a front office keeps free
+         * through the market, about 1-15%. Swept over five seeds: 0.3 weakened
+         * the effect, 0.5 matched 0.4 and left more of the cap idle.
+         */
+        val faReserveOfCap: Float = 0.4f,
+        /** Swaps a full roster makes in free agency by releasing a worse player. */
+        val faMaxUpgrades: Int = 3,
+        /** Contender trades: the record that makes a club think it is close, and the win-now bars to buy and to sell. */
+        val contenderWinPct: Float = 0.55f,
+        val buyerWinNow: Float = 0.6f,
+        val sellerWinNow: Float = 0.4f,
+        /** Rating points a star must add over the contender's best at his position. */
+        val tradeClearUpgrade: Float = 6f,
+        /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */
+        val tradeSellerMargin: Float = 0.05f,
+        val tradeAggressionOverpay: Float = 0.25f,
+        /** How often a club grants a player's trade request. */
+        val tradeRequestGrantChance: Float = 0.45f,
+        /** The draft board: need and scheme fit against talent, and scouting error in overall points. */
+        val draftNeedWeight: Float = 9f,
+        val draftFitWeight: Float = 6f,
+        val draftScoutingError: Float = 7.5f,
+        /** Draft day: how badly a club must need the best player left, and how many picks back it looks, to move up. */
+        val draftTradeUpNeed: Float = 0.6f,
+        val draftTradeUpRange: Int = 12,
     )
 
     companion object {

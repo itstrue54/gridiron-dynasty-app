@@ -681,7 +681,7 @@ object OffseasonEngine {
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
                 }
                 pay?.mapNotNull { it.second }
-            },
+            }, ai = ctx.league.tuning.ai
         )
         val undrafted = draft.undrafted.map {
             it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
@@ -916,7 +916,7 @@ object OffseasonEngine {
         val retired = mutableListOf<Retirement>()
         val survivors = state.players.filter { p ->
             val ovr = overall(p, ctx.scheme(p.teamId, p.position))
-            val retiring = Progression.retires(p, ctx.oldYear, ovr, rng)
+            val retiring = Progression.retires(p, ctx.oldYear, ovr, rng, tn = ctx.league.tuning.progression)
             if (retiring) {
                 retired += Retirement(p.id.v, p.name, p.position.label, p.age(ctx.oldYear), ovr,
                     reason = "retired")
@@ -955,7 +955,7 @@ object OffseasonEngine {
             val progCtx = Progression.Context(
                 year = ctx.oldYear,
                 coaching = coachDevRating(ctx.league, p),
-                snaps = snapsFromDepth(p, state.depthRank[p.id.v]),
+                snaps = snapsFromDepth(p, state.depthRank[p.id.v]), tuning = ctx.league.tuning.progression
             )
             val change = Progression.progress(p, progCtx, rng)
             deltaSum += change.delta

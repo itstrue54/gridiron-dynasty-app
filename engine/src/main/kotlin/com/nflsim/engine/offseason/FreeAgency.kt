@@ -1,5 +1,6 @@
 package com.nflsim.engine.offseason
 
+import com.nflsim.engine.tuning.TuningTable
 import com.nflsim.engine.econ.MarketValue
 import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.League
@@ -110,14 +111,14 @@ object FreeAgency {
                 // at its target could not turn money into ability at all, and
                 // that stranded room was most of the league's unspent cap.
                 if (current.size >= ROSTER_TARGET) {
-                    if ((upgrades[team.id.v] ?: 0) < MAX_UPGRADES) {
+                    if ((upgrades[team.id.v] ?: 0) < league.tuning.ai.faMaxUpgrades) {
                         upgradeBids(team, current, rawSpace, pool, market, year, scheme, pricer,
-                            winPct, rng.split("upgrade|${team.id.v}|$day"), bids)
+                            winPct, rng.split("upgrade|${team.id.v}|$day"), bids, league.tuning.ai)
                     }
                     return@forEach
                 }
 
-                val space = rawSpace - reserve(front.spendShare, year)
+                val space = rawSpace - reserve(front.spendShare, year, league.tuning.ai.faReserveOfCap)
                 if (space < Contract.MIN_BASE_SALARY * 3) return@forEach
 
                 val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
@@ -146,14 +147,14 @@ object FreeAgency {
                     val worth = market[p.id.v] ?: return@forEach
                     val need = needs[p.position] ?: 0f
                     val willing = (worth *
-                        (1f + need * NEED_PREMIUM) *
+                        (1f + need * league.tuning.ai.faNeedPremium) *
                         front.premium *
-                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual)).roundToInt()
+                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, league.tuning.ai.faLosingPremium)).roundToInt()
                         .coerceAtMost((space * front.singleDealShare).toInt()
                             .coerceAtLeast(Contract.MIN_BASE_SALARY))
                         .coerceAtMost(pricer.maxAnnual)
 
-                    if (willing < worth * LOWBALL_FLOOR) return@forEach
+                    if (willing < worth * league.tuning.ai.faLowballFloor) return@forEach
 
                     bids.getOrPut(p.id.v) { mutableListOf() } += Bid(
                         team = team.id,
@@ -174,7 +175,7 @@ object FreeAgency {
                 // An upgrade offer only stands while the player it displaces is
                 // still on the roster and the team has swaps left.
                 val live = offers.filter { b ->
-                    b.replaces == null || ((upgrades[b.team.v] ?: 0) < MAX_UPGRADES &&
+                    b.replaces == null || ((upgrades[b.team.v] ?: 0) < league.tuning.ai.faMaxUpgrades &&
                         roster[b.team]?.any { it.id.v == b.replaces } == true)
                 }
                 // A loyal player gives his old club the benefit of the doubt.
@@ -272,7 +273,7 @@ object FreeAgency {
         pricer: MarketValue.Pricer,
         winPct: (TeamId) -> Float,
         rng: Rng,
-        bids: MutableMap<Int, MutableList<Bid>>,
+        bids: MutableMap<Int, MutableList<Bid>>, ai: TuningTable.Ai
     ) {
         val front = team.gm
         val winNow = front.winNowVsFuture
@@ -289,14 +290,14 @@ object FreeAgency {
             if (gain < UPGRADE_MARGIN) return@mapNotNull null
             val worth = market[p.id.v] ?: return@mapNotNull null
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
-            val budget = rawSpace + freed - reserve(front.spendShare, year)
+            val budget = rawSpace + freed - reserve(front.spendShare, year, ai.faReserveOfCap)
             if (budget < Contract.MIN_BASE_SALARY) return@mapNotNull null
             val willing = (worth * front.premium *
-                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual)).roundToInt()
+                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, ai.faLosingPremium)).roundToInt()
                 .coerceAtMost((budget * front.singleDealShare).toInt()
                     .coerceAtLeast(Contract.MIN_BASE_SALARY))
                 .coerceAtMost(pricer.maxAnnual)
-            if (willing < worth * LOWBALL_FLOOR) return@mapNotNull null
+            if (willing < worth * ai.faLowballFloor) return@mapNotNull null
             Upgrade(p, out, worth, willing, gain + rng.gaussian(0f, 2f))
         }
             .sortedByDescending { it.score }
@@ -319,37 +320,27 @@ object FreeAgency {
      * that spent nearly all of it whatever the GM - held as a sum set once,
      * a careful club finishes the market with room and a reckless one without.
      */
-    private fun reserve(spendShare: Float, year: Int): Int =
-        (CapManagement.capFor(year) * (1f - spendShare) * RESERVE_OF_CAP).toInt()
+    private fun reserve(spendShare: Float, year: Int, reserveOfCap: Float): Int =
+        (CapManagement.capFor(year) * (1f - spendShare) * reserveOfCap).toInt()
 
-    /**
-     * Scales 1 - spend share (0.02-0.38) to a reserve of about 1-15% of the
-     * cap, 8% at the mean. Swept over five seeds: 0.3 weakened the effect,
-     * 0.5 matched 0.4 and left more of the cap idle.
-     */
-    private const val RESERVE_OF_CAP = 0.4f
 
     private const val UPGRADE_MARGIN = 4f
 
-    /** Most players a full roster will swap out in one market. */
-    private const val MAX_UPGRADES = 3
 
     /**
      * What a losing club adds to win a key veteran. Free agents prefer a
      * winner - it is in how they rank offers - so a bad club that wants a
      * proven starter has to pay for being bad. A .500 club adds nothing.
      */
-    internal fun losingPremium(player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int): Float {
+    internal fun losingPremium(player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int, premium: Float = TuningTable.REALISTIC.ai.faLosingPremium): Float {
         val key = player.age(year) >= AGE_CLIFF && worth >= maxAnnual * KEY_VETERAN_SHARE
         if (!key) return 1f
-        return 1f + ((0.5f - winPct) * 2f).coerceAtLeast(0f) * LOSING_PREMIUM
+        return 1f + ((0.5f - winPct) * 2f).coerceAtLeast(0f) * premium
     }
 
     /** A veteran worth this share of the biggest deal allowed is a key signing. */
     private const val KEY_VETERAN_SHARE = 0.10f
 
-    /** Most a winless club adds to a key veteran's price. */
-    private const val LOSING_PREMIUM = 0.25f
 
     /**
      * What a player thinks of an offer. Money leads by a distance, but not so
@@ -392,11 +383,7 @@ object FreeAgency {
     /** Rating points a need is worth when ranking the board. */
     private const val NEED_WEIGHT = 14f
 
-    /** How much more a team pays for a position it must fill. */
-    private const val NEED_PREMIUM = 0.55f
 
-    /** Below this fraction of market a team does not bother bidding. */
-    private const val LOWBALL_FLOOR = 0.72f
 
     private const val TARGETS_PER_DAY = 4
 

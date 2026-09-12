@@ -31,6 +31,28 @@ class TuningTableTest {
     }
 
     @Test
+    fun `progression reads its group`() {
+        val young = league.players.first { it.birthYear >= 2003 }
+        val flat = TuningTable.Progression(coachSlope = 0f)
+        fun delta(coaching: Int) = com.nflsim.engine.offseason.Progression.progress(
+            young, com.nflsim.engine.offseason.Progression.Context(2026, coaching, 700, flat), SplitMixRng(3L)).delta
+        assertEquals(delta(20), delta(90), "with no coach slope, coaching should not matter")
+    }
+
+    @Test
+    fun `the draft reads the league's AI tuning`() {
+        val prospects = com.nflsim.engine.offseason.SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
+        val scheme = SchemeCatalog.offensive.first()
+        val pureTalent = TuningTable.Ai(draftNeedWeight = 0f, draftFitWeight = 0f, draftScoutingError = 0f)
+        val result = com.nflsim.engine.offseason.DraftRunner.run(
+            listOf(1 to league.teams.first().id), prospects, { scheme }, { emptyMap() }, 2027, SplitMixRng(1L),
+            ai = pureTalent)
+        val (_, _, _, player) = result.picks.first()
+        assertEquals(prospects.maxBy { com.nflsim.engine.ratings.overall(it) }.id.v, player,
+            "with no need, fit or scouting error, the board is pure talent")
+    }
+
+    @Test
     fun `special teams read the table`() {
         val scheme = SchemeCatalog.offensive.first()
         val always = TuningTable.SpecialTeams(kickoffTouchbackRate = 1f)

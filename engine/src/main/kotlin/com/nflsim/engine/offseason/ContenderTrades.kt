@@ -78,10 +78,10 @@ object ContenderTrades {
             PickValue.value(pick, year, order, club.gm.winNowVsFuture)
 
         val buyers = league.teams
-            .filter { winPct(it.id) >= CONTENDER && it.gm.winNowVsFuture >= BUYER_WIN_NOW }
+            .filter { winPct(it.id) >= league.tuning.ai.contenderWinPct && it.gm.winNowVsFuture >= league.tuning.ai.buyerWinNow }
             .sortedByDescending { winPct(it.id) }
         val sellers = league.teams
-            .filter { winPct(it.id) < 0.5f || it.gm.winNowVsFuture <= SELLER_WIN_NOW }
+            .filter { winPct(it.id) < 0.5f || it.gm.winNowVsFuture <= league.tuning.ai.sellerWinNow }
 
         buyers.forEach { buyer ->
             val deals = if (buyer.gm.aggression >= SECOND_DEAL_AGGRESSION) 2 else 1
@@ -124,11 +124,11 @@ object ContenderTrades {
                         if (age < STAR_MIN_AGE || age > starMaxAge) continue
                         if (overall(star, scheme(buyer.id, star.position)) < STAR_OVERALL) continue
                         val gain = value(star, buyer) - (bestAt[star.position]?.let { value(it, buyer) } ?: 0f)
-                        if (gain < CLEAR_UPGRADE) continue
+                        if (gain < league.tuning.ai.tradeClearUpgrade) continue
                         if (chosen != null && gain <= chosen.gain) continue
 
-                        val sellerWants = value(star, seller) * (1f + SELLER_MARGIN)
-                        val buyerPays = value(star, buyer) * (1f + buyer.gm.aggression * AGGRESSION_OVERPAY)
+                        val sellerWants = value(star, seller) * (1f + league.tuning.ai.tradeSellerMargin)
+                        val buyerPays = value(star, buyer) * (1f + buyer.gm.aggression * league.tuning.ai.tradeAggressionOverpay)
                         // The package that costs the contender least and still
                         // satisfies the seller. Picks carry no cap hit.
                         val pkg = packages
@@ -199,12 +199,7 @@ object ContenderTrades {
             CapManagement.spaceFor(sellerRoster - star + pkg, year, sellerOwes) >= 0
     }
 
-    /** A winning record that makes a club think it is close. */
-    private const val CONTENDER = 0.55f
 
-    /** Win now from which a good club goes looking; at or below SELLER_WIN_NOW a club will sell. */
-    private const val BUYER_WIN_NOW = 0.6f
-    private const val SELLER_WIN_NOW = 0.4f
 
     /** Need at a position that counts as a real hole, and how many a club can have and still be close. */
     private const val HOLE = 0.35f
@@ -223,14 +218,8 @@ object ContenderTrades {
     /** How many of the pieces a seller wants most it will build a package from. */
     private const val PACKAGE_POOL = 6
 
-    /** Rating points a star has to add over the contender's best at the position. */
-    private const val CLEAR_UPGRADE = 6f
 
-    /** How much more a seller wants back than it gives, on its own valuation. */
-    private const val SELLER_MARGIN = 0.05f
 
-    /** How far past break-even the most aggressive contender will go. */
-    private const val AGGRESSION_OVERPAY = 0.25f
 
     /** Aggression from which a contender goes back for a second player. */
     private const val SECOND_DEAL_AGGRESSION = 0.75f

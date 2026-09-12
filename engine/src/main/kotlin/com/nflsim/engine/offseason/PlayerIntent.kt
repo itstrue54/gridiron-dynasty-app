@@ -187,7 +187,7 @@ object PlayerIntent {
             // A team only trades him if it is willing to let him go, and it is
             // more willing when he is old, expensive, or has said he is done.
             val keepRng = rng.split("trade|${wish.player}")
-            if (keepRng.nextFloat() > GRANT_CHANCE) return@forEach
+            if (keepRng.nextFloat() > league.tuning.ai.tradeRequestGrantChance) return@forEach
 
             val suitor = league.teams
                 .filter { it.id != from }
@@ -265,8 +265,6 @@ object PlayerIntent {
     /** How much less a money grievance pushes a player out the door. */
     private const val MONEY_PATIENCE = 0.42f
 
-    /** Not every request gets granted. Most teams say no first. */
-    private const val GRANT_CHANCE = 0.45f
 
     /** A suitor has to value him above what he costs. */
     private const val WORTH_IT = 1.15f
