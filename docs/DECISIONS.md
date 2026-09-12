@@ -762,3 +762,40 @@ from their timings.
   same rule for everything, so a probability near one can be set past
   one. The code clamps most probabilities, but not all.
 - **The tuning screen has only been compiled,** not run on a device.
+
+## ADR-0xx — The depth chart is pins over the automatic order
+
+Context: SPEC 5.5 wants a per-position depth chart with package
+overrides. Every game rebuilt each club's chart from scheme-adjusted
+overall, and nothing let a club say who plays.
+
+Decision: a club keeps pins, not a whole chart (a4826d1, screen fdd977d).
+- **Order.** Per position, the players pinned to the top of the chart,
+  in order. Everyone else follows the automatic order, so a pinned
+  player who leaves drops out and a newcomer slots in where the
+  automatic order puts him - no upkeep after trades, signings or the
+  draft. A chart nobody touches is the automatic one exactly: with no
+  pins, two seeded ten-year dynasties and the calibration report are
+  unchanged apart from timings.
+- **Packages.** Per personnel grouping or defensive front, who fills a
+  position in it, ahead of the position's chart. The screen groups them
+  by the spots packages actually add: third and fourth receivers, two-
+  and three-tight-end sets, the third corner, dime corners, three
+  interior linemen and goal-line linebackers.
+- **Returners.** A kick and a punt returner can be named; otherwise the
+  fastest skill player returns, as before.
+- **Snaps.** The offseason's playing-time ranks follow the pins, so a
+  starter the club chose gets starter's snaps for development. The
+  rollover drops pins for players who have left.
+- **The screen.** Moving a player pins everyone down to him in the new
+  order; Auto clears a position or package.
+
+### Open, found while doing this
+- **Fatigue and snap rotation (SPEC 5.5's third bullet) are not
+  modelled.** Players carry a fatigue rating the sim never reads, and
+  only running backs rotate, on a fixed 60/28/12 split.
+- **Nobody plays out of position.** Pins only reorder players at their
+  own position; a corner cannot be pinned at safety.
+- **The two-back sets (21, 22, goal line) take their backs from the RB
+  and FB charts,** with no package spot of their own on the screen.
+- **The screen has only been compiled,** not run on a device.
