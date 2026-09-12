@@ -265,6 +265,8 @@ class GameSimulator(
             state = playState,
             tuning = tuning,
             crowdNoise = if (offense == Side.AWAY) home.team.stadium.crowdNoise else 0,
+            offPlan = offTeam.team.gamePlan,
+            defPlan = defTeam.team.gamePlan,
         )
         val offCall = PlayCaller.offense(probe, rng)
         val defCall = PlayCaller.defense(probe, rng)
@@ -471,7 +473,7 @@ class GameSimulator(
         val t = teamFor(offense)
         return FourthDown.decide(
             state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, t.aggression, rng)
+            home.team.stadium.altitudeFt, t.team.gamePlan.fourthDownAggression ?: t.aggression, rng)
     }
 
     private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) home else away

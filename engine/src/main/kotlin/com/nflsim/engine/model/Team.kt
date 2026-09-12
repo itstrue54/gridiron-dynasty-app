@@ -41,6 +41,8 @@ data class Team(
     val gm: GmProfile = GmProfile(),
     /** SPEC 5.5: the club's pins over its automatic depth chart. */
     val depthPins: DepthPins = DepthPins(),
+    /** SPEC 5.4: the tendencies the club's coordinators call from. */
+    val gamePlan: GamePlan = GamePlan(),
 ) {
     val name: String get() = "$city $nickname"
     val divisionName: String get() = "${conference.label} ${division.name.lowercase().replaceFirstChar { it.uppercase() }}"

@@ -1,12 +1,14 @@
 package com.nflsim.engine.sim
 
+import com.nflsim.engine.model.GamePlan
 import com.nflsim.engine.rng.Rng
 
 /**
  * The coordinator's brain, v0.
  *
  * You do not call plays in this game - you set tendencies and personnel, and
- * this decides. For now the tendencies come straight off the scheme; the full
+ * this decides. The tendencies come off the scheme, and a club's game plan
+ * overrides any of them (model.GamePlan); the full
  * Tendencies object with per-down curves, adaptation and a game plan screen is
  * SPEC section 5.4 and lands at M3.
  */
@@ -14,7 +16,8 @@ object PlayCaller {
 
     fun offense(ctx: PlayContext, rng: Rng): OffensivePlayCall {
         val s = ctx.state
-        var passRate = ctx.offense.scheme.basePassRate
+        val plan = ctx.offPlan
+        var passRate = plan.passRate ?: ctx.offense.scheme.basePassRate
 
         // Down and distance move a coordinator more than anything else.
         passRate += when (s.down) {
@@ -26,8 +29,9 @@ object PlayCaller {
         passRate += ((s.distance - 8) * 0.016f).coerceIn(-0.14f, 0.22f)
 
         // Trailing teams throw. Leading teams bleed clock.
-        passRate += (-s.scoreDiff * 0.011f).coerceIn(-0.16f, 0.24f)
-        if (s.twoMinuteDrill && s.scoreDiff <= 0) passRate += 0.28f
+        passRate += plan.trailingPassScale?.let { k -> (-s.scoreDiff * 0.011f * k).coerceIn(-0.16f * k, 0.24f * k) }
+            ?: (-s.scoreDiff * 0.011f).coerceIn(-0.16f, 0.24f)
+        if (s.twoMinuteDrill && s.scoreDiff <= 0) passRate += plan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST
         if (s.goalToGo && s.yardsToGoal <= 2) passRate -= 0.22f
 
         passRate = passRate.coerceIn(0.08f, 0.94f)
@@ -77,7 +81,8 @@ object PlayCaller {
 
         // Shot plays. Uncommon, and they are what makes a defence respect the
         // deep third - without them coverage sits on everything underneath.
-        val shot = rng.nextFloat() < ctx.offense.scheme.playActionRate * 0.65f
+        val paRate = ctx.offPlan.playActionRate ?: ctx.offense.scheme.playActionRate
+        val shot = rng.nextFloat() < (ctx.offPlan.deepShotRate ?: paRate * GamePlan.DEEP_SHOT_SHARE)
         val depth = if (shot) targetDepth + 10 else targetDepth
 
         val available = PassConcept.entries.filter { it.airYards <= s.yardsToGoal + 2 }
@@ -89,7 +94,7 @@ object PlayCaller {
         val concept = pool[rng.nextInt(pool.size)]
 
         val playAction = !concept.quick && s.down <= 2 &&
-            rng.nextFloat() < ctx.offense.scheme.playActionRate
+            rng.nextFloat() < paRate
 
         // Deep shots keep extra help in; quick game empties the pocket.
         val extraProtectors = when {
@@ -139,7 +144,7 @@ object PlayCaller {
             else -> DefensiveFront.FOUR_THREE_OVER
         }
 
-        val playMan = rng.nextFloat() < scheme.manZoneSplit
+        val playMan = rng.nextFloat() < (ctx.defPlan.manZoneSplit ?: scheme.manZoneSplit)
         val coverage = if (playMan) {
             listOf(Coverage.COVER_1, Coverage.COVER_1, Coverage.COVER_2_MAN, Coverage.COVER_0)
         } else {
@@ -147,7 +152,7 @@ object PlayCaller {
                    Coverage.COVER_4, Coverage.TAMPA_2, Coverage.COVER_6)
         }.let { it[rng.nextInt(it.size)] }
 
-        var blitzRate = scheme.blitzRate
+        var blitzRate = ctx.defPlan.blitzRate ?: scheme.blitzRate
         if (s.down == 3 && s.distance >= 6) blitzRate += 0.10f
         if (s.goalToGo) blitzRate += 0.06f
         val extraRushers = if (rng.nextFloat() < blitzRate) 1 + rng.nextInt(2) else 0
@@ -165,7 +170,7 @@ object PlayCaller {
             coverage = coverage,
             extraRushers = extraRushers,
             boxAdd = boxAdd,
-            doubledTarget = if (rng.nextFloat() < 0.12f) 0 else null,
+            doubledTarget = if (rng.nextFloat() < (ctx.defPlan.doubleTeamRate ?: GamePlan.DOUBLE_TEAM_RATE)) 0 else null,
         )
     }
 }

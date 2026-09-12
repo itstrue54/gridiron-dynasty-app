@@ -113,7 +113,7 @@ object DynastyEngine {
                 roster = league.roster(team.id),
                 offScheme = SchemeCatalog.tuned(team.offenseScheme, league.tuning),
                 defScheme = SchemeCatalog.tuned(team.defenseScheme, league.tuning),
-                aggression = 0.35f + (team.id.v % 7) * 0.06f,
+                aggression = com.nflsim.engine.model.GamePlan.defaultAggression(team.id.v),
             )
         }
 

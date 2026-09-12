@@ -36,6 +36,9 @@ data class PlayContext(
     val tuning: TuningTable = TuningTable.REALISTIC,
     /** 0..100, drives false starts and communication problems on the road. */
     val crowdNoise: Int = 0,
+    /** Each side's game plan: the tendencies its coordinator calls from. */
+    val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
 )
 
 // ---------------------------------------------------------------------------
