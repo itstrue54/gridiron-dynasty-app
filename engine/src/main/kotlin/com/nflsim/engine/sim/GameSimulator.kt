@@ -20,8 +20,8 @@ class GameTeam(
     /** Head coach fourth-down aggression, 0..1. */
     val aggression: Float = 0.5f,
 ) {
-    val offDepth: DepthChart = DepthChart.auto(roster, offScheme)
-    val defDepth: DepthChart = DepthChart.auto(roster, defScheme)
+    val offDepth: DepthChart = DepthChart.auto(roster, offScheme, team.depthPins)
+    val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
     val id: TeamId get() = team.id
 }
 
@@ -144,7 +144,7 @@ class GameSimulator(
                         val receivingTeam = teamFor(offense.other())
                         val punt = SpecialTeams.punt(
                             SpecialTeams.punterFor(punting.offDepth),
-                            SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme),
+                            SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
                             state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams)
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)

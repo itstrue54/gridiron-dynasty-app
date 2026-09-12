@@ -344,6 +344,7 @@ object OffseasonEngine {
         val teams: List<Team> = league.teams.map { t ->
             t.copy(
                 roster = (byTeam[t.id] ?: emptyList()).map { it.id },
+                depthPins = t.depthPins.keepOnly((byTeam[t.id] ?: emptyList()).map { it.id.v }.toSet()),
                 finances = t.finances.copy(
                     salaryCap = CapManagement.capFor(newYear),
                     // Dead money is carried forward: a cut you make this year
@@ -520,7 +521,10 @@ object OffseasonEngine {
             .filter { it.teamId != null }
             .groupBy { it.teamId!! to it.position }
             .flatMap { (key, group) ->
-                group.sortedByDescending { overall(it, ctx.scheme(key.first, key.second)) }
+                // The club's own pins count: a starter it chose gets starter's snaps.
+                com.nflsim.engine.model.DepthPins.ordered(
+                    group, ctx.league.team(key.first).depthPins.order[key.second].orEmpty(),
+                ) { overall(it, ctx.scheme(key.first, key.second)) }
                     .mapIndexed { rank, p -> p.id.v to rank }
             }
             .toMap()

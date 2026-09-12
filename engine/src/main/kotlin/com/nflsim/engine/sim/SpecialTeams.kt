@@ -151,8 +151,9 @@ object SpecialTeams {
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)
 
-    /** Fastest skill player available takes returns. */
-    fun returnerFor(depth: DepthChart, scheme: Scheme): Player? =
-        (depth.at(Position.WR) + depth.at(Position.RB) + depth.at(Position.CB))
-            .maxByOrNull { rate(it, RatingId.SPEED, scheme) }
+    /** The returner the club pinned, else the fastest skill player available. */
+    fun returnerFor(depth: DepthChart, scheme: Scheme, punt: Boolean = false): Player? =
+        (if (punt) depth.puntReturner else depth.kickReturner)
+            ?: (depth.at(Position.WR) + depth.at(Position.RB) + depth.at(Position.CB))
+                .maxByOrNull { rate(it, RatingId.SPEED, scheme) }
 }
