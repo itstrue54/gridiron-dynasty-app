@@ -41,6 +41,8 @@ enum class Tab(val label: String) {
     SCHEDULE("Schedule"),
     OFFSEASON("Front Office"),
     BOX("Box"),
+    /** SPEC 12: behind the Hub's Advanced button, not on the bar. */
+    TUNING("Tuning"),
 }
 
 /** Numbers line up or tables are unreadable. */
@@ -65,6 +67,7 @@ fun DynastyApp(store: DynastyStore) {
                     Tab.SCHEDULE -> ScheduleScreen(dynasty)
                     Tab.OFFSEASON -> OffseasonScreen(dynasty)
                     Tab.BOX -> BoxScoreScreen(dynasty)
+                    Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.HUB }
                 }
             }
 
@@ -89,7 +92,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Tab.entries.forEach { t ->
+            Tab.entries.filter { it != Tab.TUNING }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
                     Text(
                         t.label,

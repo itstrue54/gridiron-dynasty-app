@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class TuningTableTest {
 
@@ -50,6 +51,18 @@ class TuningTableTest {
         val (_, _, _, player) = result.picks.first()
         assertEquals(prospects.maxBy { com.nflsim.engine.ratings.overall(it) }.id.v, player,
             "with no need, fit or scouting error, the board is pure talent")
+    }
+
+    @Test
+    fun `every value can be listed, set and reset`() {
+        val fields = TuningFields.list(TuningTable.REALISTIC)
+        assertTrue(fields.size > 100, "only ${fields.size} values listed")
+        assertTrue(fields.any { it.group == "passing" && it.name == "baseCompletion" && !it.isInt })
+        assertTrue(fields.any { it.group == "ai" && it.name == "faMaxUpgrades" && it.isInt })
+        val changed = TuningFields.set(TuningTable.REALISTIC, "specialTeams", "kickoffTouchbackRate", 0.5)
+        assertEquals(0.5f, changed.specialTeams.kickoffTouchbackRate)
+        assertEquals(4, TuningFields.set(changed, "ai", "faMaxUpgrades", 3.6).ai.faMaxUpgrades)
+        assertEquals(TuningTable.REALISTIC, TuningFields.resetGroup(changed, "specialTeams"))
     }
 
     @Test

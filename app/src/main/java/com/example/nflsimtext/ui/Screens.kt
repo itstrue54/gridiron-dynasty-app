@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -128,6 +129,9 @@ fun HubScreen(
                             else -> "Advance week"
                         }
                     )
+                }
+                TextButton(onClick = { onNavigate(Tab.TUNING) }) {
+                    Text("Advanced: tuning", fontSize = 12.sp)
                 }
             }
         }

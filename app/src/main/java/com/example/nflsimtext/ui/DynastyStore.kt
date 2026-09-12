@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import com.nflsim.engine.tuning.TuningTable
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,14 @@ class DynastyStore(private val saveDir: File) {
         } finally {
             busy = false
         }
+    }
+
+    /** SPEC 12: the league's tuning table, changed on the tuning screen and saved with it. */
+    suspend fun setTuning(tuning: TuningTable) {
+        val current = dynasty ?: return
+        val next = current.copy(league = current.league.copy(tuning = tuning))
+        dynasty = next
+        persist(next)
     }
 
     fun dismissMessage() { message = null }
