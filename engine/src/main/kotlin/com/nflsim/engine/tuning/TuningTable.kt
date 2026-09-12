@@ -42,6 +42,37 @@ data class TuningTable(
         val interceptionCoverageScale: Float = 0.042f,
         val yacScale: Float = 0.43f,
         val throwawayRate: Float = 0.34f,
+        /** Pass rush: the better of power and finesse counts this much, the other the rest. */
+        val rushBlendStrong: Float = 0.65f,
+        val rushBlendWeak: Float = 0.35f,
+        /** Protection a play-action fake buys. */
+        val playActionProtection: Float = 4.5f,
+        /** A pressured quarterback is sacked in proportion to sackEscapeBase - escape / sackEscapeScale. */
+        val sackEscapeBase: Float = 1.35f,
+        val sackEscapeScale: Float = 145f,
+        /** Yards lost on a sack: a base plus an exponential tail. */
+        val sackLossBase: Float = 3f,
+        val sackLossMean: Float = 4.0f,
+        /** How often a quarterback who wants to run does, and what he gains. */
+        val scrambleRate: Float = 0.35f,
+        val scrambleMean: Float = 4.5f,
+        val scrambleSpread: Float = 4f,
+        val scrambleSpeed: Float = 0.09f,
+        /** Completion: what quarterback accuracy and receiver separation count for. */
+        val accuracyWeight: Float = 0.62f,
+        val separationWeight: Float = 0.55f,
+        /** Under pressure a completion keeps poiseBase + throw-under-pressure / poiseScale of itself. */
+        val poiseBase: Float = 0.85f,
+        val poiseScale: Float = 330f,
+        /** Interceptions per point of awareness below 70, and the multiplier under pressure. */
+        val interceptionAwareness: Float = 0.00042f,
+        val interceptionPressure: Float = 1.7f,
+        val airYardsSpread: Float = 2.2f,
+        /** Yards after catch: the exponential mean, per point over the tackler, and extras. */
+        val yacMean: Float = 2.6f,
+        val yacTackling: Float = 0.055f,
+        val screenYac: Float = 4.2f,
+        val zoneYac: Float = 0.8f,
     )
 
     @Serializable
@@ -61,6 +92,20 @@ data class TuningTable(
         val tackleForLossFloor: Float = -6f,
         /** Blocking advantage lost per yard inside the twenty. */
         val redZoneCompression: Float = 0.40f,
+        /** Yards per point of vision over 70, and per point of break-tackle over the tackler. */
+        val visionScale: Float = 0.020f,
+        val breakTackleScale: Float = 0.022f,
+        /** Breakaway chance per point of elusiveness over 70, and how speed stretches the run. */
+        val breakawayElusiveness: Float = 0.0011f,
+        val breakawaySpeedBase: Float = 0.75f,
+        val breakawaySpeedRange: Float = 0.5f,
+        /** Fumbles: ball security, and how hard the hit is. */
+        val fumbleSecurityBase: Float = 1.6f,
+        val fumbleHitBase: Float = 0.7f,
+        val fumbleHitScale: Float = 140f,
+        /** Backfield rotation, cumulative: the lead back's share of carries, then the top two's. */
+        val rbRotationLead: Float = 0.60f,
+        val rbRotationTopTwo: Float = 0.88f,
     )
 
     @Serializable
@@ -82,6 +127,12 @@ data class TuningTable(
         val crowdNoiseProtectionCost: Float = 7.0f,
         /** Run blocking advantage lost by a road offence at maximum noise. */
         val crowdNoiseRunCost: Float = 4.0f,
+        /** Run blocking help per tight end, and per point of a lead blocker over the baseline. */
+        val tightEndHelp: Float = 0.18f,
+        val leadBlockScale: Float = 0.12f,
+        /** The defensive front: block shedding counts this much, strength the rest. */
+        val shedWeight: Float = 0.62f,
+        val powerWeight: Float = 0.38f,
     )
 
     @Serializable
@@ -97,6 +148,11 @@ data class TuningTable(
          * the defence in the red zone, so coverage tightens the closer you get.
          */
         val redZoneCompression: Float = 1.45f,
+        /** Route win: what the receiver's release and the defender's coverage count for. */
+        val releaseWeight: Float = 0.22f,
+        val coverageWeight: Float = 1.10f,
+        /** Separation each deep defender beyond the first takes off a deep route. */
+        val deepHelp: Float = 3.2f,
     )
 
     @Serializable
@@ -104,6 +160,14 @@ data class TuningTable(
         val perPlayBase: Float = 0.135f,
         val disciplineScale: Float = 0.55f,
         val crowdNoiseScale: Float = 0.45f,
+        /** Each flag's share of the per-play base rate. */
+        val falseStartShare: Float = 0.30f,
+        val offsideShare: Float = 0.14f,
+        val offsideBlitz: Float = 1.4f,
+        val passHoldingShare: Float = 0.34f,
+        val passInterferenceShare: Float = 0.55f,
+        val passInterferenceSeparation: Float = 30f,
+        val runHoldingShare: Float = 0.22f,
     )
 
     @Serializable
