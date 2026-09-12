@@ -799,3 +799,34 @@ Decision: a club keeps pins, not a whole chart (a4826d1, screen fdd977d).
 - **The two-back sets (21, 22, goal line) take their backs from the RB
   and FB charts,** with no package spot of their own on the screen.
 - **The screen has only been compiled,** not run on a device.
+
+## ADR-0xx — The game plan overrides the levers the play caller already reads
+
+Context: SPEC 5.4 says you do not call plays; you set the tendencies
+your coordinators call from, on a game plan screen. The play caller read
+four tendencies off the scheme (pass rate, play action, blitz rate,
+man/zone) and fixed numbers for the rest, and fourth-down aggression was
+derived from each club's id.
+
+Decision: a club carries a GamePlan whose levers are only the ones the
+play caller already reads, so every slider does something at once
+(7e0266e, screen 16700c3). The levers are pass rate, play action, deep
+shots (split from play action, which they used to follow at 0.65), the
+lean to the pass when trailing, the two-minute boost, blitz rate,
+man/zone, how often to double the top receiver, and fourth-down
+aggression. Each is an override: unset, it is the scheme's value or the
+league's usual figure, so an untouched plan plays as a club with none.
+With no plan set, two seeded ten-year dynasties and the calibration
+report are unchanged apart from timings. AI clubs play their schemes as
+before.
+
+### Open, found while doing this
+- **SPEC 5.4's full Tendencies are not here.** Missing: pass rate by
+  down, distance and score as curves, red-zone and goal-line rates,
+  screens, run direction, box rates, a rating threshold for doubling,
+  and in-game adaptation. Several need new play-calling logic.
+- **Tempo does nothing.** Schemes carry a tempo value that nothing
+  reads; it would need clock and plays-per-game logic.
+- **AI coordinators have no tendencies of their own.** Every AI club
+  plays its scheme's values - the coach-tendencies piece.
+- **The screen has only been compiled,** not run on a device.
