@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import com.nflsim.engine.model.GamePlan
 import com.nflsim.engine.model.DepthPins
 import com.nflsim.engine.tuning.TuningTable
 import android.content.Context
@@ -86,6 +87,15 @@ class DynastyStore(private val saveDir: File) {
     suspend fun setDepthPins(pins: DepthPins) {
         val current = dynasty ?: return
         val teams = current.league.teams.map { if (it.id == current.userTeamId) it.copy(depthPins = pins) else it }
+        val next = current.copy(league = current.league.copy(teams = teams))
+        dynasty = next
+        persist(next)
+    }
+
+    /** SPEC 5.4: the user's game plan, saved with the league. */
+    suspend fun setGamePlan(plan: GamePlan) {
+        val current = dynasty ?: return
+        val teams = current.league.teams.map { if (it.id == current.userTeamId) it.copy(gamePlan = plan) else it }
         val next = current.copy(league = current.league.copy(teams = teams))
         dynasty = next
         persist(next)

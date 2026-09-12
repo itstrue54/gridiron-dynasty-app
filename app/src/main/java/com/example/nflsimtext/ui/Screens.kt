@@ -130,8 +130,13 @@ fun HubScreen(
                         }
                     )
                 }
-                TextButton(onClick = { onNavigate(Tab.TUNING) }) {
-                    Text("Advanced: tuning", fontSize = 12.sp)
+                Row {
+                    TextButton(onClick = { onNavigate(Tab.PLAN) }) {
+                        Text("Game plan", fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { onNavigate(Tab.TUNING) }) {
+                        Text("Advanced: tuning", fontSize = 12.sp)
+                    }
                 }
             }
         }

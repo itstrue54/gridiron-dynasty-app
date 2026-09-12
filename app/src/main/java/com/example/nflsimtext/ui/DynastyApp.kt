@@ -45,6 +45,8 @@ enum class Tab(val label: String) {
     TUNING("Tuning"),
     /** SPEC 5.5: from the Roster tab, not on the bar. */
     DEPTH("Depth chart"),
+    /** SPEC 5.4: behind the Hub's Game plan button, not on the bar. */
+    PLAN("Game plan"),
 }
 
 /** Numbers line up or tables are unreadable. */
@@ -71,6 +73,7 @@ fun DynastyApp(store: DynastyStore) {
                     Tab.BOX -> BoxScoreScreen(dynasty)
                     Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
+                    Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
                 }
             }
 
@@ -95,7 +98,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Tab.entries.filter { it != Tab.TUNING && it != Tab.DEPTH }.forEach { t ->
+            Tab.entries.filter { it != Tab.TUNING && it != Tab.DEPTH && it != Tab.PLAN }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
                     Text(
                         t.label,
