@@ -209,7 +209,7 @@ fun StandingsScreen(dynasty: Dynasty) {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun RosterScreen(dynasty: Dynasty) {
+fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
     val team = dynasty.team
     val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
     val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
@@ -230,6 +230,7 @@ fun RosterScreen(dynasty: Dynasty) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Defense: ${defense.name}", fontFamily = Mono, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onDepthChart) { Text("Depth chart", fontSize = 12.sp) }
             }
         }
         item {
