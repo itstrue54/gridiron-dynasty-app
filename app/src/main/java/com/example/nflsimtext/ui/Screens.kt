@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import com.nflsim.engine.ratings.SchemeFitGrade
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -231,9 +232,9 @@ fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
         item {
             Column(Modifier.padding(16.dp)) {
                 Text(team.name, fontFamily = Mono, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text("Offense: ${offense.name}", fontFamily = Mono, fontSize = 11.sp,
+                Text("Offense: ${offense.name}  ·  fit ${SchemeFitGrade.describe(roster, offense, true)}", fontFamily = Mono, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Defense: ${defense.name}", fontFamily = Mono, fontSize = 11.sp,
+                Text("Defense: ${defense.name}  ·  fit ${SchemeFitGrade.describe(roster, defense, false)}", fontFamily = Mono, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onDepthChart) { Text("Depth chart", fontSize = 12.sp) }
             }
@@ -244,7 +245,8 @@ fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
                 Cell("NAME", 24f, dim = true)
                 Cell("AGE", 5f, dim = true)
                 Cell("OVR", 5f, dim = true)
-                Cell("FIT", 5f, dim = true)
+                Cell("SCH", 5f, dim = true)
+                Cell("FIT", 4f, dim = true)
                 Cell("COACH", 6f, dim = true)
             }
         }
@@ -262,6 +264,7 @@ fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
                     bold = fit >= 0.95f,
                     dim = fit <= 0.55f,
                 )
+                Cell(SchemeFitGrade.letter(fit), 4f, bold = fit >= 0.9f, dim = fit < 0.6f)
                 // Coachability, as far as the staff has seen it (SPEC 4.6).
                 val seen = TraitScouting.confidence(p.clubYears, team.staff.scoutingDept)
                 Cell(TraitScouting.grade(p.traits.coachability, seen, p.id.v, "coachability"), 6f,

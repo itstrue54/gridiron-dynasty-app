@@ -1,5 +1,7 @@
 package com.example.nflsimtext.ui
 
+import com.nflsim.engine.ratings.schemeFit
+import com.nflsim.engine.ratings.SchemeFitGrade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -128,6 +130,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                     PlayerRow(
                         i, list[i], overall(list[i], schemeFor(position)), list[i].id.v in pinned,
                         canUp = i > 0, canDown = i < list.size - 1,
+                        fit = SchemeFitGrade.letter(schemeFit(list[i], schemeFor(position))),
                         onUp = { save(pins.copy(order = pins.order + (position to moved(list, i, i - 1)))) },
                         onDown = { save(pins.copy(order = pins.order + (position to moved(list, i, i + 1)))) },
                     )
@@ -163,6 +166,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                     PlayerRow(
                         i, shown[i], overall(shown[i], schemeFor(spot.position)), shown[i].id.v in pinned,
                         canUp = i > 0, canDown = i < shown.size - 1, inPackage = i < spot.count,
+                        fit = SchemeFitGrade.letter(schemeFit(shown[i], schemeFor(spot.position))),
                         onUp = { save(write(moved(list, i, i - 1))) },
                         onDown = { save(write(moved(list, i, i + 1))) },
                     )
@@ -231,6 +235,7 @@ private fun PlayerRow(
     canUp: Boolean,
     canDown: Boolean,
     inPackage: Boolean = true,
+    fit: String = "",
     onUp: () -> Unit,
     onDown: () -> Unit,
 ) {
@@ -238,7 +243,7 @@ private fun PlayerRow(
         Text("${index + 1}", fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.width(24.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
-            player.name + if (pinned) "  *" else "",
+            player.name + (if (fit.isNotEmpty()) "  $fit" else "") + if (pinned) "  *" else "",
             fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.weight(1f),
             fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
             color = if (inPackage) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
