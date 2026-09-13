@@ -34,6 +34,7 @@ class FatigueTest {
         }
         assertEquals(1.0, qb.average(), 0.001, "quarterbacks should play every snap")
         assertTrue(edge.average() in 0.55..0.85, "starting edge rushers played ${edge.average()} of snaps")
-        assertTrue(rb.average() in 0.5..0.8, "lead backs played ${rb.average()} of snaps")
+        // A lead back stays in unless his backup, fresh, is as good as he is tired.
+        assertTrue(rb.average() in 0.5..0.95, "lead backs played ${rb.average()} of snaps")
     }
 }

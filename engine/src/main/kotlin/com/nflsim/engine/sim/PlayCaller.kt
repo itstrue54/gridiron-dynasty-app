@@ -17,7 +17,7 @@ object PlayCaller {
     fun offense(ctx: PlayContext, rng: Rng): OffensivePlayCall {
         val s = ctx.state
         val plan = ctx.offPlan
-        var passRate = plan.passRate ?: ctx.offense.scheme.basePassRate
+        var passRate = (plan.passRate ?: ctx.offense.scheme.basePassRate) + ctx.tuning.gameFlow.passRateShift
 
         // Down and distance move a coordinator more than anything else.
         passRate += when (s.down) {

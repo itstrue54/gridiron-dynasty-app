@@ -82,6 +82,26 @@ class PlaySimulatorTest {
     }
 
     @Test
+    fun `a lead back past his carry cap hands off to the next back`() {
+        val ctx = context()
+        val lead = ctx.offense.backfield.first()
+        val capped = ctx.copy(carries = { id -> if (id == lead.id.v) 30 else 0 },
+            tuning = ctx.tuning.copy(rushing = ctx.tuning.rushing.copy(leadBackCarryCap = 25)))
+        fun leadShare(c: PlayContext): Double {
+            val rng = SplitMixRng(11L)
+            var byLead = 0; var runs = 0
+            repeat(2_000) {
+                val r = PlaySimulator.simPlay(c, OffensivePlayCall.Run(RunConcept.INSIDE_ZONE),
+                    DefensivePlayCall(DefensiveFront.FOUR_THREE_OVER, Coverage.COVER_3), rng)
+                if (r.outcome == PlayOutcome.RUN) { runs++; if (r.ballCarrier == lead.id) byLead++ }
+            }
+            return byLead.toDouble() / runs
+        }
+        assertTrue(leadShare(ctx) > 0.6, "a fresh lead back should take most handoffs")
+        assertEquals(0.0, leadShare(capped), "a lead back past his cap still carried")
+    }
+
+    @Test
     fun `passing produces plausible completion and sack rates`() {
         val ctx = context()
         val rng = SplitMixRng(9L)

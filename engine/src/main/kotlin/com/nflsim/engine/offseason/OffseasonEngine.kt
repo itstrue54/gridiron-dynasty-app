@@ -359,7 +359,9 @@ object OffseasonEngine {
         val compensation = Picks.compensatory(
             auction.signings, previousTeam, CapManagement.capFor(newYear), newYear + 1)
         val newLeague = league.copy(
-            year = newYear, teams = teams, players = survivors,
+            // A new season starts healthy: injuries heal and wear wears off.
+            year = newYear, teams = teams,
+            players = survivors.map { if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0) },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )
 

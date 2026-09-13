@@ -256,7 +256,7 @@ fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
             val fit = schemeFit(p, scheme)
             TableRow {
                 Cell(p.position.label, 6f, dim = true)
-                Cell(p.name, 24f)
+                Cell(p.name + if (p.injuryWeeks > 0) "  (out ${p.injuryWeeks})" else "", 24f)
                 Cell("${p.age(dynasty.year)}", 5f, dim = true)
                 Cell("${overall(p)}", 5f, bold = true)
                 Cell(

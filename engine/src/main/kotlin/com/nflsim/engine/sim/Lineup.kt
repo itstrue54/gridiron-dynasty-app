@@ -41,14 +41,17 @@ class DepthChart private constructor(
      * behind their teammates at the position, and everyone carries his
      * current fatigue into his effective ratings.
      */
-    fun rested(resting: Set<Int>, fatigue: Map<Int, Float>): DepthChart {
-        if (resting.isEmpty() && fatigue.isEmpty()) return this
+    fun rested(resting: Set<Int>, fatigue: Map<Int, Float>, out: Set<Int> = emptySet()): DepthChart {
+        if (resting.isEmpty() && fatigue.isEmpty() && out.isEmpty()) return this
         fun tired(p: Player) = p.copy(fatigue = (fatigue[p.id.v] ?: 0f).toInt().coerceIn(0, 100))
         val order = byPosition.mapValues { (_, list) ->
-            val (sitting, playing) = list.partition { it.id.v in resting }
+            // Players hurt this game are gone - unless nobody is left at the
+            // position, when the last of them plays through it.
+            val healthy = list.filter { it.id.v !in out }.ifEmpty { list }
+            val (sitting, playing) = healthy.partition { it.id.v in resting }
             (playing + sitting).map(::tired)
         }
-        return DepthChart(order, pins, roster.mapValues { (_, p) -> tired(p) })
+        return DepthChart(order, pins, roster.filterKeys { it !in out }.mapValues { (_, p) -> tired(p) })
     }
 
     fun starter(position: Position): Player? = at(position).firstOrNull()

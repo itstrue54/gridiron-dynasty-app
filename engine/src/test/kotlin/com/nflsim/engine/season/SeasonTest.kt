@@ -175,7 +175,8 @@ class SeasonTest {
         assertTrue(passing.isNotEmpty() && rushing.isNotEmpty())
         assertTrue(passing.first().value in 3200..5800,
             "passing leader threw for ${passing.first().value}")
-        assertTrue(rushing.first().value in 900..2300,
+        // Bellcow backs: the top two clear 1,700 most seasons, so the leader can pass 2,300.
+        assertTrue(rushing.first().value in 900..2600,
             "rushing leader ran for ${rushing.first().value}")
     }
 

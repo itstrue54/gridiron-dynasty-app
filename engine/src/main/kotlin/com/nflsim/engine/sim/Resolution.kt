@@ -39,6 +39,8 @@ data class PlayContext(
     /** Each side's game plan: the tendencies its coordinator calls from. */
     val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    /** A player's carries so far this game, for the lead back's workload. */
+    val carries: (Int) -> Int = { 0 },
 )
 
 // ---------------------------------------------------------------------------
@@ -101,7 +103,7 @@ internal object RunResolution {
         val carrier = when {
             call.concept == RunConcept.QB_SNEAK || call.concept == RunConcept.QB_KEEP ->
                 ctx.offense.quarterback
-            else -> pickCarrier(ctx.offense.backfield.ifEmpty { ctx.offense.backs }, rng, t.rushing)
+            else -> pickCarrier(ctx.offense.backfield.ifEmpty { ctx.offense.backs }, rng, t.rushing, ctx.carries)
         }
 
         val vision = rate(carrier, RatingId.VISION, offScheme)
@@ -191,15 +193,22 @@ internal object RunResolution {
     private fun List<Player>.randomBy(rng: Rng): Player? =
         if (isEmpty()) null else this[rng.nextInt(size)]
 
-    /** Roughly a 60/28/12 split, the shape of a real committee. */
-    private fun pickCarrier(backs: List<Player>, rng: Rng, rushing: TuningTable.Rushing): Player {
+    /**
+     * Roughly 83/12/5 down the rested chart, where a resting back drops to
+     * the end: a bellcow's share. A committee comes from rotation instead -
+     * a tired lead back sits when his backup, fresh, is as good as he is tired.
+     */
+    private fun pickCarrier(backs: List<Player>, rng: Rng, rushing: TuningTable.Rushing, carries: (Int) -> Int): Player {
         if (backs.size <= 1) return backs.first()
         val roll = rng.nextFloat()
-        return when {
+        val pick = when {
             roll < rushing.rbRotationLead -> backs[0]
             roll < rushing.rbRotationTopTwo -> backs.getOrElse(1) { backs[0] }
             else -> backs.getOrElse(2) { backs[0] }
         }
+        // A coach keeps his lead back's workload in reason: past the cap
+        // in a game, the next back takes the handoff.
+        return if (pick === backs[0] && carries(pick.id.v) >= rushing.leadBackCarryCap) backs[1] else pick
     }
 
     private const val ADVANTAGE_DIVISOR = 26f
