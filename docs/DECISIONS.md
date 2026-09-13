@@ -874,3 +874,67 @@ against 0.42, 1.37, 10.4% and 7.8 before.
   adjustments rating.
 - **Tendencies do not follow ratings.** A strong game planner is no more
   likely to go for it on fourth down than a weak one.
+
+## ADR-0xx — Fatigue builds snap by snap, the tired rotate out, and the game is recalibrated for it
+
+Context: SPEC 5.5's third bullet - fatigue per snap by position and
+stamina, recovery between drives and at halftime, and backups getting
+snaps by it. Players carried a fatigue rating nothing set, and only
+running backs' carries rotated, on a fixed split.
+
+Decision (21f4960): fatigue lives within a game. A scrimmage snap costs
+each player on the field his position group's figure (line 3, front 15,
+backs 13.5, receivers 6, linebackers 5, secondary 4.5, quarterback 1.5)
+times 1.5 - stamina / 100; a snap on the sideline gives back 5, the
+break between drives 10, halftime 40. At rotating positions - backs,
+receivers, tight ends, the front seven and the secondary - a player
+comes out at 40 and returns at 15. Quarterbacks and linemen never
+rotate. Fatigue reaches effective ratings through the ratings group's
+existing penalty (up to 15% at full fatigue). A club's package pins
+still come first. Snap shares over 64 games: lead back 0.66 (second
+0.29), starting edge 0.69 and tackle 0.73, WR1 and TE1 0.93, LB1 about
+0.97, corners and safeties 0.98-0.99; quarterbacks and linemen 1.00.
+
+Calibration. The penalty barely mattered - at 0.15, 0.08, 0.04 and 0
+the game moved the same - rotation did: backups on the defensive front
+added 0.15 yards a carry and took 0.008 off the sack rate. The
+calibration had been set with starters on every snap, so rushing base
+yards went 3.60 -> 3.45 and a pressure's sack chance 0.18 -> 0.21.
+Passing had already run hot - across six leagues the baseline averaged
+7.54 yards an attempt against a 7.50 ceiling - and quarterbacks who
+never rotate facing defenses that do ran hotter still. Yards after the
+catch went 0.43 -> 0.37, which alone moved it little, and base
+completion 0.80 -> 0.79; 0.785 took points just under their floor.
+Six leagues at 4,000 games: bands per league [18, 18, 17, 17, 17, 17] against [17, 17, 17, 18, 16, 17]; yards an
+attempt 7.448 (7.537), completion 0.647 (0.647), yards a carry
+4.207 (4.190), sack rate 0.073 (0.072), yards a game 350.833
+(351.667), points 21.050 (21.100), home wins 0.567 (0.570). Five
+seeds, ten-year runs: development 0.41, ages 21-24 1.37, cap space 10.8%, champions 8.0.
+
+The calibration test moved from 260 games to 1,000. At 260 the
+home-win rate on its league swung 0.48 to 0.58 on the draw alone -
+about 0.39 of the band, past the test's 0.30 tolerance - while 2,000
+games read 0.56 with or without fatigue. Same league, bands and
+tolerance; at 1,000 games both the baseline and fatigue pass all 18.
+
+### Open, found while doing this
+- **The season's top passer has a long tail.** Over twelve seasons the
+  leader averaged about 5,550 yards (about 5,470 before fatigue) and a
+  season or two in twelve went just past 5,800; trimming league passing
+  lowered the average but not the tail, and cost bands.
+- **Depth players are much worse than starters** in generated rosters,
+  which is why rotation cost the defense so much. Real clubs' rotation
+  players are closer to their starters.
+- **Rushing leaders fell** from about 1,900 yards to about 1,400, as the
+  lead back now shares the ball.
+- **Red-zone touchdown rate dipped** from 0.578 to 0.558, still inside
+  its band.
+- **Snaps are counted but not shown.** The box score has no snap counts.
+- **Fatigue does not cause injuries.** SPEC ties durability under load
+  to snap count; injuries ignore fatigue.
+- **Tempo still does nothing.**
+- **A tired player pinned to a package stays in.** Package pins outrank
+  rotation.
+- **The Arcade and Grinder presets set these values absolutely**
+  (rushing base yards 3.8 and 3.0, completion 0.71 and 0.62, YAC 1.35
+  and 0.82), so they now sit a little further from Realistic.
