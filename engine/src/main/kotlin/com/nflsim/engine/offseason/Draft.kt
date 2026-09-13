@@ -340,7 +340,14 @@ object TeamNeeds {
             // so flagging those left every club shopping for a second one.
             val carriesBackups = (ROSTER_TEMPLATE[position] ?: required) > required
             val byDepth = if (carriesBackups && group.size <= required) 0.25 else 0.0
-            ((byQuality * 0.7 + byAge * 0.2 + byDepth) * 1.15).coerceIn(0.0, 1.0).toFloat()
+            // Where clubs rotate, the first player in behind the starters
+            // plays a real share of snaps (SPEC 5.5), so one well behind them
+            // is a need too.
+            val rotation = group.getOrNull(required)?.let { overall(it, scheme(position)).toDouble() }
+            val byRotation = if (position in ROTATES && rotation != null)
+                ((quality - rotation - ROTATION_SLACK) / 20.0).coerceIn(0.0, 0.5) else 0.0
+            ((byQuality * 0.7 + byAge * 0.2 + byDepth + byRotation * ROTATION_WEIGHT) * 1.15)
+                .coerceIn(0.0, 1.0).toFloat()
         }
 
     /** The old single bar, for a position no club fields enough players at. */
@@ -348,6 +355,12 @@ object TeamNeeds {
 
     /** Points under the league's typical starting unit before a position reads as a need. */
     private const val NEED_SLACK = 2f
+
+    /** Positions that rotate, and how far a rotation player may trail the starters before it is a need. */
+    private val ROTATES = setOf(Position.RB, Position.WR, Position.TE, Position.EDGE, Position.DT,
+        Position.LB, Position.CB, Position.S)
+    private const val ROTATION_SLACK = 6.0
+    private const val ROTATION_WEIGHT = 0.5
 
     fun requiredStarters(position: Position): Int = STARTERS[position] ?: 1
 
