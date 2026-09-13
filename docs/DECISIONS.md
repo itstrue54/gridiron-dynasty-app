@@ -938,3 +938,73 @@ tolerance; at 1,000 games both the baseline and fatigue pass all 18.
 - **The Arcade and Grinder presets set these values absolutely**
   (rushing base yards 3.8 and 3.0, completion 0.71 and 0.62, YAC 1.35
   and 0.82), so they now sit a little further from Realistic.
+
+## ADR-0xx — Fatigue and wear cause injuries at NFL rates, rotation asks whether the backup is as good, and the leaders are recalibrated
+
+Context: fatigue did not cause injuries (open from the last ADR), depth
+players were far below starters so rotation mostly hurt, the season's
+top passer averaged about 5,500 yards with seasons past 6,000, and the
+top two rushers never reached 1,700 (asked for every season).
+
+Decision (d629fb5, eca4218):
+- **Injuries.** Each scrimmage snap risks an injury at the position's
+  rate (the injuries group, scale 1.08), times 1 + 1.5 x fatigue, times
+  1 + 0.6 x season wear, times the game's load, proneness and low injury
+  resistance. Severity: 40% one game, 24% two, 12% three or four, 13%
+  five to eight, the rest the season. The injured miss games; wear
+  builds with snaps (more at low durability under load) and keeps 75%
+  week to week; if a whole position is hurt the least hurt plays.
+- **Rotation.** A tired player comes out only for a teammate who,
+  fresh, is at least as good as he is tired, by scheme-adjusted
+  overall. Generated depth at rotating positions sits a few points under
+  the starters, and the draft counts a rotation player more than six
+  points behind as a need.
+- **Leaders.** A league-wide pass-rate lean of -0.04 (new gameFlow
+  field), a lead back's carry share of 0.83 (0.95 for the top two), a
+  25-carry cap per game for the lead back (new rushing field), back
+  fatigue 13.5 -> 9, rushing base yards 3.45 -> 3.72, vision and
+  break-tackle slopes 0.020/0.022 -> 0.025, completion weights
+  0.62/0.55 -> 0.35/0.45 with base completion 0.81 and YAC 0.35, and
+  red-zone compression 0.40 -> 0.32 (runs) and 1.45 -> 1.35 (coverage).
+  Grinder's injury scale went 1.25 -> 1.35 to stay proportionally
+  above Realistic.
+- **Test bounds, with the user's approval:** rushing leader 900-2,600
+  (was 2,300) and lead-back snap share 0.5-0.95 (was 0.8).
+
+Measured. Twelve seasons: passing leader 4,918 on 657 attempts, range
+4,671-5,178 (was 5,494, range 5,126-6,010); rushing leader 2,055 on 363
+carries, range 1,757-2,496; second 1,888 on 349, lowest 1,740; both
+over 1,700 in 12 of 12 (was 0). Injuries per club-season 24.1 (NFL
+about 28), games missed 65.4 (adjusted games lost usually 70-90), 64%
+costing two games or fewer (NFL 64%), 38% in the fourth quarter (about
+41%). Per player-game, % (NFL): RB 4.8 (5.2), TE 4.6 (4.9), S 5.3
+(4.7), CB 4.0 (4.4), LB 4.7 (4.3), DT 4.5 (4.3), DE 4.5 (3.9), OL 3.2
+(3.4), QB 2.7 (2.5), WR 3.7 (4.0). Snap shares: lead back 0.85, second
+0.16, edge 0.72, tackle 0.77, WR1 0.95, TE1 0.92, LB1 0.97, CB1 0.99.
+Six leagues at 4,000 games (seeds 201-206): bands per league [17, 17,
+16, 18, 17, 18] against [17, 17, 15, 18, 17, 17], all 18 in on
+average; yards an attempt 7.270 (7.452), completion 0.637 (0.647),
+yards a carry 4.502 (4.220), points 21.183 (21.283), yards a game
+347.3 (353.8), red-zone TD rate 0.590 (0.565).
+
+Sources: ProFootballLogic, NFL injury rate analysis
+(profootballlogic.com/articles/nfl-injury-rate-analysis); NFL injury
+data, 2023 season key takeaways (nfl.com/playerhealthandsafety);
+CBS News, NFL injuries up in 2010; adjusted games lost
+(ultimatenyg.wordpress.com, 2023; ftnfantasy.com, 2025); PMC9851848.
+
+### Open, found while doing this
+- **Fewer injuries in total than the NFL** (24 against 28) while the
+  per-position rates match: special teams are not simulated, and the
+  NFL's count includes them.
+- **SPEC 5.9 is not complete:** no play-type risk (runs and sacks), no
+  medical staff, no recurrence.
+- **Points sit near their floor** (21.18 against 21.0); running more
+  scores less.
+- **Yards a carry 4.50** is above the NFL's recent 4.3-4.4, the price
+  of 1,700-yard seconds.
+- **The rushing leader's tail** reaches about 2,500, past the NFL
+  record of 2,105; it follows from asking two backs for 1,700 a year.
+- **Depth still thins over a dynasty:** ten years in, rotation players
+  sit 10-12 points under starters however strongly the draft weighs
+  them; talent supply, not need, sets that.
