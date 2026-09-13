@@ -24,6 +24,7 @@ data class TuningTable(
     val specialTeams: SpecialTeams = SpecialTeams(),
     val progression: Progression = Progression(),
     val ai: Ai = Ai(),
+    val fatigue: Fatigue = Fatigue(),
     val ratings: Ratings = Ratings(),
 ) {
     @Serializable
@@ -31,11 +32,11 @@ data class TuningTable(
         /** Bigger = protection differences matter less. */
         val pressureScale: Float = 30f,
         /** Share of pressures that become sacks before the QB's escape rating. */
-        val sackGivenPressure: Float = 0.18f,
+        val sackGivenPressure: Float = 0.21f,
         /** Bigger = accuracy and coverage differences matter less. */
         val completionScale: Float = 88f,
         /** Completion probability at a dead-even matchup, before depth. */
-        val baseCompletion: Float = 0.80f,
+        val baseCompletion: Float = 0.79f,
         /** Completion penalty per yard of intended air distance. */
         val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
@@ -43,7 +44,7 @@ data class TuningTable(
         val interceptionBase: Float = 0.025f,
         /** How much a badly-lost route matchup raises interception odds. */
         val interceptionCoverageScale: Float = 0.042f,
-        val yacScale: Float = 0.43f,
+        val yacScale: Float = 0.37f,
         val throwawayRate: Float = 0.34f,
         /** Pass rush: the better of power and finesse counts this much, the other the rest. */
         val rushBlendStrong: Float = 0.65f,
@@ -81,7 +82,7 @@ data class TuningTable(
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.60f,
+        val baseYards: Float = 3.45f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
@@ -344,6 +345,53 @@ data class TuningTable(
         val moraleFloor: Float = 0.98f,
         val moraleRange: Float = 0.04f,
     )
+
+    /**
+     * SPEC 5.5: fatigue and rotation within a game. A snap on the field costs
+     * its position group's figure, scaled by 1.5 - stamina / 100; a snap on
+     * the sideline gives some back, and so do the break between drives and
+     * halftime. At a rotating position a player comes out at subOutAt and
+     * goes back in once rested to backInAt. Fatigue lowers effective ratings
+     * through the ratings group's fatigue penalty.
+     */
+    @Serializable
+    data class Fatigue(
+        // Tuned to NFL snap shares over 64 games: lead back 0.66, starting
+        // edge 0.69 and tackle 0.73, WR1 and TE1 0.93, corners and safeties
+        // 0.98-0.99; linebackers set a little lighter so LB1 stays near 0.97.
+        val perSnapLine: Float = 3.0f,
+        val perSnapFront: Float = 15.0f,
+        val perSnapBack: Float = 13.5f,
+        val perSnapReceiver: Float = 6.0f,
+        val perSnapLinebacker: Float = 5.0f,
+        val perSnapSecondary: Float = 4.5f,
+        val perSnapQuarterback: Float = 1.5f,
+        val sidelineRecovery: Float = 5f,
+        val driveRecovery: Float = 10f,
+        val halftimeRecovery: Float = 40f,
+        val subOutAt: Float = 40f,
+        val backInAt: Float = 15f,
+    ) {
+        fun perSnap(position: com.nflsim.engine.model.Position): Float = when (position) {
+            com.nflsim.engine.model.Position.LT, com.nflsim.engine.model.Position.LG,
+            com.nflsim.engine.model.Position.C, com.nflsim.engine.model.Position.RG,
+            com.nflsim.engine.model.Position.RT -> perSnapLine
+            com.nflsim.engine.model.Position.EDGE, com.nflsim.engine.model.Position.DT -> perSnapFront
+            com.nflsim.engine.model.Position.RB, com.nflsim.engine.model.Position.FB -> perSnapBack
+            com.nflsim.engine.model.Position.WR, com.nflsim.engine.model.Position.TE -> perSnapReceiver
+            com.nflsim.engine.model.Position.LB -> perSnapLinebacker
+            com.nflsim.engine.model.Position.CB, com.nflsim.engine.model.Position.S -> perSnapSecondary
+            com.nflsim.engine.model.Position.QB -> perSnapQuarterback
+            else -> 0f
+        }
+
+        /** Every per-snap cost multiplied by [k]. */
+        fun scaled(k: Float) = copy(
+            perSnapLine = perSnapLine * k, perSnapFront = perSnapFront * k, perSnapBack = perSnapBack * k,
+            perSnapReceiver = perSnapReceiver * k, perSnapLinebacker = perSnapLinebacker * k,
+            perSnapSecondary = perSnapSecondary * k, perSnapQuarterback = perSnapQuarterback * k,
+        )
+    }
 
     companion object {
         val REALISTIC = TuningTable()

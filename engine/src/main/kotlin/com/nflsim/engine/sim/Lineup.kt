@@ -36,6 +36,21 @@ class DepthChart private constructor(
     val kickReturner: Player? get() = pins.kickReturner?.let { roster[it] }
     val puntReturner: Player? get() = pins.puntReturner?.let { roster[it] }
 
+    /**
+     * This chart for the next snap (SPEC 5.5): players being rested drop
+     * behind their teammates at the position, and everyone carries his
+     * current fatigue into his effective ratings.
+     */
+    fun rested(resting: Set<Int>, fatigue: Map<Int, Float>): DepthChart {
+        if (resting.isEmpty() && fatigue.isEmpty()) return this
+        fun tired(p: Player) = p.copy(fatigue = (fatigue[p.id.v] ?: 0f).toInt().coerceIn(0, 100))
+        val order = byPosition.mapValues { (_, list) ->
+            val (sitting, playing) = list.partition { it.id.v in resting }
+            (playing + sitting).map(::tired)
+        }
+        return DepthChart(order, pins, roster.mapValues { (_, p) -> tired(p) })
+    }
+
     fun starter(position: Position): Player? = at(position).firstOrNull()
 
     fun group(group: PositionGroup): List<Player> =

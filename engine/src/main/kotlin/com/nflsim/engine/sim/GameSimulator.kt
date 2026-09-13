@@ -1,5 +1,7 @@
 package com.nflsim.engine.sim
 
+import com.nflsim.engine.model.RatingId
+import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.Team
 import com.nflsim.engine.model.TeamId
@@ -71,6 +73,19 @@ class GameSimulator(
     private var homeStats = TeamStats()
     private var awayStats = TeamStats()
 
+    // ---- fatigue and rotation (SPEC 5.5), this game only ----
+    private val fatigue = mutableMapOf<Int, Float>()
+    private val resting = mutableSetOf<Int>()
+    /** Quarterbacks and linemen play every snap, as they do in the NFL. */
+    private val rotates = setOf(
+        Position.RB, Position.FB, Position.WR, Position.TE,
+        Position.EDGE, Position.DT, Position.LB, Position.CB, Position.S,
+    )
+    /** Scrimmage snaps each player was on the field for, and each club's snaps on each side. */
+    val snaps = mutableMapOf<Int, Int>()
+    val offenseSnaps = mutableMapOf<TeamId, Int>()
+    val defenseSnaps = mutableMapOf<TeamId, Int>()
+
     fun simulate(rng: Rng): GameResult {
         // Coin toss. The team that defers gets the ball out of the half.
         val awayReceivesFirst = rng.nextBoolean()
@@ -84,10 +99,12 @@ class GameSimulator(
         while (!state.isOver) {
             val before = state
             state = simulateDrive(state, rng)
+            recover(tuning.fatigue.driveRecovery)
 
             // Halftime: the other team gets the ball.
             if (state.quarter == 3 && !secondHalfStarted) {
                 secondHalfStarted = true
+                recover(tuning.fatigue.halftimeRecovery)
                 val receiver = firstReceiver.other()
                 state = openWithKickoff(
                     state.copy(possession = receiver, down = 1, distance = 10), receiver, rng)
@@ -261,12 +278,14 @@ class GameSimulator(
         val offTeam = teamFor(offense)
         val defTeam = teamFor(offense.other())
         val playState = state.toPlayState()
+        val offDepth = offTeam.offDepth.rested(resting, fatigue)
+        val defDepth = defTeam.defDepth.rested(resting, fatigue)
 
         // Build a neutral context to get the calls, then rebuild with the
         // personnel and front those calls actually asked for.
         val probe = PlayContext(
-            offense = OffenseUnit.from(offTeam.offDepth, Personnel.P_11, offTeam.offScheme),
-            defense = DefenseUnit.from(defTeam.defDepth, DefensiveFront.FOUR_THREE_OVER, defTeam.defScheme),
+            offense = OffenseUnit.from(offDepth, Personnel.P_11, offTeam.offScheme),
+            defense = DefenseUnit.from(defDepth, DefensiveFront.FOUR_THREE_OVER, defTeam.defScheme),
             state = playState,
             tuning = tuning,
             crowdNoise = if (offense == Side.AWAY) home.team.stadium.crowdNoise else 0,
@@ -277,12 +296,44 @@ class GameSimulator(
         val defCall = PlayCaller.defense(probe, rng)
 
         val ctx = probe.copy(
-            offense = OffenseUnit.from(offTeam.offDepth, offCall.personnel, offTeam.offScheme),
-            defense = DefenseUnit.from(defTeam.defDepth, defCall.front, defTeam.defScheme),
+            offense = OffenseUnit.from(offDepth, offCall.personnel, offTeam.offScheme),
+            defense = DefenseUnit.from(defDepth, defCall.front, defTeam.defScheme),
         )
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
+        snap(ctx, offTeam, defTeam)
         log(state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""))
         return PlayOutcomeBundle(result, offCall is OffensivePlayCall.Pass)
+    }
+
+    /** Everyone on the field tires, everyone else rests, and the tired come out (SPEC 5.5). */
+    private fun snap(ctx: PlayContext, offTeam: GameTeam, defTeam: GameTeam) {
+        val f = tuning.fatigue
+        val onField = (ctx.offense.onField + ctx.defense.frontSeven + ctx.defense.secondary).map { it.id.v }.toSet()
+        offenseSnaps[offTeam.id] = (offenseSnaps[offTeam.id] ?: 0) + 1
+        defenseSnaps[defTeam.id] = (defenseSnaps[defTeam.id] ?: 0) + 1
+        for (p in offTeam.roster + defTeam.roster) {
+            val id = p.id.v
+            val now = fatigue[id] ?: 0f
+            val next = if (id in onField) {
+                snaps[id] = (snaps[id] ?: 0) + 1
+                (now + f.perSnap(p.position) * (1.5f - p.ratings[RatingId.STAMINA] / 100f)).coerceIn(0f, 100f)
+            } else {
+                (now - f.sidelineRecovery).coerceAtLeast(0f)
+            }
+            fatigue[id] = next
+            if (p.position in rotates) {
+                if (next >= f.subOutAt) resting += id else if (next <= f.backInAt) resting -= id
+            }
+        }
+    }
+
+    /** The break between drives, or halftime. */
+    private fun recover(amount: Float) {
+        for (id in fatigue.keys.toList()) {
+            val next = (fatigue.getValue(id) - amount).coerceAtLeast(0f)
+            fatigue[id] = next
+            if (next <= tuning.fatigue.backInAt) resting -= id
+        }
     }
 
     private data class Applied(
