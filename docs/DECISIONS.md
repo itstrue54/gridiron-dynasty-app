@@ -830,3 +830,47 @@ before.
 - **AI coordinators have no tendencies of their own.** Every AI club
   plays its scheme's values - the coach-tendencies piece.
 - **The screen has only been compiled,** not run on a device.
+
+## ADR-0xx — Coaches carry their own tendencies, drawn near their scheme
+
+Context: every AI club called games straight off its scheme, so two clubs
+running one scheme were indistinguishable, and fourth-down aggression was
+derived from each club's id. SPEC 5.4 makes coordinators the game's
+personality.
+
+Decision (e10825d): a coach's tendencies are the game plan's levers for
+his role, drawn near his scheme's values. Offensive coordinators get
+pass rate and play action (sd 0.02 each), trailing lean (0.10) and the
+two-minute boost (0.025). Defensive coordinators get blitz rate (0.025),
+man/zone (0.04) and double teams (0.02). Head coaches get fourth-down
+aggression around 0.53 (sd 0.06), the old id formula's average. Draws
+use a stream split per coach, so nothing else in league generation
+moves. A club plays from its own game plan, then its staff's
+tendencies, then its schemes. The carousel's hires bring theirs. Saves
+went to version 4: an older one gives each coach his from his own id.
+
+How it was judged. calibrate used to play one league on one seed, and
+single 4,000-game runs put one band or another just over its edge -
+close games at twice these spreads, yards an attempt at these. With
+calibrate taking --seed (273aef0), six leagues at 4,000 games each show
+no band moving against the baseline: yards an attempt 7.537 against
+7.532, close games 0.192 against 0.192, bands passing per league
+17,17,17,18,16,17 against 17 in every one. Five seeds, ten-year runs:
+development 0.42, ages 21-24 1.38, cap space 10.5%, champions 6.8,
+against 0.42, 1.37, 10.4% and 7.8 before.
+
+### Open, found while doing this
+- **The engine averages 17 of 18 bands, not 18.** Across six leagues
+  yards an attempt sits over its 7.50 ceiling (7.53) in the baseline in
+  every one. The default league happens to sit just under, so every
+  single-league "18 of 18" so far was that league's luck - including
+  the band counts behind shelving scheme-built rosters, which deserve a
+  second look with --seed. M11 starts from here.
+- **Head coaches vary less on fourth down than before.** Their
+  aggression spreads at sd 0.06, where the old id-based figure spread
+  about 0.12.
+- **No in-game adaptation.** SPEC 5.4 has coordinators shift within
+  plus or minus 0.12 toward what the opponent does, by the head coach's
+  adjustments rating.
+- **Tendencies do not follow ratings.** A strong game planner is no more
+  likely to go for it on fourth down than a weak one.
