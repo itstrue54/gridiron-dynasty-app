@@ -28,8 +28,10 @@ data class CoachRatings(
  * [scheme] is a String key into `schemes.json`, not a `SchemeId` type - the
  * spec's `SchemeId` is stale, Team already keys schemes by String.
  *
- * [tendencies] (the ~20-field play-calling system, SPEC 5.4) is deliberately
- * omitted for now; it belongs with the coaching carousel in M8.
+ * [tendencies] are the game plan's levers for his role (SPEC 5.4): an
+ * offensive coordinator's pass game, a defensive coordinator's pressure and
+ * coverage, a head coach's fourth down - drawn near his scheme's values
+ * (gen.Tendencies), so two coaches running one scheme still differ.
  */
 @Serializable
 data class Coach(
@@ -43,6 +45,7 @@ data class Coach(
     val tree: CoachId? = null,
     val hotSeat: Int = 0,
     val contractYearsLeft: Int = 1,
+    val tendencies: GamePlan = GamePlan(),
 )
 
 /** docs/SPEC.md section 4.7. */

@@ -19,10 +19,15 @@ class GameTeam(
     val defScheme: Scheme,
     /** Head coach fourth-down aggression, 0..1. */
     val aggression: Float = 0.5f,
+    /** The staff's tendencies (gen.Tendencies.of). The club's own game plan goes over them. */
+    val staffPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
 ) {
     val offDepth: DepthChart = DepthChart.auto(roster, offScheme, team.depthPins)
     val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
     val id: TeamId get() = team.id
+
+    /** What this club calls from: its game plan, then its staff's tendencies, then its schemes. */
+    val plan: com.nflsim.engine.model.GamePlan = team.gamePlan.over(staffPlan)
 }
 
 @kotlinx.serialization.Serializable
@@ -265,8 +270,8 @@ class GameSimulator(
             state = playState,
             tuning = tuning,
             crowdNoise = if (offense == Side.AWAY) home.team.stadium.crowdNoise else 0,
-            offPlan = offTeam.team.gamePlan,
-            defPlan = defTeam.team.gamePlan,
+            offPlan = offTeam.plan,
+            defPlan = defTeam.plan,
         )
         val offCall = PlayCaller.offense(probe, rng)
         val defCall = PlayCaller.defense(probe, rng)
@@ -473,7 +478,7 @@ class GameSimulator(
         val t = teamFor(offense)
         return FourthDown.decide(
             state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, t.team.gamePlan.fourthDownAggression ?: t.aggression, rng)
+            home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng)
     }
 
     private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) home else away

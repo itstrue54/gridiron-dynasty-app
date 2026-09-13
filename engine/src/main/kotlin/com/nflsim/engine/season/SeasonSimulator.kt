@@ -77,6 +77,7 @@ class SeasonSimulator(
             offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
             defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
             aggression = com.nflsim.engine.model.GamePlan.defaultAggression(team.id.v),
+            staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
         )
     }
 

@@ -104,6 +104,7 @@ object CoachingCarousel {
                     id = CoachId(nextId++), name = "$first $last", age = 38 + hireRng.nextInt(20),
                     role = role, scheme = scheme,
                     ratings = CoachRatings(stat(), stat(), stat(), stat(), stat(), stat()),
+                    tendencies = com.nflsim.engine.gen.Tendencies.draw(role, scheme, hireRng.split("tendencies|$nextId")),
                 )
             }
             fun quality(c: Coach) = with(c.ratings) {

@@ -1,5 +1,6 @@
 package com.nflsim.data
 
+import com.nflsim.engine.gen.Tendencies
 import com.nflsim.engine.gen.StaffGenerator
 import com.nflsim.engine.model.CoachId
 import com.nflsim.engine.model.Staff
@@ -48,10 +49,23 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        2 -> handOutPicks(envelope.dynasty)
-        1 -> handOutPicks(hireStaffs(envelope.dynasty))
+        3 -> giveTendencies(envelope.dynasty)
+        2 -> giveTendencies(handOutPicks(envelope.dynasty))
+        1 -> giveTendencies(handOutPicks(hireStaffs(envelope.dynasty)))
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
+    }
+
+    /**
+     * 3 -> 4: coaches gained tendencies (SPEC 5.4). A save written before them
+     * has coaches with none, who would all call games straight off their
+     * schemes. Each draws his from his own id off the dynasty's seed, so the
+     * same save always migrates to the same staffs.
+     */
+    private fun giveTendencies(dynasty: Dynasty): Dynasty {
+        val league = dynasty.league
+        val coaches = league.coaches.mapValues { (_, c) -> Tendencies.forExisting(c, dynasty.seed) }
+        return dynasty.copy(league = league.copy(coaches = coaches))
     }
 
     /**

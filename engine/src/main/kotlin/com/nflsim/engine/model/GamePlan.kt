@@ -29,6 +29,19 @@ data class GamePlan(
     /** 0 punts every fourth down, 1 goes for it whenever it can. Unset, the head coach's. */
     val fourthDownAggression: Float? = null,
 ) {
+    /** This plan, falling back to [base] for every lever it leaves unset. */
+    fun over(base: GamePlan): GamePlan = GamePlan(
+        passRate = passRate ?: base.passRate,
+        playActionRate = playActionRate ?: base.playActionRate,
+        deepShotRate = deepShotRate ?: base.deepShotRate,
+        trailingPassScale = trailingPassScale ?: base.trailingPassScale,
+        twoMinutePassBoost = twoMinutePassBoost ?: base.twoMinutePassBoost,
+        blitzRate = blitzRate ?: base.blitzRate,
+        manZoneSplit = manZoneSplit ?: base.manZoneSplit,
+        doubleTeamRate = doubleTeamRate ?: base.doubleTeamRate,
+        fourthDownAggression = fourthDownAggression ?: base.fourthDownAggression,
+    )
+
     companion object {
         const val DEEP_SHOT_SHARE = 0.65f
         const val TWO_MINUTE_BOOST = 0.28f

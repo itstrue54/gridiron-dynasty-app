@@ -50,6 +50,8 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
     val team = dynasty.team
     val off = SchemeCatalog[team.offenseScheme]
     val def = SchemeCatalog[team.defenseScheme]
+    // Untouched levers follow the staff: the coordinators' tendencies, then the scheme.
+    val staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, dynasty.league.coaches)
     var plan by remember { mutableStateOf(team.gamePlan) }
     fun save(p: GamePlan) {
         plan = p
@@ -57,26 +59,26 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
     }
 
     val offense = listOf(
-        Lever("Pass rate", "before down, distance and score", plan.passRate, off.basePassRate,
+        Lever("Pass rate", "before down, distance and score", plan.passRate, staffPlan.passRate ?: off.basePassRate,
             0.2f..0.85f, true) { p, v -> p.copy(passRate = v) },
-        Lever("Play action", "on early downs", plan.playActionRate, off.playActionRate,
+        Lever("Play action", "on early downs", plan.playActionRate, staffPlan.playActionRate ?: off.playActionRate,
             0f..0.6f, true) { p, v -> p.copy(playActionRate = v) },
         Lever("Deep shots", "follows play action unless set", plan.deepShotRate,
-            (plan.playActionRate ?: off.playActionRate) * GamePlan.DEEP_SHOT_SHARE,
+            (plan.playActionRate ?: staffPlan.playActionRate ?: off.playActionRate) * GamePlan.DEEP_SHOT_SHARE,
             0f..0.5f, true) { p, v -> p.copy(deepShotRate = v) },
-        Lever("Pass when trailing", "times the usual lean", plan.trailingPassScale, 1f,
+        Lever("Pass when trailing", "times the usual lean", plan.trailingPassScale, staffPlan.trailingPassScale ?: 1f,
             0f..2f, false) { p, v -> p.copy(trailingPassScale = v) },
-        Lever("Two-minute pass boost", "when not leading", plan.twoMinutePassBoost, GamePlan.TWO_MINUTE_BOOST,
+        Lever("Two-minute pass boost", "when not leading", plan.twoMinutePassBoost, staffPlan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST,
             0f..0.5f, true) { p, v -> p.copy(twoMinutePassBoost = v) },
         Lever("Fourth-down aggression", "0 punts always, 1 goes for it", plan.fourthDownAggression,
-            GamePlan.defaultAggression(team.id.v), 0f..1f, false) { p, v -> p.copy(fourthDownAggression = v) },
+            staffPlan.fourthDownAggression ?: GamePlan.defaultAggression(team.id.v), 0f..1f, false) { p, v -> p.copy(fourthDownAggression = v) },
     )
     val defense = listOf(
-        Lever("Blitz rate", "extra rushers", plan.blitzRate, def.blitzRate,
+        Lever("Blitz rate", "extra rushers", plan.blitzRate, staffPlan.blitzRate ?: def.blitzRate,
             0f..0.7f, true) { p, v -> p.copy(blitzRate = v) },
-        Lever("Man coverage", "share of snaps in man", plan.manZoneSplit, def.manZoneSplit,
+        Lever("Man coverage", "share of snaps in man", plan.manZoneSplit, staffPlan.manZoneSplit ?: def.manZoneSplit,
             0f..1f, true) { p, v -> p.copy(manZoneSplit = v) },
-        Lever("Double their top receiver", "how often", plan.doubleTeamRate, GamePlan.DOUBLE_TEAM_RATE,
+        Lever("Double their top receiver", "how often", plan.doubleTeamRate, staffPlan.doubleTeamRate ?: GamePlan.DOUBLE_TEAM_RATE,
             0f..0.6f, true) { p, v -> p.copy(doubleTeamRate = v) },
     )
 
@@ -87,7 +89,7 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
                 Text("Game plan", fontFamily = Mono, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Your coordinators still call the plays; these set what they call from. " +
-                        "A lever you have not touched follows your schemes (${off.name}, ${def.name}).",
+                        "A lever you have not touched follows your coordinators' tendencies in your schemes (${off.name}, ${def.name}).",
                     fontFamily = Mono, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -105,7 +107,7 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
         }
         if (plan != GamePlan()) item {
             TextButton(onClick = { save(GamePlan()) }, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("Reset the whole plan to your schemes", fontSize = 12.sp)
+                Text("Reset the whole plan to your staff's tendencies", fontSize = 12.sp)
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -124,7 +126,7 @@ private fun LeverRow(l: Lever, onChange: (Float) -> Unit, onDone: () -> Unit, on
             }
             Text(
                 (if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown)) +
-                    if (l.value == null) " (scheme)" else "",
+                    if (l.value == null) " (staff)" else "",
                 fontFamily = Mono, fontSize = 12.sp,
             )
             if (l.value != null) TextButton(onClick = onReset) { Text("Reset", fontSize = 11.sp) }

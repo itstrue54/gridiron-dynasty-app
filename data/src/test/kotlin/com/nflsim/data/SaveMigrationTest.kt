@@ -83,6 +83,22 @@ class SaveMigrationTest {
     }
 
     @Test
+    fun `a save from before coach tendencies gives every coordinator his own`() {
+        val d = dynasty()
+        val bare = d.copy(league = d.league.copy(coaches = d.league.coaches.mapValues {
+            it.value.copy(tendencies = com.nflsim.engine.model.GamePlan())
+        }))
+        val raw = cbor.encodeToByteArray(Envelope.serializer(), Envelope(3, bare))
+        val out = ByteArrayOutputStream()
+        GZIPOutputStream(out).use { it.write(raw) }
+        val loaded = SaveFile.decode(out.toByteArray())
+        val staff = loaded.league.teams.first().staff
+        assertNotNull(loaded.league.coaches.getValue(staff.offCoordinator).tendencies.passRate,
+            "an offensive coordinator should have a pass rate")
+        assertEquals(loaded, SaveFile.decode(out.toByteArray()), "the same save should migrate the same way")
+    }
+
+    @Test
     fun `a current save round trips untouched`() {
         val original = dynasty()
         val loaded = SaveFile.decode(SaveFile.encode(original))

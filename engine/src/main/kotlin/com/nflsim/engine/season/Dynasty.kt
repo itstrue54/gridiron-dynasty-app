@@ -114,6 +114,7 @@ object DynastyEngine {
                 offScheme = SchemeCatalog.tuned(team.offenseScheme, league.tuning),
                 defScheme = SchemeCatalog.tuned(team.defenseScheme, league.tuning),
                 aggression = com.nflsim.engine.model.GamePlan.defaultAggression(team.id.v),
+                staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
             )
         }
 
