@@ -694,7 +694,9 @@ object OffseasonEngine {
         }
         return state.copy(
             players = state.players + draft.drafted.values + undrafted,
-            draft = draft,
+            draft = draft.copy(picks = draft.picks.map { pick ->
+                pick.copy(original = slotOriginal.getOrElse(pick.overallPick - 1) { pick.team })
+            }),
             picks = held,
             pickTrades = state.pickTrades + draftTrades,
         )

@@ -20,6 +20,8 @@ data class DraftPick(
     val overallPick: Int,
     val team: Int,
     val player: Int,
+    /** Whose pick it was before any trade: the slot's original club. */
+    val original: Int = 0,
 )
 
 /**

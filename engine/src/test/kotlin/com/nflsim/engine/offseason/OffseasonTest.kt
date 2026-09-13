@@ -482,13 +482,12 @@ class OffseasonTest {
         val champion = kotlin.test.assertNotNull(d.champion, "the season should have a champion")
         val playoffClubs = d.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet()
 
-        // A club that traded up used another club's slot; undo those swaps
-        // to see whose slot each pick was.
+        // Picks change hands - draft-day trades, contender trades, granted
+        // trade requests - so read whose slot each pick was, not who used it.
         val report = DynastyEngine.advance(d).lastOffseason!!
-        val swaps = report.pickTrades.filter { it.round == 1 && it.reason == DraftRunner.TRADE_UP_REASON }
         val firstRound = report.draftPicks
             .filter { it.round == 1 }.sortedBy { it.overallPick }
-            .map { pick -> swaps.lastOrNull { it.to == pick.team }?.original ?: pick.team }
+            .map { it.original }
 
         assertEquals(champion, firstRound.last(), "the champion's slot should be last")
         val missedOut = league.teams.count { it.id.v !in playoffClubs }
