@@ -38,11 +38,12 @@ class ScoutingLens private constructor(
         if (confidence >= EXACT_AT) {
             return RatingView(trueRating, trueRating, trueRating, confidence)
         }
-        // The band is the club's uncertainty about its own estimate, so the
-        // miss is the size of the band: a club guessing within twelve points
-        // is wrong by about that much. An extreme draw is still a scout's
-        // opinion rather than a fantasy, so it stops at two bands out.
-        val point = (trueRating + bias.coerceIn(-2f, 2f) * half).toInt().coerceIn(0, 99)
+        // The band has to be worth reading: the miss is half of it, so the
+        // rating sits inside the band the club is shown about nineteen times
+        // in twenty. A club can still be badly wrong about a man - that is
+        // the whole point of a draft - but not so wrong that the band it
+        // published meant nothing.
+        val point = (trueRating + bias.coerceIn(-2f, 2f) * half * 0.5f).toInt().coerceIn(0, 99)
         return RatingView(
             point = point,
             low = (point - half).toInt().coerceIn(0, 99),

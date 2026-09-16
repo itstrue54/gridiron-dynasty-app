@@ -101,6 +101,76 @@ class DynastyStore(private val saveDir: File) {
         persist(next)
     }
 
+    /**
+     * The draft, with the club in the room (SPEC 8.5). The pause lives here
+     * and is never saved: the phases before the draft are deterministic, so a
+     * club that closes the app simply runs them again.
+     */
+    var draftRoom by mutableStateOf<DraftRoom?>(null)
+        private set
+
+    class DraftRoom(
+        val pause: com.nflsim.engine.offseason.OffseasonEngine.DraftPause,
+        val picks: Map<Int, Int>,
+        val board: com.nflsim.engine.offseason.DraftRunner.Result,
+    ) {
+        /** The overall number the club is on the clock for, if it still is. */
+        val onTheClock: Int? get() = board.stoppedAt
+    }
+
+    /** Runs the offseason up to the club's first pick and stops there. */
+    suspend fun openDraftRoom() {
+        val current = dynasty ?: return
+        busy = true
+        try {
+            val room = withContext(Dispatchers.Default) {
+                val pause = com.nflsim.engine.offseason.OffseasonEngine.runToDraft(current)
+                DraftRoom(pause, emptyMap(), pause.boardFor(current.userTeamId))
+            }
+            draftRoom = room
+        } catch (e: Exception) {
+            message = e.message ?: "The draft would not open."
+        } finally {
+            busy = false
+        }
+    }
+
+    /** Takes a player with the club's current pick and runs on to its next. */
+    suspend fun draftPlayer(playerId: Int) {
+        val current = dynasty ?: return
+        val room = draftRoom ?: return
+        val slot = room.onTheClock ?: return
+        busy = true
+        try {
+            val next = withContext(Dispatchers.Default) {
+                val picks = room.picks + (slot to playerId)
+                DraftRoom(room.pause, picks, room.pause.boardFor(current.userTeamId, picks))
+            }
+            draftRoom = next
+        } finally {
+            busy = false
+        }
+    }
+
+    /** Finishes the draft and the rest of the offseason. */
+    suspend fun finishOffseason() {
+        val room = draftRoom ?: return
+        busy = true
+        try {
+            val next = withContext(Dispatchers.Default) {
+                val (rolled, report) = room.pause.finish(room.picks)
+                rolled.copy(lastOffseason = report)
+            }
+            draftRoom = null
+            dynasty = next
+            persist(next)
+        } catch (e: Exception) {
+            message = e.message ?: "The offseason would not finish."
+        } finally {
+            busy = false
+        }
+    }
+
     /** SPEC 4.6: where the club points its scouts before the draft. */
     suspend fun setScoutingFocus(focus: Set<com.nflsim.engine.model.Position>) {
         val current = dynasty ?: return

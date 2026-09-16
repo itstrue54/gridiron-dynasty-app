@@ -137,6 +137,13 @@ object DraftRunner {
         val picks: List<DraftPick>,
         val drafted: Map<Int, Player>,
         val undrafted: List<Player>,
+        /**
+         * Who is left on the board. Empty once the draft has run to the end;
+         * the rest of the class when it stopped early for a club's own pick.
+         */
+        val available: List<Player> = emptyList(),
+        /** The slot the draft stopped on, if it stopped. */
+        val stoppedAt: Int? = null,
     )
 
     fun run(
@@ -158,6 +165,16 @@ object DraftRunner {
             { _, _, _, _, _ -> null },
         /** Each club's scouting department and where it pointed it (SPEC 4.6). */
         scouting: (TeamId) -> Pair<Int, Set<Position>> = { 50 to emptySet() },
+        /**
+         * A club making its own pick: given the overall number and the club on
+         * the clock, the player it takes. Null leaves the pick to the AI.
+         */
+        userPick: (overall: Int, team: TeamId) -> Int? = { _, _ -> null },
+        /**
+         * Stop before this slot and hand back the board as it stands, for a
+         * club that wants to look before it picks.
+         */
+        stopBefore: ((overall: Int, team: TeamId) -> Boolean)? = null,
         /** The league's AI tuning: need, fit and scouting error on the board, and trade-ups. */
         ai: TuningTable.Ai = TuningTable.REALISTIC.ai,
     ): Result {
@@ -210,8 +227,13 @@ object DraftRunner {
             // the club's and the prospect's together and does not move while
             // the club sits on the clock, so a board is consistent rather than
             // noisy - a club that is high on a man stays high on him.
+            if (stopBefore != null && stopBefore(overallPick, team)) {
+                return Result(picks, drafted, emptyList(), available.toList(), overallPick)
+            }
+
             val (dept, focus) = scouting(team)
-            val choice = available.maxByOrNull { p ->
+            val chosen = userPick(overallPick, team)?.let { id -> available.firstOrNull { it.id.v == id } }
+            val choice = chosen ?: available.maxByOrNull { p ->
                 val lens = ScoutingLens.of(
                     playerId = p.id.v,
                     viewerId = team.v,

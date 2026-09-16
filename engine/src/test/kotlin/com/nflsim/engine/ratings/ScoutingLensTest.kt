@@ -70,6 +70,18 @@ class ScoutingLensTest {
     }
 
     @Test
+    fun `the band is worth reading`() {
+        // Away from the ends of the scale, where clamping squeezes a band.
+        val inside = (1..400).count { player ->
+            val truth = 40 + player % 40
+            val view = ScoutingLens.of(player, player % 7, 0.3f).view(truth)
+            truth in view.low..view.high
+        }
+        assertTrue(inside >= 360,
+            "a published band should hold the rating; it held $inside of 400")
+    }
+
+    @Test
     fun `an estimate stays inside the ratings scale`() {
         val views = (0..99).map { ScoutingLens.of(it, 3, 0f).view(it) }
         assertTrue(views.all { it.low >= 0 && it.high <= 99 && it.point in 0..99 })

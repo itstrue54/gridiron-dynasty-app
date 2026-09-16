@@ -20,6 +20,7 @@ import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.rng.shuffled
 import com.nflsim.engine.rng.SplitMixRng
 import com.nflsim.engine.season.AwardVoting
+import com.nflsim.engine.season.Awards
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.ScheduleGenerator
@@ -199,7 +200,17 @@ data class OffseasonReport(
  */
 object OffseasonEngine {
 
-    fun run(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): Pair<Dynasty, OffseasonReport> {
+    /** The whole offseason, with the AI drafting for every club. */
+    fun run(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): Pair<Dynasty, OffseasonReport> =
+        runToDraft(season, rng).finish()
+
+    /**
+     * Everything up to the draft, so a club can look at the board before it
+     * picks (SPEC 8.5). The offseason is not saved half-finished: the pause
+     * lives in memory, and the phases before the draft are deterministic, so
+     * a club that puts the phone down simply runs them again.
+     */
+    fun runToDraft(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): DraftPause {
         val oldYear = season.year
         val newYear = oldYear + 1
 
@@ -318,7 +329,45 @@ object OffseasonEngine {
         // ---- phase 7: free agency -----------------------------------
         state = stepFreeAgency(ctx, state, rng)
         // ---- phase 9: draft -----------------------------------------
-        state = stepDraft(ctx, state, rng)
+        return DraftPause(
+            ctx = ctx,
+            state = state,
+            rng = rng,
+            carousel = carousel,
+            awards = awards,
+            previousTeam = previousTeam,
+            deadMoney = deadMoney,
+            releases = releases,
+            pricer = pricer,
+            wishes = wishes,
+            trades = trades,
+            valueCuts = valueCuts,
+        )
+    }
+
+    /** The rest of the offseason, once the draft is decided. */
+    internal fun finishFromDraft(
+        pause: DraftPause,
+        userPicks: Map<Int, Int>,
+    ): Pair<Dynasty, OffseasonReport> {
+        val ctx = pause.ctx
+        var state = pause.state
+        val rng = pause.rng
+        val carousel = pause.carousel
+        val awards = pause.awards
+        val previousTeam = pause.previousTeam
+        val deadMoney = pause.deadMoney
+        val releases = pause.releases
+        val pricer = pause.pricer
+        val wishes = pause.wishes
+        val trades = pause.trades
+        val valueCuts = pause.valueCuts
+        val dynasty = ctx.dynasty
+        val league = ctx.league
+        val newYear = ctx.newYear
+        val winPct = ctx.winPct
+        val (afterDraft, draftResult) = stepDraft(ctx, state, rng, userPicks)
+        state = afterDraft
         val extendedSignings = state.extensionSignings
         val draft = state.draft!!
         val auction = state.auction!!
@@ -381,7 +430,7 @@ object OffseasonEngine {
         val bigContracts = survivors
             .filter { it.teamId != null && it.capHit(newYear) > 6_000 }
             .map { p ->
-                val worth = pricer.annual(p, sideScheme(p.teamId, p.position), newYear)
+                val worth = pricer.annual(p, ctx.scheme(p.teamId, p.position), newYear)
                 p.teamId!!.v to p.capHit(newYear).toFloat() / worth.coerceAtLeast(1)
             }
         val overpayRatios = bigContracts.map { it.second }
@@ -471,10 +520,10 @@ object OffseasonEngine {
             retiredMean = retirements.map { it.overall }.averageOrZero(),
             draftedCount = draft.drafted.size,
             draftedStarters = draft.drafted.values.count {
-                overall(it, sideScheme(it.teamId, it.position)) >= 70
+                overall(it, ctx.scheme(it.teamId, it.position)) >= 70
             },
             draftedMean = draft.drafted.values
-                .map { overall(it, sideScheme(it.teamId, it.position)) }.averageOrZero(),
+                .map { overall(it, ctx.scheme(it.teamId, it.position)) }.averageOrZero(),
             developmentNet = if (deltaCount == 0) 0f else deltaSum.toFloat() / deltaCount,
             developmentByAge = ageSum.mapValues { (k, v) -> v.toFloat() / (ageCount[k] ?: 1) },
             developmentByTeam = state.teamDeltaSum.mapValues { (k, v) ->
@@ -622,7 +671,11 @@ object OffseasonEngine {
         ctx: OffseasonContext,
         state: OffseasonState,
         rng: Rng,
-    ): OffseasonState {
+        /** A club's own picks, by overall number (SPEC 8.5's draft room). */
+        userPicks: Map<Int, Int> = emptyMap(),
+        /** Stop before a slot and hand back the board, for a club about to pick. */
+        stopBefore: ((Int, TeamId) -> Boolean)? = null,
+    ): Pair<OffseasonState, DraftRunner.Result> {
         val nextId = (state.players.maxOfOrNull { it.id.v } ?: 0) + 1
         val prospects = SyntheticDraftClass.generate(
             ctx.newYear, nextId, rng.split("draft|${ctx.newYear}"))
@@ -704,8 +757,12 @@ object OffseasonEngine {
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
                 }
                 pay?.mapNotNull { it.second }
-            }, ai = ctx.league.tuning.ai
+            }, ai = ctx.league.tuning.ai,
+            userPick = { overall, _ -> userPicks[overall] },
+            stopBefore = stopBefore,
         )
+        // A draft that stopped early has decided nothing yet.
+        if (draft.stoppedAt != null) return state to draft
         val undrafted = draft.undrafted.map {
             it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
         }
@@ -716,7 +773,55 @@ object OffseasonEngine {
             }),
             picks = held,
             pickTrades = state.pickTrades + draftTrades,
-        )
+        ) to draft
+    }
+
+    /**
+     * The offseason, stopped on the doorstep of the draft. Holds the phases
+     * already run, in memory only, and can show a club the board or finish
+     * the year with the club's own picks in it.
+     */
+    class DraftPause internal constructor(
+        internal val ctx: OffseasonContext,
+        internal val state: OffseasonState,
+        internal val rng: Rng,
+        internal val carousel: CoachingCarousel.Result,
+        internal val awards: Awards,
+        internal val previousTeam: Map<Int, TeamId>,
+        internal val deadMoney: Map<Int, Int>,
+        internal val releases: List<Release>,
+        internal val pricer: MarketValue.Pricer,
+        internal val wishes: List<Wish>,
+        internal val trades: List<TradeMove>,
+        internal val valueCuts: List<Release>,
+    ) {
+        val year: Int get() = ctx.newYear
+
+        /** The draft class, by player id, for naming a pick after it is made. */
+        val prospectsById: Map<Int, Player> by lazy {
+            SyntheticDraftClass.generate(
+                ctx.newYear,
+                (state.players.maxOfOrNull { it.id.v } ?: 0) + 1,
+                rng.split("draft|${ctx.newYear}"),
+            ).associateBy { it.id.v }
+        }
+
+        /**
+         * The draft as it stands when [team] comes to the clock, with the
+         * club's earlier picks in [userPicks] already made. Runs the draft
+         * from the top every time, which costs nothing anyone can feel and
+         * keeps the board honest about trades up.
+         */
+        fun boardFor(team: TeamId, userPicks: Map<Int, Int> = emptyMap()): DraftRunner.Result =
+            stepDraft(
+                ctx, state, rng, userPicks,
+                // Stop at a slot this club holds and has not decided yet.
+                stopBefore = { overall, onTheClock -> onTheClock == team && overall !in userPicks },
+            ).second
+
+        /** The draft run to the end, and then the rest of the offseason. */
+        fun finish(userPicks: Map<Int, Int> = emptyMap()): Pair<Dynasty, OffseasonReport> =
+            finishFromDraft(this, userPicks)
     }
 
     /** SPEC 7 phase 5. One tag a club, on a player it could not keep (2020 CBA). */

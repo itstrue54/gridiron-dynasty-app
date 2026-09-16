@@ -157,17 +157,22 @@ fun HubScreen(
                 PrimaryButton(
                     text = when (dynasty.phase) {
                         DynastyPhase.PLAYOFFS -> "Play the postseason"
-                        DynastyPhase.OFFSEASON -> "Run the offseason"
+                        DynastyPhase.OFFSEASON -> "Open the draft room"
                         else -> "Play week ${dynasty.week}"
                     },
                     onClick = {
-                        val rollingOver = dynasty.phase == DynastyPhase.OFFSEASON
-                        scope.launch {
-                            store.advance()
-                            when {
-                                rollingOver -> onNavigate(Tab.OFFSEASON)
+                        // The year turns over through the draft room, where the
+                        // club makes its own picks, rather than in one jump.
+                        if (dynasty.phase == DynastyPhase.OFFSEASON) {
+                            scope.launch {
+                                store.openDraftRoom()
+                                if (store.draftRoom != null) onNavigate(Tab.DRAFT)
+                            }
+                        } else {
+                            scope.launch {
+                                store.advance()
                                 // Straight to the game the club just played.
-                                store.dynasty?.playedLastWeek() == true -> onNavigate(Tab.GAME)
+                                if (store.dynasty?.playedLastWeek() == true) onNavigate(Tab.GAME)
                             }
                         }
                     },
