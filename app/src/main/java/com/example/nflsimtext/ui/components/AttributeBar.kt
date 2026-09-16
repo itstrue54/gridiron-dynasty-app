@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,16 +25,27 @@ import com.example.nflsimtext.ui.theme.ratingColor
  * chalk mark on a sheet, not a progress meter.
  */
 @Composable
-fun AttributeBar(label: String, value: Int, modifier: Modifier = Modifier) {
+fun AttributeBar(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+    /** What the club is guessing within, when it does not know the rating. */
+    band: IntRange? = null,
+    /** The figure to print, which may be a band rather than a number. */
+    text: String = value.toString(),
+) {
     val c = NdTheme.colors
     Row(
         modifier
             .fillMaxWidth()
             .height(NdTheme.spacing.rowHeight)
-            .clearAndSetSemantics { contentDescription = "$label $value" },
+            .clearAndSetSemantics {
+                contentDescription = if (band == null) "$label $value"
+                else "$label, somewhere between ${band.first} and ${band.last}"
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = NdTheme.type.data, color = c.chalk, modifier = Modifier.weight(1f))
+        Text(label, style = NdTheme.type.data, color = c.chalk, modifier = Modifier.weight(1.4f))
         Box(
             Modifier
                 .weight(1f)
@@ -41,18 +53,40 @@ fun AttributeBar(label: String, value: Int, modifier: Modifier = Modifier) {
                 .height(4.dp)
                 .background(c.turfLine),
         ) {
-            Box(
-                Modifier
-                    .fillMaxWidth(value.coerceIn(0, 99) / 99f)
-                    .height(4.dp)
-                    .background(ratingColor(value, c)),
-            )
+            val ink = ratingColor(value, c)
+            if (band == null) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(value.coerceIn(0, 99) / 99f)
+                        .height(4.dp)
+                        .background(ink),
+                )
+            } else {
+                // Solid to the least he can be, then faint through what the
+                // club is unsure of: the bar still says how good he is, and
+                // where it stops being sure.
+                val low = band.first.coerceIn(0, 99)
+                val high = band.last.coerceIn(low, 99)
+                Row(Modifier.fillMaxWidth()) {
+                    if (low > 0) {
+                        Box(Modifier.weight(low.toFloat()).height(4.dp).background(ink))
+                    }
+                    Box(
+                        Modifier
+                            .weight((high - low).coerceAtLeast(1).toFloat())
+                            .height(4.dp)
+                            .background(ink.copy(alpha = 0.4f)),
+                    )
+                    if (high < 99) Spacer(Modifier.weight((99 - high).toFloat()))
+                }
+            }
         }
         Text(
-            value.toString(),
+            text,
             style = NdTheme.type.data,
             color = c.chalk,
-            modifier = Modifier.width(28.dp),
+            maxLines = 1,
+            modifier = Modifier.width(if (band == null) 28.dp else 56.dp),
         )
     }
 }
@@ -73,5 +107,5 @@ private fun BarsLarge() = PreviewFrame(dark = true) { Bars() }
 private fun Bars() = Column {
     AttributeBar("Accuracy short", 84)
     AttributeBar("Arm strength", 91)
-    AttributeBar("Pocket presence", 68)
+    AttributeBar("Pocket presence", 68, band = 62..74, text = "62-74")
 }

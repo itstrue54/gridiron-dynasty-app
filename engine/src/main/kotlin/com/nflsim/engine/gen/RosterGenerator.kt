@@ -125,6 +125,13 @@ object RosterGenerator {
         // How far into his deal each player already is. Drawn once and reused,
         // so the two pricing passes below produce the same league.
         val elapsed = terms.map { money.nextInt(it) }
+        // How long the club has employed each man. Not the years left on his
+        // deal: most players have been re-signed at least once, so this is
+        // drawn against his years in the league. It buys knowledge, not scheme
+        // familiarity (SPEC 4.6).
+        val tenure = roster.indices.map { i ->
+            minOf((roster[i].age(year) - 22).coerceAtLeast(0), money.nextInt(5))
+        }
 
         fun build(scale: Float): List<Player> = roster.mapIndexed { i, p ->
             val annual = (quotes[i] * scale).roundToInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
@@ -138,6 +145,11 @@ object RosterGenerator {
                 // all learning their scheme, and familiarity is earned in the
                 // sim. Backdating it here raised every effective rating and
                 // pushed yards per attempt out of band.
+                //
+                // Years with the club are another matter: they buy no scheme
+                // familiarity, only knowledge. Without them every club started
+                // out unsure of its own roster.
+                yearsWithClub = tenure[i],
                 accruedSeasons = (p.age(year) - 22).coerceIn(0, 12),
             )
         }

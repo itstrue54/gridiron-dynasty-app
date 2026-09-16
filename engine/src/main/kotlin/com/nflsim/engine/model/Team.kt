@@ -43,6 +43,12 @@ data class Team(
     val depthPins: DepthPins = DepthPins(),
     /** SPEC 5.4: the tendencies the club's coordinators call from. */
     val gamePlan: GamePlan = GamePlan(),
+    /**
+     * SPEC 4.6: the positions the club's scouts watch closely before the
+     * draft. Empty means it spreads them across the board instead, and knows
+     * a little about everyone.
+     */
+    val scoutingFocus: Set<Position> = emptySet(),
 ) {
     val name: String get() = "$city $nickname"
     val divisionName: String get() = "${conference.label} ${division.name.lowercase().replaceFirstChar { it.uppercase() }}"

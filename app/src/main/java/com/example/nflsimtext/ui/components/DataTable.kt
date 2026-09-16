@@ -103,7 +103,8 @@ fun DataTable(
                 .padding(horizontal = NdTheme.spacing.xs)
             fun ink(col: ColumnSpec, cell: String): Color = when {
                 row.highlight -> c.onStripe
-                col.tier -> cell.toIntOrNull()?.let { ratingColor(it, c) } ?: c.chalk
+                col.tier -> cell.takeWhile { it.isDigit() }.toIntOrNull()
+                    ?.let { ratingColor(it, c) } ?: c.chalk
                 else -> c.chalk
             }
             if (stacked) {

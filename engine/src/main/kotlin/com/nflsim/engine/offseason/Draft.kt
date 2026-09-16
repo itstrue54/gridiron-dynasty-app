@@ -8,6 +8,8 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.Scheme
+import com.nflsim.engine.ratings.Scouting
+import com.nflsim.engine.ratings.ScoutingLens
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
@@ -135,6 +137,13 @@ object DraftRunner {
         val picks: List<DraftPick>,
         val drafted: Map<Int, Player>,
         val undrafted: List<Player>,
+        /**
+         * Who is left on the board. Empty once the draft has run to the end;
+         * the rest of the class when it stopped early for a club's own pick.
+         */
+        val available: List<Player> = emptyList(),
+        /** The slot the draft stopped on, if it stopped. */
+        val stoppedAt: Int? = null,
     )
 
     fun run(
@@ -154,6 +163,18 @@ object DraftRunner {
          */
         tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int, later: List<Int>) -> List<Int>? =
             { _, _, _, _, _ -> null },
+        /** Each club's scouting department and where it pointed it (SPEC 4.6). */
+        scouting: (TeamId) -> Pair<Int, Set<Position>> = { 50 to emptySet() },
+        /**
+         * A club making its own pick: given the overall number and the club on
+         * the clock, the player it takes. Null leaves the pick to the AI.
+         */
+        userPick: (overall: Int, team: TeamId) -> Int? = { _, _ -> null },
+        /**
+         * Stop before this slot and hand back the board as it stands, for a
+         * club that wants to look before it picks.
+         */
+        stopBefore: ((overall: Int, team: TeamId) -> Boolean)? = null,
         /** The league's AI tuning: need, fit and scouting error on the board, and trade-ups. */
         ai: TuningTable.Ai = TuningTable.REALISTIC.ai,
     ): Result {
@@ -201,13 +222,28 @@ object DraftRunner {
             val scheme = schemeFor(team)
             val needs = needsFor(team)
 
-            // Every team sees a slightly different board.
-            val choice = available.maxByOrNull { p ->
-                val talent = overall(p).toFloat()
+            // Every club reads the board through its own scouting (SPEC 4.6):
+            // what it thinks a prospect is worth, not what he is. The miss is
+            // the club's and the prospect's together and does not move while
+            // the club sits on the clock, so a board is consistent rather than
+            // noisy - a club that is high on a man stays high on him.
+            if (stopBefore != null && stopBefore(overallPick, team)) {
+                return Result(picks, drafted, emptyList(), available.toList(), overallPick)
+            }
+
+            val (dept, focus) = scouting(team)
+            val chosen = userPick(overallPick, team)?.let { id -> available.firstOrNull { it.id.v == id } }
+            val choice = chosen ?: available.maxByOrNull { p ->
+                val lens = ScoutingLens.of(
+                    playerId = p.id.v,
+                    viewerId = team.v,
+                    confidence = Scouting.prospect(p.id.v, p.position, dept, focus) *
+                        ai.draftScoutingConfidence,
+                )
+                val talent = lens.view(overall(p)).point.toFloat()
                 val fit = schemeFit(p, scheme)
                 val need = needs[p.position] ?: 0.4f
-                val error = rng.gaussian(0f, ai.draftScoutingError)
-                talent + need * ai.draftNeedWeight + fit * ai.draftFitWeight + error
+                talent + need * ai.draftNeedWeight + fit * ai.draftFitWeight
             } ?: return@forEach
 
             available.remove(choice)

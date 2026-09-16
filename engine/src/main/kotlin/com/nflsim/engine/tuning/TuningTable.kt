@@ -366,10 +366,15 @@ data class TuningTable(
         val tradeAggressionOverpay: Float = 0.25f,
         /** How often a club grants a player's trade request. */
         val tradeRequestGrantChance: Float = 0.45f,
-        /** The draft board: need and scheme fit against talent, and scouting error in overall points. */
+        /** The draft board: need and scheme fit against talent, as a club reads it. */
         val draftNeedWeight: Float = 9f,
         val draftFitWeight: Float = 6f,
-        val draftScoutingError: Float = 7.5f,
+        /**
+         * Times a prospect's exposure, setting how well clubs read the board.
+         * Above 1 they scout better than the league does and the best players
+         * go first; at 0 the board is a lottery.
+         */
+        val draftScoutingConfidence: Float = 1f,
         /** Draft day: how badly a club must need the best player left, and how many picks back it looks, to move up. */
         val draftTradeUpNeed: Float = 0.6f,
         val draftTradeUpRange: Int = 12,

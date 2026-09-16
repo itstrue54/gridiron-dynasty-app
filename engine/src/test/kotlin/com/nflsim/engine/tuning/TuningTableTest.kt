@@ -44,13 +44,16 @@ class TuningTableTest {
     fun `the draft reads the league's AI tuning`() {
         val prospects = com.nflsim.engine.offseason.SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
         val scheme = SchemeCatalog.offensive.first()
-        val pureTalent = TuningTable.Ai(draftNeedWeight = 0f, draftFitWeight = 0f, draftScoutingError = 0f)
+        // Scouting confidence far above the league's closes every band, so the
+        // board is the true ratings and nothing else.
+        val pureTalent =
+            TuningTable.Ai(draftNeedWeight = 0f, draftFitWeight = 0f, draftScoutingConfidence = 20f)
         val result = com.nflsim.engine.offseason.DraftRunner.run(
             listOf(1 to league.teams.first().id), prospects, { scheme }, { emptyMap() }, 2027, SplitMixRng(1L),
             ai = pureTalent)
         val (_, _, _, player) = result.picks.first()
         assertEquals(prospects.maxBy { com.nflsim.engine.ratings.overall(it) }.id.v, player,
-            "with no need, fit or scouting error, the board is pure talent")
+            "with no need or fit and perfect scouting, the board is pure talent")
     }
 
     @Test
