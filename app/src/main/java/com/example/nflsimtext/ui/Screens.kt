@@ -177,6 +177,7 @@ fun HubScreen(
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     if (dynasty.lastGame != null) HubLink("Game day") { onNavigate(Tab.GAME) }
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
+                    HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
                     HubLink("Theme: ${theme.label}") { onTheme(theme.next()) }
                     HubLink(if (haptics) "Haptics: on" else "Haptics: off") { onHaptics(!haptics) }

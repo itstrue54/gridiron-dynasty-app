@@ -662,6 +662,21 @@ object OffseasonEngine {
             },
             year = ctx.newYear,
             rng = rng.split("picks|${ctx.newYear}"),
+            // A club watches the positions it told its scouts to watch. A club
+            // that has not said - every AI club - points them at its two
+            // biggest needs, which is what a scouting department would do.
+            scouting = { id ->
+                val club = ctx.league.team(id)
+                val focus = club.scoutingFocus.ifEmpty {
+                    TeamNeeds.assess(
+                        rosterNow[id] ?: emptyList(),
+                        { pos -> ctx.scheme(id, pos) },
+                        ctx.newYear,
+                        needBar)
+                        .entries.sortedByDescending { it.value }.take(2).map { it.key }.toSet()
+                }
+                club.staff.scoutingDept to focus
+            },
             aggression = { id -> ctx.league.teams.first { it.id == id }.gm.aggression },
             tradeUp = { buyer, seller, from, to, later ->
                 // The chart price of the move, chart as-is with no timeline

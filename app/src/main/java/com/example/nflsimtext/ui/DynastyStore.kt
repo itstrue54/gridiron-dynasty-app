@@ -101,6 +101,17 @@ class DynastyStore(private val saveDir: File) {
         persist(next)
     }
 
+    /** SPEC 4.6: where the club points its scouts before the draft. */
+    suspend fun setScoutingFocus(focus: Set<com.nflsim.engine.model.Position>) {
+        val current = dynasty ?: return
+        val teams = current.league.teams.map {
+            if (it.id == current.userTeamId) it.copy(scoutingFocus = focus) else it
+        }
+        val next = current.copy(league = current.league.copy(teams = teams))
+        dynasty = next
+        persist(next)
+    }
+
     fun dismissMessage() { message = null }
 
     private suspend fun persist(state: Dynasty) = withContext(Dispatchers.IO) {

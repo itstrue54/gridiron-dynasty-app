@@ -34,21 +34,36 @@ fun FilterChipRow(
         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
     ) {
         options.forEach { option ->
-            val on = option == selected
-            Box(
-                Modifier
-                    .defaultMinSize(minHeight = NdTheme.spacing.minTouch)
-                    .then(
-                        if (on) Modifier.background(c.chalk, NdTheme.shapes.tag)
-                        else Modifier.border(BorderStroke(1.dp, c.turfLine), NdTheme.shapes.tag)
-                    )
-                    .clickable(role = Role.Tab) { onSelect(option) }
-                    .padding(horizontal = NdTheme.spacing.m),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(option, style = NdTheme.type.label, color = if (on) c.turf else c.chalkDim)
-            }
+            Chip(option, option == selected) { onSelect(option) }
         }
+    }
+}
+
+/**
+ * One chip: chalk-filled when chosen, an outline when not. A row of filters
+ * picks one; a club's scouting focus picks several.
+ */
+@Composable
+fun Chip(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    role: Role = Role.Tab,
+    onClick: () -> Unit,
+) {
+    val c = NdTheme.colors
+    Box(
+        modifier
+            .defaultMinSize(minHeight = NdTheme.spacing.minTouch)
+            .then(
+                if (selected) Modifier.background(c.chalk, NdTheme.shapes.tag)
+                else Modifier.border(BorderStroke(1.dp, c.turfLine), NdTheme.shapes.tag)
+            )
+            .clickable(role = role) { onClick() }
+            .padding(horizontal = NdTheme.spacing.m),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, style = NdTheme.type.label, color = if (selected) c.turf else c.chalkDim)
     }
 }
 

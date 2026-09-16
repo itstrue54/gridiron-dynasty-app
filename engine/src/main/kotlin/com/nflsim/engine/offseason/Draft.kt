@@ -8,6 +8,7 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.Scheme
+import com.nflsim.engine.ratings.Scouting
 import com.nflsim.engine.ratings.ScoutingLens
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
@@ -155,6 +156,8 @@ object DraftRunner {
          */
         tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int, later: List<Int>) -> List<Int>? =
             { _, _, _, _, _ -> null },
+        /** Each club's scouting department and where it pointed it (SPEC 4.6). */
+        scouting: (TeamId) -> Pair<Int, Set<Position>> = { 50 to emptySet() },
         /** The league's AI tuning: need, fit and scouting error on the board, and trade-ups. */
         ai: TuningTable.Ai = TuningTable.REALISTIC.ai,
     ): Result {
@@ -207,11 +210,13 @@ object DraftRunner {
             // the club's and the prospect's together and does not move while
             // the club sits on the clock, so a board is consistent rather than
             // noisy - a club that is high on a man stays high on him.
+            val (dept, focus) = scouting(team)
             val choice = available.maxByOrNull { p ->
                 val lens = ScoutingLens.of(
                     playerId = p.id.v,
                     viewerId = team.v,
-                    confidence = ScoutingLens.prospectExposure(p.id.v) * ai.draftScoutingConfidence,
+                    confidence = Scouting.prospect(p.id.v, p.position, dept, focus) *
+                        ai.draftScoutingConfidence,
                 )
                 val talent = lens.view(overall(p)).point.toFloat()
                 val fit = schemeFit(p, scheme)
