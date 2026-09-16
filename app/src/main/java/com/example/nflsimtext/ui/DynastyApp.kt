@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -13,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -29,13 +28,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.SecondaryButton
 import com.example.nflsimtext.ui.theme.NdTheme
-import com.example.nflsimtext.ui.theme.TextFamily
 import com.example.nflsimtext.ui.theme.ThemeSetting
 import kotlinx.coroutines.launch
 
@@ -44,7 +40,7 @@ enum class Tab(val label: String) {
     STANDINGS("Standings"),
     ROSTER("Roster"),
     SCHEDULE("Schedule"),
-    OFFSEASON("Front Office"),
+    OFFSEASON("Front office"),
     BOX("Box"),
     /** SPEC 12: behind the Hub's Advanced button, not on the bar. */
     TUNING("Tuning"),
@@ -58,13 +54,6 @@ enum class Tab(val label: String) {
     PLAYER("Player"),
 }
 
-/**
- * Tables are read as numbers, so they are set in the design system's text
- * family with tabular figures rather than in a monospace face
- * (docs/DESIGN.md 1: no monospace for data).
- */
-val DataFamily = TextFamily
-
 @Composable
 fun DynastyApp(
     store: DynastyStore,
@@ -75,6 +64,15 @@ fun DynastyApp(
     var player by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val dynasty = store.dynasty
+
+    // The system back button belongs to the app's own navigation: from a
+    // screen behind the hub it goes back, not out of the dynasty.
+    BackHandler(enabled = dynasty != null && tab != Tab.HUB) {
+        tab = when (tab) {
+            Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
+            else -> Tab.HUB
+        }
+    }
 
     Scaffold(
         bottomBar = { if (dynasty != null) BottomBar(tab) { tab = it } },
@@ -164,55 +162,3 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Shared table pieces. Dense and tabular on purpose - this is a spreadsheet
-// with good typography, not a mobile game (docs/SPEC.md 10.1).
-// ---------------------------------------------------------------------------
-
-@Composable
-fun SectionHeader(text: String) {
-    // Sentence case: caps belong to content, not to labels (docs/DESIGN.md 3).
-    Text(
-        text,
-        style = NdTheme.type.title,
-        color = NdTheme.colors.chalk,
-        modifier = Modifier.padding(top = 14.dp, bottom = 4.dp, start = 12.dp, end = 12.dp),
-    )
-}
-
-@Composable
-fun Cell(text: String, weight: Float, bold: Boolean = false, dim: Boolean = false) {
-    Text(
-        text,
-        style = if (bold) NdTheme.type.data.copy(fontWeight = FontWeight.W600) else NdTheme.type.data,
-        color = if (dim) NdTheme.colors.chalkDim else NdTheme.colors.chalk,
-        maxLines = 1,
-        modifier = Modifier.width((weight * 8).dp),
-    )
-}
-
-@Composable
-fun TableRow(highlight: Boolean = false, content: @Composable () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(if (highlight) NdTheme.colors.stripe else NdTheme.colors.turfRaised)
-            .padding(horizontal = 12.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) { content() }
-}
-
-@Composable
-fun Rule() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .height(1.dp)
-            .background(NdTheme.colors.turfLine)
-    )
-}
-
-@Composable
-fun Spacer8() = Spacer(Modifier.height(8.dp))

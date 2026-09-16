@@ -6,15 +6,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.nflsimtext.ui.components.SituationBlock
+import com.example.nflsimtext.ui.components.StatusTag
+import com.example.nflsimtext.ui.components.TagTone
+import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.offseason.CapManagement
 import com.nflsim.engine.offseason.Intent
@@ -36,16 +36,14 @@ fun OffseasonScreen(dynasty: Dynasty) {
     val team = dynasty.team
 
     if (report == null) {
-        Column(Modifier.padding(16.dp)) {
-            Text("No offseason yet", fontFamily = DataFamily, fontSize = 18.sp,
-                fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
+        Column(Modifier.padding(NdTheme.spacing.xl)) {
+            Text("No offseason yet", style = NdTheme.type.title, color = NdTheme.colors.chalk)
+            Spacer(Modifier.height(NdTheme.spacing.s))
             Text(
                 "Play a season through the playoffs and the year will turn over: " +
                     "players retire and develop, contracts expire, the draft runs, " +
                     "and the market opens.",
-                fontFamily = DataFamily, fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
             )
         }
         return
@@ -56,17 +54,17 @@ fun OffseasonScreen(dynasty: Dynasty) {
     val committed = roster.sumOf { it.capHit(dynasty.year) }
     val dead = team.finances.deadMoney
 
-    LazyColumn(Modifier.fillMaxWidth()) {
-
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                Text("The ${report.year} offseason", fontFamily = DataFamily, fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold)
+            Column {
                 Text(
-                    "${report.retirementCount} retired  ·  ${report.draftedCount} drafted  " +
-                        "·  ${report.capCasualties} released",
-                    fontFamily = DataFamily, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "The ${report.year} offseason",
+                    style = NdTheme.type.display, color = NdTheme.colors.chalk,
+                )
+                Text(
+                    "${report.retirementCount} retired, ${report.draftedCount} drafted, " +
+                        "${report.capCasualties} released.",
+                    style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
                 )
             }
         }
@@ -79,8 +77,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
                 if (dead > 0) Line("dead money", money(dead), warn = true)
                 Line("space", money(cap - committed - dead), bold = true)
                 Spacer(Modifier.height(8.dp))
-                Text("BIGGEST HITS", fontFamily = DataFamily, fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Biggest hits", style = NdTheme.type.label, color = NdTheme.colors.chalkDim)
                 roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->
                     val sch = if (p.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
                               else SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
@@ -100,11 +97,10 @@ fun OffseasonScreen(dynasty: Dynasty) {
                     yours.take(6).forEach { w ->
                         Line(
                             "${w.name}  ${w.position} ${w.overall}",
-                            if (w.intent == Intent.TRADE_REQUEST) "TRADE REQUEST" else "",
+                            if (w.intent == Intent.TRADE_REQUEST) "Trade request" else "",
                             warn = w.intent == Intent.TRADE_REQUEST,
                         )
-                        Text(w.note, fontFamily = DataFamily, fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(w.note, style = NdTheme.type.caption, color = NdTheme.colors.chalkDim)
                         Spacer(Modifier.height(4.dp))
                     }
                 }
@@ -119,9 +115,8 @@ fun OffseasonScreen(dynasty: Dynasty) {
                         val to = dynasty.league.team(TeamId(t.to)).abbrev
                         Line("${t.name}  ${t.position} ${t.overall}", "$from → $to")
                         Text(
-                            "${t.reason}   ·   $from carries ${money(t.deadMoney)} dead",
-                            fontFamily = DataFamily, fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "${t.reason}. $from carries ${money(t.deadMoney)} dead.",
+                            style = NdTheme.type.caption, color = NdTheme.colors.chalkDim,
                         )
                         Spacer(Modifier.height(4.dp))
                     }
@@ -151,8 +146,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
         if (report.signings.isNotEmpty()) {
             item {
                 Section("Around the league") {
-                    Text("SIGNINGS", fontFamily = DataFamily, fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Signings", style = NdTheme.type.label, color = NdTheme.colors.chalkDim)
                     report.signings.take(8).forEach { s ->
                         val to = dynasty.league.team(TeamId(s.team)).abbrev
                         Line(
@@ -229,21 +223,13 @@ fun OffseasonScreen(dynasty: Dynasty) {
             }
         }
 
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
+/** Each part of the offseason is its own block (docs/DESIGN.md 5). */
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        HorizontalDivider()
-        Spacer(Modifier.height(8.dp))
-        Text(title.uppercase(), fontFamily = DataFamily, fontSize = 11.sp,
-            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(6.dp))
-        content()
-    }
-}
+private fun Section(title: String, content: @Composable () -> Unit) =
+    SituationBlock(title) { content() }
 
 @Composable
 private fun Line(
@@ -252,18 +238,15 @@ private fun Line(
     bold: Boolean = false,
     warn: Boolean = false,
 ) {
-    Row(Modifier.fillMaxWidth()) {
-        Text(
-            left, fontFamily = DataFamily, fontSize = 12.sp,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            right, fontFamily = DataFamily, fontSize = 12.sp,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
-            color = if (warn) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onSurface,
-        )
+    val c = NdTheme.colors
+    val style = if (bold) NdTheme.type.data.copy(fontWeight = FontWeight.W600) else NdTheme.type.data
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(left, style = style, color = c.chalk, modifier = Modifier.weight(1f))
+        if (warn && right.isNotEmpty()) StatusTag(right, TagTone.URGENT)
+        else Text(right, style = style, color = c.chalk)
     }
 }
 

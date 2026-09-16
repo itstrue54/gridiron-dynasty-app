@@ -1,15 +1,10 @@
 package com.example.nflsimtext.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,8 +15,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.nflsimtext.ui.components.NdSlider
+import com.example.nflsimtext.ui.components.SecondaryButton
+import com.example.nflsimtext.ui.components.SituationBlock
+import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.model.GamePlan
 import com.nflsim.engine.ratings.SchemeCatalog
 import com.nflsim.engine.season.Dynasty
@@ -82,56 +79,81 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
             0f..0.6f, true) { p, v -> p.copy(doubleTeamRate = v) },
     )
 
-    LazyColumn(Modifier.fillMaxWidth()) {
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                TextButton(onClick = onBack) { Text("< Hub", fontSize = 12.sp) }
-                Text("Game plan", fontFamily = DataFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Column {
+                Text("Game plan", style = NdTheme.type.display, color = NdTheme.colors.chalk)
                 Text(
-                    "Your coordinators still call the plays; these set what they call from. " +
-                        "A lever you have not touched follows your coordinators' tendencies in your schemes (${off.name}, ${def.name}).",
-                    fontFamily = DataFamily, fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "Your coordinators call the plays; these set what they call from. " +
+                        "A lever you have not touched follows their tendencies in your schemes.",
+                    style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
                 )
             }
         }
-        item { SectionHeader("Offense") }
-        items(offense, key = { "o-${it.label}" }) { l ->
-            LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
-                onReset = { save(l.set(plan, null)) })
-        }
-        item { SectionHeader("Defense") }
-        items(defense, key = { "d-${it.label}" }) { l ->
-            LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
-                onReset = { save(l.set(plan, null)) })
-        }
-        if (plan != GamePlan()) item {
-            TextButton(onClick = { save(GamePlan()) }, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("Reset the whole plan to your staff's tendencies", fontSize = 12.sp)
+        item {
+            SituationBlock("Offense", meta = off.name) {
+                offense.forEach { l ->
+                    LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
+                        onReset = { save(l.set(plan, null)) })
+                }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
+        item {
+            SituationBlock("Defense", meta = def.name) {
+                defense.forEach { l ->
+                    LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
+                        onReset = { save(l.set(plan, null)) })
+                }
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
+                if (plan != GamePlan()) {
+                    SecondaryButton(
+                        "Follow the staff's tendencies again",
+                        { save(GamePlan()) },
+                        Modifier.fillMaxWidth(),
+                    )
+                }
+                SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth())
+            }
+        }
     }
 }
 
 @Composable
 private fun LeverRow(l: Lever, onChange: (Float) -> Unit, onDone: () -> Unit, onReset: () -> Unit) {
+    val c = NdTheme.colors
     val shown = (l.value ?: l.default).coerceIn(l.range.start, l.range.endInclusive)
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Column(Modifier.padding(vertical = NdTheme.spacing.xs)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(l.label, fontFamily = DataFamily, fontSize = 13.sp,
-                    fontWeight = if (l.value != null) FontWeight.Bold else FontWeight.Normal)
-                Text(l.note, fontFamily = DataFamily, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    l.label,
+                    style = if (l.value != null) NdTheme.type.data.copy(fontWeight = FontWeight.W600)
+                    else NdTheme.type.data,
+                    color = c.chalk,
+                )
+                Text(l.note, style = NdTheme.type.caption, color = c.chalkDim)
             }
             Text(
-                (if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown)) +
-                    if (l.value == null) " (staff)" else "",
-                fontFamily = DataFamily, fontSize = 12.sp,
+                if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown),
+                style = NdTheme.type.data,
+                color = if (l.value != null) c.chalk else c.chalkDim,
             )
-            if (l.value != null) TextButton(onClick = onReset) { Text("Reset", fontSize = 11.sp) }
+            // An untouched lever says whose number it is showing.
+            if (l.value == null) {
+                Text(
+                    " staff",
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                )
+            } else {
+                TextButton(onClick = onReset) {
+                    Text("Reset", style = NdTheme.type.caption, color = c.pylonText)
+                }
+            }
         }
-        Slider(
+        NdSlider(
             value = shown,
             onValueChange = onChange,
             onValueChangeFinished = onDone,

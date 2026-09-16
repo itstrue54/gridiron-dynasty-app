@@ -1,6 +1,7 @@
 package com.example.nflsimtext.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,10 @@ fun SituationBlock(
     modifier: Modifier = Modifier,
     situation: Situation = Situation.NORMAL,
     meta: String? = null,
+    /** Set when the whole block is a control, as an expander is. */
+    onClick: (() -> Unit)? = null,
+    /** A block with nothing under its title needs no rule under it either. */
+    divider: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = NdTheme.colors
@@ -51,7 +56,8 @@ fun SituationBlock(
             // offers once it measures its own minimum intrinsic height.
             .height(IntrinsicSize.Min)
             .clip(NdTheme.shapes.block)
-            .background(c.turfRaised),
+            .background(c.turfRaised)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
     ) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(edge))
         Column(Modifier.padding(NdTheme.spacing.l)) {
@@ -63,13 +69,15 @@ fun SituationBlock(
                 Text(title, style = NdTheme.type.title, color = c.chalk)
                 if (meta != null) Text(meta, style = NdTheme.type.label, color = c.chalkDim)
             }
-            Box(
-                Modifier
-                    .padding(vertical = NdTheme.spacing.s)
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(c.turfLine),
-            )
+            if (divider) {
+                Box(
+                    Modifier
+                        .padding(vertical = NdTheme.spacing.s)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(c.turfLine),
+                )
+            }
             content()
         }
     }

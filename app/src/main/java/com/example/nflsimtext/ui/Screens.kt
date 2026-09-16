@@ -71,7 +71,7 @@ private fun Mark(abbrev: String) =
     TeamMark(abbrev, NdTheme.colors.sitNormal, NdTheme.colors.chalk)
 
 @Composable
-private fun ScreenList(content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) =
+internal fun ScreenList(content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) =
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(

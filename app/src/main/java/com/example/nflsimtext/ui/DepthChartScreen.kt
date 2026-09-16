@@ -2,18 +2,12 @@ package com.example.nflsimtext.ui
 
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.ratings.SchemeFitGrade
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,13 +19,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nflsim.engine.model.DepthPins
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.RatingId
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.SchemeCatalog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.example.nflsimtext.ui.components.RatingValue
+import com.example.nflsimtext.ui.components.SecondaryButton
+import com.example.nflsimtext.ui.components.Situation
+import com.example.nflsimtext.ui.components.SituationBlock
+import com.example.nflsimtext.ui.components.StatusTag
+import com.example.nflsimtext.ui.components.TagTone
+import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.sim.DefensiveFront
@@ -100,16 +103,14 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
         return order.take(maxOf(from, to) + 1).map { it.id.v }
     }
 
-    LazyColumn(Modifier.fillMaxWidth()) {
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                TextButton(onClick = onBack) { Text("< Roster", fontSize = 12.sp) }
-                Text("Depth chart", fontFamily = DataFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Column {
+                Text("Depth chart", style = NdTheme.type.display, color = NdTheme.colors.chalk)
                 Text(
                     "Move a player to pin him and everyone above him. Below the pins the chart " +
-                        "keeps sorting itself by scheme-adjusted overall. Auto clears a position.",
-                    fontFamily = DataFamily, fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        "keeps sorting itself by scheme-adjusted overall.",
+                    style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
                 )
             }
         }
@@ -119,112 +120,160 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
             val pinned = pins.order[position].orEmpty()
             val key = "pos-${position.name}"
             item(key = key) {
-                Header(
-                    position.label, list.first().name,
-                    if (pinned.isNotEmpty()) "${pinned.size} pinned" else "auto",
-                    open == key,
-                ) { open = if (open == key) null else key }
-            }
-            if (open == key) {
-                items(list.indices.toList(), key = { "$key-${list[it].id.v}" }) { i ->
-                    PlayerRow(
-                        i, list[i], overall(list[i], schemeFor(position)), list[i].id.v in pinned,
-                        canUp = i > 0, canDown = i < list.size - 1,
-                        fit = SchemeFitGrade.letter(schemeFit(list[i], schemeFor(position))),
-                        onUp = { save(pins.copy(order = pins.order + (position to moved(list, i, i - 1)))) },
-                        onDown = { save(pins.copy(order = pins.order + (position to moved(list, i, i + 1)))) },
-                    )
-                }
-                if (pinned.isNotEmpty()) item(key = "$key-auto") {
-                    TextButton(onClick = { save(pins.copy(order = pins.order - position)) },
-                        modifier = Modifier.padding(horizontal = 8.dp)) { Text("Auto", fontSize = 12.sp) }
+                ChartBlock(
+                    title = position.label,
+                    meta = if (pinned.isNotEmpty()) "${pinned.size} pinned" else "Sorts itself",
+                    pinned = pinned.isNotEmpty(),
+                    summary = list.first().name,
+                    isOpen = open == key,
+                    onOpen = { open = key },
+                    onClose = { open = null },
+                    onAuto = if (pinned.isEmpty()) null
+                    else ({ save(pins.copy(order = pins.order - position)) }),
+                ) {
+                    list.indices.forEach { i ->
+                        PlayerRow(
+                            i, list[i], overall(list[i], schemeFor(position)), list[i].id.v in pinned,
+                            canUp = i > 0, canDown = i < list.size - 1,
+                            fit = SchemeFitGrade.letter(schemeFit(list[i], schemeFor(position))),
+                            onUp = { save(pins.copy(order = pins.order + (position to moved(list, i, i - 1)))) },
+                            onDown = { save(pins.copy(order = pins.order + (position to moved(list, i, i + 1)))) },
+                        )
+                    }
                 }
             }
         }
 
-        item { SectionHeader("Packages") }
+        item {
+            Text(
+                "Packages",
+                style = NdTheme.type.headline, color = NdTheme.colors.chalk,
+            )
+        }
         SPOTS.forEach { spot ->
             val chart = chartFor(spot.position)
             val list = chart.forPackage(spot.keys.first(), spot.position)
             if (list.size <= 1) return@forEach
             val pinned = spot.keys.firstNotNullOfOrNull { pins.packages[it]?.get(spot.position) }.orEmpty()
             val key = "pkg-${spot.label}"
+            fun write(ids: List<Int>?): DepthPins = pins.copy(packages = spot.keys.fold(pins.packages) { acc, k ->
+                val positions = (acc[k] ?: emptyMap()).let { if (ids == null) it - spot.position else it + (spot.position to ids) }
+                if (positions.isEmpty()) acc - k else acc + (k to positions)
+            })
             item(key = key) {
-                Header(
-                    spot.label, list.take(spot.count).joinToString(", ") { it.lastName },
-                    if (pinned.isNotEmpty()) "pinned" else "auto",
-                    open == key,
-                ) { open = if (open == key) null else key }
-            }
-            if (open == key) {
-                fun write(ids: List<Int>?): DepthPins = pins.copy(packages = spot.keys.fold(pins.packages) { acc, k ->
-                    val positions = (acc[k] ?: emptyMap()).let { if (ids == null) it - spot.position else it + (spot.position to ids) }
-                    if (positions.isEmpty()) acc - k else acc + (k to positions)
-                })
                 val shown = list.take(spot.count + 2)
-                items(shown.indices.toList(), key = { "$key-${shown[it].id.v}" }) { i ->
-                    PlayerRow(
-                        i, shown[i], overall(shown[i], schemeFor(spot.position)), shown[i].id.v in pinned,
-                        canUp = i > 0, canDown = i < shown.size - 1, inPackage = i < spot.count,
-                        fit = SchemeFitGrade.letter(schemeFit(shown[i], schemeFor(spot.position))),
-                        onUp = { save(write(moved(list, i, i - 1))) },
-                        onDown = { save(write(moved(list, i, i + 1))) },
-                    )
-                }
-                if (pinned.isNotEmpty()) item(key = "$key-auto") {
-                    TextButton(onClick = { save(write(null)) }, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        Text("Auto", fontSize = 12.sp)
+                ChartBlock(
+                    title = spot.label,
+                    meta = if (pinned.isNotEmpty()) "Pinned" else "Sorts itself",
+                    pinned = pinned.isNotEmpty(),
+                    summary = list.take(spot.count).joinToString(", ") { it.lastName },
+                    isOpen = open == key,
+                    onOpen = { open = key },
+                    onClose = { open = null },
+                    onAuto = if (pinned.isEmpty()) null else ({ save(write(null)) }),
+                ) {
+                    shown.indices.forEach { i ->
+                        PlayerRow(
+                            i, shown[i], overall(shown[i], schemeFor(spot.position)), shown[i].id.v in pinned,
+                            canUp = i > 0, canDown = i < shown.size - 1, inPackage = i < spot.count,
+                            fit = SchemeFitGrade.letter(schemeFit(shown[i], schemeFor(spot.position))),
+                            onUp = { save(write(moved(list, i, i - 1))) },
+                            onDown = { save(write(moved(list, i, i + 1))) },
+                        )
                     }
                 }
             }
         }
 
-        item { SectionHeader("Returners") }
         item(key = "returners") {
             val kick = SpecialTeams.returnerFor(offChart, offense)
             val punt = SpecialTeams.returnerFor(offChart, offense, punt = true)
             val candidates = (offChart.at(Position.WR) + offChart.at(Position.RB) + offChart.at(Position.CB))
                 .sortedByDescending { it.ratings[RatingId.SPEED] }.take(6)
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text("Kicks: ${kick?.name ?: "-"}${if (pins.kickReturner != null) " (pinned)" else ""}",
-                    fontFamily = DataFamily, fontSize = 12.sp)
-                Text("Punts: ${punt?.name ?: "-"}${if (pins.puntReturner != null) " (pinned)" else ""}",
-                    fontFamily = DataFamily, fontSize = 12.sp)
+            SituationBlock(
+                "Returners",
+                meta = if (pins.kickReturner != null || pins.puntReturner != null) "Pinned" else "Sorts itself",
+            ) {
+                Text(
+                    "Kicks: ${kick?.name ?: "nobody"}. Punts: ${punt?.name ?: "nobody"}.",
+                    style = NdTheme.type.data, color = NdTheme.colors.chalk,
+                )
+                Text(
+                    "The fastest men on the roster.",
+                    style = NdTheme.type.caption, color = NdTheme.colors.chalkDim,
+                    modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+                )
                 candidates.forEach { c ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${c.position.label} ${c.name}", fontFamily = DataFamily, fontSize = 12.sp,
-                            modifier = Modifier.weight(1f))
-                        TextButton(onClick = { save(pins.copy(kickReturner = c.id.v)) }) { Text("KR", fontSize = 11.sp) }
-                        TextButton(onClick = { save(pins.copy(puntReturner = c.id.v)) }) { Text("PR", fontSize = 11.sp) }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${c.position.label} ${c.name}",
+                            style = NdTheme.type.data, color = NdTheme.colors.chalk,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { save(pins.copy(kickReturner = c.id.v)) }) {
+                            Text("Kicks", style = NdTheme.type.caption, color = NdTheme.colors.pylonText)
+                        }
+                        TextButton(onClick = { save(pins.copy(puntReturner = c.id.v)) }) {
+                            Text("Punts", style = NdTheme.type.caption, color = NdTheme.colors.pylonText)
+                        }
                     }
                 }
                 if (pins.kickReturner != null || pins.puntReturner != null) {
-                    TextButton(onClick = { save(pins.copy(kickReturner = null, puntReturner = null)) }) {
-                        Text("Auto returners", fontSize = 12.sp)
-                    }
+                    SecondaryButton(
+                        "Let the chart pick the returners",
+                        { save(pins.copy(kickReturner = null, puntReturner = null)) },
+                        Modifier.padding(top = NdTheme.spacing.s),
+                    )
                 }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
+        item { SecondaryButton("Back to the roster", onBack, Modifier.fillMaxWidth()) }
+    }
+}
+
+/**
+ * A position or a package spot: closed it names its starters, open it is the
+ * order itself. The edge marks a spot a club has pinned by hand.
+ */
+@Composable
+private fun ChartBlock(
+    title: String,
+    meta: String,
+    pinned: Boolean,
+    summary: String,
+    isOpen: Boolean,
+    onOpen: () -> Unit,
+    onClose: () -> Unit,
+    onAuto: (() -> Unit)?,
+    content: @Composable () -> Unit,
+) {
+    SituationBlock(
+        title,
+        // Closed, the block is one line: the position and who starts there.
+        meta = if (isOpen) meta else summary,
+        situation = if (pinned) Situation.THIRD_DOWN else Situation.NORMAL,
+        onClick = if (isOpen) null else onOpen,
+        divider = isOpen || pinned,
+    ) {
+        if (!isOpen) {
+            if (pinned) StatusTag(meta, TagTone.INFO)
+        } else {
+            content()
+            Row(
+                Modifier.padding(top = NdTheme.spacing.s),
+                horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+            ) {
+                SecondaryButton("Close", onClose)
+                if (onAuto != null) SecondaryButton("Clear the pins", onAuto)
+            }
+        }
     }
 }
 
 private val SPECIALISTS = setOf(Position.K, Position.P, Position.LS)
-
-@Composable
-private fun Header(title: String, summary: String, state: String, isOpen: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text((if (isOpen) "- " else "+ ") + title, fontFamily = DataFamily, fontSize = 13.sp,
-            fontWeight = FontWeight.Bold, modifier = Modifier.width(150.dp))
-        Text(summary, fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.weight(1f))
-        Text(state, fontFamily = DataFamily, fontSize = 11.sp,
-            color = if (state == "auto") MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.primary)
-    }
-}
 
 @Composable
 private fun PlayerRow(
@@ -239,19 +288,29 @@ private fun PlayerRow(
     onUp: () -> Unit,
     onDown: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("${index + 1}", fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.width(24.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val c = NdTheme.colors
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            player.name + (if (fit.isNotEmpty()) "  $fit" else "") + if (pinned) "  *" else "",
-            fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.weight(1f),
-            fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
-            color = if (inPackage) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            "${index + 1}",
+            style = NdTheme.type.label, color = c.chalkDim,
+            modifier = Modifier.width(20.dp),
         )
-        Text("$ovr", fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.width(32.dp))
-        TextButton(onClick = onUp, enabled = canUp, contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.width(40.dp)) { Text("^", fontSize = 13.sp) }
-        TextButton(onClick = onDown, enabled = canDown, contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.width(40.dp)) { Text("v", fontSize = 13.sp) }
+        Text(
+            player.name + if (fit.isNotEmpty()) "  $fit" else "",
+            style = if (index == 0) NdTheme.type.data.copy(fontWeight = FontWeight.W600)
+            else NdTheme.type.data,
+            color = if (inPackage) c.chalk else c.chalkDim,
+            modifier = Modifier.weight(1f),
+        )
+        if (pinned) StatusTag("Pinned", TagTone.INFO, Modifier.padding(end = NdTheme.spacing.xs))
+        RatingValue(ovr, Modifier.width(30.dp))
+        TextButton(
+            onClick = onUp, enabled = canUp, contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.width(44.dp).semantics { contentDescription = "Move ${player.name} up" },
+        ) { Text("↑", style = NdTheme.type.title, color = if (canUp) c.pylonText else c.turfLine) }
+        TextButton(
+            onClick = onDown, enabled = canDown, contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.width(44.dp).semantics { contentDescription = "Move ${player.name} down" },
+        ) { Text("↓", style = NdTheme.type.title, color = if (canDown) c.pylonText else c.turfLine) }
     }
 }
