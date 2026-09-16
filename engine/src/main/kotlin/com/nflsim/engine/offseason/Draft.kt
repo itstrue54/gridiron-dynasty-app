@@ -82,7 +82,7 @@ object SyntheticDraftClass : DraftClassSource {
                 pool += generated.copy(
                     birthYear = year - prospectAge(rng),
                     accruedSeasons = 0,
-                    yearsInSystem = 0,
+                    yearsInSystem = 0, yearsWithClub = 0,
                 )
             }
         }
@@ -135,69 +135,150 @@ object DraftRunner {
     )
 
     fun run(
-        order: List<TeamId>,
+        /** Every pick in the draft, in order: its round and the club using it. */
+        slots: List<Pair<Int, TeamId>>,
         prospects: List<Player>,
         schemeFor: (TeamId) -> Scheme,
         needsFor: (TeamId) -> Map<Position, Float>,
         year: Int,
         rng: Rng,
+        /** How far each club's GM will go; only the aggressive trade up. */
+        aggression: (TeamId) -> Float = { 0f },
+        /**
+         * Offered a round-one trade up: [buyer] moves from overall index [from]
+         * to [to], ahead of [seller], and may pay with any of its [later] picks
+         * in this draft. Returns the ones it gave up, or null if it cannot pay.
+         */
+        tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int, later: List<Int>) -> List<Int>? =
+            { _, _, _, _, _ -> null },
     ): Result {
         val available = prospects.toMutableList()
         val picks = mutableListOf<DraftPick>()
         val drafted = mutableMapOf<Int, Player>()
 
+        val board = slots.toMutableList()
+        val movedUp = mutableSetOf<TeamId>()
         var overallPick = 1
-        for (round in 1..ROUNDS) {
-            order.forEach { team ->
-                if (available.isEmpty()) return@forEach
-                val scheme = schemeFor(team)
-                val needs = needsFor(team)
+        board.indices.forEach { i ->
+            if (available.isEmpty()) return@forEach
+            val round = board[i].first
+            var team = board[i].second
 
-                // Every team sees a slightly different board.
-                val choice = available.maxByOrNull { p ->
-                    val talent = overall(p).toFloat()
-                    val fit = schemeFit(p, scheme)
-                    val need = needs[p.position] ?: 0.4f
-                    val error = rng.gaussian(0f, SCOUTING_ERROR)
-                    talent + need * NEED_WEIGHT + fit * FIT_WEIGHT + error
-                } ?: return@forEach
-
-                available.remove(choice)
-                val signed = choice.copy(
-                    teamId = team,
-                    contract = rookieContract(round, year),
-                    accruedSeasons = 0,
-                    yearsInSystem = 0,
-                )
-                drafted[signed.id.v] = signed
-                picks += DraftPick(round, overallPick, team.v, signed.id.v)
-                overallPick++
+            // Draft day in round one: the club on the clock does not need the
+            // best player left, and an aggressive club a few picks later badly
+            // does. They swap firsts and the club moving up pays the chart
+            // difference in later picks, this year's or future ones, so the
+            // club moving down comes away with more. One move up per club.
+            if (round == 1) {
+                val best = available.maxBy { overall(it) }
+                if ((needsFor(team)[best.position] ?: 0.4f) <= PASS_NEED) {
+                    val needOf = { t: TeamId -> needsFor(t)[best.position] ?: 0f }
+                    val buyer = (i + 1 until minOf(board.size, i + 1 + TRADE_UP_RANGE))
+                        .filter { j ->
+                            val t = board[j].second
+                            board[j].first == 1 && t != team && t !in movedUp &&
+                                aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= TRADE_UP_NEED
+                        }
+                        .maxByOrNull { j -> needOf(board[j].second) + aggression(board[j].second) }
+                    val up = buyer?.let { board[it].second }
+                    val later = if (buyer == null) emptyList() else (buyer + 1 until board.size).filter { board[it].second == up }
+                    val paid = if (buyer == null || up == null) null else tradeUp(up, team, buyer, i, later)
+                    if (buyer != null && up != null && paid != null) {
+                        board[buyer] = 1 to team
+                        board[i] = 1 to up
+                        paid.forEach { k -> board[k] = board[k].first to team }
+                        movedUp += up
+                        team = up
+                    }
+                }
             }
+
+            val scheme = schemeFor(team)
+            val needs = needsFor(team)
+
+            // Every team sees a slightly different board.
+            val choice = available.maxByOrNull { p ->
+                val talent = overall(p).toFloat()
+                val fit = schemeFit(p, scheme)
+                val need = needs[p.position] ?: 0.4f
+                val error = rng.gaussian(0f, SCOUTING_ERROR)
+                talent + need * NEED_WEIGHT + fit * FIT_WEIGHT + error
+            } ?: return@forEach
+
+            available.remove(choice)
+            val signed = choice.copy(
+                teamId = team,
+                contract = rookieContract(overallPick, round, year),
+                accruedSeasons = 0,
+                yearsInSystem = 0, yearsWithClub = 0,
+            )
+            drafted[signed.id.v] = signed
+            picks += DraftPick(round, overallPick, team.v, signed.id.v)
+            overallPick++
         }
         return Result(picks, drafted, available.toList())
     }
 
-    /** Slotted rookie deals, four years, cheap and getting cheaper by round. */
-    fun rookieContract(round: Int, year: Int): com.nflsim.engine.model.Contract {
-        val total = when (round) {
-            1 -> 18_000
-            2 -> 8_500
-            3 -> 5_400
-            4 -> 4_300
-            5 -> 3_900
-            6 -> 3_700
-            else -> 3_500
+    /**
+     * The CBA's rookie wage scale: every drafted player signs a four-year deal
+     * slotted by where he was picked. The league derives each slot from the
+     * rookie pool, so this follows 2025's actual contracts as shares of that
+     * year's cap - the first pick near 17.5% over four years, the last of
+     * round one near 4.8%, everyone after the hundredth near the 1.5-2% floor -
+     * and grows with the cap. A compensatory pick is slotted where it falls,
+     * which is the CBA's midpoint of its neighbours. First-rounders are fully
+     * guaranteed and carry the club's fifth-year option.
+     */
+    fun rookieContract(overallPick: Int, round: Int, year: Int): com.nflsim.engine.model.Contract {
+        val total = (CapManagement.capFor(year) * interpolate(overallPick, SCALE)).roundToInt()
+        val bonus = interpolate(overallPick, BONUS_SHARE)
+        val guaranteedBase = when (round) {
+            1 -> 1f
+            2 -> 0.5f
+            3 -> 0.2f
+            else -> 0f
         }
         return com.nflsim.engine.model.Contract.of(
             years = 4, totalValue = total, signedYear = year,
-            bonusShare = if (round == 1) 0.55f else 0.25f,
-            guaranteedShare = if (round <= 2) 0.85f else 0.35f,
-        )
+            bonusShare = bonus,
+            guaranteedShare = guaranteedBase * (1f - bonus),
+        ).copy(fifthYearOption = round == 1)
     }
+
+    private fun interpolate(pick: Int, points: List<Pair<Int, Float>>): Float {
+        if (pick <= points.first().first) return points.first().second
+        if (pick >= points.last().first) return points.last().second
+        val (lo, hi) = points.zipWithNext().first { (a, b) -> pick in a.first..b.first }
+        return lo.second + (hi.second - lo.second) * (pick - lo.first) / (hi.first - lo.first)
+    }
+
+    /**
+     * Four-year rookie totals by overall pick, as shares of the cap: 2025's
+     * contracts over its 279.2m cap - 48.8m for the first pick, 13.35m for the
+     * 32nd, 6.6m by the 100th, 4.3m at the end.
+     */
+    private val SCALE = listOf(
+        1 to 0.1748f, 5 to 0.1433f, 15 to 0.0716f, 32 to 0.0478f, 33 to 0.0394f,
+        49 to 0.0358f, 64 to 0.0258f, 100 to 0.0236f, 101 to 0.0201f, 257 to 0.0154f,
+    )
+
+    /** How much of a rookie deal is signing bonus, by overall pick: two-thirds at the top, a sliver at the end. */
+    private val BONUS_SHARE = listOf(1 to 0.66f, 32 to 0.50f, 64 to 0.30f, 100 to 0.15f, 257 to 0.05f)
 
     /** Scouting error in overall points. Bigger than most people expect. */
     private const val SCOUTING_ERROR = 7.5f
     private const val NEED_WEIGHT = 9f
+
+    /**
+     * Draft-day trades: round one only. The club on the clock needs the best
+     * player left no more than PASS_NEED, and a club within TRADE_UP_RANGE
+     * picks needs him at least TRADE_UP_NEED and is aggressive enough to move.
+     */
+    const val TRADE_UP_REASON = "draft-day trade up"
+    private const val PASS_NEED = 0.3f
+    private const val TRADE_UP_NEED = 0.6f
+    private const val TRADE_UP_AGGRESSION = 0.5f
+    private const val TRADE_UP_RANGE = 12
     private const val FIT_WEIGHT = 6f
 }
 
@@ -212,7 +293,33 @@ object TeamNeeds {
         Position.K to 1, Position.P to 1, Position.LS to 1,
     )
 
-    fun assess(roster: List<Player>, scheme: (Position) -> Scheme, year: Int): Map<Position, Float> =
+    /**
+     * What a typical starting unit looks like at each position in this
+     * league: the mean, across clubs, of the starter average [assess] scores.
+     * Needs are judged against it rather than one number for every position -
+     * centers, fullbacks and specialists rate well below other starters by
+     * construction, and a single bar of 74 made every club look short at all
+     * of them. Relative, not absolute, for the same reason as ADR-006.
+     */
+    fun bar(rosters: Map<TeamId, List<Player>>, scheme: (TeamId, Position) -> Scheme): Map<Position, Float> =
+        Position.entries.associateWith { position ->
+            val required = STARTERS[position] ?: 1
+            val units = rosters.mapNotNull { (id, roster) ->
+                roster.filter { it.position == position }
+                    .map { overall(it, scheme(id, position)) }
+                    .sortedDescending()
+                    .takeIf { it.size >= required }
+                    ?.take(required)?.average()
+            }
+            if (units.isEmpty()) FALLBACK_BAR else units.average().toFloat()
+        }
+
+    fun assess(
+        roster: List<Player>,
+        scheme: (Position) -> Scheme,
+        year: Int,
+        bar: Map<Position, Float>,
+    ): Map<Position, Float> =
         Position.entries.associateWith { position ->
             val group = roster.filter { it.position == position }
                 .sortedByDescending { overall(it, scheme(position)) }
@@ -224,12 +331,24 @@ object TeamNeeds {
             val quality = starters.map { overall(it, scheme(position)) }.average()
             val age = starters.map { it.age(year) }.average()
 
-            // A weak starter is a need. So is a good one about to fall apart.
-            val byQuality = ((74 - quality) / 26.0).coerceIn(0.0, 1.0)
+            // A starting unit short of this league's typical one at the
+            // position is a need. So is a good one about to fall apart.
+            val threshold = (bar[position] ?: FALLBACK_BAR) - NEED_SLACK
+            val byQuality = ((threshold - quality) / 26.0).coerceIn(0.0, 1.0)
             val byAge = ((age - 30) / 7.0).coerceIn(0.0, 0.6)
-            val byDepth = if (group.size <= required) 0.25 else 0.0
+            // No backup is a need only where the roster carries backups. The
+            // template has one center, fullback, kicker, punter and snapper,
+            // so flagging those left every club shopping for a second one.
+            val carriesBackups = (ROSTER_TEMPLATE[position] ?: required) > required
+            val byDepth = if (carriesBackups && group.size <= required) 0.25 else 0.0
             ((byQuality * 0.7 + byAge * 0.2 + byDepth) * 1.15).coerceIn(0.0, 1.0).toFloat()
         }
+
+    /** The old single bar, for a position no club fields enough players at. */
+    private const val FALLBACK_BAR = 74f
+
+    /** Points under the league's typical starting unit before a position reads as a need. */
+    private const val NEED_SLACK = 2f
 
     fun requiredStarters(position: Position): Int = STARTERS[position] ?: 1
 

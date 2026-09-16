@@ -35,6 +35,7 @@ data class Team(
     val offenseScheme: String,
     val defenseScheme: String,
     val roster: List<PlayerId> = emptyList(),
+    val staff: Staff = Staff.UNASSIGNED,
     val finances: TeamFinances = TeamFinances(),
     /** How this front office behaves in the market (SPEC 8.2). */
     val gm: GmProfile = GmProfile(),

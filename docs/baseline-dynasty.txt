@@ -1,0 +1,82 @@
+Calculating task graph as no cached configuration is available for tasks: :engine-cli:run --args=dynasty --years=10
+> Task :engine-cli:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :engine:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :data:processResources NO-SOURCE
+> Task :engine-cli:processResources NO-SOURCE
+> Task :engine:processResources UP-TO-DATE
+> Task :engine:compileKotlin UP-TO-DATE
+> Task :engine:compileJava NO-SOURCE
+> Task :engine:classes UP-TO-DATE
+> Task :engine:jar UP-TO-DATE
+> Task :data:compileKotlin UP-TO-DATE
+> Task :data:compileJava NO-SOURCE
+> Task :data:classes UP-TO-DATE
+> Task :data:jar UP-TO-DATE
+> Task :engine-cli:compileKotlin UP-TO-DATE
+> Task :engine-cli:compileJava NO-SOURCE
+> Task :engine-cli:classes UP-TO-DATE
+
+> Task :engine-cli:run
+Simulating 10 seasons from 2026. You are the Kansas City Drovers.
+
+YEAR   CHAMPION                 MVP                    YOUR REC   MEAN STARTERS    AGE   80+
+--------------------------------------------------------------------------------------------
+2026   Cleveland Forge          Parker Gill            8-6-3      66.6     73.9   25.6   140
+2027   Atlanta Firebirds        Austin Webb            10-5-2     67.4     73.7   25.9   179
+2028   Nashville Stampede       Peyton Chase           11-5-1     67.8     73.7   26.0   201
+2029   San Antonio Vaqueros     Colby Goode            5-11-1     68.3     74.1   26.1   193
+2030   Houston Wildcatters      Miles Sexton           7-9-1      68.4     74.2   26.3   207
+2031   Houston Wildcatters      Dillon Combs           4-11-2     68.4     74.1   26.4   205
+2032   Baltimore Watchmen       Dante Jacobs           6-11       68.4     73.9   26.4   202
+2033   San Francisco Fog        Jaden Hill             6-10-1     68.2     73.9   26.5   198
+2034   San Diego Armada         Dillon Combs           8-7-2      68.1     73.9   26.6   194
+2035   Miami Tarpons            Dillon Combs           8-8-1      67.8     73.4   26.7   166
+
+HEALTH CHECK
+  distinct champions                 9 of 10
+    Houston Wildcatters              2 titles
+  retirements last offseason         214
+  free agents signed                 455
+  cap casualties                     49
+  players kept by their own team     102
+  trade requests                     15 asked out, 6 moved
+      Theo Cross             RG   has told the club he wants to win now
+      Connor Griffin         RG   wants his contract addressed
+      Mitchell McNeil        DT   wants his contract addressed
+      Tristan Murphy         DT   wants his contract addressed
+  under contract before signing      37 per team
+  contracts above player value       109 over 1.3x  74 over 1.5x  55 over 1.7x
+  money committed                    2,052,801 kept  1,556,729 market  1,137,930 minimum
+  free agent prices                  1.24x market
+  contested signings                 31 of 144
+  mean cap space per team            78,472
+  teams under 10m of space           0 of 32
+  roster sizes                       53 to 53
+  players in the league              1956
+
+TALENT FLOW
+  YEAR    RETIRED    MEAN  DRAFTED    MEAN    70+  NET DEV     21-24   25-27   28-30     31+
+  2027        127    59.1      224    61.2     22     0.40      1.63    0.46   -0.92   -3.47
+  2028        186    57.8      224    60.8     19     0.39      1.45    0.48   -0.88   -3.63
+  2029        194    59.2      224    60.5     22     0.33      1.36    0.60   -1.01   -3.34
+  2030        163    60.0      224    60.1     14     0.40      1.37    0.49   -0.88   -2.45
+  2031        189    60.4      224    60.8     20     0.29      1.37    0.67   -0.92   -2.81
+  2032        213    60.0      224    60.6     20     0.26      1.42    0.56   -0.91   -2.74
+  2033        196    60.1      224    59.9     16     0.10      1.26    0.32   -0.99   -3.02
+  2034        216    60.7      224    60.6     23     0.12      1.31    0.50   -0.91   -2.86
+  2035        205    60.9      224    59.8     20     0.13      1.30    0.61   -0.90   -2.70
+  2036        214    60.6      224    61.0     18     0.02      1.34    0.51   -1.18   -3.03
+
+AGE DISTRIBUTION
+  21-24      534  ###############
+  25-27      497  ##############
+  28-30      385  ###########
+  31-33      250  #######
+  34+         30  
+
+10 seasons in 4821ms
+
+BUILD SUCCESSFUL in 5s
+7 actionable tasks: 1 executed, 6 up-to-date
+Configuration cache entry stored.

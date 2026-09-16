@@ -1,5 +1,7 @@
 package com.nflsim.engine.gen
 
+import com.nflsim.engine.model.Coach
+import com.nflsim.engine.model.CoachId
 import com.nflsim.engine.model.GmProfile
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
@@ -34,7 +36,9 @@ object LeagueGenerator {
         val root = SplitMixRng(seed)
         val players = mutableListOf<Player>()
         val teams = mutableListOf<Team>()
+        val coaches = mutableMapOf<CoachId, Coach>()
         var nextPlayerId = 1
+        var nextCoachId = 1
 
         teamSeeds.forEachIndexed { index, teamSeed ->
             val teamId = TeamId(index + 1)
@@ -59,6 +63,14 @@ object LeagueGenerator {
                 rng = teamRng,
             ) { PlayerId(nextPlayerId++) }
 
+            val (staff, teamCoaches) = StaffGenerator.generate(
+                offenseScheme = offense.id,
+                defenseScheme = defense.id,
+                nextId = { CoachId(nextCoachId++) },
+                rng = teamRng.split("staff"),
+            )
+            teamCoaches.forEach { coaches[it.id] = it }
+
             players += roster
             teams += Team(
                 id = teamId,
@@ -72,11 +84,15 @@ object LeagueGenerator {
                 offenseScheme = offense.id,
                 defenseScheme = defense.id,
                 roster = roster.map { it.id },
+                staff = staff,
                 gm = GmProfile.generate(teamRng.split("gm")),
             )
         }
 
-        return League(seed = seed, year = year, teams = teams, players = players)
+        // Every club starts holding its own picks for the next three drafts.
+        val picks = com.nflsim.engine.offseason.Picks.own(
+            teams.map { it.id }, (year + 1)..(year + com.nflsim.engine.offseason.Picks.WINDOW))
+        return League(seed = seed, year = year, teams = teams, players = players, coaches = coaches, picks = picks)
     }
 
     /** Regenerates one team's roster in isolation - same seed, same players. */

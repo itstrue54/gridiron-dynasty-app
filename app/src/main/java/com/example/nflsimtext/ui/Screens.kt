@@ -21,6 +21,7 @@ import com.nflsim.engine.model.Conference
 import com.nflsim.engine.model.Division
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.TraitScouting
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.season.Dynasty
@@ -234,6 +235,7 @@ fun RosterScreen(dynasty: Dynasty) {
                 Cell("AGE", 5f, dim = true)
                 Cell("OVR", 5f, dim = true)
                 Cell("FIT", 5f, dim = true)
+                Cell("COACH", 6f, dim = true)
             }
         }
         item { Rule() }
@@ -250,6 +252,10 @@ fun RosterScreen(dynasty: Dynasty) {
                     bold = fit >= 0.95f,
                     dim = fit <= 0.55f,
                 )
+                // Coachability, as far as the staff has seen it (SPEC 4.6).
+                val seen = TraitScouting.confidence(p.clubYears, team.staff.scoutingDept)
+                Cell(TraitScouting.grade(p.traits.coachability, seen, p.id.v, "coachability"), 6f,
+                    dim = seen < 0.7f)
             }
         }
         item { Spacer(Modifier.height(24.dp)) }

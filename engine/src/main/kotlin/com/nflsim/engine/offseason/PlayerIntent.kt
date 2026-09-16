@@ -135,6 +135,16 @@ object PlayerIntent {
         return wishes
     }
 
+    data class Trades(
+        val players: List<Player>,
+        val deadMoney: Map<Int, Int>,
+        val moves: List<TradeMove>,
+        val picks: List<com.nflsim.engine.model.PickAsset> = emptyList(),
+        val pickTrades: List<PickTrade> = emptyList(),
+    )
+
+    const val PICK_REASON = "sent back for a player who asked out"
+
     /**
      * Granting the requests that can be granted.
      *
@@ -152,13 +162,18 @@ object PlayerIntent {
         deadMoney: Map<Int, Int>,
         ctx: Context,
         rng: Rng,
-    ): Triple<List<Player>, Map<Int, Int>, List<TradeMove>> {
+        /** Every club's picks; this year's are placed by [order]. */
+        picks: List<com.nflsim.engine.model.PickAsset> = emptyList(),
+        order: List<TeamId> = emptyList(),
+    ): Trades {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
             .mapValues { it.value.toMutableList() }
             .toMutableMap()
         val dead = deadMoney.toMutableMap()
         val moves = mutableListOf<TradeMove>()
+        val held = picks.toMutableList()
+        val pickTrades = mutableListOf<PickTrade>()
 
         val asked = wishes.filter { it.intent == Intent.TRADE_REQUEST }
             .sortedByDescending { it.overall }
@@ -206,16 +221,33 @@ object PlayerIntent {
             roster[from]?.remove(player)
             dead[from.v] = (dead[from.v] ?: 0) + deadCap
             roster.getOrPut(suitor) { mutableListOf() } +=
-                player.copy(teamId = suitor, yearsInSystem = 0)
+                player.copy(teamId = suitor, yearsInSystem = 0, yearsWithClub = 0)
 
             moves += TradeMove(
                 player.id.v, player.name, player.position.label,
                 from.v, suitor.v, wish.overall, deadCap, wish.note,
             )
+
+            // Something comes back: the best pick the suitor holds that is
+            // worth no more than the player is to the club letting him go,
+            // valued on that club's timeline by the Johnson chart, as in
+            // ContenderTrades. A player worth nothing to them fetches nothing.
+            val winNow = league.teams.first { it.id == from }.gm.winNowVsFuture
+            val value = (rosterValue(player, ctx.scheme(from, player.position), ctx.year, winNow) -
+                com.nflsim.engine.econ.MarketValue.REPLACEMENT).coerceAtLeast(0f)
+            held.filter { it.owner == suitor.v }
+                .map { it to PickValue.value(it, ctx.year, order, winNow) }
+                .filter { it.second <= value }
+                .maxByOrNull { it.second }
+                ?.first
+                ?.let { pick ->
+                    held[held.indexOf(pick)] = pick.copy(owner = from.v)
+                    pickTrades += PickTrade(pick.year, pick.round, pick.original, suitor.v, from.v, PICK_REASON)
+                }
         }
 
         val free = players.filter { it.teamId == null }
-        return Triple(roster.values.flatten() + free, dead, moves)
+        return Trades(roster.values.flatten() + free, dead, moves, held, pickTrades)
     }
 
     /** Below this a player has no leverage and knows it. */

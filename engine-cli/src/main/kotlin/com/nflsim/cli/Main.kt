@@ -588,6 +588,22 @@ private fun season(args: Array<String>) {
 // is the only view that shows it.
 // ---------------------------------------------------------------------------
 
+private fun pearson(xs: List<Float>, ys: List<Float>): Float {
+    val mx = xs.average()
+    val my = ys.average()
+    var cov = 0.0
+    var varX = 0.0
+    var varY = 0.0
+    xs.indices.forEach { i ->
+        val a = xs[i] - mx
+        val b = ys[i] - my
+        cov += a * b
+        varX += a * a
+        varY += b * b
+    }
+    return if (varX == 0.0 || varY == 0.0) 0f else (cov / kotlin.math.sqrt(varX * varY)).toFloat()
+}
+
 private fun dynasty(args: Array<String>) {
     val years = intArg(args, "years", 10)
     val seed = intArg(args, "seed", 2026).toLong()
@@ -669,6 +685,50 @@ private fun dynasty(args: Array<String>) {
         println("  %-34s %d".format("retirements last offseason", report.retirementCount))
         println("  %-34s %d".format("free agents signed", report.signingCount))
         println("  %-34s %d".format("cap casualties", report.capCasualties))
+        println("  %-34s %d".format("full rosters trading up", report.upgradeCount))
+        println("  %-34s %d, %d signed this offseason, %,d dead".format(
+            "cut at the 53", report.cutdownCount, report.cutdownFresh, report.cutdownDeadMoney))
+        println("  %-34s %d exercised, %d declined; %d and %d over the run".format(
+            "fifth-year options", report.optionsExercised, report.optionsDeclined,
+            flow.sumOf { it.second.optionsExercised }, flow.sumOf { it.second.optionsDeclined }))
+        val comp = d.league.picks.filter { it.compensatory && it.year == d.year + 1 }
+        println("  %-34s %d for the %d draft, to %d clubs".format(
+            "compensatory picks", comp.size, d.year + 1, comp.map { it.original }.toSet().size))
+        println("  %-34s %d last offseason, %d over the run, %d young players back".format(
+            "stars traded to contenders", report.starTrades,
+            flow.sumOf { it.second.starTrades }, flow.sumOf { it.second.youngTraded }))
+        println("  %-34s %d last offseason, %d over the run".format(
+            "draft picks traded", report.pickTrades.size, flow.sumOf { it.second.pickTrades.size }))
+        report.awards.mostValuablePlayer?.let {
+            println("  %-34s %s %s, %s".format("MVP last season", it.name, it.position, it.summary))
+        }
+        println("  %-34s %d last offseason, %d over the run, %d transition, %d kept".format("franchise tags",
+            report.tags.count { it.kind == "franchise" },
+            flow.sumOf { r -> r.second.tags.count { it.kind == "franchise" } },
+            flow.sumOf { r -> r.second.tags.count { it.kind == "transition" } },
+            flow.sumOf { it.second.transitionKept }))
+        println("  %-34s %d last offseason, %d over the run, %d brought new schemes, %d rehired, %d kept offense, %d kept defense".format(
+            "head coaches replaced", report.coachingChanges.size,
+            flow.sumOf { it.second.coachingChanges.size },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.schemeChanged } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.rehired } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.keptOffense } },
+            flow.sumOf { r -> r.second.coachingChanges.count { it.keptDefense } }))
+
+        // Whether buying a star paid: the buyer's record the season before the
+        // trade against the season after, beside contenders who stood pat -
+        // good teams regress, so the buyers alone would flatter nobody.
+        fun records(bought: Boolean) = flow.zipWithNext().flatMap { (now, next) ->
+            now.second.moneyByTeam
+                .filter { (_, m) -> m.winPermille >= 550 && (m.starsBought > 0) == bought }
+                .mapNotNull { (id, m) -> next.second.moneyByTeam[id]?.let { m.winPermille to it.winPermille } }
+        }
+        listOf("star buyers' record" to records(true), "contenders who stood pat" to records(false))
+            .filter { it.second.isNotEmpty() }
+            .forEach { (label, r) ->
+                println("  %-34s .%03d before, .%03d after (%d clubs)".format(label,
+                    r.map { it.first }.average().toInt(), r.map { it.second }.average().toInt(), r.size))
+            }
         println("  %-34s %d".format("players kept by their own team", report.extensionCount))
         println("  %-34s %d asked out, %d moved".format(
             "trade requests", report.tradeRequests, report.trades.size))
@@ -720,6 +780,165 @@ private fun dynasty(args: Array<String>) {
                 year, r.retirementCount, r.retiredMean,
                 r.draftedCount, r.draftedMean, r.draftedStarters, r.developmentNet,
                 brackets.joinToString(" ") { "%7.2f".format(r.developmentByAge[it] ?: 0f) }))
+        }
+    }
+
+    // Whether the cap binds, year by year - a league that leaves more room
+    // every season is one where the cap stops forcing decisions. Space against
+    // each GM's spend share says whether the room is a choice some front
+    // offices made or a market that ran out of players worth paying.
+    if (flow.isNotEmpty()) {
+        println()
+        println("CAP")
+        // Spend columns are annual value committed, as a share of the whole
+        // league's cap. Falling market spend while space piles up is demand
+        // drying up, not money running out.
+        println("  %-6s %9s %11s %7s %10s %7s %7s %7s %7s".format(
+            "YEAR", "CAP", "MEAN SPACE", "OF CAP", "UNDER 10M", "FA SIGN", "MARKET", "KEPT", "MIN"))
+        flow.forEach { (year, r) ->
+            val cap = com.nflsim.engine.offseason.CapManagement.capFor(year)
+            val leagueCap = cap * 32f / 100f
+            println("  %-6d %,9d %,11d %6.1f%% %4d of 32 %7d %6.1f%% %6.1f%% %6.1f%%".format(
+                year, cap, r.meanCapSpace, r.meanCapSpace * 100f / cap, r.teamsTightOnCap,
+                r.auctionCount, r.auctionSpend / leagueCap, r.extensionSpend / leagueCap,
+                r.fillSpend / leagueCap))
+        }
+        val last = flow.last().second.capSpaceByTeam
+        val rows = d.league.teams.mapNotNull { t ->
+            last[t.id.v]?.let { t.gm.spendShare to it.toFloat() }
+        }
+        if (rows.size >= 8) {
+            val band = rows.size / 4
+            val bySpend = rows.sortedByDescending { it.first }
+            println("  %-34s %,.0f vs %,.0f".format("space, top $band spenders vs bottom",
+                bySpend.take(band).map { it.second }.average(),
+                bySpend.takeLast(band).map { it.second }.average()))
+            println("  %-34s %.2f".format("correlation, spend share vs space",
+                pearson(rows.map { it.first }, rows.map { it.second })))
+            println("  %-34s %,.0f to %,.0f".format("space, tightest team to loosest",
+                rows.minOf { it.second }, rows.maxOf { it.second }))
+        }
+    }
+
+    // Whether front offices actually behave differently with money. ADR-009
+    // says the reckless ones fill the league with bad contracts; this is the
+    // only place that claim gets checked, club by club.
+    if (flow.any { it.second.moneyByTeam.isNotEmpty() }) {
+        val traits = listOf<Pair<String, (com.nflsim.engine.model.GmProfile) -> Float>>(
+            "aggression" to { it.aggression },
+            "win now" to { it.winNowVsFuture },
+            "loyalty" to { it.loyaltyToOwnPlayers },
+            "risk tolerance" to { it.riskTolerance },
+        )
+        val band = d.league.teams.size / 4
+        fun ratio(a: Long, b: Long) = if (b == 0L) 0.0 else a.toDouble() / b
+        println()
+        println("GM  (top vs bottom $band clubs on each trait, over every offseason)")
+        println("  %-16s %-5s %9s %9s %8s %10s %9s %11s %6s".format(
+            "TRAIT", "", "FA/MKT", "KEPT/MKT", "KEPT/YR", "OVER 1.5X", "DEAD/CAP", "CASUALTIES", "AGE"))
+        traits.forEach { (name, trait) ->
+            val ranked = d.league.teams.sortedByDescending { trait(it.gm) }
+            listOf("high" to ranked.take(band), "low" to ranked.takeLast(band)).forEach { (label, clubs) ->
+                val ids = clubs.map { it.id.v }.toSet()
+                val rows = flow.flatMap { (year, r) ->
+                    r.moneyByTeam.filterKeys { it in ids }.values.map { year to it }
+                }
+                val dead = rows.map { (y, m) ->
+                    m.deadMoney * 100.0 / com.nflsim.engine.offseason.CapManagement.capFor(y)
+                }.average()
+                println("  %-16s %-5s %8.2fx %8.2fx %8.1f %9.1f%% %8.1f%% %11.1f %6.1f".format(
+                    if (label == "high") name else "", label,
+                    ratio(rows.sumOf { it.second.faPaid.toLong() }, rows.sumOf { it.second.faMarket.toLong() }),
+                    ratio(rows.sumOf { it.second.keptPaid.toLong() }, rows.sumOf { it.second.keptMarket.toLong() }),
+                    rows.map { it.second.keptCount }.average(),
+                    ratio(rows.sumOf { it.second.overpaid.toLong() },
+                        rows.sumOf { it.second.bigContracts.toLong() }) * 100,
+                    dead,
+                    rows.map { it.second.casualties }.average(),
+                    ratio(rows.sumOf { it.second.rosterAgeSum.toLong() },
+                        rows.sumOf { it.second.rosterSize.toLong() })))
+            }
+        }
+    }
+
+    // Whether a losing club pays to be worth joining. Free agents prefer a
+    // winner, so a bad club that wants a veteran has to outbid for him.
+    // Records change every year, so the bands are club-offseasons.
+    val clubSeasons = flow.flatMap { it.second.moneyByTeam.values }
+    if (clubSeasons.size >= 8) {
+        fun ratio(a: Long, b: Long) = if (b == 0L) 0.0 else a.toDouble() / b
+        val quarter = clubSeasons.size / 4
+        val byRecord = clubSeasons.sortedBy { it.winPermille }
+        println()
+        println("BY RECORD  (worst vs best $quarter club-offseasons by last season's record)")
+        println("  %-8s %9s %9s %9s".format("", "FA/MKT", "VET/MKT", "VETS/YR"))
+        listOf("worst" to byRecord.take(quarter), "best" to byRecord.takeLast(quarter)).forEach { (label, g) ->
+            println("  %-8s %8.2fx %8.2fx %9.2f".format(label,
+                ratio(g.sumOf { it.faPaid.toLong() }, g.sumOf { it.faMarket.toLong() }),
+                ratio(g.sumOf { it.vetPaid.toLong() }, g.sumOf { it.vetMarket.toLong() }),
+                g.map { it.vetSigned }.average()))
+        }
+    }
+
+    // Coaching is only worth a hiring screen if a good staff visibly
+    // out-develops a bad one. The league-wide net dev figure is exactly the
+    // number that cannot show that. Staffs do not move until the M8 carousel,
+    // so each team's rating is fixed across the run and the pairing is clean.
+    if (flow.isNotEmpty()) {
+        val staffRating = d.league.teams.mapNotNull { t ->
+            val hc = d.league.coaches[t.staff.headCoach]?.ratings?.development
+            val posDevs = t.staff.positionCoaches.values.mapNotNull {
+                d.league.coaches[it]?.ratings?.development
+            }
+            val blended = when {
+                posDevs.isNotEmpty() && hc != null ->
+                    posDevs.map { it * 0.65f + hc * 0.35f }.average().toFloat()
+                posDevs.isNotEmpty() -> posDevs.average().toFloat()
+                hc != null -> hc.toFloat()
+                else -> null
+            }
+            blended?.let { t.id.v to it }
+        }.toMap()
+
+        // Whole-roster dev is mostly a team's age profile: SPEC 7.1 leaves
+        // coaching out of the decline branch, so old rosters read as badly
+        // coached ones. The under-25 figure is the only one that isolates it.
+        fun paired(pick: (com.nflsim.engine.offseason.OffseasonReport) -> Map<Int, Float>) =
+            d.league.teams.mapNotNull { t ->
+                val staff = staffRating[t.id.v] ?: return@mapNotNull null
+                val years = flow.mapNotNull { (_, r) -> pick(r)[t.id.v] }
+                if (years.isEmpty()) null else Triple(t, staff, years.average().toFloat())
+            }.sortedByDescending { it.second }
+
+        val all = paired { it.developmentByTeam }
+        val young = paired { it.youngDevelopmentByTeam }
+
+        if (all.size >= 8) {
+            val band = all.size / 4
+            println()
+            println("COACHING EFFECT")
+            println("  %-34s %.0f worst  %.0f mean  %.0f best".format(
+                "staff development rating",
+                all.minOf { it.second }, all.map { it.second }.average(),
+                all.maxOf { it.second }))
+
+            listOf("whole roster" to all, "under 25 only" to young).forEach { (label, rows) ->
+                if (rows.size < 8) return@forEach
+                val best = rows.take(band).map { it.third }.average()
+                val worst = rows.takeLast(band).map { it.third }.average()
+                val byDev = rows.sortedByDescending { it.third }
+                println("  $label")
+                println("    %-32s %.2f  vs  %.2f".format(
+                    "net dev, top $band staffs vs bottom", best, worst))
+                println("    %-32s %.2f".format("top minus bottom", best - worst))
+                println("    %-32s %.2f to %.2f".format("best team to worst",
+                    byDev.first().third, byDev.last().third))
+                println("    %-32s %.2f".format("correlation, staff vs dev",
+                    pearson(rows.map { it.second }, rows.map { it.third })))
+            }
+            listOf("best staff" to all.first(), "worst staff" to all.last()).forEach { (label, t) ->
+                println("    %-14s %-24s %3.0f staff".format(label, t.first.name.take(24), t.second))
+            }
         }
     }
 

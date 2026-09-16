@@ -568,8 +568,8 @@ fun progress(p: Player, ctx: ProgressionContext, rng: Rng): Player {
     val ageCurve = positionCurve(p.position).valueAt(p.age + p.traits.peakAgeOffset)  // -1.0 .. +1.0
     val devMult  = p.traits.developmentCurve.multiplier                                // 0.7 .. 1.8
     val workMult = 0.75f + 0.5f * (p.traits.workEthic / 100f)
-    val coachMult = 0.85f + 0.30f * (coachDevRating(ctx, p) / 100f) *
-                    (p.traits.coachability / 100f)
+    val coachMult = 0.2975f + 2.00f * (coachDevRating(ctx, p) / 100f) *
+                    (p.traits.coachability / 100f)   // 0.9475 at coaching 65, coachability 50
     val snapMult = snapExperienceCurve(p.snapsLastSeason)   // playing time drives growth
     val noise    = rng.gaussian(0f, 1.6f)
 
@@ -582,7 +582,7 @@ fun progress(p: Player, ctx: ProgressionContext, rng: Rng): Player {
 Key behaviors this produces, all of which you want:
 - Mental ratings (`awareness`, `playRecognition`) keep rising into the early 30s while `speed`/`acceleration` fall from ~27. Old QBs and safeties stay useful; old RBs and CBs fall off a cliff.
 - A `SUPERSTAR` dev 2nd-round pick who plays 900 snaps as a rookie can jump 8–12 points. A `SLOW` dev 1st-rounder who sits jumps 2.
-- Coaching quality matters most for `coachable` young players — which makes the position-coach hiring screen meaningful.
+- Coaching quality matters most for `coachable` young players — which makes the position-coach hiring screen meaningful. The slope was 0.30 until M7 and left no visible difference between staffs; see DECISIONS.md, "The coach slope is 2.00".
 
 **Breakout / bust events.** Small probability of a discrete jump or collapse, gated by `consistency` and `workEthic`, surfaced as news. These are the stories a dynasty game is made of.
 

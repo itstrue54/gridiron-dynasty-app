@@ -46,6 +46,7 @@ object Extensions {
             .toMutableMap()
         val free = players.filter { it.teamId == null }.toMutableList()
         val signings = mutableListOf<Signing>()
+        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         league.teams.forEach { team ->
             val current = roster.getOrPut(team.id) { mutableListOf() }
@@ -56,12 +57,12 @@ object Extensions {
             // what a team takes into free agency and the draft.
             var budget = (space * team.gm.ownPlayerShare).roundToInt()
             val teamRng = rng.split("extend|${team.id.v}")
-            val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year)
+            val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
 
             val mine = free
                 .filter { previousTeam[it.id.v] == team.id }
                 .map { p ->
-                    p to rosterValue(p, scheme(team.id, p.position), year) +
+                    p to rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
                         (needs[p.position] ?: 0f) * NEED_WEIGHT +
                         p.traits.loyalty / 25f +
                         teamRng.gaussian(0f, 5f)
@@ -72,11 +73,15 @@ object Extensions {
             mine.forEach { p ->
                 if (current.size >= ROSTER_TARGET) return@forEach
                 val market = pricer.annual(p, scheme(team.id, p.position), year)
-                // A loyal front office pays closer to market to avoid a
-                // bidding war; a ruthless one lets him test it.
-                val discount = HOMETOWN_DISCOUNT + team.gm.loyaltyToOwnPlayers * 0.10f
-                val offer = (market * discount).roundToInt()
-                    .coerceAtLeast(Contract.MIN_BASE_SALARY)
+                // Two sides to keeping a player. He names his price - a loyal
+                // one takes less to stay, a mercenary wants what the market
+                // would pay - and the club decides how far it will go before
+                // it lets him test the market.
+                val ask = market * (PLAYER_ASK - p.traits.loyalty / 100f * PLAYER_LOYALTY)
+                val limit = market * (CLUB_LIMIT + team.gm.loyaltyToOwnPlayers * CLUB_LOYALTY +
+                    keepPremium(p, team.gm, needs, free, scheme(team.id, p.position), year))
+                if (ask > limit) return@forEach
+                val offer = ask.roundToInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
                 if (offer > budget) return@forEach
 
                 // Nobody re-signs a replacement level body in February. Those
@@ -93,7 +98,7 @@ object Extensions {
                         signedYear = year,
                         guaranteedShare = 0.50f,
                     ),
-                    yearsInSystem = p.yearsInSystem + 1,
+                    yearsInSystem = p.yearsInSystem + 1, yearsWithClub = p.clubYears + 1,
                 )
                 current += kept
                 free.remove(p)
@@ -119,8 +124,56 @@ object Extensions {
      */
     private const val ROSTER_TARGET = 40
 
-    /** No bidding war, so the price is a little under market. */
-    private const val HOMETOWN_DISCOUNT = 0.93f
+    /**
+     * What a player asks to stay, as a share of market: 1.06 for the least
+     * loyal down to 0.90 for the most. There is no bidding war, so on average
+     * it comes in a little under market.
+     */
+    private const val PLAYER_ASK = 1.06f
+    private const val PLAYER_LOYALTY = 0.16f
+
+    /** How far a club goes to keep its own: 0.94 of market up to 1.08. */
+    private const val CLUB_LIMIT = 0.94f
+    private const val CLUB_LOYALTY = 0.14f
+
+    /**
+     * What else makes a club stretch for its own player besides loyalty: a
+     * starter the market cannot replace, a player in his prime for a club
+     * trying to win now, and an aggressive front office's habit of paying.
+     * As a share of market, added to the club's limit.
+     */
+    private fun keepPremium(
+        player: Player,
+        gm: com.nflsim.engine.model.GmProfile,
+        needs: Map<Position, Float>,
+        market: List<Player>,
+        scheme: Scheme,
+        year: Int,
+    ): Float {
+        val value = rosterValue(player, scheme, year, gm.winNowVsFuture)
+        val alternative = market
+            .filter { it.position == player.position && it.id != player.id }
+            .maxOfOrNull { rosterValue(it, scheme, year, gm.winNowVsFuture) }
+        val gap = if (alternative == null) IRREPLACEABLE_GAP else value - alternative
+        val irreplaceable = (needs[player.position] ?: 0f) *
+            (gap / IRREPLACEABLE_GAP).coerceIn(0f, 1f) * IRREPLACEABLE
+        val prime = if (player.age(year) >= PRIME_AGE) (2f * gm.winNowVsFuture - 1f) * WIN_NOW_KEEP else 0f
+        val aggression = (2f * gm.aggression - 1f) * AGGRESSION_KEEP
+        return irreplaceable + prime + aggression
+    }
+
+    /** Most that a starter the market cannot replace adds to the limit. */
+    private const val IRREPLACEABLE = 0.12f
+
+    /** Rating points over the best free agent at his position that make a player irreplaceable. */
+    private const val IRREPLACEABLE_GAP = 10f
+
+    /** From this age win now moves the limit: all-in clubs stretch for their prime players, rebuilds pull back. */
+    private const val PRIME_AGE = 27
+    private const val WIN_NOW_KEEP = 0.08f
+
+    /** How far an aggressive front office stretches past a careful one, either side of the middle. */
+    private const val AGGRESSION_KEEP = 0.06f
 
     /** Below this multiple of the minimum, let him hit the market. */
     private const val KEEP_THRESHOLD = 1.6f
