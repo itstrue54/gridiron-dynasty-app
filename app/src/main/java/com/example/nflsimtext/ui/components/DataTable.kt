@@ -2,7 +2,11 @@ package com.example.nflsimtext.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +51,7 @@ data class SortState(val column: Int, val descending: Boolean = true)
  * Numbers right-aligned in tabular figures, names left, a 1dp rule between
  * rows and no rounding: a spreadsheet with good typography (docs/DESIGN.md 5).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DataTable(
     columns: List<ColumnSpec>,
@@ -58,10 +63,18 @@ fun DataTable(
     val c = NdTheme.colors
     val stacked = LocalConfiguration.current.fontScale > 1.3f
     Column(modifier.fillMaxWidth()) {
+        // Stacked rows carry their own labels, so a header that no longer lines
+        // up with anything is noise - unless it is the only way to sort.
+        val header = !stacked || onSort != null
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 32.dp).padding(horizontal = NdTheme.spacing.xs),
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (header) 32.dp else 0.dp)
+                .padding(horizontal = NdTheme.spacing.xs)
+                .then(if (stacked) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (!header) return@Row
             columns.forEachIndexed { i, col ->
                 val active = sort?.column == i
                 val arrow = if (!active) "" else if (sort.descending) " ▼" else " ▲"
@@ -72,7 +85,10 @@ fun DataTable(
                     maxLines = 1,
                     textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
                     modifier = Modifier
-                        .weight(col.weight)
+                        .then(
+                            if (stacked) Modifier.padding(end = NdTheme.spacing.m)
+                            else Modifier.weight(col.weight)
+                        )
                         .then(if (onSort != null) Modifier.clickable { onSort(i) } else Modifier),
                 )
             }
@@ -103,7 +119,9 @@ fun DataTable(
                         style = NdTheme.type.data,
                         color = if (row.highlight) c.onStripe else c.chalk,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.m)) {
+                    // Wrap rather than run off the edge: at 2.0 the numbers of a
+                    // roster row do not fit one line.
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.m)) {
                         columns.indices.filter { columns[it].numeric }.forEach { i ->
                             val cell = row.cells.getOrElse(i) { "" }
                             Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs)) {

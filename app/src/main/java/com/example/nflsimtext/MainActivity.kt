@@ -10,7 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import com.example.nflsimtext.ui.DynastyApp
+import com.example.nflsimtext.ui.HapticPrefs
+import com.example.nflsimtext.ui.LocalHaptics
 import com.example.nflsimtext.ui.DynastyStore
 import com.example.nflsimtext.ui.theme.NdTheme
 import com.example.nflsimtext.ui.theme.ThemeStore
@@ -26,12 +29,24 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             var theme by remember { mutableStateOf(ThemeStore.load(applicationContext)) }
+            var haptics by remember { mutableStateOf(HapticPrefs.load(applicationContext)) }
             NdTheme(theme) {
-                val store = remember { DynastyStore.forContext(applicationContext) }
-                LaunchedEffect(Unit) { if (store.hasSave) store.load() }
-                DynastyApp(store, theme) {
-                    theme = it
-                    ThemeStore.save(applicationContext, it)
+                CompositionLocalProvider(LocalHaptics provides haptics) {
+                    val store = remember { DynastyStore.forContext(applicationContext) }
+                    LaunchedEffect(Unit) { if (store.hasSave) store.load() }
+                    DynastyApp(
+                        store = store,
+                        theme = theme,
+                        onTheme = {
+                            theme = it
+                            ThemeStore.save(applicationContext, it)
+                        },
+                        haptics = haptics,
+                        onHaptics = {
+                            haptics = it
+                            HapticPrefs.save(applicationContext, it)
+                        },
+                    )
                 }
             }
         }

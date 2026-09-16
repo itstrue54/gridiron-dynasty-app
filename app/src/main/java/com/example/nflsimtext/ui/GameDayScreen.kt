@@ -1,5 +1,9 @@
 package com.example.nflsimtext.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,13 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.example.nflsimtext.ui.components.Direction
 import com.example.nflsimtext.ui.components.DriveTracker
+import com.example.nflsimtext.ui.components.PlayEvent
 import com.example.nflsimtext.ui.components.PlayLogEntry
 import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.Scoreboard
@@ -23,6 +31,8 @@ import com.example.nflsimtext.ui.components.Situation
 import com.example.nflsimtext.ui.components.SituationBlock
 import com.example.nflsimtext.ui.components.TeamScore
 import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.reducedMotion
+import kotlinx.coroutines.delay
 import com.nflsim.engine.model.Team
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.sim.PlayLog
@@ -56,7 +66,25 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
     val away = dynasty.league.team(game.away)
     val plays = game.playByPlay
     var shown by remember(plays) { mutableStateOf(1) }
+    // A play that was watched animates; a state that was jumped to does not
+    // (docs/DESIGN.md 7).
+    var animate by remember(plays) { mutableStateOf(false) }
+    var scored by remember(plays) { mutableStateOf(false) }
+    val motion = NdTheme.motion
+    val haptic = LocalHapticFeedback.current
+    val hapticsOn = LocalHaptics.current
     val play = plays[shown - 1]
+
+    LaunchedEffect(shown, animate) {
+        // The end zone takes the pylon, holds, and gives it back.
+        if (animate && eventOf(plays, shown - 1) == PlayEvent.SCORE) {
+            scored = true
+            delay(motion.signature.toLong() + 150L)
+            scored = false
+        } else {
+            scored = false
+        }
+    }
     val done = shown >= plays.size
     val offenseIsHome = play.offense == EngineSide.HOME
     val offense = if (offenseIsHome) home else away
@@ -69,6 +97,7 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
                 home = TeamScore(home.abbrev, home.name, if (done) game.homeScore else play.homeScore),
                 quarter = play.quarter,
                 clock = play.clockText,
+                animate = animate,
                 possession = if (done) null else if (offenseIsHome) BoardSide.HOME else BoardSide.AWAY,
                 status = if (done) "Final" else null,
             )
@@ -87,6 +116,8 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
                         direction = Direction.RIGHT,
                         ballLabel = spot(play, defense),
                         gainLabel = spotOf((play.yardLine + play.distance).coerceAtMost(100), defense),
+                        scored = scored,
+                        animate = animate,
                     )
                 }
             }
@@ -95,10 +126,32 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
         item {
             Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
                 if (!done) {
-                    PrimaryButton("Next play", { shown++ }, Modifier.fillMaxWidth())
+                    PrimaryButton(
+                        "Next play",
+                        {
+                            val next = shown
+                            animate = true
+                            shown = next + 1
+                            if (hapticsOn) when (eventOf(plays, next)) {
+                                PlayEvent.SCORE, PlayEvent.TURNOVER ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                PlayEvent.FIRST_DOWN ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                null -> Unit
+                            }
+                        },
+                        Modifier.fillMaxWidth(),
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
-                        SecondaryButton("Sim drive", { shown = endOfDrive(plays, shown) })
-                        SecondaryButton("Sim to end", { shown = plays.size })
+                        // The sim buttons show the end state, and skip the play.
+                        SecondaryButton("Sim drive", {
+                            animate = false
+                            shown = endOfDrive(plays, shown)
+                        })
+                        SecondaryButton("Sim to end", {
+                            animate = false
+                            shown = plays.size
+                        })
                     }
                 } else {
                     PrimaryButton("See the box score", onBoxScore, Modifier.fillMaxWidth())
@@ -111,11 +164,25 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
             SituationBlock("Play log", meta = "$shown of ${plays.size}") {
                 // Newest first, and only what has been shown.
                 (shown - 1 downTo maxOf(0, shown - 25)).forEach { i ->
-                    PlayLogEntry(
-                        downDistance = downAndDistance(plays[i]),
-                        text = plays[i].text,
-                        event = eventOf(plays, i),
-                    )
+                    val entry = @Composable {
+                        PlayLogEntry(
+                            downDistance = downAndDistance(plays[i]),
+                            text = plays[i].text,
+                            event = eventOf(plays, i),
+                        )
+                    }
+                    // The newest entry expands in at the top; the rest sit still.
+                    if (i == shown - 1 && animate && !reducedMotion()) {
+                        val state = remember(i) { MutableTransitionState(false) }
+                            .apply { targetState = true }
+                        AnimatedVisibility(
+                            visibleState = state,
+                            enter = expandVertically(motion.standardSpec()) +
+                                fadeIn(motion.standardSpec()),
+                        ) { entry() }
+                    } else {
+                        entry()
+                    }
                 }
             }
         }

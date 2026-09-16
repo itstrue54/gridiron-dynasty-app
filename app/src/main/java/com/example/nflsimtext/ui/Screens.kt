@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.nflsimtext.ui.components.ColumnSpec
 import com.example.nflsimtext.ui.components.DataTable
 import com.example.nflsimtext.ui.components.PlayEvent
@@ -96,6 +97,8 @@ fun HubScreen(
     scope: CoroutineScope,
     theme: ThemeSetting,
     onTheme: (ThemeSetting) -> Unit,
+    haptics: Boolean,
+    onHaptics: (Boolean) -> Unit,
     onNavigate: (Tab) -> Unit = {},
 ) {
     val c = NdTheme.colors
@@ -106,6 +109,9 @@ fun HubScreen(
 
     ScreenList {
         item {
+            // Big type: the record drops under the club rather than fighting
+            // its name for the line.
+            val stacked = LocalConfiguration.current.fontScale > 1.3f
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Mark(team.abbrev)
                 Column(Modifier.padding(start = NdTheme.spacing.m).weight(1f)) {
@@ -114,8 +120,16 @@ fun HubScreen(
                         "${team.divisionName}, ${dynasty.year}",
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
+                    if (stacked) {
+                        Text(
+                            record.recordText.enDashed(),
+                            style = NdTheme.type.display, color = c.chalk,
+                        )
+                    }
                 }
-                Text(record.recordText.enDashed(), style = NdTheme.type.display, color = c.chalk)
+                if (!stacked) {
+                    Text(record.recordText.enDashed(), style = NdTheme.type.display, color = c.chalk)
+                }
             }
             Text(
                 "${record.pointsFor} for, ${record.pointsAgainst} against " +
@@ -154,6 +168,7 @@ fun HubScreen(
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
                     HubLink("Theme: ${theme.label}") { onTheme(theme.next()) }
+                    HubLink(if (haptics) "Haptics: on" else "Haptics: off") { onHaptics(!haptics) }
                     HubLink("Design") { onNavigate(Tab.GALLERY) }
                 }
             }

@@ -61,6 +61,8 @@ fun DynastyApp(
     store: DynastyStore,
     theme: ThemeSetting,
     onTheme: (ThemeSetting) -> Unit,
+    haptics: Boolean,
+    onHaptics: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.HUB) }
     var player by remember { mutableStateOf<Int?>(null) }
@@ -83,7 +85,7 @@ fun DynastyApp(
             when {
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme) { tab = it }
+                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(
                         dynasty,

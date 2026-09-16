@@ -1,5 +1,13 @@
 package com.example.nflsimtext.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.reducedMotion
 
 /** A club and what it has scored. */
 data class TeamScore(val abbr: String, val name: String, val score: Int)
@@ -34,6 +43,8 @@ fun Scoreboard(
     possession: Side? = null,
     /** Set for a game that is over, where a quarter and a clock say nothing. */
     status: String? = null,
+    /** Off when the state was jumped to rather than played out. */
+    animate: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val c = NdTheme.colors
@@ -53,7 +64,7 @@ fun Scoreboard(
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TeamColumn(away, possession == Side.AWAY, TextAlign.Start, Modifier.weight(1f))
+        TeamColumn(away, possession == Side.AWAY, TextAlign.Start, Modifier.weight(1f), animate)
         Column(Modifier.weight(0.9f), horizontalAlignment = Alignment.CenterHorizontally) {
             if (status != null) {
                 Text(status, style = NdTheme.type.headline, color = c.chalkDim)
@@ -62,12 +73,18 @@ fun Scoreboard(
                 Text(clock, style = NdTheme.type.headline, color = c.chalk)
             }
         }
-        TeamColumn(home, possession == Side.HOME, TextAlign.End, Modifier.weight(1f))
+        TeamColumn(home, possession == Side.HOME, TextAlign.End, Modifier.weight(1f), animate)
     }
 }
 
 @Composable
-private fun TeamColumn(team: TeamScore, hasBall: Boolean, align: TextAlign, modifier: Modifier) {
+private fun TeamColumn(
+    team: TeamScore,
+    hasBall: Boolean,
+    align: TextAlign,
+    modifier: Modifier,
+    animate: Boolean = true,
+) {
     val c = NdTheme.colors
     Column(
         modifier,
@@ -82,7 +99,19 @@ private fun TeamColumn(team: TeamScore, hasBall: Boolean, align: TextAlign, modi
                 Text("▸", style = NdTheme.type.label, color = c.pylonText)
             }
         }
-        Text(team.score.toString(), style = NdTheme.type.scoreboard, color = c.chalk)
+        val still = !animate || reducedMotion()
+        val quick = NdTheme.motion.quick
+        AnimatedContent(
+            targetState = team.score,
+            transitionSpec = {
+                val spec: FiniteAnimationSpec<Float> =
+                    if (still) snap() else tween(quick, easing = FastOutSlowInEasing)
+                fadeIn(spec) togetherWith fadeOut(spec)
+            },
+            label = "score",
+        ) { score ->
+            Text(score.toString(), style = NdTheme.type.scoreboard, color = c.chalk)
+        }
     }
 }
 

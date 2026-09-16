@@ -1,9 +1,15 @@
 package com.example.nflsimtext.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -12,6 +18,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.reducedMotion
 
 /** Which way this offence is moving. */
 enum class Direction { RIGHT, LEFT }
@@ -28,8 +35,32 @@ fun DriveTracker(
     modifier: Modifier = Modifier,
     ballLabel: String = "the $ballOn",
     gainLabel: String? = lineToGain?.let { "the $it" },
+    /** The play just scored: the end zone takes the pylon and gives it back. */
+    scored: Boolean = false,
+    /** Off when the state was jumped to rather than played out. */
+    animate: Boolean = true,
 ) {
     val c = NdTheme.colors
+    val motion = NdTheme.motion
+    val still = !animate || reducedMotion()
+    // The ball slides to its new spot; the line to gain follows once it lands
+    // (docs/DESIGN.md 7).
+    val ball by animateFloatAsState(
+        targetValue = ballOn.toFloat(),
+        animationSpec = if (still) snap() else motion.signatureSpec(),
+        label = "ball",
+    )
+    val gain by animateFloatAsState(
+        targetValue = (lineToGain ?: ballOn).toFloat(),
+        animationSpec = if (still) snap()
+        else tween(motion.standard, delayMillis = motion.signature, easing = FastOutSlowInEasing),
+        label = "line to gain",
+    )
+    val endZone by animateColorAsState(
+        targetValue = if (scored) c.pylon else c.turfLine,
+        animationSpec = if (still) snap() else motion.signatureSpec(),
+        label = "end zone",
+    )
     val spoken = buildString {
         append("Ball on $ballLabel.")
         if (gainLabel != null) append(" Line to gain, $gainLabel.")
@@ -40,22 +71,22 @@ fun DriveTracker(
             .height(32.dp)
             .clearAndSetSemantics { contentDescription = spoken },
     ) {
-        val endZone = size.width * 0.06f
-        val field = size.width - endZone * 2
-        fun x(yard: Int): Float {
-            val fraction = yard.coerceIn(0, 100) / 100f
+        val endZoneWidth = size.width * 0.06f
+        val field = size.width - endZoneWidth * 2
+        fun x(yard: Float): Float {
+            val fraction = yard.coerceIn(0f, 100f) / 100f
             val along = if (direction == Direction.RIGHT) fraction else 1f - fraction
-            return endZone + field * along
+            return endZoneWidth + field * along
         }
 
-        drawRect(c.turfLine, Offset.Zero, Size(endZone, size.height))
-        drawRect(c.turfLine, Offset(size.width - endZone, 0f), Size(endZone, size.height))
+        drawRect(endZone, Offset.Zero, Size(endZoneWidth, size.height))
+        drawRect(endZone, Offset(size.width - endZoneWidth, 0f), Size(endZoneWidth, size.height))
 
         for (yard in 0..100 step 10) {
             drawLine(
                 c.turfLine,
-                Offset(x(yard), size.height * 0.18f),
-                Offset(x(yard), size.height * 0.82f),
+                Offset(x(yard.toFloat()), size.height * 0.18f),
+                Offset(x(yard.toFloat()), size.height * 0.82f),
                 strokeWidth = 1.dp.toPx(),
             )
         }
@@ -63,12 +94,12 @@ fun DriveTracker(
         if (lineToGain != null) {
             drawLine(
                 c.stripe,
-                Offset(x(lineToGain), 0f),
-                Offset(x(lineToGain), size.height),
+                Offset(x(gain), 0f),
+                Offset(x(gain), size.height),
                 strokeWidth = 3.dp.toPx(),
             )
         }
-        drawCircle(c.chalk, radius = 5.dp.toPx(), center = Offset(x(ballOn), size.height / 2))
+        drawCircle(c.chalk, radius = 5.dp.toPx(), center = Offset(x(ball), size.height / 2))
     }
 }
 
