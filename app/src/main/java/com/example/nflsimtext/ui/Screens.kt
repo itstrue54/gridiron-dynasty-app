@@ -2,6 +2,8 @@ package com.example.nflsimtext.ui
 
 import com.nflsim.engine.ratings.SchemeFitGrade
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -135,7 +137,8 @@ fun HubScreen(
                         }
                     )
                 }
-                Row {
+                // Four links do not fit across a phone, so the row scrolls.
+                Row(Modifier.horizontalScroll(rememberScrollState())) {
                     TextButton(onClick = { onNavigate(Tab.PLAN) }) {
                         Text("Game plan", fontSize = 12.sp)
                     }
@@ -144,6 +147,9 @@ fun HubScreen(
                     }
                     TextButton(onClick = { onTheme(theme.next()) }) {
                         Text("Theme: ${theme.label}", fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { onNavigate(Tab.GALLERY) }) {
+                        Text("Design", fontSize = 12.sp)
                     }
                 }
             }
