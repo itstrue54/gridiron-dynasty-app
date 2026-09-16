@@ -1008,3 +1008,42 @@ CBS News, NFL injuries up in 2010; adjusted games lost
 - **Depth still thins over a dynasty:** ten years in, rotation players
   sit 10-12 points under starters however strongly the draft weighs
   them; talent supply, not need, sets that.
+
+## ADR-0xx — Yards a carry comes down to the NFL's, and the clock pays for it
+
+Context: the league ran 4.50 yards a carry against the NFL's recent
+4.3-4.4 - an open item from the last ADR, and the price of asking two
+backs for 1,700 yards a season. Base run yardage had been raised to 3.72
+to hold points up when play calling leaned toward the run.
+
+Decision: base yards 3.72 -> 3.58, with the slope that separates backs
+raised to compensate where it belongs - vision and break-tackle
+0.025 -> 0.032, the lead back's carry share 0.83 -> 0.86 and his cap 25
+-> 27 a game. That keeps the bellcows while the league average falls.
+
+Lowering it cost 0.4 points a game, and the two obvious ways to buy them
+back were closed: the red-zone touchdown rate already sat at 0.59 against
+a 0.60 ceiling, and field goals were being made 1.91 times a game on 2.20
+tries, at or above NFL volume. So the points come from one more
+possession's worth of clock - a completed pass runs 28 seconds off
+instead of 29 - and base completion 0.81 -> 0.82.
+
+The clock is the most sensitive dial in the table. Four seconds off the
+run and completion runoffs put 42 yards and 2.6 points a game on every
+team and lost four bands; one second off completions alone is worth about
+0.2 points.
+
+Measured, six leagues at 4,000 games (seeds 201-206), against the code it
+replaces: yards a carry 4.412 (4.502), points 21.333 (21.183), yards a
+game 350.3 (347.3), completion 0.643 (0.637), yards an attempt 7.353
+(7.270), red-zone touchdowns 0.588 (0.590); bands per league
+[18, 17, 16, 18, 17, 18] against [17, 17, 16, 18, 17, 18], all 18 in on
+average. Twelve seasons: the top two rushers still clear 1,700 every
+season, and the passing leader averages 5,057.
+
+### Open, found while doing this
+- **The passing leader went up**, 4,918 -> 5,057, because base completion
+  paid for the points. Still inside what the NFL's leaders throw for, but
+  further from the middle of it than it was.
+- **The interception rate sits on its ceiling**, 0.028 against a
+  0.02-0.028 band, where it read 0.027 before.
