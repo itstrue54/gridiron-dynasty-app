@@ -54,6 +54,22 @@ class ScoutingLensTest {
     }
 
     @Test
+    fun `a new league knows its veterans and is unsure of its rookies`() {
+        val league = com.nflsim.engine.gen.LeagueGenerator.generate(2026, 2026L)
+        val reads = league.teams.flatMap { team ->
+            league.roster(team.id).map { it.clubYears to ScoutingLens.ownPlayer(it.clubYears, team.staff.scoutingDept) }
+        }
+        val exact = reads.count { it.second >= ScoutingLens.EXACT_AT }.toFloat() / reads.size
+        assertTrue(exact in 0.15f..0.6f,
+            "a club should know some of its roster and be unsure of the rest; %.2f was exact".format(exact))
+        val rookies = reads.filter { it.first == 0 }
+        assertTrue(rookies.isNotEmpty() && rookies.all { it.second < ScoutingLens.GRADE_AT },
+            "a man who has never played for the club should not be a known quantity")
+        assertTrue(reads.filter { it.first >= 3 }.all { it.second >= ScoutingLens.EXACT_AT },
+            "three years in the building should settle it")
+    }
+
+    @Test
     fun `an estimate stays inside the ratings scale`() {
         val views = (0..99).map { ScoutingLens.of(it, 3, 0f).view(it) }
         assertTrue(views.all { it.low >= 0 && it.high <= 99 && it.point in 0..99 })

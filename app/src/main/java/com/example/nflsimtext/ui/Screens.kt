@@ -46,6 +46,7 @@ import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.ScoutingLens
 import com.nflsim.engine.ratings.SchemeFitGrade
 import com.nflsim.engine.ratings.TraitScouting
 import com.nflsim.engine.ratings.overall
@@ -65,6 +66,16 @@ import kotlinx.coroutines.launch
 internal fun String.enDashed() = replace('-', '–')
 
 internal fun signed(value: Int) = if (value >= 0) "+$value" else "−${-value}"
+
+/**
+ * How the user's club reads one of its own players (SPEC 4.6). Nothing in the
+ * app shows a true rating: it shows what the club believes.
+ */
+internal fun lensFor(dynasty: Dynasty, player: Player): ScoutingLens = ScoutingLens.of(
+    playerId = player.id.v,
+    viewerId = dynasty.userTeamId.v,
+    confidence = ScoutingLens.ownPlayer(player.clubYears, dynasty.team.staff.scoutingDept),
+)
 
 /** Whether the club played in the week that just finished, rather than sat a bye. */
 internal fun Dynasty.playedLastWeek(): Boolean = userResults().lastOrNull()?.week == week - 1
@@ -401,23 +412,25 @@ fun RosterScreen(
         item {
             DataTable(
                 columns = listOf(
-                    // EDGE is the widest label the position column carries.
-                    ColumnSpec("Pos", 1.1f),
-                    ColumnSpec("Player", 2.4f),
-                    ColumnSpec("Age", 0.7f, numeric = true),
-                    ColumnSpec("Ovr", 0.7f, numeric = true, tier = true),
-                    ColumnSpec("Scheme", 1.0f, numeric = true, tier = true),
+                    // EDGE is the widest label the position column carries, and
+                    // a rating the club is still guessing at prints as a band.
+                    ColumnSpec("Pos", 1.0f),
+                    ColumnSpec("Player", 2.2f),
+                    ColumnSpec("Age", 0.6f, numeric = true),
+                    ColumnSpec("Ovr", 1.1f, numeric = true, tier = true),
+                    ColumnSpec("Scheme", 1.1f, numeric = true, tier = true),
                     ColumnSpec("Fit", 0.6f, numeric = true),
                 ),
                 rows = shown.map { p ->
                     val scheme = if (p.position.isOffense) offense else defense
+                    val lens = lensFor(dynasty, p)
                     RowData(
                         listOf(
                             p.position.label,
                             p.name,
                             "${p.age(dynasty.year)}",
-                            "${overall(p)}",
-                            "${overall(p, scheme)}",
+                            lens.view(overall(p)).text,
+                            lens.view(overall(p, scheme)).text,
                             SchemeFitGrade.letter(schemeFit(p, scheme)),
                         ),
                         onClick = { onPlayer(p.id.v) },
@@ -432,7 +445,8 @@ fun RosterScreen(
         }
         item {
             Text(
-                "Tap a player for his card.",
+                "Tap a player for his card. A range is a rating the club has " +
+                    "not seen enough of to be sure about.",
                 style = NdTheme.type.caption, color = c.chalkDim,
             )
         }
@@ -447,12 +461,13 @@ private fun rosterOrder(dynasty: Dynasty, sort: SortState): Comparator<Player> {
             dynasty.league.tuning,
         )
     }
+    // A club orders its roster by what it believes, not by the truth.
     val by: Comparator<Player> = when (sort.column) {
         0, 1 -> compareBy({ ROSTER_ORDER.indexOf(it.position) }, { it.lastName })
         2 -> compareBy { it.age(dynasty.year) }
-        4 -> compareBy { overall(it, scheme(it)) }
+        4 -> compareBy { lensFor(dynasty, it).view(overall(it, scheme(it))).point }
         5 -> compareBy { schemeFit(it, scheme(it)) }
-        else -> compareBy { overall(it) }
+        else -> compareBy { lensFor(dynasty, it).view(overall(it)).point }
     }
     return if (sort.descending && sort.column !in setOf(0, 1)) by.reversed() else by
 }

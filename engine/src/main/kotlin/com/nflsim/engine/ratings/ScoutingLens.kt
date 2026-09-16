@@ -76,9 +76,12 @@ class ScoutingLens private constructor(
         }
 
         /**
-         * A club's confidence in its own player: a new arrival reads 0.2-0.4 by
-         * scouting department, and each year in the building adds 0.25. One
-         * model serves ratings and traits alike; only the band differs.
+         * A club's confidence in its own player. A man on your own roster is
+         * never a mystery - he practises in front of the staff every day - so
+         * a new arrival reads 0.35-0.55 by scouting department, and each year
+         * in the building adds 0.25: known by his second season, guesswork as
+         * a rookie. One model serves ratings and traits alike; only the band
+         * differs.
          */
         fun ownPlayer(yearsWithClub: Int, scoutingDept: Int): Float =
             (OWN_BASE + OWN_DEPT * ((scoutingDept - 40) / 40f).coerceIn(0f, 1f) +
@@ -94,7 +97,7 @@ class ScoutingLens private constructor(
             return EXPOSURE_FLOOR + draw * (EXPOSURE_CEILING - EXPOSURE_FLOOR)
         }
 
-        private const val OWN_BASE = 0.2f
+        private const val OWN_BASE = 0.35f
         private const val OWN_DEPT = 0.2f
         private const val OWN_PER_YEAR = 0.25f
         private const val EXPOSURE_FLOOR = 0.10f

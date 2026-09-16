@@ -55,6 +55,8 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
     )
     val fit = schemeFit(player, scheme)
     val seen = TraitScouting.confidence(player.clubYears, team.staff.scoutingDept)
+    val lens = lensFor(dynasty, player)
+    val ovr = lens.view(overall(player))
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -71,11 +73,16 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
                     Text(bio(player, dynasty), style = NdTheme.type.label, color = c.chalkDim)
                 }
                 Text(
-                    "${overall(player)}",
+                    "${ovr.point}",
                     style = NdTheme.type.scoreboard,
-                    color = ratingColor(overall(player), c),
+                    color = ratingColor(ovr.point, c),
                 )
             }
+            Text(
+                if (ovr.exact) "The club knows him."
+                else "An estimate. The club has him somewhere from ${ovr.low} to ${ovr.high}.",
+                style = NdTheme.type.caption, color = c.chalkDim,
+            )
             if (player.injuryWeeks > 0) {
                 Row(Modifier.padding(top = NdTheme.spacing.s)) {
                     StatusTag(
@@ -95,16 +102,28 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
                     .sortedByDescending { it.value }
                     .take(10)
                     .forEach { (rating, _) ->
-                        AttributeBar(ratingLabel(rating), player.ratings[rating])
+                        val view = lens.view(player.ratings[rating])
+                        AttributeBar(
+                            ratingLabel(rating),
+                            view.point,
+                            band = if (view.exact) null else view.low..view.high,
+                            text = view.text,
+                        )
                     }
             }
         }
 
         item {
             SituationBlock("Scheme fit", meta = scheme.name) {
-                AttributeBar("In this scheme", overall(player, scheme))
+                val inScheme = lens.view(overall(player, scheme))
+                AttributeBar(
+                    "In this scheme",
+                    inScheme.point,
+                    band = if (inScheme.exact) null else inScheme.low..inScheme.high,
+                    text = inScheme.text,
+                )
                 Text(
-                    "Fit ${SchemeFitGrade.letter(fit)}, against ${overall(player)} on open ground.",
+                    "Fit ${SchemeFitGrade.letter(fit)}, against ${ovr.text} on open ground.",
                     style = NdTheme.type.body, color = c.chalkDim,
                     modifier = Modifier.padding(top = NdTheme.spacing.xs),
                 )
