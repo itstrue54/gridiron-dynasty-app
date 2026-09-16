@@ -8,6 +8,7 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.Scheme
+import com.nflsim.engine.ratings.ScoutingLens
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
@@ -201,13 +202,21 @@ object DraftRunner {
             val scheme = schemeFor(team)
             val needs = needsFor(team)
 
-            // Every team sees a slightly different board.
+            // Every club reads the board through its own scouting (SPEC 4.6):
+            // what it thinks a prospect is worth, not what he is. The miss is
+            // the club's and the prospect's together and does not move while
+            // the club sits on the clock, so a board is consistent rather than
+            // noisy - a club that is high on a man stays high on him.
             val choice = available.maxByOrNull { p ->
-                val talent = overall(p).toFloat()
+                val lens = ScoutingLens.of(
+                    playerId = p.id.v,
+                    viewerId = team.v,
+                    confidence = ScoutingLens.prospectExposure(p.id.v) * ai.draftScoutingConfidence,
+                )
+                val talent = lens.view(overall(p)).point.toFloat()
                 val fit = schemeFit(p, scheme)
                 val need = needs[p.position] ?: 0.4f
-                val error = rng.gaussian(0f, ai.draftScoutingError)
-                talent + need * ai.draftNeedWeight + fit * ai.draftFitWeight + error
+                talent + need * ai.draftNeedWeight + fit * ai.draftFitWeight
             } ?: return@forEach
 
             available.remove(choice)

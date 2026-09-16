@@ -16,8 +16,7 @@ import com.nflsim.engine.rng.SplitMixRng
 object TraitScouting {
 
     fun confidence(yearsWithClub: Int, scoutingDept: Int): Float =
-        (BASE + DEPT * ((scoutingDept - 40) / 40f).coerceIn(0f, 1f) + PER_YEAR * yearsWithClub)
-            .coerceAtMost(CEILING)
+        ScoutingLens.ownPlayer(yearsWithClub, scoutingDept)
 
     fun grade(trueValue: Int, confidence: Float, playerId: Int, trait: String): String {
         if (confidence < RANGE_AT) return "?"
@@ -39,16 +38,10 @@ object TraitScouting {
         else -> "F"
     }
 
-    /** SPEC 4.6's thresholds: a range from 0.4, a grade from 0.7, the truth from 0.9. */
-    private const val RANGE_AT = 0.4f
-    private const val GRADE_AT = 0.7f
-    private const val EXACT_AT = 0.9f
-    private const val CEILING = 0.95f
-
-    /** A new arrival reads 0.2-0.4 by scouting department; each year in the building adds 0.25. */
-    private const val BASE = 0.2f
-    private const val DEPT = 0.2f
-    private const val PER_YEAR = 0.25f
+    /** SPEC 4.6's thresholds, shared with the ratings lens. */
+    private const val RANGE_AT = ScoutingLens.RANGE_AT
+    private const val GRADE_AT = ScoutingLens.GRADE_AT
+    private const val EXACT_AT = ScoutingLens.EXACT_AT
 
     /** Half-width of the band in trait points at zero confidence; traits span wider than ratings. */
     private const val BAND = 30f
