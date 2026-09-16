@@ -716,3 +716,295 @@ every setting. Cap space 9.9% -> 10.3% and champions 8.0 -> 8.0.
   with floor 0.783 - keeps valuations but fails the calibration and
   season-leader tests, and range 0.20 the seven-point scheme-effect
   test. It needs the passing game retuned with rosters in scheme: M11.
+
+## ADR-0xx — The tuning table is the league's, and schemes carry its scheme-fit math
+
+Context: SPEC 12 puts every coefficient in the sim in one TuningTable,
+saved with the league and editable in-game behind an Advanced toggle,
+with three presets. The table existed with 7 of its groups and the
+presets, but the league did not carry it: every game ran on Realistic,
+special teams, progression, the AI and the scheme-fit math read none of
+it, and about forty play-resolution coefficients were still literals.
+
+Decision, in five slices. Each was verified against two seeded ten-year
+dynasties and the calibration report, which came out identical apart
+from their timings.
+- **The league carries its table** (2020355). Older saves load as
+  Realistic. Dynasty games, season sims and calibration default to it.
+  Special teams joined as a group: the field-goal curve and range,
+  clutch, extra points, punts, touchbacks and returns.
+- **Play resolution** (de87ea5). The pass, run and penalty resolvers'
+  coefficients moved into passing, coverage, blocking, rushing and
+  penalties. Probability clamps and fallbacks stay literal.
+- **Progression and AI** (feb7f02). Progression holds the development
+  model, including SPEC 7.1's coach slope, the age curve and retirement
+  by age. The ai group holds what SPEC 12 names: free-agent aggression,
+  trade frequency, and how the draft weighs need and fit against talent.
+- **The tuning screen** (5563c17). The Hub's Advanced button opens it:
+  the three presets in one tap, then every value, group by group, as a
+  slider from zero to twice its Realistic value. It reads the table
+  through its own serializer, so a value added later appears by itself.
+- **Scheme-fit math** (656794f). SPEC 4.9's constants (the scheme multiplier's floor and
+  range, familiarity, emphasis, fatigue, morale) joined as a ratings
+  group. Passing the table to every place that reads a rating meant 81
+  call sites and about 12 helper signatures. Instead a scheme carries
+  the group: the league's scheme lookups attach it (game teams, the
+  offseason's resolver, the app's screens), and the rating math reads it
+  from the scheme it is already given. Games, valuations and screens
+  agree. A lookup that skips the league gets Realistic, and one search
+  for SchemeCatalog finds any such lookup.
+
+### Open, found while doing this
+- **Fourth-down and play-calling literals stay in code.** They are coach
+  tendencies (SPEC 5.4), which belong with the coaches rather than the
+  table.
+- **Sliders run from zero to twice the Realistic value.** That is the
+  same rule for everything, so a probability near one can be set past
+  one. The code clamps most probabilities, but not all.
+- **The tuning screen has only been compiled,** not run on a device.
+
+## ADR-0xx — The depth chart is pins over the automatic order
+
+Context: SPEC 5.5 wants a per-position depth chart with package
+overrides. Every game rebuilt each club's chart from scheme-adjusted
+overall, and nothing let a club say who plays.
+
+Decision: a club keeps pins, not a whole chart (a4826d1, screen fdd977d).
+- **Order.** Per position, the players pinned to the top of the chart,
+  in order. Everyone else follows the automatic order, so a pinned
+  player who leaves drops out and a newcomer slots in where the
+  automatic order puts him - no upkeep after trades, signings or the
+  draft. A chart nobody touches is the automatic one exactly: with no
+  pins, two seeded ten-year dynasties and the calibration report are
+  unchanged apart from timings.
+- **Packages.** Per personnel grouping or defensive front, who fills a
+  position in it, ahead of the position's chart. The screen groups them
+  by the spots packages actually add: third and fourth receivers, two-
+  and three-tight-end sets, the third corner, dime corners, three
+  interior linemen and goal-line linebackers.
+- **Returners.** A kick and a punt returner can be named; otherwise the
+  fastest skill player returns, as before.
+- **Snaps.** The offseason's playing-time ranks follow the pins, so a
+  starter the club chose gets starter's snaps for development. The
+  rollover drops pins for players who have left.
+- **The screen.** Moving a player pins everyone down to him in the new
+  order; Auto clears a position or package.
+
+### Open, found while doing this
+- **Fatigue and snap rotation (SPEC 5.5's third bullet) are not
+  modelled.** Players carry a fatigue rating the sim never reads, and
+  only running backs rotate, on a fixed 60/28/12 split.
+- **Nobody plays out of position.** Pins only reorder players at their
+  own position; a corner cannot be pinned at safety.
+- **The two-back sets (21, 22, goal line) take their backs from the RB
+  and FB charts,** with no package spot of their own on the screen.
+- **The screen has only been compiled,** not run on a device.
+
+## ADR-0xx — The game plan overrides the levers the play caller already reads
+
+Context: SPEC 5.4 says you do not call plays; you set the tendencies
+your coordinators call from, on a game plan screen. The play caller read
+four tendencies off the scheme (pass rate, play action, blitz rate,
+man/zone) and fixed numbers for the rest, and fourth-down aggression was
+derived from each club's id.
+
+Decision: a club carries a GamePlan whose levers are only the ones the
+play caller already reads, so every slider does something at once
+(7e0266e, screen 16700c3). The levers are pass rate, play action, deep
+shots (split from play action, which they used to follow at 0.65), the
+lean to the pass when trailing, the two-minute boost, blitz rate,
+man/zone, how often to double the top receiver, and fourth-down
+aggression. Each is an override: unset, it is the scheme's value or the
+league's usual figure, so an untouched plan plays as a club with none.
+With no plan set, two seeded ten-year dynasties and the calibration
+report are unchanged apart from timings. AI clubs play their schemes as
+before.
+
+### Open, found while doing this
+- **SPEC 5.4's full Tendencies are not here.** Missing: pass rate by
+  down, distance and score as curves, red-zone and goal-line rates,
+  screens, run direction, box rates, a rating threshold for doubling,
+  and in-game adaptation. Several need new play-calling logic.
+- **Tempo does nothing.** Schemes carry a tempo value that nothing
+  reads; it would need clock and plays-per-game logic.
+- **AI coordinators have no tendencies of their own.** Every AI club
+  plays its scheme's values - the coach-tendencies piece.
+- **The screen has only been compiled,** not run on a device.
+
+## ADR-0xx — Coaches carry their own tendencies, drawn near their scheme
+
+Context: every AI club called games straight off its scheme, so two clubs
+running one scheme were indistinguishable, and fourth-down aggression was
+derived from each club's id. SPEC 5.4 makes coordinators the game's
+personality.
+
+Decision (e10825d): a coach's tendencies are the game plan's levers for
+his role, drawn near his scheme's values. Offensive coordinators get
+pass rate and play action (sd 0.02 each), trailing lean (0.10) and the
+two-minute boost (0.025). Defensive coordinators get blitz rate (0.025),
+man/zone (0.04) and double teams (0.02). Head coaches get fourth-down
+aggression around 0.53 (sd 0.06), the old id formula's average. Draws
+use a stream split per coach, so nothing else in league generation
+moves. A club plays from its own game plan, then its staff's
+tendencies, then its schemes. The carousel's hires bring theirs. Saves
+went to version 4: an older one gives each coach his from his own id.
+
+How it was judged. calibrate used to play one league on one seed, and
+single 4,000-game runs put one band or another just over its edge -
+close games at twice these spreads, yards an attempt at these. With
+calibrate taking --seed (273aef0), six leagues at 4,000 games each show
+no band moving against the baseline: yards an attempt 7.537 against
+7.532, close games 0.192 against 0.192, bands passing per league
+17,17,17,18,16,17 against 17 in every one. Five seeds, ten-year runs:
+development 0.42, ages 21-24 1.38, cap space 10.5%, champions 6.8,
+against 0.42, 1.37, 10.4% and 7.8 before.
+
+### Open, found while doing this
+- **The engine averages 17 of 18 bands, not 18.** Across six leagues
+  yards an attempt sits over its 7.50 ceiling (7.53) in the baseline in
+  every one. The default league happens to sit just under, so every
+  single-league "18 of 18" so far was that league's luck - including
+  the band counts behind shelving scheme-built rosters, which deserve a
+  second look with --seed. M11 starts from here.
+- **Head coaches vary less on fourth down than before.** Their
+  aggression spreads at sd 0.06, where the old id-based figure spread
+  about 0.12.
+- **No in-game adaptation.** SPEC 5.4 has coordinators shift within
+  plus or minus 0.12 toward what the opponent does, by the head coach's
+  adjustments rating.
+- **Tendencies do not follow ratings.** A strong game planner is no more
+  likely to go for it on fourth down than a weak one.
+
+## ADR-0xx — Fatigue builds snap by snap, the tired rotate out, and the game is recalibrated for it
+
+Context: SPEC 5.5's third bullet - fatigue per snap by position and
+stamina, recovery between drives and at halftime, and backups getting
+snaps by it. Players carried a fatigue rating nothing set, and only
+running backs' carries rotated, on a fixed split.
+
+Decision (21f4960): fatigue lives within a game. A scrimmage snap costs
+each player on the field his position group's figure (line 3, front 15,
+backs 13.5, receivers 6, linebackers 5, secondary 4.5, quarterback 1.5)
+times 1.5 - stamina / 100; a snap on the sideline gives back 5, the
+break between drives 10, halftime 40. At rotating positions - backs,
+receivers, tight ends, the front seven and the secondary - a player
+comes out at 40 and returns at 15. Quarterbacks and linemen never
+rotate. Fatigue reaches effective ratings through the ratings group's
+existing penalty (up to 15% at full fatigue). A club's package pins
+still come first. Snap shares over 64 games: lead back 0.66 (second
+0.29), starting edge 0.69 and tackle 0.73, WR1 and TE1 0.93, LB1 about
+0.97, corners and safeties 0.98-0.99; quarterbacks and linemen 1.00.
+
+Calibration. The penalty barely mattered - at 0.15, 0.08, 0.04 and 0
+the game moved the same - rotation did: backups on the defensive front
+added 0.15 yards a carry and took 0.008 off the sack rate. The
+calibration had been set with starters on every snap, so rushing base
+yards went 3.60 -> 3.45 and a pressure's sack chance 0.18 -> 0.21.
+Passing had already run hot - across six leagues the baseline averaged
+7.54 yards an attempt against a 7.50 ceiling - and quarterbacks who
+never rotate facing defenses that do ran hotter still. Yards after the
+catch went 0.43 -> 0.37, which alone moved it little, and base
+completion 0.80 -> 0.79; 0.785 took points just under their floor.
+Six leagues at 4,000 games: bands per league [18, 18, 17, 17, 17, 17] against [17, 17, 17, 18, 16, 17]; yards an
+attempt 7.448 (7.537), completion 0.647 (0.647), yards a carry
+4.207 (4.190), sack rate 0.073 (0.072), yards a game 350.833
+(351.667), points 21.050 (21.100), home wins 0.567 (0.570). Five
+seeds, ten-year runs: development 0.41, ages 21-24 1.37, cap space 10.8%, champions 8.0.
+
+The calibration test moved from 260 games to 1,000. At 260 the
+home-win rate on its league swung 0.48 to 0.58 on the draw alone -
+about 0.39 of the band, past the test's 0.30 tolerance - while 2,000
+games read 0.56 with or without fatigue. Same league, bands and
+tolerance; at 1,000 games both the baseline and fatigue pass all 18.
+
+### Open, found while doing this
+- **The season's top passer has a long tail.** Over twelve seasons the
+  leader averaged about 5,550 yards (about 5,470 before fatigue) and a
+  season or two in twelve went just past 5,800; trimming league passing
+  lowered the average but not the tail, and cost bands.
+- **Depth players are much worse than starters** in generated rosters,
+  which is why rotation cost the defense so much. Real clubs' rotation
+  players are closer to their starters.
+- **Rushing leaders fell** from about 1,900 yards to about 1,400, as the
+  lead back now shares the ball.
+- **Red-zone touchdown rate dipped** from 0.578 to 0.558, still inside
+  its band.
+- **Snaps are counted but not shown.** The box score has no snap counts.
+- **Fatigue does not cause injuries.** SPEC ties durability under load
+  to snap count; injuries ignore fatigue.
+- **Tempo still does nothing.**
+- **A tired player pinned to a package stays in.** Package pins outrank
+  rotation.
+- **The Arcade and Grinder presets set these values absolutely**
+  (rushing base yards 3.8 and 3.0, completion 0.71 and 0.62, YAC 1.35
+  and 0.82), so they now sit a little further from Realistic.
+
+## ADR-0xx — Fatigue and wear cause injuries at NFL rates, rotation asks whether the backup is as good, and the leaders are recalibrated
+
+Context: fatigue did not cause injuries (open from the last ADR), depth
+players were far below starters so rotation mostly hurt, the season's
+top passer averaged about 5,500 yards with seasons past 6,000, and the
+top two rushers never reached 1,700 (asked for every season).
+
+Decision (d629fb5, eca4218):
+- **Injuries.** Each scrimmage snap risks an injury at the position's
+  rate (the injuries group, scale 1.08), times 1 + 1.5 x fatigue, times
+  1 + 0.6 x season wear, times the game's load, proneness and low injury
+  resistance. Severity: 40% one game, 24% two, 12% three or four, 13%
+  five to eight, the rest the season. The injured miss games; wear
+  builds with snaps (more at low durability under load) and keeps 75%
+  week to week; if a whole position is hurt the least hurt plays.
+- **Rotation.** A tired player comes out only for a teammate who,
+  fresh, is at least as good as he is tired, by scheme-adjusted
+  overall. Generated depth at rotating positions sits a few points under
+  the starters, and the draft counts a rotation player more than six
+  points behind as a need.
+- **Leaders.** A league-wide pass-rate lean of -0.04 (new gameFlow
+  field), a lead back's carry share of 0.83 (0.95 for the top two), a
+  25-carry cap per game for the lead back (new rushing field), back
+  fatigue 13.5 -> 9, rushing base yards 3.45 -> 3.72, vision and
+  break-tackle slopes 0.020/0.022 -> 0.025, completion weights
+  0.62/0.55 -> 0.35/0.45 with base completion 0.81 and YAC 0.35, and
+  red-zone compression 0.40 -> 0.32 (runs) and 1.45 -> 1.35 (coverage).
+  Grinder's injury scale went 1.25 -> 1.35 to stay proportionally
+  above Realistic.
+- **Test bounds, with the user's approval:** rushing leader 900-2,600
+  (was 2,300) and lead-back snap share 0.5-0.95 (was 0.8).
+
+Measured. Twelve seasons: passing leader 4,918 on 657 attempts, range
+4,671-5,178 (was 5,494, range 5,126-6,010); rushing leader 2,055 on 363
+carries, range 1,757-2,496; second 1,888 on 349, lowest 1,740; both
+over 1,700 in 12 of 12 (was 0). Injuries per club-season 24.1 (NFL
+about 28), games missed 65.4 (adjusted games lost usually 70-90), 64%
+costing two games or fewer (NFL 64%), 38% in the fourth quarter (about
+41%). Per player-game, % (NFL): RB 4.8 (5.2), TE 4.6 (4.9), S 5.3
+(4.7), CB 4.0 (4.4), LB 4.7 (4.3), DT 4.5 (4.3), DE 4.5 (3.9), OL 3.2
+(3.4), QB 2.7 (2.5), WR 3.7 (4.0). Snap shares: lead back 0.85, second
+0.16, edge 0.72, tackle 0.77, WR1 0.95, TE1 0.92, LB1 0.97, CB1 0.99.
+Six leagues at 4,000 games (seeds 201-206): bands per league [17, 17,
+16, 18, 17, 18] against [17, 17, 15, 18, 17, 17], all 18 in on
+average; yards an attempt 7.270 (7.452), completion 0.637 (0.647),
+yards a carry 4.502 (4.220), points 21.183 (21.283), yards a game
+347.3 (353.8), red-zone TD rate 0.590 (0.565).
+
+Sources: ProFootballLogic, NFL injury rate analysis
+(profootballlogic.com/articles/nfl-injury-rate-analysis); NFL injury
+data, 2023 season key takeaways (nfl.com/playerhealthandsafety);
+CBS News, NFL injuries up in 2010; adjusted games lost
+(ultimatenyg.wordpress.com, 2023; ftnfantasy.com, 2025); PMC9851848.
+
+### Open, found while doing this
+- **Fewer injuries in total than the NFL** (24 against 28) while the
+  per-position rates match: special teams are not simulated, and the
+  NFL's count includes them.
+- **SPEC 5.9 is not complete:** no play-type risk (runs and sacks), no
+  medical staff, no recurrence.
+- **Points sit near their floor** (21.18 against 21.0); running more
+  scores less.
+- **Yards a carry 4.50** is above the NFL's recent 4.3-4.4, the price
+  of 1,700-yard seconds.
+- **The rushing leader's tail** reaches about 2,500, past the NFL
+  record of 2,105; it follows from asking two backs for 1,700 a year.
+- **Depth still thins over a dynasty:** ten years in, rotation players
+  sit 10-12 points under starters however strongly the draft weighs
+  them; talent supply, not need, sets that.

@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -11,9 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -28,10 +28,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.nflsimtext.ui.components.PrimaryButton
+import com.example.nflsimtext.ui.components.SecondaryButton
+import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.ThemeSetting
 import kotlinx.coroutines.launch
 
 enum class Tab(val label: String) {
@@ -39,18 +40,43 @@ enum class Tab(val label: String) {
     STANDINGS("Standings"),
     ROSTER("Roster"),
     SCHEDULE("Schedule"),
-    OFFSEASON("Front Office"),
+    OFFSEASON("Front office"),
     BOX("Box"),
+    /** SPEC 12: behind the Hub's Advanced button, not on the bar. */
+    TUNING("Tuning"),
+    /** SPEC 5.5: from the Roster tab, not on the bar. */
+    DEPTH("Depth chart"),
+    /** SPEC 5.4: behind the Hub's Game plan button, not on the bar. */
+    PLAN("Game plan"),
+    /** docs/DESIGN.md: the component gallery, behind the Hub. */
+    GALLERY("Design"),
+    /** One player, from a tap on the roster. */
+    PLAYER("Player"),
+    /** The week's game, play by play, after the hub plays it. */
+    GAME("Game day"),
 }
 
-/** Numbers line up or tables are unreadable. */
-val Mono = FontFamily.Monospace
-
 @Composable
-fun DynastyApp(store: DynastyStore) {
+fun DynastyApp(
+    store: DynastyStore,
+    theme: ThemeSetting,
+    onTheme: (ThemeSetting) -> Unit,
+    haptics: Boolean,
+    onHaptics: (Boolean) -> Unit,
+) {
     var tab by remember { mutableStateOf(Tab.HUB) }
+    var player by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val dynasty = store.dynasty
+
+    // The system back button belongs to the app's own navigation: from a
+    // screen behind the hub it goes back, not out of the dynasty.
+    BackHandler(enabled = dynasty != null && tab != Tab.HUB) {
+        tab = when (tab) {
+            Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
+            else -> Tab.HUB
+        }
+    }
 
     Scaffold(
         bottomBar = { if (dynasty != null) BottomBar(tab) { tab = it } },
@@ -59,12 +85,26 @@ fun DynastyApp(store: DynastyStore) {
             when {
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope) { tab = it }
+                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
-                    Tab.ROSTER -> RosterScreen(dynasty)
+                    Tab.ROSTER -> RosterScreen(
+                        dynasty,
+                        onDepthChart = { tab = Tab.DEPTH },
+                        onPlayer = { player = it; tab = Tab.PLAYER },
+                    )
                     Tab.SCHEDULE -> ScheduleScreen(dynasty)
                     Tab.OFFSEASON -> OffseasonScreen(dynasty)
                     Tab.BOX -> BoxScoreScreen(dynasty)
+                    Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.HUB }
+                    Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
+                    Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
+                    Tab.GALLERY -> DesignGallery { tab = Tab.HUB }
+                    Tab.PLAYER -> PlayerCardScreen(dynasty, player) { tab = Tab.ROSTER }
+                    Tab.GAME -> GameDayScreen(
+                        dynasty,
+                        onBoxScore = { tab = Tab.BOX },
+                        onBack = { tab = Tab.HUB },
+                    )
                 }
             }
 
@@ -80,23 +120,24 @@ fun DynastyApp(store: DynastyStore) {
 
 @Composable
 private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
-    Surface(tonalElevation = 3.dp) {
+    Surface(color = NdTheme.colors.turfRaised, tonalElevation = 0.dp) {
         // Scrolls, because the tab bar grows every milestone and six labels
         // do not fit across a phone.
         Row(
             Modifier.fillMaxWidth()
+                // Edge to edge: without this the bar sits under the system
+                // gesture bar and its tabs cannot be tapped.
+                .navigationBarsPadding()
                 .horizontalScroll(rememberScrollState())
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Tab.entries.forEach { t ->
+            Tab.entries.filter { it !in setOf(Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME) }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
                     Text(
                         t.label,
-                        fontSize = 12.sp,
-                        fontWeight = if (t == current) FontWeight.Bold else FontWeight.Normal,
-                        color = if (t == current) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = NdTheme.type.label,
+                        color = if (t == current) NdTheme.colors.pylonText else NdTheme.colors.chalkDim,
                     )
                 }
             }
@@ -111,83 +152,22 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("NFL SIM TEXT", fontFamily = Mono, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("NFL sim text", style = NdTheme.type.display, color = NdTheme.colors.chalk)
         Spacer(Modifier.height(8.dp))
         Text(
             "32 teams. 1,696 players. Nobody you have heard of.",
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = NdTheme.type.body,
+            color = NdTheme.colors.chalkDim,
         )
         Spacer(Modifier.height(32.dp))
-        Button(onClick = { scope.launch { store.newDynasty() } }) {
-            Text("Start a new dynasty")
-        }
+        PrimaryButton("Start a new dynasty", { scope.launch { store.newDynasty() } })
         if (store.hasSave) {
             Spacer(Modifier.height(12.dp))
-            TextButton(onClick = { scope.launch { store.load() } }) { Text("Load saved dynasty") }
+            SecondaryButton("Load the saved dynasty", { scope.launch { store.load() } })
         }
         store.message?.let {
             Spacer(Modifier.height(20.dp))
-            Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+            Text(it, style = NdTheme.type.body, color = MaterialTheme.colorScheme.error)
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Shared table pieces. Dense and tabular on purpose - this is a spreadsheet
-// with good typography, not a mobile game (docs/SPEC.md 10.1).
-// ---------------------------------------------------------------------------
-
-@Composable
-fun SectionHeader(text: String) {
-    Text(
-        text.uppercase(),
-        fontFamily = Mono,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 14.dp, bottom = 4.dp, start = 12.dp, end = 12.dp),
-    )
-}
-
-@Composable
-fun Cell(text: String, weight: Float, bold: Boolean = false, dim: Boolean = false) {
-    Text(
-        text,
-        fontFamily = Mono,
-        fontSize = 12.sp,
-        fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
-        color = if (dim) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        modifier = Modifier.width((weight * 8).dp),
-    )
-}
-
-@Composable
-fun TableRow(highlight: Boolean = false, content: @Composable () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(
-                if (highlight) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surface
-            )
-            .padding(horizontal = 12.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) { content() }
-}
-
-@Composable
-fun Rule() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant)
-    )
-}
-
-@Composable
-fun Spacer8() = Spacer(Modifier.height(8.dp))

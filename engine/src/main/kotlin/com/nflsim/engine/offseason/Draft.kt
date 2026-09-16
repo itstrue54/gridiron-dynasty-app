@@ -1,5 +1,6 @@
 package com.nflsim.engine.offseason
 
+import com.nflsim.engine.tuning.TuningTable
 import com.nflsim.engine.gen.PlayerGenerator
 import com.nflsim.engine.model.Archetype
 import com.nflsim.engine.model.Player
@@ -19,6 +20,8 @@ data class DraftPick(
     val overallPick: Int,
     val team: Int,
     val player: Int,
+    /** Whose pick it was before any trade: the slot's original club. */
+    val original: Int = 0,
 )
 
 /**
@@ -151,6 +154,8 @@ object DraftRunner {
          */
         tradeUp: (buyer: TeamId, seller: TeamId, from: Int, to: Int, later: List<Int>) -> List<Int>? =
             { _, _, _, _, _ -> null },
+        /** The league's AI tuning: need, fit and scouting error on the board, and trade-ups. */
+        ai: TuningTable.Ai = TuningTable.REALISTIC.ai,
     ): Result {
         val available = prospects.toMutableList()
         val picks = mutableListOf<DraftPick>()
@@ -173,11 +178,11 @@ object DraftRunner {
                 val best = available.maxBy { overall(it) }
                 if ((needsFor(team)[best.position] ?: 0.4f) <= PASS_NEED) {
                     val needOf = { t: TeamId -> needsFor(t)[best.position] ?: 0f }
-                    val buyer = (i + 1 until minOf(board.size, i + 1 + TRADE_UP_RANGE))
+                    val buyer = (i + 1 until minOf(board.size, i + 1 + ai.draftTradeUpRange))
                         .filter { j ->
                             val t = board[j].second
                             board[j].first == 1 && t != team && t !in movedUp &&
-                                aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= TRADE_UP_NEED
+                                aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= ai.draftTradeUpNeed
                         }
                         .maxByOrNull { j -> needOf(board[j].second) + aggression(board[j].second) }
                     val up = buyer?.let { board[it].second }
@@ -201,8 +206,8 @@ object DraftRunner {
                 val talent = overall(p).toFloat()
                 val fit = schemeFit(p, scheme)
                 val need = needs[p.position] ?: 0.4f
-                val error = rng.gaussian(0f, SCOUTING_ERROR)
-                talent + need * NEED_WEIGHT + fit * FIT_WEIGHT + error
+                val error = rng.gaussian(0f, ai.draftScoutingError)
+                talent + need * ai.draftNeedWeight + fit * ai.draftFitWeight + error
             } ?: return@forEach
 
             available.remove(choice)
@@ -265,9 +270,6 @@ object DraftRunner {
     /** How much of a rookie deal is signing bonus, by overall pick: two-thirds at the top, a sliver at the end. */
     private val BONUS_SHARE = listOf(1 to 0.66f, 32 to 0.50f, 64 to 0.30f, 100 to 0.15f, 257 to 0.05f)
 
-    /** Scouting error in overall points. Bigger than most people expect. */
-    private const val SCOUTING_ERROR = 7.5f
-    private const val NEED_WEIGHT = 9f
 
     /**
      * Draft-day trades: round one only. The club on the clock needs the best
@@ -276,10 +278,7 @@ object DraftRunner {
      */
     const val TRADE_UP_REASON = "draft-day trade up"
     private const val PASS_NEED = 0.3f
-    private const val TRADE_UP_NEED = 0.6f
     private const val TRADE_UP_AGGRESSION = 0.5f
-    private const val TRADE_UP_RANGE = 12
-    private const val FIT_WEIGHT = 6f
 }
 
 /** What a roster is short of, 0 (set) to 1 (desperate). */
@@ -341,7 +340,14 @@ object TeamNeeds {
             // so flagging those left every club shopping for a second one.
             val carriesBackups = (ROSTER_TEMPLATE[position] ?: required) > required
             val byDepth = if (carriesBackups && group.size <= required) 0.25 else 0.0
-            ((byQuality * 0.7 + byAge * 0.2 + byDepth) * 1.15).coerceIn(0.0, 1.0).toFloat()
+            // Where clubs rotate, the first player in behind the starters
+            // plays a real share of snaps (SPEC 5.5), so one well behind them
+            // is a need too.
+            val rotation = group.getOrNull(required)?.let { overall(it, scheme(position)).toDouble() }
+            val byRotation = if (position in ROTATES && rotation != null)
+                ((quality - rotation - ROTATION_SLACK) / 20.0).coerceIn(0.0, 0.5) else 0.0
+            ((byQuality * 0.7 + byAge * 0.2 + byDepth + byRotation * ROTATION_WEIGHT) * 1.15)
+                .coerceIn(0.0, 1.0).toFloat()
         }
 
     /** The old single bar, for a position no club fields enough players at. */
@@ -349,6 +355,12 @@ object TeamNeeds {
 
     /** Points under the league's typical starting unit before a position reads as a need. */
     private const val NEED_SLACK = 2f
+
+    /** Positions that rotate, and how far a rotation player may trail the starters before it is a need. */
+    private val ROTATES = setOf(Position.RB, Position.WR, Position.TE, Position.EDGE, Position.DT,
+        Position.LB, Position.CB, Position.S)
+    private const val ROTATION_SLACK = 6.0
+    private const val ROTATION_WEIGHT = 0.5
 
     fun requiredStarters(position: Position): Int = STARTERS[position] ?: 1
 

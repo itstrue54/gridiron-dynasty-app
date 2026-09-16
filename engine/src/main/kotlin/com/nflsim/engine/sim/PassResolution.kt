@@ -45,10 +45,10 @@ internal object PassResolution {
         val rushers = ctx.defense.passRushers.take(def.rushers.coerceAtLeast(1))
         val rushPower = rushers.averageRating(RatingId.POWER_MOVES, dfs)
         val rushFinesse = rushers.averageRating(RatingId.FINESSE_MOVES, dfs)
-        val rushStrength = maxOf(rushPower, rushFinesse) * 0.65f + minOf(rushPower, rushFinesse) * 0.35f
+        val rushStrength = maxOf(rushPower, rushFinesse) * t.passing.rushBlendStrong + minOf(rushPower, rushFinesse) * t.passing.rushBlendWeak
 
         val numbers = (blockers - def.rushers) * t.blocking.extraBlockerValue
-        val actionHelp = if (call.playAction) 4.5f else 0f
+        val actionHelp = if (call.playAction) t.passing.playActionProtection else 0f
         val quickRelease = if (call.concept.quick) 9f else 0f
 
         // Road offences fire late because they cannot hear the snap count.
@@ -64,11 +64,11 @@ internal object PassResolution {
         // ---- sack, scramble or throw under duress ------------------------
         if (pressured) {
             val escape = rate(qb, RatingId.BREAK_SACK, off)
-            val sackChance = t.passing.sackGivenPressure * (1.35f - escape / 145f)
+            val sackChance = t.passing.sackGivenPressure * (t.passing.sackEscapeBase - escape / t.passing.sackEscapeScale)
             if (rng.nextFloat() < sackChance) {
                 // Real sacks average about 7 and essentially never pass 15.
                 // An uncapped exponential draw produced a 27 yard loss.
-                val rawLoss = (3f + rng.exponential(4.0f)).coerceAtMost(15f).roundToInt()
+                val rawLoss = (t.passing.sackLossBase + rng.exponential(t.passing.sackLossMean)).coerceAtMost(15f).roundToInt()
                 val loss = -minOf(rawLoss, (ctx.state.yardLine - 1).coerceAtLeast(1))
                 // Weighted by rush skill rather than always the best man, or
                 // one edge rusher finishes the season with 62 sacks.
@@ -84,9 +84,9 @@ internal object PassResolution {
             }
 
             val scrambleUrge = rate(qb, RatingId.SCRAMBLING, off) / 99f
-            if (rng.nextFloat() < scrambleUrge * 0.35f) {
-                val gain = (rng.gaussian(4.5f, 4f) +
-                    (rate(qb, RatingId.SPEED, off) - 70) * 0.09f)
+            if (rng.nextFloat() < scrambleUrge * t.passing.scrambleRate) {
+                val gain = (rng.gaussian(t.passing.scrambleMean, t.passing.scrambleSpread) +
+                    (rate(qb, RatingId.SPEED, off) - 70) * t.passing.scrambleSpeed)
                     .roundToInt().coerceIn(-3, ctx.state.yardsToGoal)
                 return PlayResult(
                     outcome = PlayOutcome.SCRAMBLE, yards = gain,
@@ -124,13 +124,13 @@ internal object PassResolution {
             rate(defender, RatingId.MAN_COVERAGE, dfs) else rate(defender, RatingId.ZONE_COVERAGE, dfs)
 
         var routeWin = rate(receiver, routeRating, off) +
-            rate(receiver, RatingId.RELEASE, off) * 0.22f -
-            coverageSkill * 1.10f
+            rate(receiver, RatingId.RELEASE, off) * t.coverage.releaseWeight -
+            coverageSkill * t.coverage.coverageWeight
         if (!def.coverage.man) routeWin += t.coverage.zoneCushion
         if (def.isBlitz) routeWin += def.extraRushers * t.coverage.blitzCoverageCost
         if (def.doubledTarget == targetIndex) routeWin -= t.coverage.doubleTeamPenalty
         // Deep shots into a loaded shell are harder than the raw matchup says.
-        if (call.concept.airYards >= 18) routeWin -= (def.coverage.deepDefenders - 1) * 3.2f
+        if (call.concept.airYards >= 18) routeWin -= (def.coverage.deepDefenders - 1) * t.coverage.deepHelp
         // The red zone is hard because the field runs out. Safeties who would
         // be playing twenty yards deep are now standing on the goal line.
         if (ctx.state.yardsToGoal <= 20) {
@@ -145,18 +145,18 @@ internal object PassResolution {
         }
 
         var completion = t.passing.baseCompletion +
-            ((accuracy - 70) * 0.62f + routeWin * 0.55f) / t.passing.completionScale -
+            ((accuracy - 70) * t.passing.accuracyWeight + routeWin * t.passing.separationWeight) / t.passing.completionScale -
             t.passing.depthPenaltyPerYard * call.concept.airYards.coerceAtLeast(0)
         if (pressured) completion *= t.passing.pressureCompletionMult *
-            (0.85f + rate(qb, RatingId.THROW_UNDER_PRESSURE, off) / 330f)
+            (t.passing.poiseBase + rate(qb, RatingId.THROW_UNDER_PRESSURE, off) / t.passing.poiseScale)
         completion = completion.coerceIn(0.02f, 0.95f)
         values["completionChance"] = completion
 
         // ---- interception -----------------------------------------------
         val intChance = (t.passing.interceptionBase +
             t.passing.interceptionCoverageScale * (-routeWin / 40f).coerceAtLeast(0f) +
-            (70 - rate(qb, RatingId.AWARENESS, off)) * 0.00042f)
-            .coerceIn(0.002f, 0.22f) * (if (pressured) 1.7f else 1f)
+            (70 - rate(qb, RatingId.AWARENESS, off)) * t.passing.interceptionAwareness)
+            .coerceIn(0.002f, 0.22f) * (if (pressured) t.passing.interceptionPressure else 1f)
         values["interceptionChance"] = intChance
 
         if (rng.nextFloat() < intChance) {
@@ -179,13 +179,13 @@ internal object PassResolution {
         }
 
         // ---- caught ------------------------------------------------------
-        val air = (call.concept.airYards + rng.gaussian(0f, 2.2f)).roundToInt()
+        val air = (call.concept.airYards + rng.gaussian(0f, t.passing.airYardsSpread)).roundToInt()
         val tackling = ctx.defense.secondary.averageRating(RatingId.TACKLE, dfs)
         val yacBase = (rate(receiver, RatingId.ELUSIVENESS, off) +
             rate(receiver, RatingId.BREAK_TACKLE, off)) / 2f
-        var yac = (rng.exponential(2.6f) + (yacBase - tackling) * 0.055f) * t.passing.yacScale
-        if (call.concept == PassConcept.SCREEN) yac += rng.exponential(4.2f)
-        if (!def.coverage.man) yac += 0.8f
+        var yac = (rng.exponential(t.passing.yacMean) + (yacBase - tackling) * t.passing.yacTackling) * t.passing.yacScale
+        if (call.concept == PassConcept.SCREEN) yac += rng.exponential(t.passing.screenYac)
+        if (!def.coverage.man) yac += t.passing.zoneYac
 
         val total = (air + yac).roundToInt().coerceIn(-4, ctx.state.yardsToGoal)
         values["airYards"] = air.toFloat()

@@ -29,7 +29,10 @@ class CalibrationTest {
     @Test
     fun `the league still looks like football`() {
         val league = LeagueGenerator.generate(2026, 2026L)
-        val report = GameCalibration.run(league, games = 260, seed = 2026L)
+        // 1,000 games, not 260: at 260 the home-win rate alone swung 0.48 to
+        // 0.58 on the draw - about 0.39 of its band, past the tolerance -
+        // while 2,000 games read 0.56 either way.
+        val report = GameCalibration.run(league, games = 1000, seed = 2026L)
 
         val badlyOff = report.failures.filter { it.miss > tolerance }
         assertTrue(

@@ -36,6 +36,11 @@ data class PlayContext(
     val tuning: TuningTable = TuningTable.REALISTIC,
     /** 0..100, drives false starts and communication problems on the road. */
     val crowdNoise: Int = 0,
+    /** Each side's game plan: the tendencies its coordinator calls from. */
+    val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    /** A player's carries so far this game, for the lead back's workload. */
+    val carries: (Int) -> Int = { 0 },
 )
 
 // ---------------------------------------------------------------------------
@@ -68,16 +73,16 @@ internal object RunResolution {
         // by their raw rating. Multiplying a 78-rated tight end by 0.12 handed
         // the offence nine points of advantage just for having him on the field.
         val teHelp = (ctx.offense.tightEnds.averageRating(RatingId.RUN_BLOCK, offScheme) - BLOCKER_BASELINE) *
-            0.18f * ctx.offense.tightEnds.size
+            t.blocking.tightEndHelp * ctx.offense.tightEnds.size
         val backHelp = if (ctx.offense.backs.size > 1)
-            (ctx.offense.backs.drop(1).averageRating(RatingId.LEAD_BLOCK, offScheme) - BLOCKER_BASELINE) * 0.12f
+            (ctx.offense.backs.drop(1).averageRating(RatingId.LEAD_BLOCK, offScheme) - BLOCKER_BASELINE) * t.blocking.leadBlockScale
         else 0f
 
         val boxDefenders = (ctx.defense.frontSeven + ctx.defense.safeties)
             .take(def.box.coerceAtLeast(1))
         val shed = boxDefenders.averageRating(RatingId.BLOCK_SHEDDING, defScheme)
         val power = boxDefenders.averageRating(RatingId.STRENGTH, defScheme)
-        val frontStrength = shed * 0.62f + power * 0.38f
+        val frontStrength = shed * t.blocking.shedWeight + power * t.blocking.powerWeight
 
         val blockers = 5 + ctx.offense.tightEnds.size + (ctx.offense.backs.size - 1).coerceAtLeast(0)
         val numbers = (blockers - def.box) * t.blocking.boxCountPenalty
@@ -98,7 +103,7 @@ internal object RunResolution {
         val carrier = when {
             call.concept == RunConcept.QB_SNEAK || call.concept == RunConcept.QB_KEEP ->
                 ctx.offense.quarterback
-            else -> pickCarrier(ctx.offense.backfield.ifEmpty { ctx.offense.backs }, rng)
+            else -> pickCarrier(ctx.offense.backfield.ifEmpty { ctx.offense.backs }, rng, t.rushing, ctx.carries)
         }
 
         val vision = rate(carrier, RatingId.VISION, offScheme)
@@ -110,8 +115,8 @@ internal object RunResolution {
         var yards = t.rushing.baseYards +
             t.rushing.advantageYards * advantage +
             rng.gaussian(0f, t.rushing.variance) +
-            (vision - 70) * 0.020f +
-            (breakTackle - tackling) * 0.022f
+            (vision - 70) * t.rushing.visionScale +
+            (breakTackle - tackling) * t.rushing.breakTackleScale
 
         val values = mutableMapOf(
             "lineBlock" to lineBlock,
@@ -125,11 +130,11 @@ internal object RunResolution {
         // yards per carry has the tail it has.
         val breakChance = (t.rushing.breakawayBase +
             t.rushing.breakawayAdvantageScale * advantage +
-            (elusiveness - 70) * 0.0011f).coerceIn(0.004f, 0.42f)
+            (elusiveness - 70) * t.rushing.breakawayElusiveness).coerceIn(0.004f, 0.42f)
         val broke = rng.nextFloat() < breakChance
         if (broke) {
             val extra = rng.exponential(t.rushing.breakawayYards) *
-                (0.75f + (rate(carrier, RatingId.SPEED, offScheme) / 99f) * 0.5f)
+                (t.rushing.breakawaySpeedBase + (rate(carrier, RatingId.SPEED, offScheme) / 99f) * t.rushing.breakawaySpeedRange)
             yards += extra
             values["breakawayYards"] = extra
         }
@@ -142,8 +147,8 @@ internal object RunResolution {
         // Fumble. Ball security and getting hit hard both matter.
         val hitPower = ctx.defense.frontSeven.averageRating(RatingId.HIT_POWER, defScheme)
         val fumbleChance = t.rushing.fumbleBase *
-            (1.6f - rate(carrier, RatingId.BALL_SECURITY, offScheme) / 99f) *
-            (0.7f + hitPower / 140f)
+            (t.rushing.fumbleSecurityBase - rate(carrier, RatingId.BALL_SECURITY, offScheme) / 99f) *
+            (t.rushing.fumbleHitBase + hitPower / t.rushing.fumbleHitScale)
         if (rng.nextFloat() < fumbleChance) {
             return PlayResult(
                 outcome = PlayOutcome.FUMBLE_LOST,
@@ -188,15 +193,22 @@ internal object RunResolution {
     private fun List<Player>.randomBy(rng: Rng): Player? =
         if (isEmpty()) null else this[rng.nextInt(size)]
 
-    /** Roughly a 60/28/12 split, the shape of a real committee. */
-    private fun pickCarrier(backs: List<Player>, rng: Rng): Player {
+    /**
+     * Roughly 83/12/5 down the rested chart, where a resting back drops to
+     * the end: a bellcow's share. A committee comes from rotation instead -
+     * a tired lead back sits when his backup, fresh, is as good as he is tired.
+     */
+    private fun pickCarrier(backs: List<Player>, rng: Rng, rushing: TuningTable.Rushing, carries: (Int) -> Int): Player {
         if (backs.size <= 1) return backs.first()
         val roll = rng.nextFloat()
-        return when {
-            roll < 0.60f -> backs[0]
-            roll < 0.88f -> backs.getOrElse(1) { backs[0] }
+        val pick = when {
+            roll < rushing.rbRotationLead -> backs[0]
+            roll < rushing.rbRotationTopTwo -> backs.getOrElse(1) { backs[0] }
             else -> backs.getOrElse(2) { backs[0] }
         }
+        // A coach keeps his lead back's workload in reason: past the cap
+        // in a game, the next back takes the handoff.
+        return if (pick === backs[0] && carries(pick.id.v) >= rushing.leadBackCarryCap) backs[1] else pick
     }
 
     private const val ADVANTAGE_DIVISOR = 26f

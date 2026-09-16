@@ -116,4 +116,7 @@ class StatBuilder {
     }
 
     fun snapshot(): Map<Int, StatLine> = lines.toMap()
+
+    /** Carries so far this game. */
+    fun carries(id: Int): Int = lines[id]?.carries ?: 0
 }

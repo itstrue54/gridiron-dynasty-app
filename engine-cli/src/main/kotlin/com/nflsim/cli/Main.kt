@@ -488,11 +488,14 @@ private fun game(args: Array<String>) {
 
 private fun gameCal(args: Array<String>) {
     val games = intArg(args, "games", 500)
-    val league = LeagueGenerator.generate(YEAR, DEFAULT_SEED)
+    // One seed, one league: without --seed every run is the same draw, and a
+    // band sitting on its edge passes or fails on that single draw.
+    val seed = args.firstOrNull { it.startsWith("--seed=") }?.substringAfter("=")?.toLongOrNull() ?: DEFAULT_SEED
+    val league = LeagueGenerator.generate(YEAR, seed)
     println("Simulating $games full games across the league.")
     println()
     val t0 = System.nanoTime()
-    val report = GameCalibration.run(league, games = games, seed = DEFAULT_SEED)
+    val report = GameCalibration.run(league, games = games, seed = seed)
     val ms = (System.nanoTime() - t0) / 1_000_000
     print(report.table())
     println("${report.plays} total plays, ${ms}ms")

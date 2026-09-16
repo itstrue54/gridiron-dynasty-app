@@ -35,6 +35,10 @@ data class Player(
     val proBowls: Int = 0,
     /** 0..100, resets weekly. */
     val fatigue: Int = 0,
+    /** Games he will still miss through injury; 0 is available. */
+    val injuryWeeks: Int = 0,
+    /** This season's wear and tear, 0..100: snaps build it, the week between games eases it. */
+    val wear: Int = 0,
     /** 0..100. */
     val morale: Int = 75,
 ) {

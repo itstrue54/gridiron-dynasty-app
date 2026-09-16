@@ -49,6 +49,8 @@ data class SeasonResult(
     /** Postseason, kept apart - a deep run should not win a rushing title. */
     val playoffStats: Map<Int, StatLine> = emptyMap(),
     val awards: Awards,
+    /** Regular-season injuries that cost games. */
+    val injuries: List<com.nflsim.engine.sim.Injury> = emptyList(),
 ) {
     fun record(id: TeamId): TeamRecord = records[id.v] ?: TeamRecord(id)
     fun statsFor(id: PlayerId): StatLine = playerStats[id.v] ?: StatLine()
@@ -67,18 +69,11 @@ class SeasonSimulator(
     private val league: League,
     private val year: Int,
     private val seed: Long,
-    private val tuning: TuningTable = TuningTable.REALISTIC,
+    private val tuning: TuningTable = league.tuning,
 ) {
 
-    private val gameTeams: Map<TeamId, GameTeam> = league.teams.associate { team ->
-        team.id to GameTeam(
-            team = team,
-            roster = league.roster(team.id),
-            offScheme = SchemeCatalog[team.offenseScheme],
-            defScheme = SchemeCatalog[team.defenseScheme],
-            aggression = 0.35f + (team.id.v % 7) * 0.06f,
-        )
-    }
+    /** Postseason teams, dressed from the league as the regular season left it. */
+    private var gameTeams: Map<TeamId, GameTeam> = emptyMap()
 
     fun simulate(): SeasonResult {
         val root = SplitMixRng(seed)
@@ -86,21 +81,34 @@ class SeasonSimulator(
 
         val outcomes = mutableListOf<GameOutcome>()
         var stats = mapOf<Int, StatLine>()
-        var postseason = mapOf<Int, StatLine>()
+        val injuries = mutableListOf<com.nflsim.engine.sim.Injury>()
 
+        // A season starts healthy and fresh; injuries and wear carry week to week.
+        var current = WeekRunner.healthy(league)
         for (week in 1..Schedule.WEEKS) {
+            val teams = WeekRunner.teams(current, tuning)
+            val played = mutableListOf<com.nflsim.engine.sim.GameResult>()
             schedule.week(week).forEach { matchup ->
                 val rng = root.split("y=$year|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
-                val g = GameSimulator(
-                    gameTeams.getValue(matchup.home),
-                    gameTeams.getValue(matchup.away),
-                    tuning,
-                ).simulate(rng)
+                val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning)
+                    .simulate(rng)
                 outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
                 stats = merge(stats, g.boxScore.players)
+                injuries += g.injuries
+                played += g
             }
+            current = WeekRunner.afterWeek(current, played, tuning)
         }
+        return finish(outcomes, stats, current, root).copy(injuries = injuries)
+    }
 
+    /** The postseason from a regular season already played, with the league as it stands after it. */
+    fun postseason(outcomes: List<GameOutcome>, stats: Map<Int, StatLine>, current: League): SeasonResult =
+        finish(outcomes, stats, current, SplitMixRng(seed))
+
+    private fun finish(outcomes: List<GameOutcome>, stats: Map<Int, StatLine>, current: League, root: Rng): SeasonResult {
+        gameTeams = WeekRunner.teams(current, tuning)
+        var postseason = mapOf<Int, StatLine>()
         val standings = Standings(league, outcomes, root.split("tiebreak|$year"))
         val seedsByConference = Conference.entries.associate {
             it.name to standings.seeds(it).map { id -> id.v }

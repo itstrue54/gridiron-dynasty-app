@@ -41,6 +41,7 @@ object StaffGenerator {
                 ratings = randomRatings(rng),
                 hotSeat = rng.nextInt(40),
                 contractYearsLeft = 1 + rng.nextInt(4),
+                tendencies = Tendencies.draw(role, scheme, rng.split("tendencies|$role|$scheme")),
             )
             coaches += coach
             return coach.id

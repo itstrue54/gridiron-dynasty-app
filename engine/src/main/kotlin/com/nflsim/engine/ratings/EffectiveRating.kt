@@ -40,6 +40,7 @@ data class RatingContext(
  * dozen points below it. See docs/SPEC.md 4.9.
  */
 fun effectiveRating(player: Player, ratingId: RatingId, ctx: RatingContext): Int {
+    val rt = ctx.scheme.ratings
     val base = player.ratings[ratingId]
 
     val fit = ctx.scheme.fitFor(player.position, player.archetype)
@@ -47,12 +48,12 @@ fun effectiveRating(player: Player, ratingId: RatingId, ctx: RatingContext): Int
     // closes at most 20% of the gap - a versatile player is still miscast.
     val adjFit = fit + (1f - fit) * (player.traits.schemeVersatility / 500f)
 
-    val schemeMod = SCHEME_FLOOR + SCHEME_RANGE * adjFit
-    val familiarity = FAMILIARITY_FLOOR +
-        FAMILIARITY_RANGE * (min(ctx.yearsInSystem, YEARS_TO_LEARN) / YEARS_TO_LEARN.toFloat())
-    val emphasis = if (ctx.scheme.emphasizes(player.position, ratingId)) EMPHASIS_BONUS else 1f
-    val fatigueMod = 1f - (ctx.fatigue.coerceIn(0, 100) / 100f) * MAX_FATIGUE_PENALTY
-    val moraleMod = MORALE_FLOOR + MORALE_RANGE * (ctx.morale.coerceIn(0, 100) / 100f)
+    val schemeMod = rt.schemeFloor + rt.schemeRange * adjFit
+    val familiarity = rt.familiarityFloor +
+        rt.familiarityRange * (min(ctx.yearsInSystem, rt.yearsToLearn) / rt.yearsToLearn.toFloat())
+    val emphasis = if (ctx.scheme.emphasizes(player.position, ratingId)) rt.emphasisBonus else 1f
+    val fatigueMod = 1f - (ctx.fatigue.coerceIn(0, 100) / 100f) * rt.maxFatiguePenalty
+    val moraleMod = rt.moraleFloor + rt.moraleRange * (ctx.morale.coerceIn(0, 100) / 100f)
 
     val result = base * schemeMod * familiarity * emphasis * fatigueMod * moraleMod
     return result.roundToInt().coerceIn(1, 99)
@@ -95,14 +96,3 @@ fun overall(player: Player, scheme: Scheme? = null): Int {
 fun schemeFit(player: Player, scheme: Scheme): Float =
     scheme.fitFor(player.position, player.archetype)
 
-// All of these move to TuningTable at M4. Named constants until then so the
-// calibration pass has something to grab.
-private const val SCHEME_FLOOR = 0.76f
-private const val SCHEME_RANGE = 0.24f
-private const val FAMILIARITY_FLOOR = 0.96f
-private const val FAMILIARITY_RANGE = 0.04f
-private const val YEARS_TO_LEARN = 3
-private const val EMPHASIS_BONUS = 1.03f
-private const val MAX_FATIGUE_PENALTY = 0.15f
-private const val MORALE_FLOOR = 0.98f
-private const val MORALE_RANGE = 0.04f

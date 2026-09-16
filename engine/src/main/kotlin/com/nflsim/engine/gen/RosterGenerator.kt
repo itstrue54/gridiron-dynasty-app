@@ -21,22 +21,25 @@ import kotlin.math.roundToInt
 object RosterGenerator {
 
     /** Position, then the target overall for each depth slot. Sums to 53. */
+    // Rotational players - the next ones in behind the starters at positions
+    // that rotate - sit a few points behind them rather than a dozen: they
+    // play a real share of snaps (SPEC 5.5).
     val TEMPLATE: List<Pair<Position, List<Int>>> = listOf(
         Position.QB to listOf(84, 70, 61),
-        Position.RB to listOf(80, 74, 66, 60),
+        Position.RB to listOf(80, 75, 66, 60),
         Position.FB to listOf(68),
-        Position.WR to listOf(84, 79, 74, 68, 63, 58),
-        Position.TE to listOf(79, 70, 63),
+        Position.WR to listOf(84, 79, 77, 70, 63, 58),
+        Position.TE to listOf(79, 73, 63),
         Position.LT to listOf(82, 65),
         Position.LG to listOf(78, 64),
         Position.C to listOf(79),
         Position.RG to listOf(78, 64),
         Position.RT to listOf(80, 65),
-        Position.EDGE to listOf(84, 79, 70, 63, 58),
-        Position.DT to listOf(82, 76, 67, 60),
-        Position.LB to listOf(82, 76, 70, 64, 59, 55),
-        Position.CB to listOf(83, 78, 72, 65, 59),
-        Position.S to listOf(81, 75, 66, 60),
+        Position.EDGE to listOf(84, 79, 76, 68, 58),
+        Position.DT to listOf(82, 76, 74, 64),
+        Position.LB to listOf(82, 76, 70, 68, 59, 55),
+        Position.CB to listOf(83, 78, 72, 70, 59),
+        Position.S to listOf(81, 75, 71, 60),
         Position.K to listOf(76),
         Position.P to listOf(74),
         Position.LS to listOf(62),

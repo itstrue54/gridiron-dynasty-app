@@ -5,6 +5,7 @@ import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.RatingId
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.rng.Rng
+import com.nflsim.engine.tuning.TuningTable
 import kotlin.math.roundToInt
 
 data class KickResult(val good: Boolean, val distance: Int, val narrative: String)
@@ -33,6 +34,7 @@ object SpecialTeams {
         altitudeFt: Int,
         rng: Rng,
         clutch: Boolean = false,
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
     ): KickResult {
         // Snap, hold, and seven yards of backfield, plus the ten yard end zone.
         val distance = yardsToGoal + 17
@@ -42,15 +44,15 @@ object SpecialTeams {
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
 
         // Beyond his range it falls apart quickly rather than gradually.
-        val range = 42 + (power / 99f) * 22f + (altitudeFt / 5280f) * 4f
+        val range = st.fgRangeBase + (power / 99f) * st.fgRangePower + (altitudeFt / 5280f) * st.fgAltitudeBonus
         val over = distance - range
 
         var chance = when {
-            distance <= 25 -> 0.985f
-            else -> logistic((range - distance) / 6.2f) * (0.72f + accuracy / 260f)
+            distance <= st.chipShotDistance -> st.chipShotChance
+            else -> logistic((range - distance) / st.fgCurveWidth) * (st.fgBaseAccuracy + accuracy / st.fgAccuracyScale)
         }
-        if (over > 0) chance *= (1f - (over / 26f)).coerceAtLeast(0.05f)
-        if (clutch) chance *= 0.94f + (kicker.traits.clutch / 99f) * 0.09f
+        if (over > 0) chance *= (1f - (over / st.fgBeyondRange)).coerceAtLeast(0.05f)
+        if (clutch) chance *= st.clutchFloor + (kicker.traits.clutch / 99f) * st.clutchRange
         chance = chance.coerceIn(0.005f, 0.995f)
 
         val good = rng.nextFloat() < chance
@@ -66,6 +68,7 @@ object SpecialTeams {
         puntScheme: Scheme,
         returnScheme: Scheme,
         rng: Rng,
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
     ): PuntResult {
         val yardsToGoal = 100 - yardLine
         if (punter == null) {
@@ -75,16 +78,16 @@ object SpecialTeams {
         val power = rate(punter, RatingId.PUNT_POWER, puntScheme)
         val placement = rate(punter, RatingId.PUNT_ACCURACY, puntScheme)
 
-        var gross = (38f + (power - 70) * 0.30f + rng.gaussian(0f, 5.5f)).roundToInt()
+        var gross = (st.puntBase + (power - 70) * st.puntPowerScale + rng.gaussian(0f, st.puntVariance)).roundToInt()
 
         // Inside the fifty a punter aims for the coffin corner rather than distance.
         if (yardsToGoal < 45) {
-            val aim = (yardsToGoal - 6 - (99 - placement) * 0.08f).roundToInt()
+            val aim = (yardsToGoal - 6 - (99 - placement) * st.puntPlacementScale).roundToInt()
             gross = minOf(gross, aim.coerceAtLeast(12))
         }
 
         if (yardLine + gross >= 100) {
-            val touchbackChance = 0.62f - (placement - 70) * 0.006f
+            val touchbackChance = st.puntTouchbackBase - (placement - 70) * st.puntTouchbackPlacement
             if (rng.nextFloat() < touchbackChance.coerceIn(0.15f, 0.9f)) {
                 return PuntResult(
                     netYards = (80 - yardLine).coerceAtLeast(5),
@@ -97,10 +100,10 @@ object SpecialTeams {
 
         // Returns are rare and mostly short; the occasional one is not.
         var ret = 0
-        if (returner != null && rng.nextFloat() < 0.42f) {
+        if (returner != null && rng.nextFloat() < st.puntReturnRate) {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
             val elusive = rate(returner, RatingId.ELUSIVENESS, returnScheme)
-            ret = (rng.exponential(6.5f) + (speed + elusive - 150) * 0.05f)
+            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill)
                 .roundToInt().coerceIn(0, 60)
         }
 
@@ -114,21 +117,31 @@ object SpecialTeams {
         return PuntResult(net, false, ret, text)
     }
 
-    fun extraPoint(kicker: Player?, scheme: Scheme, rng: Rng): Boolean {
-        if (kicker == null) return rng.nextFloat() < 0.90f
+    fun extraPoint(
+        kicker: Player?,
+        scheme: Scheme,
+        rng: Rng,
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+    ): Boolean {
+        if (kicker == null) return rng.nextFloat() < st.extraPointNoKicker
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
-        return rng.nextFloat() < (0.905f + accuracy / 1400f).coerceAtMost(0.985f)
+        return rng.nextFloat() < (st.extraPointBase + accuracy / st.extraPointAccuracyScale).coerceAtMost(st.extraPointCeiling)
     }
 
     /** Where the receiving team starts after a kickoff. */
-    fun kickoff(returner: Player?, returnScheme: Scheme, rng: Rng): Pair<Int, String> {
-        if (rng.nextFloat() < 0.63f) {
+    fun kickoff(
+        returner: Player?,
+        returnScheme: Scheme,
+        rng: Rng,
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+    ): Pair<Int, String> {
+        if (rng.nextFloat() < st.kickoffTouchbackRate) {
             return GameState.TOUCHBACK_YARD_LINE to "Touchback."
         }
-        val base = 22
+        val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
-            ((speed - 70) * 0.12f + rng.gaussian(0f, 5f)).roundToInt()
+            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance)).roundToInt()
         }
         val spot = (base + bonus).coerceIn(4, 60)
         val text = if (spot >= 45) "A big return out to the $spot." else "Returned to the $spot."
@@ -138,8 +151,9 @@ object SpecialTeams {
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)
 
-    /** Fastest skill player available takes returns. */
-    fun returnerFor(depth: DepthChart, scheme: Scheme): Player? =
-        (depth.at(Position.WR) + depth.at(Position.RB) + depth.at(Position.CB))
-            .maxByOrNull { rate(it, RatingId.SPEED, scheme) }
+    /** The returner the club pinned, else the fastest skill player available. */
+    fun returnerFor(depth: DepthChart, scheme: Scheme, punt: Boolean = false): Player? =
+        (if (punt) depth.puntReturner else depth.kickReturner)
+            ?: (depth.at(Position.WR) + depth.at(Position.RB) + depth.at(Position.CB))
+                .maxByOrNull { rate(it, RatingId.SPEED, scheme) }
 }

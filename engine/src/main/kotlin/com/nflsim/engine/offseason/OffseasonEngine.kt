@@ -219,9 +219,11 @@ object OffseasonEngine {
         val dynasty = season.copy(league = carousel.league)
         val league = dynasty.league
 
+        // The league's schemes, each carrying its scheme-fit tuning, built once.
+        val tunedSchemes = SchemeCatalog.all.associate { it.id to it.copy(ratings = league.tuning.ratings) }
         val schemeFor: (TeamId) -> Pair<Scheme, Scheme> = { id ->
             val t = league.team(id)
-            SchemeCatalog[t.offenseScheme] to SchemeCatalog[t.defenseScheme]
+            tunedSchemes.getValue(t.offenseScheme) to tunedSchemes.getValue(t.defenseScheme)
         }
         fun sideScheme(teamId: TeamId?, position: Position): Scheme {
             val id = teamId ?: league.teams.first().id
@@ -342,6 +344,7 @@ object OffseasonEngine {
         val teams: List<Team> = league.teams.map { t ->
             t.copy(
                 roster = (byTeam[t.id] ?: emptyList()).map { it.id },
+                depthPins = t.depthPins.keepOnly((byTeam[t.id] ?: emptyList()).map { it.id.v }.toSet()),
                 finances = t.finances.copy(
                     salaryCap = CapManagement.capFor(newYear),
                     // Dead money is carried forward: a cut you make this year
@@ -356,7 +359,9 @@ object OffseasonEngine {
         val compensation = Picks.compensatory(
             auction.signings, previousTeam, CapManagement.capFor(newYear), newYear + 1)
         val newLeague = league.copy(
-            year = newYear, teams = teams, players = survivors,
+            // A new season starts healthy: injuries heal and wear wears off.
+            year = newYear, teams = teams,
+            players = survivors.map { if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0) },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )
 
@@ -518,7 +523,10 @@ object OffseasonEngine {
             .filter { it.teamId != null }
             .groupBy { it.teamId!! to it.position }
             .flatMap { (key, group) ->
-                group.sortedByDescending { overall(it, ctx.scheme(key.first, key.second)) }
+                // The club's own pins count: a starter it chose gets starter's snaps.
+                com.nflsim.engine.model.DepthPins.ordered(
+                    group, ctx.league.team(key.first).depthPins.order[key.second].orEmpty(),
+                ) { overall(it, ctx.scheme(key.first, key.second)) }
                     .mapIndexed { rank, p -> p.id.v to rank }
             }
             .toMap()
@@ -681,14 +689,16 @@ object OffseasonEngine {
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
                 }
                 pay?.mapNotNull { it.second }
-            },
+            }, ai = ctx.league.tuning.ai
         )
         val undrafted = draft.undrafted.map {
             it.copy(teamId = null, contract = null, status = PlayerStatus.FREE_AGENT)
         }
         return state.copy(
             players = state.players + draft.drafted.values + undrafted,
-            draft = draft,
+            draft = draft.copy(picks = draft.picks.map { pick ->
+                pick.copy(original = slotOriginal.getOrElse(pick.overallPick - 1) { pick.team })
+            }),
             picks = held,
             pickTrades = state.pickTrades + draftTrades,
         )
@@ -916,7 +926,7 @@ object OffseasonEngine {
         val retired = mutableListOf<Retirement>()
         val survivors = state.players.filter { p ->
             val ovr = overall(p, ctx.scheme(p.teamId, p.position))
-            val retiring = Progression.retires(p, ctx.oldYear, ovr, rng)
+            val retiring = Progression.retires(p, ctx.oldYear, ovr, rng, tn = ctx.league.tuning.progression)
             if (retiring) {
                 retired += Retirement(p.id.v, p.name, p.position.label, p.age(ctx.oldYear), ovr,
                     reason = "retired")
@@ -955,7 +965,7 @@ object OffseasonEngine {
             val progCtx = Progression.Context(
                 year = ctx.oldYear,
                 coaching = coachDevRating(ctx.league, p),
-                snaps = snapsFromDepth(p, state.depthRank[p.id.v]),
+                snaps = snapsFromDepth(p, state.depthRank[p.id.v]), tuning = ctx.league.tuning.progression
             )
             val change = Progression.progress(p, progCtx, rng)
             deltaSum += change.delta

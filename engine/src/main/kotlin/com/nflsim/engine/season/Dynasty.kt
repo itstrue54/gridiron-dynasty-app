@@ -88,7 +88,7 @@ object DynastyEngine {
     }
 
     /** Plays the current week, or the next playoff round. */
-    fun advance(dynasty: Dynasty, tuning: TuningTable = TuningTable.REALISTIC): Dynasty =
+    fun advance(dynasty: Dynasty, tuning: TuningTable = dynasty.league.tuning): Dynasty =
         when (dynasty.phase) {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
             DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning)
@@ -111,14 +111,16 @@ object DynastyEngine {
             team.id to GameTeam(
                 team = team,
                 roster = league.roster(team.id),
-                offScheme = SchemeCatalog[team.offenseScheme],
-                defScheme = SchemeCatalog[team.defenseScheme],
-                aggression = 0.35f + (team.id.v % 7) * 0.06f,
+                offScheme = SchemeCatalog.tuned(team.offenseScheme, league.tuning),
+                defScheme = SchemeCatalog.tuned(team.defenseScheme, league.tuning),
+                aggression = com.nflsim.engine.model.GamePlan.defaultAggression(team.id.v),
+                staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
             )
         }
 
     private fun advanceWeek(dynasty: Dynasty, tuning: TuningTable): Dynasty {
-        val teams = teamsFor(dynasty.league)
+        val teams = WeekRunner.teams(dynasty.league, tuning)
+        val played = mutableListOf<GameResult>()
         val root = SplitMixRng(dynasty.seed)
         val week = dynasty.week
 
@@ -134,10 +136,12 @@ object DynastyEngine {
             outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
             stats = merge(stats, g.boxScore.players)
             if (matchup.involves(dynasty.userTeamId)) userGame = g
+            played += g
         }
 
         val nextWeek = week + 1
         return dynasty.copy(
+            league = WeekRunner.afterWeek(dynasty.league, played, tuning),
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
@@ -148,10 +152,10 @@ object DynastyEngine {
     }
 
     private fun runPlayoffs(dynasty: Dynasty, tuning: TuningTable): Dynasty {
-        val season = SeasonSimulator(dynasty.league, dynasty.year, dynasty.seed, tuning)
-        // Replay the year to reach the bracket. Deterministic, so the regular
-        // season comes out identical to what has already been played.
-        val full = season.simulate()
+        // The bracket from the season actually played, with the league as it
+        // stands after it: injuries, wear and anything changed mid-season.
+        val full = SeasonSimulator(dynasty.league, dynasty.year, dynasty.seed, tuning)
+            .postseason(dynasty.results, dynasty.playerStats, dynasty.league)
         return dynasty.copy(
             phase = DynastyPhase.OFFSEASON,
             playoffs = full.playoffs,

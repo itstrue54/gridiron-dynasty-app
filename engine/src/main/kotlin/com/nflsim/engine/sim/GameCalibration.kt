@@ -76,16 +76,17 @@ object GameCalibration {
         league: League,
         games: Int = 200,
         seed: Long = 2026L,
-        tuning: TuningTable = TuningTable.REALISTIC,
+        tuning: TuningTable = league.tuning,
     ): CalibrationReport {
         val rng = SplitMixRng(seed)
         val teams = league.teams.map { team ->
             GameTeam(
                 team = team,
                 roster = league.roster(team.id),
-                offScheme = SchemeCatalog[team.offenseScheme],
-                defScheme = SchemeCatalog[team.defenseScheme],
+                offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
+                defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
                 aggression = 0.35f + rng.nextFloat() * 0.4f,
+                staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
             )
         }
 

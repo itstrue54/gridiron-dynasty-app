@@ -1,5 +1,6 @@
 package com.nflsim.engine.offseason
 
+import com.nflsim.engine.tuning.TuningTable
 import com.nflsim.engine.model.DevCurve
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PositionGroup
@@ -39,22 +40,25 @@ object Progression {
         val coaching: Int = 60,
         /** Snaps taken last season. Playing time is how young players grow. */
         val snaps: Int = 0,
+        /** The league's progression tuning. */
+        val tuning: TuningTable.Progression = TuningTable.REALISTIC.progression,
     )
 
     data class Change(val player: Player, val delta: Int, val note: String?)
 
     fun progress(player: Player, ctx: Context, rng: Rng): Change {
+        val tn = ctx.tuning
         val age = player.age(ctx.year)
         val peak = (PEAK_AGE[player.position.group] ?: 27) + player.traits.peakAgeOffset
 
-        val ageFactor = ageFactor(age, peak)
+        val ageFactor = ageFactor(age, peak, tn)
         val devMultiplier = player.traits.developmentCurve.multiplier
-        val work = 0.75f + 0.5f * (player.traits.workEthic / 100f)
+        val work = tn.workBase + tn.workRange * (player.traits.workEthic / 100f)
         // The base keeps league-mean coaching (65) at mean coachability (50) at
         // 0.9475, so the slope widens the gap between staffs without changing
         // how much the league develops overall.
-        val coach = 0.2975f + 2.00f * (ctx.coaching / 100f) * (player.traits.coachability / 100f)
-        val snaps = snapFactor(ctx.snaps)
+        val coach = tn.coachBase + tn.coachSlope * (ctx.coaching / 100f) * (player.traits.coachability / 100f)
+        val snaps = snapFactor(ctx.snaps, tn)
 
         // Growth is helped by everything; decline is not. A hard worker with a
         // great position coach does not stop being thirty five.
@@ -66,33 +70,33 @@ object Progression {
         val raw = if (ageFactor > 0) {
             ageFactor * devMultiplier * work * coach * snaps
         } else {
-            ageFactor * (1.20f - work * 0.20f)
+            ageFactor * (tn.ageWorkBase - work * tn.ageWorkScale)
         }
 
-        val noise = rng.gaussian(0f, 1.5f)
+        val noise = rng.gaussian(0f, tn.noise)
         var delta = raw + noise
 
         // Breakouts and collapses. These are the stories a dynasty is made of,
         // so they are discrete events rather than a wider spread on the noise.
         var note: String? = null
-        if (age <= 26 && rng.nextFloat() < breakoutChance(player)) {
-            delta += 4f + rng.nextFloat() * 5f
+        if (age <= 26 && rng.nextFloat() < breakoutChance(player, tn)) {
+            delta += tn.breakoutBase + rng.nextFloat() * tn.breakoutRange
             note = "took a leap"
-        } else if (age >= 29 && rng.nextFloat() < collapseChance(player, age, peak)) {
-            delta -= 5f + rng.nextFloat() * 6f
+        } else if (age >= 29 && rng.nextFloat() < collapseChance(player, age, peak, tn)) {
+            delta -= tn.collapseBase + rng.nextFloat() * tn.collapseRange
             note = "fell off"
         }
 
-        val physical = delta * 1.15f
-        val mental = if (delta > 0) delta * 0.7f else delta * 0.35f
+        val physical = delta * tn.physicalShare
+        val mental = if (delta > 0) delta * tn.mentalGrowth else delta * tn.mentalDecline
         // Mental ratings keep rising well past physical peak, slowly.
-        val mentalFloor = if (age in peak..(peak + 6)) 0.55f else 0f
+        val mentalFloor = if (age in peak..(peak + 6)) tn.mentalFloor else 0f
 
         val updated = player.copy(
             ratings = player.ratings.applyDelta(
                 physical = physical,
                 mental = mental + mentalFloor,
-                other = delta * 0.9f,
+                other = delta * tn.otherShare,
             ),
             yearsInSystem = player.yearsInSystem + 1,
             yearsWithClub = player.clubYears + 1,
@@ -106,48 +110,48 @@ object Progression {
      * the decline accelerates. Raising the exponent above one is what makes a
      * player fall off a cliff rather than fading in a straight line.
      */
-    private fun ageFactor(age: Int, peak: Int): Float = when {
-        age < peak -> ((peak - age) / (peak - 20f)).coerceIn(0f, 1f) * 2.6f
-        age == peak -> 0.3f
-        else -> -((age - peak).toFloat().pow(1.28f)) * 0.62f
+    private fun ageFactor(age: Int, peak: Int, tn: TuningTable.Progression): Float = when {
+        age < peak -> ((peak - age) / (peak - 20f)).coerceIn(0f, 1f) * tn.youthGrowth
+        age == peak -> tn.peakGrowth
+        else -> -((age - peak).toFloat().pow(tn.declineExponent)) * tn.declineScale
     }
 
     /** Playing time drives growth. A rookie who sits does not develop. */
-    private fun snapFactor(snaps: Int): Float = when {
-        snaps >= 800 -> 1.25f
-        snaps >= 450 -> 1.05f
-        snaps >= 150 -> 0.85f
-        else -> 0.62f
+    private fun snapFactor(snaps: Int, tn: TuningTable.Progression): Float = when {
+        snaps >= tn.snapsHeavy -> tn.snapHeavy
+        snaps >= tn.snapsRegular -> tn.snapRegular
+        snaps >= tn.snapsSpot -> tn.snapSpot
+        else -> tn.snapBench
     }
 
-    private fun breakoutChance(player: Player): Float {
+    private fun breakoutChance(player: Player, tn: TuningTable.Progression): Float {
         val base = when (player.traits.developmentCurve) {
-            DevCurve.SLOW -> 0.010f
-            DevCurve.NORMAL -> 0.025f
-            DevCurve.QUICK -> 0.055f
-            DevCurve.SUPERSTAR -> 0.090f
-            DevCurve.X_FACTOR -> 0.140f
+            DevCurve.SLOW -> tn.breakoutSlow
+            DevCurve.NORMAL -> tn.breakoutNormal
+            DevCurve.QUICK -> tn.breakoutQuick
+            DevCurve.SUPERSTAR -> tn.breakoutSuperstar
+            DevCurve.X_FACTOR -> tn.breakoutXFactor
         }
-        return base * (0.6f + player.traits.workEthic / 100f)
+        return base * (tn.breakoutWorkBase + player.traits.workEthic / 100f)
     }
 
-    private fun collapseChance(player: Player, age: Int, peak: Int): Float {
+    private fun collapseChance(player: Player, age: Int, peak: Int, tn: TuningTable.Progression): Float {
         val past = (age - peak).coerceAtLeast(0)
-        return (0.012f * past * (1.4f - player.traits.durabilityUnderLoad / 100f))
+        return (tn.collapseRate * past * (tn.collapseDurability - player.traits.durabilityUnderLoad / 100f))
             .coerceIn(0f, 0.35f)
     }
 
     /** Whether a player hangs them up. */
-    fun retires(player: Player, year: Int, overall: Int, rng: Rng): Boolean {
+    fun retires(player: Player, year: Int, overall: Int, rng: Rng, tn: TuningTable.Progression = TuningTable.REALISTIC.progression): Boolean {
         val age = player.age(year)
         if (age < 27) return false
 
         val byAge = when {
-            age <= 28 -> 0.006f
-            age <= 30 -> 0.030f
-            age <= 32 -> 0.095f
-            age <= 34 -> 0.230f
-            age <= 36 -> 0.450f
+            age <= 28 -> tn.retireBy28
+            age <= 30 -> tn.retireBy30
+            age <= 32 -> tn.retireBy32
+            age <= 34 -> tn.retireBy34
+            age <= 36 -> tn.retireBy36
             age <= 38 -> 0.700f
             else -> 0.920f
         }
