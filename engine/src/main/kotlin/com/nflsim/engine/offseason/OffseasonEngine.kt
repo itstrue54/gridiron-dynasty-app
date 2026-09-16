@@ -7,7 +7,6 @@ import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.PickAsset
 import com.nflsim.engine.model.Player
-import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.PlayerStatus
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.Team
@@ -20,7 +19,12 @@ import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.rng.shuffled
 import com.nflsim.engine.rng.SplitMixRng
 import com.nflsim.engine.season.AwardVoting
+import com.nflsim.engine.model.LeaderEntry
+import com.nflsim.engine.model.PlayerId
+import com.nflsim.engine.model.RetiredCareer
+import com.nflsim.engine.model.SeasonRecord
 import com.nflsim.engine.season.Awards
+import com.nflsim.engine.stats.StatLine
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.ScheduleGenerator
@@ -256,7 +260,16 @@ object OffseasonEngine {
             production = production,
         )
 
-        var state = OffseasonState(players = league.players, picks = league.picks)
+        // The season just played joins the careers first, so a man who
+        // retires this spring takes his last year with him (SPEC 9.2).
+        var state = OffseasonState(
+            players = league.players.map { p ->
+                val line = season.playerStats[p.id.v]
+                if (line == null) p
+                else p.copy(careerStats = p.careerStats.withSeason(oldYear, p.teamId?.v, line))
+            },
+            picks = league.picks,
+        )
 
         // SPEC 7 phase 1: the season's hardware, handed out before anyone retires.
         val awards = AwardVoting.honours(
@@ -410,6 +423,16 @@ object OffseasonEngine {
         val newLeague = league.copy(
             // A new season starts healthy: injuries heal and wear wears off.
             year = newYear, teams = teams,
+            history = league.history.copy(
+                seasons = league.history.seasons.filterNot { it.year == ctx.oldYear } + SeasonRecord(
+                    year = ctx.oldYear,
+                    champion = dynasty.champion,
+                    standings = ctx.league.teams.map { ctx.standings.record(it.id) },
+                    awards = awards,
+                    leaders = seasonLeaders(dynasty.playerStats, league),
+                ),
+                retired = league.history.retired + state.retiredCareers,
+            ),
             players = survivors.map { if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0) },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )
@@ -824,6 +847,28 @@ object OffseasonEngine {
             finishFromDraft(this, userPicks)
     }
 
+    /**
+     * Who led the league, kept by name: a leader who retires this spring is
+     * gone from the league but not from the record of the year.
+     */
+    private fun seasonLeaders(stats: Map<Int, StatLine>, league: League): List<LeaderEntry> {
+        fun leader(category: String, of: (StatLine) -> Int): LeaderEntry? {
+            val top = stats.entries.maxByOrNull { of(it.value) } ?: return null
+            val id = top.key
+            val line = top.value
+            if (of(line) <= 0) return null
+            val name = league.playersById[PlayerId(id)]?.name ?: return null
+            return LeaderEntry(category, id, name, of(line))
+        }
+        return listOfNotNull(
+            leader("Passing yards") { it.passYards },
+            leader("Rushing yards") { it.rushYards },
+            leader("Receiving yards") { it.receivingYards },
+            leader("Sacks") { it.sacks.toInt() },
+            leader("Interceptions") { it.interceptions },
+        )
+    }
+
     /** SPEC 7 phase 5. One tag a club, on a player it could not keep (2020 CBA). */
     private fun stepFranchiseTag(ctx: OffseasonContext, state: OffseasonState): OffseasonState {
         val result = FranchiseTag.run(ctx.league, state.players, state.previousTeam, state.deadMoney,
@@ -1044,18 +1089,31 @@ object OffseasonEngine {
         rng: Rng,
     ): OffseasonState {
         val retired = mutableListOf<Retirement>()
+        val careers = mutableListOf<RetiredCareer>()
         val survivors = state.players.filter { p ->
             val ovr = overall(p, ctx.scheme(p.teamId, p.position))
             val retiring = Progression.retires(p, ctx.oldYear, ovr, rng, tn = ctx.league.tuning.progression)
             if (retiring) {
                 retired += Retirement(p.id.v, p.name, p.position.label, p.age(ctx.oldYear), ovr,
                     reason = "retired")
+                careers += RetiredCareer(
+                    player = p.id.v,
+                    name = p.name,
+                    position = p.position.label,
+                    age = p.age(ctx.oldYear),
+                    overall = ovr,
+                    proBowls = p.proBowls,
+                    lastTeam = p.teamId?.v,
+                    career = p.careerStats,
+                    year = ctx.oldYear,
+                )
             }
             !retiring
         }
         return state.copy(
             players = survivors,
             retirements = state.retirements + retired,
+            retiredCareers = state.retiredCareers + careers,
         )
     }
 

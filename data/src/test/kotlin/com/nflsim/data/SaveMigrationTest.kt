@@ -99,6 +99,28 @@ class SaveMigrationTest {
     }
 
     @Test
+    fun `a save from before careers and history still loads`() {
+        val d = dynasty()
+        // Version 4 knew nothing of either, so strip both and write it as 4.
+        val bare = d.copy(
+            league = d.league.copy(
+                history = com.nflsim.engine.model.LeagueHistory(),
+                players = d.league.players.map {
+                    it.copy(careerStats = com.nflsim.engine.model.CareerStats())
+                },
+            ),
+        )
+        val raw = cbor.encodeToByteArray(Envelope.serializer(), Envelope(4, bare))
+        val out = ByteArrayOutputStream()
+        GZIPOutputStream(out).use { it.write(raw) }
+        val loaded = SaveFile.decode(out.toByteArray())
+        assertEquals(0, loaded.league.history.seasons.size, "an old save remembers no seasons")
+        assertTrue(loaded.league.players.all { it.careerStats.years == 0 },
+            "an old save carries no careers, and starts keeping them from here")
+        assertEquals(d.league.teams.size, loaded.league.teams.size, "the league itself should survive")
+    }
+
+    @Test
     fun `a current save round trips untouched`() {
         val original = dynasty()
         val loaded = SaveFile.decode(SaveFile.encode(original))

@@ -3,6 +3,7 @@ package com.nflsim.engine.offseason
 import com.nflsim.engine.econ.MarketValue
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
+import com.nflsim.engine.model.RetiredCareer
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.Scheme
@@ -45,6 +46,8 @@ data class OffseasonState(
 
     // ---- accumulated for the report ----
     val retirements: List<Retirement> = emptyList(),
+    /** The careers of the men who just left, for the league's history. */
+    val retiredCareers: List<RetiredCareer> = emptyList(),
     val developments: List<Development> = emptyList(),
     val releases: List<Release> = emptyList(),
     val valueCuts: List<Release> = emptyList(),

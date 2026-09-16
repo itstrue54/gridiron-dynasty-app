@@ -49,12 +49,21 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
+        4 -> envelope.dynasty
         3 -> giveTendencies(envelope.dynasty)
         2 -> giveTendencies(handOutPicks(envelope.dynasty))
         1 -> giveTendencies(handOutPicks(hireStaffs(envelope.dynasty)))
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 4 -> 5: careers and league history arrived (SPEC 9.2). Nothing needs
+     * moving: a save written before them has no history, and both start
+     * accumulating from the next season the save plays. What is gone is gone
+     * - a dynasty carried over from version 4 has no record of the seasons it
+     * already played, which is honest about what was never written down.
+     */
 
     /**
      * 3 -> 4: coaches gained tendencies (SPEC 5.4). A save written before them
