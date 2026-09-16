@@ -65,6 +65,9 @@ internal fun String.enDashed() = replace('-', '–')
 
 internal fun signed(value: Int) = if (value >= 0) "+$value" else "−${-value}"
 
+/** Whether the club played in the week that just finished, rather than sat a bye. */
+internal fun Dynasty.playedLastWeek(): Boolean = userResults().lastOrNull()?.week == week - 1
+
 /** A club's mark, drawn from tokens: the league has no brand colours. */
 @Composable
 private fun Mark(abbrev: String) =
@@ -136,13 +139,18 @@ fun HubScreen(
                         val rollingOver = dynasty.phase == DynastyPhase.OFFSEASON
                         scope.launch {
                             store.advance()
-                            if (rollingOver) onNavigate(Tab.OFFSEASON)
+                            when {
+                                rollingOver -> onNavigate(Tab.OFFSEASON)
+                                // Straight to the game the club just played.
+                                store.dynasty?.playedLastWeek() == true -> onNavigate(Tab.GAME)
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !store.busy,
                 )
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
+                    if (dynasty.lastGame != null) HubLink("Game day") { onNavigate(Tab.GAME) }
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
                     HubLink("Theme: ${theme.label}") { onTheme(theme.next()) }
@@ -608,7 +616,7 @@ fun BoxScoreScreen(dynasty: Dynasty) {
     }
 }
 
-private fun downAndDistance(play: PlayLog): String {
+internal fun downAndDistance(play: PlayLog): String {
     val down = when (play.down) {
         1 -> "1st"
         2 -> "2nd"
@@ -624,7 +632,7 @@ private fun downAndDistance(play: PlayLog): String {
  * the text about the ball changing hands. Nothing is guessed from a colour
  * alone - every entry still reads for itself.
  */
-private fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
+internal fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
     val play = plays[i]
     val nextPlay = plays.getOrNull(i + 1)
     if (nextPlay != null &&

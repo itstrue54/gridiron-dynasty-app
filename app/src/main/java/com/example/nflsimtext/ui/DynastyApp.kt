@@ -52,6 +52,8 @@ enum class Tab(val label: String) {
     GALLERY("Design"),
     /** One player, from a tap on the roster. */
     PLAYER("Player"),
+    /** The week's game, play by play, after the hub plays it. */
+    GAME("Game day"),
 }
 
 @Composable
@@ -96,6 +98,11 @@ fun DynastyApp(
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.GALLERY -> DesignGallery { tab = Tab.HUB }
                     Tab.PLAYER -> PlayerCardScreen(dynasty, player) { tab = Tab.ROSTER }
+                    Tab.GAME -> GameDayScreen(
+                        dynasty,
+                        onBoxScore = { tab = Tab.BOX },
+                        onBack = { tab = Tab.HUB },
+                    )
                 }
             }
 
@@ -123,7 +130,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Tab.entries.filter { it !in setOf(Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER) }.forEach { t ->
+            Tab.entries.filter { it !in setOf(Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME) }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
                     Text(
                         t.label,
