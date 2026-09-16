@@ -57,11 +57,11 @@ fun TuningScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, o
         item {
             Column(Modifier.padding(16.dp)) {
                 TextButton(onClick = onBack) { Text("< Hub", fontSize = 12.sp) }
-                Text("Tuning", fontFamily = Mono, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Tuning", fontFamily = DataFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Every coefficient in the sim. Games use a change from the next snap; " +
                         "the AI and player development from the next offseason.",
-                    fontFamily = Mono, fontSize = 11.sp,
+                    fontFamily = DataFamily, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
@@ -72,7 +72,7 @@ fun TuningScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, o
                     }
                 }
                 if (presets.none { it.second == table }) {
-                    Text("Custom", fontFamily = Mono, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                    Text("Custom", fontFamily = DataFamily, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -86,12 +86,12 @@ fun TuningScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, o
                 ) {
                     Text(
                         (if (open == group) "- " else "+ ") + groupLabel(group),
-                        fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        fontFamily = DataFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         if (changed > 0) "$changed changed" else "${fields.size} values",
-                        fontFamily = Mono, fontSize = 11.sp,
+                        fontFamily = DataFamily, fontSize = 11.sp,
                         color = if (changed > 0) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -121,10 +121,10 @@ fun TuningScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, o
 private fun FieldSlider(f: TuningFields.Field, onChange: (Double) -> Unit, onDone: () -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
         Row {
-            Text(words(f.name), fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Text(words(f.name), fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.weight(1f))
             Text(
                 if (f.isInt) f.value.roundToLong().toString() else "%.4g".format(f.value),
-                fontFamily = Mono, fontSize = 12.sp,
+                fontFamily = DataFamily, fontSize = 12.sp,
                 fontWeight = if (f.value != f.default) FontWeight.Bold else FontWeight.Normal,
             )
         }

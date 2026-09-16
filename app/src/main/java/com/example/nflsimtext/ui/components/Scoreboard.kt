@@ -31,25 +31,36 @@ fun Scoreboard(
     home: TeamScore,
     quarter: Int,
     clock: String,
-    possession: Side,
+    possession: Side? = null,
+    /** Set for a game that is over, where a quarter and a clock say nothing. */
+    status: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val c = NdTheme.colors
-    val holder = if (possession == Side.AWAY) away else home
+    val holder = when (possession) {
+        Side.AWAY -> away
+        Side.HOME -> home
+        null -> null
+    }
     Row(
         modifier
             .fillMaxWidth()
             .padding(vertical = NdTheme.spacing.s)
             .clearAndSetSemantics {
                 contentDescription = "${away.name} ${away.score}, ${home.name} ${home.score}, " +
-                    "${quarterWords(quarter)}, ${clockWords(clock)}, ${holder.name} has the ball."
+                    (status ?: "${quarterWords(quarter)}, ${clockWords(clock)}") +
+                    (holder?.let { ", ${it.name} has the ball." } ?: ".")
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TeamColumn(away, possession == Side.AWAY, TextAlign.Start, Modifier.weight(1f))
         Column(Modifier.weight(0.9f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Q$quarter", style = NdTheme.type.label, color = c.chalkDim)
-            Text(clock, style = NdTheme.type.headline, color = c.chalk)
+            if (status != null) {
+                Text(status, style = NdTheme.type.headline, color = c.chalkDim)
+            } else {
+                Text("Q$quarter", style = NdTheme.type.label, color = c.chalkDim)
+                Text(clock, style = NdTheme.type.headline, color = c.chalk)
+            }
         }
         TeamColumn(home, possession == Side.HOME, TextAlign.End, Modifier.weight(1f))
     }

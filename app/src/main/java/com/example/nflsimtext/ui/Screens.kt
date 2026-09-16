@@ -1,40 +1,86 @@
 package com.example.nflsimtext.ui
 
-import com.nflsim.engine.ratings.SchemeFitGrade
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.nflsimtext.ui.components.ColumnSpec
+import com.example.nflsimtext.ui.components.DataTable
+import com.example.nflsimtext.ui.components.PlayEvent
+import com.example.nflsimtext.ui.components.PlayLogEntry
+import com.example.nflsimtext.ui.components.PrimaryButton
+import com.example.nflsimtext.ui.components.RowData
+import com.example.nflsimtext.ui.components.Scoreboard
+import com.example.nflsimtext.ui.components.SecondaryButton
+import com.example.nflsimtext.ui.components.Situation
+import com.example.nflsimtext.ui.components.SituationBlock
+import com.example.nflsimtext.ui.components.SortState
+import com.example.nflsimtext.ui.components.StatusTag
+import com.example.nflsimtext.ui.components.TagTone
+import com.example.nflsimtext.ui.components.TeamMark
+import com.example.nflsimtext.ui.components.TeamScore
+import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.ThemeSetting
+import com.example.nflsimtext.ui.theme.next
 import com.nflsim.engine.model.Conference
 import com.nflsim.engine.model.Division
+import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.Position
+import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.SchemeFitGrade
 import com.nflsim.engine.ratings.TraitScouting
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.Schedule
-import com.example.nflsimtext.ui.theme.ThemeSetting
-import com.example.nflsimtext.ui.theme.next
+import com.nflsim.engine.sim.PlayLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+// ---------------------------------------------------------------------------
+// Shared formatting. Records take an en dash, yardage a true minus
+// (docs/DESIGN.md 3).
+// ---------------------------------------------------------------------------
+
+internal fun String.enDashed() = replace('-', '–')
+
+internal fun signed(value: Int) = if (value >= 0) "+$value" else "−${-value}"
+
+/** A club's mark, drawn from tokens: the league has no brand colours. */
+@Composable
+private fun Mark(abbrev: String) =
+    TeamMark(abbrev, NdTheme.colors.sitNormal, NdTheme.colors.chalk)
+
+@Composable
+private fun ScreenList(content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) =
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = NdTheme.spacing.screen, end = NdTheme.spacing.screen,
+            top = NdTheme.spacing.l, bottom = NdTheme.spacing.xxl,
+        ),
+        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.blockGap),
+        content = content,
+    )
 
 // ---------------------------------------------------------------------------
 // Hub - the screen you live on
@@ -49,77 +95,43 @@ fun HubScreen(
     onTheme: (ThemeSetting) -> Unit,
     onNavigate: (Tab) -> Unit = {},
 ) {
+    val c = NdTheme.colors
     val team = dynasty.team
     val record = dynasty.record()
     val next = dynasty.nextGame()
+    val roster = dynasty.league.roster(team.id)
 
-    LazyColumn(Modifier.fillMaxWidth()) {
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                Text(team.name, fontFamily = Mono, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    "${team.divisionName}  ·  ${dynasty.year}",
-                    fontFamily = Mono, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(record.recordText, fontFamily = Mono, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    "${record.pointsFor} for, ${record.pointsAgainst} against  " +
-                        "(${if (record.pointDifferential >= 0) "+" else ""}${record.pointDifferential})",
-                    fontFamily = Mono, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Mark(team.abbrev)
+                Column(Modifier.padding(start = NdTheme.spacing.m).weight(1f)) {
+                    Text(team.name, style = NdTheme.type.display, color = c.chalk)
+                    Text(
+                        "${team.divisionName}, ${dynasty.year}",
+                        style = NdTheme.type.body, color = c.chalkDim,
+                    )
+                }
+                Text(record.recordText.enDashed(), style = NdTheme.type.display, color = c.chalk)
             }
+            Text(
+                "${record.pointsFor} for, ${record.pointsAgainst} against " +
+                    "(${signed(record.pointDifferential)})",
+                style = NdTheme.type.body, color = c.chalkDim,
+            )
         }
 
         item {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                when {
-                    dynasty.phase == DynastyPhase.OFFSEASON -> {
-                        val champ = dynasty.champion?.let {
-                            dynasty.league.team(com.nflsim.engine.model.TeamId(it)).name
-                        }
-                        Text("Season complete.", fontFamily = Mono, fontSize = 14.sp)
-                        Text(
-                            "Players retire and develop, contracts expire, the draft " +
-                                "runs and the market opens.",
-                            fontFamily = Mono, fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        champ?.let {
-                            Text("Champion: $it", fontFamily = Mono, fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                    next == null && dynasty.phase == DynastyPhase.REGULAR_SEASON ->
-                        Text("Week ${dynasty.week} · bye", fontFamily = Mono, fontSize = 14.sp)
-                    next != null -> {
-                        val home = next.home == dynasty.userTeamId
-                        val opponent = dynasty.league.team(next.opponentOf(dynasty.userTeamId)!!)
-                        Text("Week ${dynasty.week}", fontFamily = Mono, fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            "${if (home) "vs" else "at"} ${opponent.name}",
-                            fontFamily = Mono, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            "${dynasty.standings().record(opponent.id).recordText}  ·  " +
-                                SchemeCatalog[opponent.offenseScheme].name,
-                            fontFamily = Mono, fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    else -> Text("Playoffs", fontFamily = Mono, fontSize = 14.sp)
-                }
-
-                Spacer(Modifier.height(14.dp))
-                Button(
-                    // The offseason used to be a dead end - this button was
-                    // disabled and read "Season over", written before there
-                    // was an offseason to run. There is one now, and it is
-                    // the most interesting turn of the year.
+            Column {
+                Text(nextUpTitle(dynasty, next), style = NdTheme.type.headline, color = c.chalk)
+                Text(nextUpDetail(dynasty, next), style = NdTheme.type.body, color = c.chalkDim)
+                Spacer(Modifier.height(NdTheme.spacing.m))
+                PrimaryButton(
+                    text = when (dynasty.phase) {
+                        DynastyPhase.PLAYOFFS -> "Play the postseason"
+                        DynastyPhase.OFFSEASON -> "Run the offseason"
+                        else -> "Play week ${dynasty.week}"
+                    },
                     onClick = {
                         val rollingOver = dynasty.phase == DynastyPhase.OFFSEASON
                         scope.launch {
@@ -127,29 +139,56 @@ fun HubScreen(
                             if (rollingOver) onNavigate(Tab.OFFSEASON)
                         }
                     },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !store.busy,
-                ) {
-                    Text(
-                        when (dynasty.phase) {
-                            DynastyPhase.PLAYOFFS -> "Play the postseason"
-                            DynastyPhase.OFFSEASON -> "Run the offseason"
-                            else -> "Advance week"
-                        }
-                    )
-                }
-                // Four links do not fit across a phone, so the row scrolls.
+                )
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    TextButton(onClick = { onNavigate(Tab.PLAN) }) {
-                        Text("Game plan", fontSize = 12.sp)
+                    HubLink("Game plan") { onNavigate(Tab.PLAN) }
+                    HubLink("Tuning") { onNavigate(Tab.TUNING) }
+                    HubLink("Theme: ${theme.label}") { onTheme(theme.next()) }
+                    HubLink("Design") { onNavigate(Tab.GALLERY) }
+                }
+            }
+        }
+
+        val hurt = roster.filter { it.injuryWeeks > 0 }.sortedByDescending { it.injuryWeeks }
+        val expiring = roster.count { p ->
+            p.contract?.let { it.signedYear + it.years - 1 <= dynasty.year } ?: false
+        }
+        if (hurt.isNotEmpty() || expiring > 0) {
+            item {
+                SituationBlock(
+                    "Needs attention",
+                    situation = if (hurt.isNotEmpty()) Situation.RED_ZONE else Situation.NORMAL,
+                ) {
+                    hurt.take(3).forEach { p ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "${p.name}, ${p.position.label}",
+                                style = NdTheme.type.data, color = c.chalk,
+                                modifier = Modifier.weight(1f),
+                            )
+                            StatusTag(
+                                if (p.injuryWeeks == 1) "Out 1 week" else "Out ${p.injuryWeeks} weeks",
+                                if (p.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
+                            )
+                        }
                     }
-                    TextButton(onClick = { onNavigate(Tab.TUNING) }) {
-                        Text("Advanced: tuning", fontSize = 12.sp)
+                    if (hurt.size > 3) {
+                        Text(
+                            "${hurt.size - 3} more hurt.",
+                            style = NdTheme.type.body, color = c.chalkDim,
+                        )
                     }
-                    TextButton(onClick = { onTheme(theme.next()) }) {
-                        Text("Theme: ${theme.label}", fontSize = 12.sp)
-                    }
-                    TextButton(onClick = { onNavigate(Tab.GALLERY) }) {
-                        Text("Design", fontSize = 12.sp)
+                    if (expiring > 0) {
+                        Text(
+                            if (expiring == 1) "1 contract expires after the season."
+                            else "$expiring contracts expire after the season.",
+                            style = NdTheme.type.body, color = c.chalkDim,
+                        )
                     }
                 }
             }
@@ -157,39 +196,81 @@ fun HubScreen(
 
         val last = dynasty.userResults().lastOrNull()
         if (last != null) {
-            item { SectionHeader("Last result") }
             item {
                 val us = last.scoreFor(dynasty.userTeamId)
                 val them = last.scoreAgainst(dynasty.userTeamId)
                 val opponent = dynasty.league.team(last.opponentOf(dynasty.userTeamId)!!)
-                val verdict = when {
-                    us > them -> "W"
-                    us < them -> "L"
-                    else -> "T"
-                }
-                TableRow {
-                    Cell(verdict, 3f, bold = true)
-                    Cell("$us-$them", 8f, bold = true)
-                    Cell(if (last.home == dynasty.userTeamId) "vs" else "at", 4f, dim = true)
-                    Cell(opponent.name, 26f)
+                val verdict = if (us > them) "Won" else if (us < them) "Lost" else "Tied"
+                SituationBlock("Last result", meta = "Week ${last.week}") {
+                    Text(
+                        "$verdict $us–$them " +
+                            "${if (last.home == dynasty.userTeamId) "vs" else "at"} ${opponent.name}",
+                        style = NdTheme.type.data, color = c.chalk,
+                    )
+                    SecondaryButton(
+                        "See the box score",
+                        { onNavigate(Tab.BOX) },
+                        Modifier.padding(top = NdTheme.spacing.s),
+                    )
                 }
             }
         }
 
-        item { SectionHeader("${team.divisionName}") }
-        val divisionOrder = dynasty.standings().division(team.conference, team.division)
-        items(divisionOrder) { id ->
-            val r = dynasty.standings().record(id)
-            TableRow(highlight = id == dynasty.userTeamId) {
-                Cell(dynasty.league.team(id).abbrev, 6f, bold = id == dynasty.userTeamId)
-                Cell(dynasty.league.team(id).nickname, 20f)
-                Cell(r.recordText, 9f)
-                Cell("${if (r.pointDifferential >= 0) "+" else ""}${r.pointDifferential}", 7f, dim = true)
+        item {
+            SituationBlock(team.divisionName, meta = "Week ${dynasty.week}") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("Team", 2.2f),
+                        ColumnSpec("W–L", 1.1f),
+                        ColumnSpec("For", 0.9f, numeric = true),
+                        ColumnSpec("Against", 1.1f, numeric = true),
+                    ),
+                    rows = dynasty.standings().division(team.conference, team.division).map { id ->
+                        val r = dynasty.standings().record(id)
+                        RowData(
+                            listOf(
+                                dynasty.league.team(id).nickname,
+                                r.recordText.enDashed(),
+                                "${r.pointsFor}",
+                                "${r.pointsAgainst}",
+                            ),
+                            highlight = id == dynasty.userTeamId,
+                        )
+                    },
+                )
             }
         }
-
-        item { Spacer(Modifier.height(24.dp)) }
     }
+}
+
+@Composable
+private fun HubLink(text: String, onClick: () -> Unit) = TextButton(onClick = onClick) {
+    Text(text, style = NdTheme.type.label, color = NdTheme.colors.pylonText)
+}
+
+private fun nextUpTitle(dynasty: Dynasty, next: com.nflsim.engine.season.Matchup?): String = when {
+    dynasty.phase == DynastyPhase.OFFSEASON -> "Season complete"
+    next == null && dynasty.phase == DynastyPhase.REGULAR_SEASON -> "Week ${dynasty.week}, bye"
+    next != null -> {
+        val opponent = dynasty.league.team(next.opponentOf(dynasty.userTeamId)!!)
+        "${if (next.home == dynasty.userTeamId) "vs" else "at"} ${opponent.name}"
+    }
+    else -> "Playoffs"
+}
+
+private fun nextUpDetail(dynasty: Dynasty, next: com.nflsim.engine.season.Matchup?): String = when {
+    dynasty.phase == DynastyPhase.OFFSEASON -> {
+        val champ = dynasty.champion?.let { dynasty.league.team(TeamId(it)).name }
+        if (champ != null) "$champ took the title. Players develop, contracts expire, the draft runs."
+        else "Players develop, contracts expire, the draft runs."
+    }
+    next == null && dynasty.phase == DynastyPhase.REGULAR_SEASON -> "Nobody to play this week."
+    next != null -> {
+        val opponent = dynasty.league.team(next.opponentOf(dynasty.userTeamId)!!)
+        val r = dynasty.standings().record(opponent.id).recordText.enDashed()
+        "Week ${dynasty.week}, $r, ${SchemeCatalog[opponent.offenseScheme].name}"
+    }
+    else -> "The bracket is set."
 }
 
 // ---------------------------------------------------------------------------
@@ -197,95 +278,160 @@ fun HubScreen(
 @Composable
 fun StandingsScreen(dynasty: Dynasty) {
     val standings = dynasty.standings()
-    LazyColumn(Modifier.fillMaxWidth()) {
+    ScreenList {
         Conference.entries.forEach { conference ->
-            item { SectionHeader(conference.label + " Conference") }
             Division.entries.forEach { division ->
                 item {
-                    Text(
-                        division.name.lowercase().replaceFirstChar { it.uppercase() },
-                        fontFamily = Mono, fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 2.dp),
-                    )
-                }
-                items(standings.division(conference, division)) { id ->
-                    val r = standings.record(id)
-                    TableRow(highlight = id == dynasty.userTeamId) {
-                        Cell(dynasty.league.team(id).abbrev, 6f, bold = id == dynasty.userTeamId)
-                        Cell(dynasty.league.team(id).nickname, 18f)
-                        Cell(r.recordText, 9f)
-                        Cell("${r.pointsFor}", 6f, dim = true)
-                        Cell("${r.pointsAgainst}", 6f, dim = true)
+                    SituationBlock(
+                        "${conference.label} ${division.name.lowercase()}",
+                        meta = "Week ${dynasty.week}",
+                    ) {
+                        DataTable(
+                            columns = listOf(
+                                ColumnSpec("Team", 2.2f),
+                                ColumnSpec("W–L", 1.1f),
+                                ColumnSpec("For", 0.9f, numeric = true),
+                                ColumnSpec("Against", 1.1f, numeric = true),
+                            ),
+                            rows = standings.division(conference, division).map { id ->
+                                val r = standings.record(id)
+                                RowData(
+                                    listOf(
+                                        dynasty.league.team(id).nickname,
+                                        r.recordText.enDashed(),
+                                        "${r.pointsFor}",
+                                        "${r.pointsAgainst}",
+                                    ),
+                                    highlight = id == dynasty.userTeamId,
+                                )
+                            },
+                        )
                     }
                 }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
 // ---------------------------------------------------------------------------
 
+private val ROSTER_ORDER = listOf(
+    Position.QB, Position.RB, Position.FB, Position.WR, Position.TE,
+    Position.LT, Position.LG, Position.C, Position.RG, Position.RT,
+    Position.EDGE, Position.DT, Position.LB, Position.CB, Position.S,
+    Position.K, Position.P, Position.LS,
+)
+
+private val ROSTER_FILTERS: List<Pair<String, Set<Position>>> = listOf(
+    "All" to ROSTER_ORDER.toSet(),
+    "QB" to setOf(Position.QB),
+    "RB" to setOf(Position.RB, Position.FB),
+    "WR" to setOf(Position.WR),
+    "TE" to setOf(Position.TE),
+    "OL" to setOf(Position.LT, Position.LG, Position.C, Position.RG, Position.RT),
+    "DL" to setOf(Position.EDGE, Position.DT),
+    "LB" to setOf(Position.LB),
+    "DB" to setOf(Position.CB, Position.S),
+    "ST" to setOf(Position.K, Position.P, Position.LS),
+)
+
 @Composable
-fun RosterScreen(dynasty: Dynasty, onDepthChart: () -> Unit = {}) {
+fun RosterScreen(
+    dynasty: Dynasty,
+    onDepthChart: () -> Unit = {},
+    onPlayer: (Int) -> Unit = {},
+) {
+    val c = NdTheme.colors
     val team = dynasty.team
     val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
     val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
-    val order = listOf(
-        Position.QB, Position.RB, Position.FB, Position.WR, Position.TE,
-        Position.LT, Position.LG, Position.C, Position.RG, Position.RT,
-        Position.EDGE, Position.DT, Position.LB, Position.CB, Position.S,
-        Position.K, Position.P, Position.LS,
-    )
     val roster = dynasty.league.roster(team.id)
-        .sortedWith(compareBy({ order.indexOf(it.position) }, { -overall(it) }))
+    var filter by remember { mutableStateOf("All") }
+    var sort by remember { mutableStateOf(SortState(3)) }
 
-    LazyColumn(Modifier.fillMaxWidth()) {
+    val positions = ROSTER_FILTERS.first { it.first == filter }.second
+    val shown = roster.filter { it.position in positions }.sortedWith(rosterOrder(dynasty, sort))
+
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                Text(team.name, fontFamily = Mono, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text("Offense: ${offense.name}  ·  fit ${SchemeFitGrade.describe(roster, offense, true)}", fontFamily = Mono, fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Defense: ${defense.name}  ·  fit ${SchemeFitGrade.describe(roster, defense, false)}", fontFamily = Mono, fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = onDepthChart) { Text("Depth chart", fontSize = 12.sp) }
-            }
-        }
-        item {
-            TableRow {
-                Cell("POS", 6f, dim = true)
-                Cell("NAME", 24f, dim = true)
-                Cell("AGE", 5f, dim = true)
-                Cell("OVR", 5f, dim = true)
-                Cell("SCH", 5f, dim = true)
-                Cell("FIT", 4f, dim = true)
-                Cell("COACH", 6f, dim = true)
-            }
-        }
-        item { Rule() }
-        items(roster) { p ->
-            val scheme = if (p.position.isOffense) offense else defense
-            val fit = schemeFit(p, scheme)
-            TableRow {
-                Cell(p.position.label, 6f, dim = true)
-                Cell(p.name + if (p.injuryWeeks > 0) "  (out ${p.injuryWeeks})" else "", 24f)
-                Cell("${p.age(dynasty.year)}", 5f, dim = true)
-                Cell("${overall(p)}", 5f, bold = true)
-                Cell(
-                    "${overall(p, scheme)}", 5f,
-                    bold = fit >= 0.95f,
-                    dim = fit <= 0.55f,
+            Column {
+                Text(team.name, style = NdTheme.type.display, color = c.chalk)
+                Text(
+                    "Offense ${offense.name}, fit ${SchemeFitGrade.describe(roster, offense, true)}",
+                    style = NdTheme.type.body, color = c.chalkDim,
                 )
-                Cell(SchemeFitGrade.letter(fit), 4f, bold = fit >= 0.9f, dim = fit < 0.6f)
-                // Coachability, as far as the staff has seen it (SPEC 4.6).
-                val seen = TraitScouting.confidence(p.clubYears, team.staff.scoutingDept)
-                Cell(TraitScouting.grade(p.traits.coachability, seen, p.id.v, "coachability"), 6f,
-                    dim = seen < 0.7f)
+                Text(
+                    "Defense ${defense.name}, fit ${SchemeFitGrade.describe(roster, defense, false)}",
+                    style = NdTheme.type.body, color = c.chalkDim,
+                )
+                SecondaryButton(
+                    "Set the depth chart", onDepthChart,
+                    Modifier.padding(top = NdTheme.spacing.s),
+                )
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
+        item {
+            com.example.nflsimtext.ui.components.FilterChipRow(
+                ROSTER_FILTERS.map { it.first }, filter, { filter = it },
+            )
+        }
+        item {
+            DataTable(
+                columns = listOf(
+                    // EDGE is the widest label the position column carries.
+                    ColumnSpec("Pos", 1.1f),
+                    ColumnSpec("Player", 2.4f),
+                    ColumnSpec("Age", 0.7f, numeric = true),
+                    ColumnSpec("Ovr", 0.7f, numeric = true, tier = true),
+                    ColumnSpec("Scheme", 1.0f, numeric = true, tier = true),
+                    ColumnSpec("Fit", 0.6f, numeric = true),
+                ),
+                rows = shown.map { p ->
+                    val scheme = if (p.position.isOffense) offense else defense
+                    RowData(
+                        listOf(
+                            p.position.label,
+                            p.name,
+                            "${p.age(dynasty.year)}",
+                            "${overall(p)}",
+                            "${overall(p, scheme)}",
+                            SchemeFitGrade.letter(schemeFit(p, scheme)),
+                        ),
+                        onClick = { onPlayer(p.id.v) },
+                    )
+                },
+                sort = sort,
+                onSort = { column ->
+                    sort = if (sort.column == column) sort.copy(descending = !sort.descending)
+                    else SortState(column)
+                },
+            )
+        }
+        item {
+            Text(
+                "Tap a player for his card.",
+                style = NdTheme.type.caption, color = c.chalkDim,
+            )
+        }
     }
+}
+
+private fun rosterOrder(dynasty: Dynasty, sort: SortState): Comparator<Player> {
+    val scheme = { p: Player ->
+        val team = dynasty.team
+        SchemeCatalog.tuned(
+            if (p.position.isOffense) team.offenseScheme else team.defenseScheme,
+            dynasty.league.tuning,
+        )
+    }
+    val by: Comparator<Player> = when (sort.column) {
+        0, 1 -> compareBy({ ROSTER_ORDER.indexOf(it.position) }, { it.lastName })
+        2 -> compareBy { it.age(dynasty.year) }
+        4 -> compareBy { overall(it, scheme(it)) }
+        5 -> compareBy { schemeFit(it, scheme(it)) }
+        else -> compareBy { overall(it) }
+    }
+    return if (sort.descending && sort.column !in setOf(0, 1)) by.reversed() else by
 }
 
 // ---------------------------------------------------------------------------
@@ -295,34 +441,44 @@ fun ScheduleScreen(dynasty: Dynasty) {
     val games = dynasty.schedule.forTeam(dynasty.userTeamId).sortedBy { it.week }
     val bye = dynasty.schedule.byeWeek(dynasty.userTeamId)
 
-    LazyColumn(Modifier.fillMaxWidth()) {
-        item { SectionHeader("${dynasty.year} schedule") }
-        items((1..Schedule.WEEKS).toList()) { week ->
-            val game = games.firstOrNull { it.week == week }
-            if (game == null) {
-                TableRow(highlight = week == bye) {
-                    Cell("$week", 4f, dim = true)
-                    Cell("BYE", 30f, dim = true)
-                }
-            } else {
-                val opponent = dynasty.league.team(game.opponentOf(dynasty.userTeamId)!!)
-                val played = dynasty.results.firstOrNull {
-                    it.week == week && it.involves(dynasty.userTeamId)
-                }
-                val outcome = played?.let {
-                    val us = it.scoreFor(dynasty.userTeamId)
-                    val them = it.scoreAgainst(dynasty.userTeamId)
-                    "${if (us > them) "W" else if (us < them) "L" else "T"} $us-$them"
-                } ?: ""
-                TableRow(highlight = week == dynasty.week) {
-                    Cell("$week", 4f, dim = true)
-                    Cell(if (game.home == dynasty.userTeamId) "vs" else "at", 4f, dim = true)
-                    Cell(opponent.name, 24f)
-                    Cell(outcome, 10f, bold = outcome.startsWith("W"))
-                }
+    ScreenList {
+        item {
+            SituationBlock("${dynasty.year} schedule", meta = "Week ${dynasty.week}") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("Wk", 0.6f),
+                        ColumnSpec("", 0.5f),
+                        ColumnSpec("Opponent", 2.6f),
+                        ColumnSpec("Result", 1.2f),
+                    ),
+                    rows = (1..Schedule.WEEKS).map { week ->
+                        val game = games.firstOrNull { it.week == week }
+                        if (game == null) {
+                            RowData(listOf("$week", "", if (week == bye) "Bye" else "", ""))
+                        } else {
+                            val opponent = dynasty.league.team(game.opponentOf(dynasty.userTeamId)!!)
+                            val played = dynasty.results.firstOrNull {
+                                it.week == week && it.involves(dynasty.userTeamId)
+                            }
+                            val outcome = played?.let {
+                                val us = it.scoreFor(dynasty.userTeamId)
+                                val them = it.scoreAgainst(dynasty.userTeamId)
+                                "${if (us > them) "W" else if (us < them) "L" else "T"} $us–$them"
+                            } ?: ""
+                            RowData(
+                                listOf(
+                                    "$week",
+                                    if (game.home == dynasty.userTeamId) "vs" else "at",
+                                    opponent.name,
+                                    outcome,
+                                ),
+                                highlight = week == dynasty.week,
+                            )
+                        }
+                    },
+                )
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -330,10 +486,15 @@ fun ScheduleScreen(dynasty: Dynasty) {
 
 @Composable
 fun BoxScoreScreen(dynasty: Dynasty) {
+    val c = NdTheme.colors
     val game = dynasty.lastGame
     if (game == null) {
-        Column(Modifier.padding(24.dp)) {
-            Text("No games played yet.", fontFamily = Mono, fontSize = 14.sp)
+        Column(Modifier.fillMaxSize().padding(NdTheme.spacing.xl)) {
+            Text("No games played yet.", style = NdTheme.type.title, color = c.chalk)
+            Text(
+                "Play a week from the hub and the box score lands here.",
+                style = NdTheme.type.body, color = c.chalkDim,
+            )
         }
         return
     }
@@ -344,96 +505,141 @@ fun BoxScoreScreen(dynasty: Dynasty) {
     val a = game.boxScore.away
     val ids = dynasty.league.roster(dynasty.userTeamId).associateBy { it.id.v }
 
-    LazyColumn(Modifier.fillMaxWidth()) {
+    ScreenList {
         item {
-            Column(Modifier.padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(away.name, fontFamily = Mono, fontSize = 16.sp)
-                    Text("${game.awayScore}", fontFamily = Mono, fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(home.name, fontFamily = Mono, fontSize = 16.sp)
-                    Text("${game.homeScore}", fontFamily = Mono, fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold)
-                }
+            Scoreboard(
+                away = TeamScore(away.abbrev, away.name, game.awayScore),
+                home = TeamScore(home.abbrev, home.name, game.homeScore),
+                quarter = 4,
+                clock = "00:00",
+                status = "Final",
+            )
+        }
+        item {
+            SituationBlock("Team stats", meta = "Final") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("", 2.0f),
+                        ColumnSpec(away.abbrev, 1.0f, numeric = true),
+                        ColumnSpec(home.abbrev, 1.0f, numeric = true),
+                    ),
+                    rows = listOf(
+                        "First downs" to (a.firstDowns.toString() to h.firstDowns.toString()),
+                        "Total yards" to (a.totalYards.toString() to h.totalYards.toString()),
+                        "Rushing" to ("${a.rushAttempts}–${a.rushYards}" to "${h.rushAttempts}–${h.rushYards}"),
+                        "Passing" to (a.passYards.toString() to h.passYards.toString()),
+                        "Completions" to ("${a.completions}–${a.passAttempts}" to "${h.completions}–${h.passAttempts}"),
+                        "Sacked" to (a.sacksAllowed.toString() to h.sacksAllowed.toString()),
+                        "Third down" to ("${a.thirdDownConversions}–${a.thirdDownAttempts}"
+                            to "${h.thirdDownConversions}–${h.thirdDownAttempts}"),
+                        "Turnovers" to (a.turnovers.toString() to h.turnovers.toString()),
+                        "Penalties" to ("${a.penalties}–${a.penaltyYards}" to "${h.penalties}–${h.penaltyYards}"),
+                        "Possession" to (a.possessionText to h.possessionText),
+                    ).map { (label, values) ->
+                        RowData(listOf(label, values.first, values.second))
+                    },
+                )
             }
         }
 
-        item { SectionHeader("Team stats") }
-        item {
-            TableRow {
-                Cell("", 20f); Cell(away.abbrev, 9f, dim = true); Cell(home.abbrev, 9f, dim = true)
-            }
-        }
-        item { Rule() }
-        val rows = listOf(
-            "First downs" to (a.firstDowns.toString() to h.firstDowns.toString()),
-            "Total yards" to (a.totalYards.toString() to h.totalYards.toString()),
-            "Rushing" to ("${a.rushAttempts}-${a.rushYards}" to "${h.rushAttempts}-${h.rushYards}"),
-            "Passing" to (a.passYards.toString() to h.passYards.toString()),
-            "Comp-Att" to ("${a.completions}-${a.passAttempts}" to "${h.completions}-${h.passAttempts}"),
-            "Sacked" to (a.sacksAllowed.toString() to h.sacksAllowed.toString()),
-            "3rd down" to ("${a.thirdDownConversions}-${a.thirdDownAttempts}"
-                to "${h.thirdDownConversions}-${h.thirdDownAttempts}"),
-            "Turnovers" to (a.turnovers.toString() to h.turnovers.toString()),
-            "Penalties" to ("${a.penalties}-${a.penaltyYards}" to "${h.penalties}-${h.penaltyYards}"),
-            "Possession" to (a.possessionText to h.possessionText),
-        )
-        items(rows) { (label, values) ->
-            TableRow {
-                Cell(label, 20f, dim = true)
-                Cell(values.first, 9f)
-                Cell(values.second, 9f)
-            }
-        }
-
-        item { SectionHeader("${dynasty.team.nickname} leaders") }
         val mine = game.boxScore.players.filterKeys { it in ids }
         val passer = mine.entries.filter { it.value.passAttempts > 0 }
             .maxByOrNull { it.value.passYards }
-        passer?.let { (id, s) ->
-            item {
-                TableRow {
-                    Cell("PASS", 7f, dim = true)
-                    Cell(ids[id]!!.name, 22f)
-                    Cell("${s.completions}/${s.passAttempts}", 8f)
-                    Cell("${s.passYards} yd", 8f)
-                    Cell("${s.passTouchdowns}TD", 6f)
-                }
-            }
-        }
-        items(mine.entries.filter { it.value.carries > 0 }
-            .sortedByDescending { it.value.rushYards }.take(3).toList()) { (id, s) ->
-            TableRow {
-                Cell("RUSH", 7f, dim = true)
-                Cell(ids[id]!!.name, 22f)
-                Cell("${s.carries} car", 8f)
-                Cell("${s.rushYards} yd", 8f)
-                Cell("${s.rushTouchdowns}TD", 6f)
-            }
-        }
-        items(mine.entries.filter { it.value.receptions > 0 }
-            .sortedByDescending { it.value.receivingYards }.take(4).toList()) { (id, s) ->
-            TableRow {
-                Cell("REC", 7f, dim = true)
-                Cell(ids[id]!!.name, 22f)
-                Cell("${s.receptions} rec", 8f)
-                Cell("${s.receivingYards} yd", 8f)
-                Cell("${s.receivingTouchdowns}TD", 6f)
+        val rushers = mine.entries.filter { it.value.carries > 0 }
+            .sortedByDescending { it.value.rushYards }.take(3)
+        val receivers = mine.entries.filter { it.value.receptions > 0 }
+            .sortedByDescending { it.value.receivingYards }.take(4)
+        item {
+            SituationBlock("${dynasty.team.nickname} leaders") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("", 0.7f),
+                        ColumnSpec("Player", 2.2f),
+                        ColumnSpec("", 1.0f, numeric = true),
+                        ColumnSpec("Yards", 1.0f, numeric = true),
+                        ColumnSpec("TD", 0.6f, numeric = true),
+                    ),
+                    rows = buildList {
+                        passer?.let { (id, s) ->
+                            add(RowData(listOf(
+                                "Pass", ids[id]!!.name, "${s.completions}/${s.passAttempts}",
+                                "${s.passYards}", "${s.passTouchdowns}",
+                            )))
+                        }
+                        rushers.forEach { (id, s) ->
+                            add(RowData(listOf(
+                                "Run", ids[id]!!.name, "${s.carries} car",
+                                "${s.rushYards}", "${s.rushTouchdowns}",
+                            )))
+                        }
+                        receivers.forEach { (id, s) ->
+                            add(RowData(listOf(
+                                "Catch", ids[id]!!.name, "${s.receptions} rec",
+                                "${s.receivingYards}", "${s.receivingTouchdowns}",
+                            )))
+                        }
+                    },
+                )
             }
         }
 
-        item { SectionHeader("Scoring drives") }
-        items(game.drives.filter { it.isScore }) { d ->
-            TableRow {
-                Cell("Q${d.startQuarter}", 5f, dim = true)
-                Cell(if (d.offense.name == "HOME") home.abbrev else away.abbrev, 6f)
-                Cell(d.ending.label, 18f)
-                Cell("${d.plays} pl", 7f, dim = true)
-                Cell("${d.yards} yd", 7f, dim = true)
+        if (game.playByPlay.isNotEmpty()) {
+            item {
+                SituationBlock("Play log", meta = "Newest first") {
+                    val plays = game.playByPlay
+                    plays.indices.reversed().take(25).forEach { i ->
+                        val play = plays[i]
+                        PlayLogEntry(
+                            downDistance = downAndDistance(play),
+                            text = play.text,
+                            event = eventOf(plays, i),
+                        )
+                    }
+                    if (plays.size > 25) {
+                        Text(
+                            "${plays.size - 25} earlier plays.",
+                            style = NdTheme.type.caption, color = c.chalkDim,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                    }
+                }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
     }
+}
+
+private fun downAndDistance(play: PlayLog): String {
+    val down = when (play.down) {
+        1 -> "1st"
+        2 -> "2nd"
+        3 -> "3rd"
+        else -> "4th"
+    }
+    return if (play.yardLine >= 90 && play.distance >= 100 - play.yardLine) "$down & goal"
+    else "$down & ${play.distance}"
+}
+
+/**
+ * The log carries no event flag, so the score line tells us about points and
+ * the text about the ball changing hands. Nothing is guessed from a colour
+ * alone - every entry still reads for itself.
+ */
+private fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
+    val play = plays[i]
+    val nextPlay = plays.getOrNull(i + 1)
+    if (nextPlay != null &&
+        (nextPlay.homeScore > play.homeScore || nextPlay.awayScore > play.awayScore)
+    ) return PlayEvent.SCORE
+    val text = play.text.lowercase()
+    if ("intercept" in text || "fumble" in text) return PlayEvent.TURNOVER
+    if ("first down" in text) return PlayEvent.FIRST_DOWN
+    return null
+}
+
+// ---------------------------------------------------------------------------
+
+/** Coachability as far as the staff has seen it (SPEC 4.6). */
+internal fun coachabilityGrade(player: Player, scoutingDept: Int): Pair<String, Boolean> {
+    val seen = TraitScouting.confidence(player.clubYears, scoutingDept)
+    return TraitScouting.grade(player.traits.coachability, seen, player.id.v, "coachability") to (seen >= 0.7f)
 }

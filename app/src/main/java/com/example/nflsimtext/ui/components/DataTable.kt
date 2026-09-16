@@ -3,6 +3,7 @@ package com.example.nflsimtext.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,13 +14,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.nflsimtext.ui.theme.NdTheme
+import com.example.nflsimtext.ui.theme.ratingColor
 
-/** A column: what it is called, how wide it sits, and whether it holds numbers. */
-data class ColumnSpec(val label: String, val weight: Float, val numeric: Boolean = false)
+/**
+ * A column: what it is called, how wide it sits, whether it holds numbers, and
+ * whether those numbers are ratings that should carry their tier colour.
+ */
+data class ColumnSpec(
+    val label: String,
+    val weight: Float,
+    val numeric: Boolean = false,
+    val tier: Boolean = false,
+)
 
 /** A row of already-formatted cells. */
 data class RowData(
@@ -44,8 +56,12 @@ fun DataTable(
     onSort: ((Int) -> Unit)? = null,
 ) {
     val c = NdTheme.colors
+    val stacked = LocalConfiguration.current.fontScale > 1.3f
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 32.dp).padding(horizontal = NdTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             columns.forEachIndexed { i, col ->
                 val active = sort?.column == i
                 val arrow = if (!active) "" else if (sort.descending) " ▼" else " ▲"
@@ -57,30 +73,63 @@ fun DataTable(
                     textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
                     modifier = Modifier
                         .weight(col.weight)
-                        .then(if (onSort != null) Modifier.clickable { onSort(i) } else Modifier)
-                        .padding(horizontal = NdTheme.spacing.xs),
+                        .then(if (onSort != null) Modifier.clickable { onSort(i) } else Modifier),
                 )
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.turfLine))
         rows.forEach { row ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = NdTheme.spacing.rowHeight)
-                    .background(if (row.highlight) c.stripe else c.turfRaised)
-                    .then(if (row.onClick != null) Modifier.clickable { row.onClick.invoke() } else Modifier),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                columns.forEachIndexed { i, col ->
+            val rowModifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (stacked) NdTheme.spacing.twoLineHeight else NdTheme.spacing.rowHeight)
+                .background(if (row.highlight) c.stripe else c.turfRaised)
+                .then(if (row.onClick != null) Modifier.clickable { row.onClick.invoke() } else Modifier)
+                .padding(horizontal = NdTheme.spacing.xs)
+            fun ink(col: ColumnSpec, cell: String): Color = when {
+                row.highlight -> c.onStripe
+                col.tier -> cell.toIntOrNull()?.let { ratingColor(it, c) } ?: c.chalk
+                else -> c.chalk
+            }
+            if (stacked) {
+                // Big type: names on one line, numbers on the next, so nothing
+                // is squeezed out of the row (docs/DESIGN.md 5).
+                Column(rowModifier, verticalArrangement = Arrangement.Center) {
                     Text(
-                        row.cells.getOrElse(i) { "" },
+                        columns.indices
+                            .filterNot { columns[it].numeric }
+                            .map { row.cells.getOrElse(it) { "" } }
+                            .filter { it.isNotBlank() }
+                            .joinToString("  "),
                         style = NdTheme.type.data,
                         color = if (row.highlight) c.onStripe else c.chalk,
-                        maxLines = 1,
-                        textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
-                        modifier = Modifier.weight(col.weight).padding(horizontal = NdTheme.spacing.xs),
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.m)) {
+                        columns.indices.filter { columns[it].numeric }.forEach { i ->
+                            val cell = row.cells.getOrElse(i) { "" }
+                            Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs)) {
+                                Text(
+                                    columns[i].label,
+                                    style = NdTheme.type.caption,
+                                    color = if (row.highlight) c.onStripe else c.chalkDim,
+                                )
+                                Text(cell, style = NdTheme.type.data, color = ink(columns[i], cell))
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(rowModifier, verticalAlignment = Alignment.CenterVertically) {
+                    columns.forEachIndexed { i, col ->
+                        val cell = row.cells.getOrElse(i) { "" }
+                        Text(
+                            cell,
+                            style = NdTheme.type.data,
+                            color = ink(col, cell),
+                            maxLines = 1,
+                            textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
+                            modifier = Modifier.weight(col.weight),
+                        )
+                    }
                 }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.turfLine))

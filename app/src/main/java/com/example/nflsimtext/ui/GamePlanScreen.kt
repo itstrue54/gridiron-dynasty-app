@@ -86,11 +86,11 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
         item {
             Column(Modifier.padding(16.dp)) {
                 TextButton(onClick = onBack) { Text("< Hub", fontSize = 12.sp) }
-                Text("Game plan", fontFamily = Mono, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Game plan", fontFamily = DataFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Your coordinators still call the plays; these set what they call from. " +
                         "A lever you have not touched follows your coordinators' tendencies in your schemes (${off.name}, ${def.name}).",
-                    fontFamily = Mono, fontSize = 11.sp,
+                    fontFamily = DataFamily, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -120,14 +120,14 @@ private fun LeverRow(l: Lever, onChange: (Float) -> Unit, onDone: () -> Unit, on
     Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(l.label, fontFamily = Mono, fontSize = 13.sp,
+                Text(l.label, fontFamily = DataFamily, fontSize = 13.sp,
                     fontWeight = if (l.value != null) FontWeight.Bold else FontWeight.Normal)
-                Text(l.note, fontFamily = Mono, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(l.note, fontFamily = DataFamily, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
                 (if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown)) +
                     if (l.value == null) " (staff)" else "",
-                fontFamily = Mono, fontSize = 12.sp,
+                fontFamily = DataFamily, fontSize = 12.sp,
             )
             if (l.value != null) TextButton(onClick = onReset) { Text("Reset", fontSize = 11.sp) }
         }

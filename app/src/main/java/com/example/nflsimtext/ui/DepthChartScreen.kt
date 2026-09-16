@@ -104,11 +104,11 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
         item {
             Column(Modifier.padding(16.dp)) {
                 TextButton(onClick = onBack) { Text("< Roster", fontSize = 12.sp) }
-                Text("Depth chart", fontFamily = Mono, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Depth chart", fontFamily = DataFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Move a player to pin him and everyone above him. Below the pins the chart " +
                         "keeps sorting itself by scheme-adjusted overall. Auto clears a position.",
-                    fontFamily = Mono, fontSize = 11.sp,
+                    fontFamily = DataFamily, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -187,12 +187,12 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                 .sortedByDescending { it.ratings[RatingId.SPEED] }.take(6)
             Column(Modifier.padding(horizontal = 16.dp)) {
                 Text("Kicks: ${kick?.name ?: "-"}${if (pins.kickReturner != null) " (pinned)" else ""}",
-                    fontFamily = Mono, fontSize = 12.sp)
+                    fontFamily = DataFamily, fontSize = 12.sp)
                 Text("Punts: ${punt?.name ?: "-"}${if (pins.puntReturner != null) " (pinned)" else ""}",
-                    fontFamily = Mono, fontSize = 12.sp)
+                    fontFamily = DataFamily, fontSize = 12.sp)
                 candidates.forEach { c ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${c.position.label} ${c.name}", fontFamily = Mono, fontSize = 12.sp,
+                        Text("${c.position.label} ${c.name}", fontFamily = DataFamily, fontSize = 12.sp,
                             modifier = Modifier.weight(1f))
                         TextButton(onClick = { save(pins.copy(kickReturner = c.id.v)) }) { Text("KR", fontSize = 11.sp) }
                         TextButton(onClick = { save(pins.copy(puntReturner = c.id.v)) }) { Text("PR", fontSize = 11.sp) }
@@ -217,10 +217,10 @@ private fun Header(title: String, summary: String, state: String, isOpen: Boolea
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text((if (isOpen) "- " else "+ ") + title, fontFamily = Mono, fontSize = 13.sp,
+        Text((if (isOpen) "- " else "+ ") + title, fontFamily = DataFamily, fontSize = 13.sp,
             fontWeight = FontWeight.Bold, modifier = Modifier.width(150.dp))
-        Text(summary, fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.weight(1f))
-        Text(state, fontFamily = Mono, fontSize = 11.sp,
+        Text(summary, fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.weight(1f))
+        Text(state, fontFamily = DataFamily, fontSize = 11.sp,
             color = if (state == "auto") MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.primary)
     }
@@ -240,15 +240,15 @@ private fun PlayerRow(
     onDown: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("${index + 1}", fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.width(24.dp),
+        Text("${index + 1}", fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.width(24.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             player.name + (if (fit.isNotEmpty()) "  $fit" else "") + if (pinned) "  *" else "",
-            fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.weight(1f),
+            fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.weight(1f),
             fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
             color = if (inPackage) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text("$ovr", fontFamily = Mono, fontSize = 12.sp, modifier = Modifier.width(32.dp))
+        Text("$ovr", fontFamily = DataFamily, fontSize = 12.sp, modifier = Modifier.width(32.dp))
         TextButton(onClick = onUp, enabled = canUp, contentPadding = PaddingValues(0.dp),
             modifier = Modifier.width(40.dp)) { Text("^", fontSize = 13.sp) }
         TextButton(onClick = onDown, enabled = canDown, contentPadding = PaddingValues(0.dp),

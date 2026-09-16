@@ -37,14 +37,14 @@ fun OffseasonScreen(dynasty: Dynasty) {
 
     if (report == null) {
         Column(Modifier.padding(16.dp)) {
-            Text("No offseason yet", fontFamily = Mono, fontSize = 18.sp,
+            Text("No offseason yet", fontFamily = DataFamily, fontSize = 18.sp,
                 fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text(
                 "Play a season through the playoffs and the year will turn over: " +
                     "players retire and develop, contracts expire, the draft runs, " +
                     "and the market opens.",
-                fontFamily = Mono, fontSize = 12.sp,
+                fontFamily = DataFamily, fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -60,12 +60,12 @@ fun OffseasonScreen(dynasty: Dynasty) {
 
         item {
             Column(Modifier.padding(16.dp)) {
-                Text("The ${report.year} offseason", fontFamily = Mono, fontSize = 20.sp,
+                Text("The ${report.year} offseason", fontFamily = DataFamily, fontSize = 20.sp,
                     fontWeight = FontWeight.Bold)
                 Text(
                     "${report.retirementCount} retired  ·  ${report.draftedCount} drafted  " +
                         "·  ${report.capCasualties} released",
-                    fontFamily = Mono, fontSize = 12.sp,
+                    fontFamily = DataFamily, fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -79,7 +79,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
                 if (dead > 0) Line("dead money", money(dead), warn = true)
                 Line("space", money(cap - committed - dead), bold = true)
                 Spacer(Modifier.height(8.dp))
-                Text("BIGGEST HITS", fontFamily = Mono, fontSize = 10.sp,
+                Text("BIGGEST HITS", fontFamily = DataFamily, fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->
                     val sch = if (p.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
@@ -103,7 +103,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
                             if (w.intent == Intent.TRADE_REQUEST) "TRADE REQUEST" else "",
                             warn = w.intent == Intent.TRADE_REQUEST,
                         )
-                        Text(w.note, fontFamily = Mono, fontSize = 11.sp,
+                        Text(w.note, fontFamily = DataFamily, fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
                     }
@@ -120,7 +120,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
                         Line("${t.name}  ${t.position} ${t.overall}", "$from → $to")
                         Text(
                             "${t.reason}   ·   $from carries ${money(t.deadMoney)} dead",
-                            fontFamily = Mono, fontSize = 11.sp,
+                            fontFamily = DataFamily, fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.height(4.dp))
@@ -151,7 +151,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
         if (report.signings.isNotEmpty()) {
             item {
                 Section("Around the league") {
-                    Text("SIGNINGS", fontFamily = Mono, fontSize = 10.sp,
+                    Text("SIGNINGS", fontFamily = DataFamily, fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     report.signings.take(8).forEach { s ->
                         val to = dynasty.league.team(TeamId(s.team)).abbrev
@@ -238,7 +238,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         HorizontalDivider()
         Spacer(Modifier.height(8.dp))
-        Text(title.uppercase(), fontFamily = Mono, fontSize = 11.sp,
+        Text(title.uppercase(), fontFamily = DataFamily, fontSize = 11.sp,
             fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(6.dp))
         content()
@@ -254,12 +254,12 @@ private fun Line(
 ) {
     Row(Modifier.fillMaxWidth()) {
         Text(
-            left, fontFamily = Mono, fontSize = 12.sp,
+            left, fontFamily = DataFamily, fontSize = 12.sp,
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.weight(1f),
         )
         Text(
-            right, fontFamily = Mono, fontSize = 12.sp,
+            right, fontFamily = DataFamily, fontSize = 12.sp,
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
             color = if (warn) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface,
