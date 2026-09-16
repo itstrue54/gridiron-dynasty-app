@@ -1008,3 +1008,69 @@ CBS News, NFL injuries up in 2010; adjusted games lost
 - **Depth still thins over a dynasty:** ten years in, rotation players
   sit 10-12 points under starters however strongly the draft weighs
   them; talent supply, not need, sets that.
+
+## ADR-0xx — A club sees what it believes, and pays scouts to believe it more precisely
+
+Context: SPEC 4.6's ScoutingLens was a comment. Ratings were shown as
+facts, the draft board drew a fresh random error every time a club looked
+at a prospect, and nothing a club could do changed what it knew.
+
+Decision:
+- **The lens is real.** A club sees a point estimate and a band about
+  twelve points wide at no confidence, closing as it sees more and never
+  reaching certainty. The miss belongs to a club and a player together
+  and is drawn from their two ids rather than stored, the way trait
+  grades already were: no save field, and two clubs are wrong about a man
+  differently and stay wrong. SPEC says store a bias at generation; the
+  derived version is observably the same and cheaper, and the trait code
+  had already set that precedent.
+- **One confidence model** serves ratings and traits. A man on a club's
+  own roster is never a mystery - he practises in front of the staff - so
+  a new arrival reads 0.35-0.55 by scouting department and each year adds
+  0.25: known by his second season, guesswork as a rookie. Traits keep
+  their wider band and the 0.4, 0.7 and 0.9 thresholds.
+- **Generated rosters carry years with the club**, drawn against a man's
+  years in the league rather than the years left on his deal. They buy no
+  scheme familiarity - that is still earned in the sim - only knowledge.
+  Without them every club began unsure of its own roster.
+- **Scouting is a standing club decision**, not a minigame: the
+  department sets the budget, the focus sets the spread. Name a position
+  or two and the club enters the draft sure about those men and guessing
+  at the rest; name none and it knows a little about everybody. Every
+  club honours its own focus, and an AI club points its scouts at its two
+  biggest needs.
+- **The draft room without a resumable offseason.** The run splits at the
+  draft: runToDraft plays the phases before it and returns a pause, the
+  pause shows the board whenever the club is on the clock, and finishing
+  plays the draft out with the club's picks in it. The pause is in memory
+  and never saved, because those phases are deterministic - a club that
+  closes the app runs them again. Resumability, with the offseason state
+  serialized and a save version bump, is the cleaner end state and is not
+  needed yet.
+- **The miss is half the band, not all of it.** At the full width the
+  rating escaped the published band about a third of the time: the first
+  draft run took a tight end the room had at 79-98 who was 66. At half,
+  the rating sits inside the band about nineteen times in twenty, pinned
+  by a test, and a club can still bust without the band being a lie.
+
+Measured. Ten-year dynasties on three seeds: the lens alone changed
+nothing (mean 69.7, 69.7, 69.6 against 69.5, 69.7, 69.6); focused
+scouting changed nothing (69.6, 69.7, 69.7); the narrower miss lifts the
+league about a quarter of a point (69.9, 70.0, 69.8) because clubs draft
+a little better, which is what paying scouts is for. Club tenure reaches
+scouting only: two of three seeds came out bit-identical. The split at
+the draft is behaviour-preserving to the line.
+
+### Open, found while doing this
+- **The market is still omniscient.** Free agency, re-signing and trades
+  read true ratings, so a club that cannot judge its own rookie prices a
+  free agent perfectly.
+- **Exposure is a draw, not a fact about the player.** SPEC wants a small
+  school or big program factor on the prospect; this derives it from his
+  id instead, so nothing in the UI can explain why he is unknown.
+- **No combine or pro days.** SPEC 7 phase 8 has events that move
+  confidence; the club's focus is all there is.
+- **The room shows overall and fit, not traits.** A prospect's character
+  is scouted in the engine and invisible in the draft room.
+- **Existing saves keep their old tenure**, so their rosters read hazier
+  than a new league's.
