@@ -36,7 +36,7 @@ data class TuningTable(
         /** Bigger = accuracy and coverage differences matter less. */
         val completionScale: Float = 88f,
         /** Completion probability at a dead-even matchup, before depth. */
-        val baseCompletion: Float = 0.81f,
+        val baseCompletion: Float = 0.82f,
         /** Completion penalty per yard of intended air distance. */
         val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
@@ -82,7 +82,7 @@ data class TuningTable(
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.72f,
+        val baseYards: Float = 3.58f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
@@ -97,8 +97,8 @@ data class TuningTable(
         /** Blocking advantage lost per yard inside the twenty. */
         val redZoneCompression: Float = 0.32f,
         /** Yards per point of vision over 70, and per point of break-tackle over the tackler. */
-        val visionScale: Float = 0.025f,
-        val breakTackleScale: Float = 0.025f,
+        val visionScale: Float = 0.032f,
+        val breakTackleScale: Float = 0.032f,
         /** Breakaway chance per point of elusiveness over 70, and how speed stretches the run. */
         val breakawayElusiveness: Float = 0.0011f,
         val breakawaySpeedBase: Float = 0.75f,
@@ -108,10 +108,10 @@ data class TuningTable(
         val fumbleHitBase: Float = 0.7f,
         val fumbleHitScale: Float = 140f,
         /** Backfield rotation, cumulative: the lead back's share of carries, then the top two's. */
-        val rbRotationLead: Float = 0.83f,
+        val rbRotationLead: Float = 0.86f,
         val rbRotationTopTwo: Float = 0.95f,
         /** Carries in a game after which the lead back's handoffs go to the next back. */
-        val leadBackCarryCap: Int = 25,
+        val leadBackCarryCap: Int = 27,
     )
 
     @Serializable
@@ -235,7 +235,7 @@ data class TuningTable(
     data class GameFlow(
         val playClockSeconds: Int = 40,
         val runPlayClockRunoff: Int = 31,
-        val completionClockRunoff: Int = 29,
+        val completionClockRunoff: Int = 28,
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */
         val passRateShift: Float = -0.04f,
