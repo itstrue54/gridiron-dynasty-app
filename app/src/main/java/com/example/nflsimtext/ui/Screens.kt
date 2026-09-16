@@ -29,6 +29,8 @@ import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.Schedule
+import com.example.nflsimtext.ui.theme.ThemeSetting
+import com.example.nflsimtext.ui.theme.next
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -41,6 +43,8 @@ fun HubScreen(
     dynasty: Dynasty,
     store: DynastyStore,
     scope: CoroutineScope,
+    theme: ThemeSetting,
+    onTheme: (ThemeSetting) -> Unit,
     onNavigate: (Tab) -> Unit = {},
 ) {
     val team = dynasty.team
@@ -137,6 +141,9 @@ fun HubScreen(
                     }
                     TextButton(onClick = { onNavigate(Tab.TUNING) }) {
                         Text("Advanced: tuning", fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { onTheme(theme.next()) }) {
+                        Text("Theme: ${theme.label}", fontSize = 12.sp)
                     }
                 }
             }

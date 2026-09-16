@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.nflsimtext.ui.theme.ThemeSetting
 import kotlinx.coroutines.launch
 
 enum class Tab(val label: String) {
@@ -53,7 +55,11 @@ enum class Tab(val label: String) {
 val Mono = FontFamily.Monospace
 
 @Composable
-fun DynastyApp(store: DynastyStore) {
+fun DynastyApp(
+    store: DynastyStore,
+    theme: ThemeSetting,
+    onTheme: (ThemeSetting) -> Unit,
+) {
     var tab by remember { mutableStateOf(Tab.HUB) }
     val scope = rememberCoroutineScope()
     val dynasty = store.dynasty
@@ -65,7 +71,7 @@ fun DynastyApp(store: DynastyStore) {
             when {
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope) { tab = it }
+                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(dynasty) { tab = Tab.DEPTH }
                     Tab.SCHEDULE -> ScheduleScreen(dynasty)
@@ -94,6 +100,9 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
         // do not fit across a phone.
         Row(
             Modifier.fillMaxWidth()
+                // Edge to edge: without this the bar sits under the system
+                // gesture bar and its tabs cannot be tapped.
+                .navigationBarsPadding()
                 .horizontalScroll(rememberScrollState())
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
