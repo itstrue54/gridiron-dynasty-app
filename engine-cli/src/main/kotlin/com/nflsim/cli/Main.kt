@@ -492,10 +492,18 @@ private fun gameCal(args: Array<String>) {
     // band sitting on its edge passes or fails on that single draw.
     val seed = args.firstOrNull { it.startsWith("--seed=") }?.substringAfter("=")?.toLongOrNull() ?: DEFAULT_SEED
     val league = LeagueGenerator.generate(YEAR, seed)
-    println("Simulating $games full games across the league.")
+    // --preset=arcade|grinder measures a preset against Realistic's bands,
+    // which it is meant to miss in its own direction.
+    val preset = args.firstOrNull { it.startsWith("--preset=") }?.substringAfter("=")?.lowercase()
+    val tuning = when (preset) {
+        "arcade" -> com.nflsim.engine.tuning.TuningTable.ARCADE
+        "grinder" -> com.nflsim.engine.tuning.TuningTable.GRINDER
+        else -> league.tuning
+    }
+    println("Simulating $games full games across the league${preset?.let { " ($it)" } ?: ""}.")
     println()
     val t0 = System.nanoTime()
-    val report = GameCalibration.run(league, games = games, seed = seed)
+    val report = GameCalibration.run(league, games = games, seed = seed, tuning = tuning)
     val ms = (System.nanoTime() - t0) / 1_000_000
     print(report.table())
     println("${report.plays} total plays, ${ms}ms")

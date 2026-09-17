@@ -19,6 +19,7 @@ data class TuningTable(
     val blocking: Blocking = Blocking(),
     val coverage: Coverage = Coverage(),
     val penalties: Penalties = Penalties(),
+    val tackling: Tackling = Tackling(),
     val injuries: Injuries = Injuries(),
     val gameFlow: GameFlow = GameFlow(),
     val specialTeams: SpecialTeams = SpecialTeams(),
@@ -41,7 +42,7 @@ data class TuningTable(
         val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
-        val interceptionBase: Float = 0.025f,
+        val interceptionBase: Float = 0.021f,
         /** How much a badly-lost route matchup raises interception odds. */
         val interceptionCoverageScale: Float = 0.042f,
         val yacScale: Float = 0.35f,
@@ -122,6 +123,46 @@ data class TuningTable(
         /** Carries in a game after which the lead back's handoffs go to the next back. */
         val leadBackCarryCap: Int = 27,
     )
+
+    /**
+     * Who makes the tackle on a run (SPEC 12: the play resolution holds no
+     * numbers of its own). A run stopped at the line is the front seven's; one
+     * that gets past them belongs to the secondary. Crediting it uniformly
+     * across the eleven had corners leading the league in tackles ahead of
+     * linebackers, which is backwards.
+     */
+    @Serializable
+    data class Tackling(
+        /** Yards past which a run has cleared the front seven. */
+        val pastTheFront: Int = 7,
+        val frontNear: Float = 1.0f,
+        val frontPast: Float = 0.35f,
+        val linebackerNear: Float = 1.7f,
+        val linebackerPast: Float = 1.1f,
+        val safetyNear: Float = 0.45f,
+        val safetyPast: Float = 1.5f,
+        val cornerNear: Float = 0.25f,
+        val cornerPast: Float = 0.9f,
+        /**
+         * Share of tackles after a catch made by the man in coverage. The rest
+         * are pursuit: crediting every completion to the defender who covered
+         * it left corners near the league's tackle lead, where they should sit
+         * well behind the linebackers.
+         */
+        val coverageShare: Float = 0.6f,
+    ) {
+        fun weight(position: com.nflsim.engine.model.Position, yards: Int): Float {
+            val past = yards >= pastTheFront
+            return when (position) {
+                com.nflsim.engine.model.Position.EDGE,
+                com.nflsim.engine.model.Position.DT -> if (past) frontPast else frontNear
+                com.nflsim.engine.model.Position.LB -> if (past) linebackerPast else linebackerNear
+                com.nflsim.engine.model.Position.S -> if (past) safetyPast else safetyNear
+                com.nflsim.engine.model.Position.CB -> if (past) cornerPast else cornerNear
+                else -> 0.2f
+            }
+        }
+    }
 
     @Serializable
     data class Blocking(
@@ -463,15 +504,45 @@ data class TuningTable(
     companion object {
         val REALISTIC = TuningTable()
 
-        val ARCADE = TuningTable(
-            passing = Passing(baseCompletion = 0.71f, yacScale = 1.35f, depthPenaltyPerYard = 0.010f),
-            rushing = Rushing(baseYards = 3.8f, breakawayBase = 0.085f, breakawayYards = 16f),
-        )
+        /*
+         * The presets are Realistic with a lean, not tables of their own.
+         * They were written as absolute values once, and every retune of
+         * Realistic left them further behind: by M11 Arcade completed fewer
+         * passes than Realistic and Grinder completed 49 per cent. As offsets
+         * they keep their character whatever Realistic becomes.
+         */
 
-        val GRINDER = TuningTable(
-            passing = Passing(baseCompletion = 0.62f, yacScale = 0.82f, pressureScale = 21f),
-            rushing = Rushing(baseYards = 3.0f, variance = 2.2f, breakawayBase = 0.038f),
-            injuries = Injuries(scale = 1.35f),
-        )
+        /** The offence's game: more completions, more after the catch, more long runs. */
+        val ARCADE = REALISTIC.let { r ->
+            r.copy(
+                passing = r.passing.copy(
+                    baseCompletion = r.passing.baseCompletion + 0.03f,
+                    yacScale = r.passing.yacScale * 1.3f,
+                    depthPenaltyPerYard = r.passing.depthPenaltyPerYard * 0.8f,
+                ),
+                rushing = r.rushing.copy(
+                    baseYards = r.rushing.baseYards + 0.3f,
+                    breakawayBase = r.rushing.breakawayBase * 1.8f,
+                    breakawayYards = r.rushing.breakawayYards * 1.3f,
+                ),
+            )
+        }
+
+        /** The defence's game: tighter windows, more pressure, shorter runs, more bodies hurt. */
+        val GRINDER = REALISTIC.let { r ->
+            r.copy(
+                passing = r.passing.copy(
+                    baseCompletion = r.passing.baseCompletion - 0.04f,
+                    yacScale = r.passing.yacScale * 0.85f,
+                    pressureScale = r.passing.pressureScale * 0.75f,
+                ),
+                rushing = r.rushing.copy(
+                    baseYards = r.rushing.baseYards - 0.35f,
+                    variance = r.rushing.variance * 0.6f,
+                    breakawayBase = r.rushing.breakawayBase * 0.9f,
+                ),
+                injuries = r.injuries.copy(scale = r.injuries.scale * 1.25f),
+            )
+        }
     }
 }
