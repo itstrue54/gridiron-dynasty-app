@@ -170,7 +170,7 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("NFL sim text", style = NdTheme.type.display, color = NdTheme.colors.chalk)
+        Text("Gridiron Dynasty", style = NdTheme.type.display, color = NdTheme.colors.chalk)
         Spacer(Modifier.height(8.dp))
         Text(
             "32 teams. 1,696 players. Nobody you have heard of.",

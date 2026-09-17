@@ -1,0 +1,65 @@
+# Releasing to Google Play
+
+Everything here that needs a password or an account is yours to do. Nothing
+secret is ever committed: `keystore.properties` and keystores are gitignored.
+
+## 1. Create an upload key (once, and keep it safe)
+
+```bash
+keytool -genkeypair -v -keystore upload-key.jks -alias upload -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Keep `upload-key.jks` and its passwords somewhere backed up and private. Play
+App Signing holds the real signing key; this upload key can be reset through
+Play support if lost, but it is a slow process.
+
+## 2. Point the build at it
+
+Create `keystore.properties` in the repository root (it is gitignored):
+
+```properties
+storeFile=upload-key.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
+
+## 3. Build the signed bundle
+
+```bash
+./gradlew :app:bundleRelease
+```
+
+The bundle is `app/build/outputs/bundle/release/app-release.aab`. Without
+`keystore.properties` the same command builds an unsigned bundle, which Play
+will not accept.
+
+Before each release, raise `versionCode` in `app/build.gradle.kts` (Play
+rejects a code it has seen) and set `versionName`.
+
+## 4. In Play Console
+
+1. Create the app. Default language English, app not free-to-play-with-ads,
+   no ads.
+2. **App content**
+   - Privacy policy: host `privacy-policy.md` somewhere public (a GitHub Pages
+     page is enough) and paste the URL.
+   - Data safety: **no data collected, no data shared.** The app declares no
+     permissions and makes no network requests.
+   - Ads: none. Target audience: 13+ (a sports management game; no content
+     concerns, but it is not designed for children).
+   - Content rating: complete the questionnaire. No violence beyond sport, no
+     user interaction, no purchases - expect Everyone / PEGI 3.
+3. **Store listing**: copy from `listing.md`. Assets needed:
+   - app icon, 512 x 512 PNG
+   - feature graphic, 1024 x 500 PNG
+   - at least two phone screenshots
+4. **Testing** -> Internal testing: upload the `.aab`, add yourself as a
+   tester, install from the opt-in link, and play a season through before
+   promoting to production.
+
+## Save compatibility
+
+`data/src/test/kotlin/com/nflsim/data/M6SaveTest.kt` loads a real save from
+the first playable build and plays it on through an offseason. Keep it passing:
+a release that breaks old saves breaks every dynasty in progress.
