@@ -161,7 +161,7 @@ internal object RunResolution {
             )
         }
 
-        val tackler = (ctx.defense.frontSeven + ctx.defense.secondary).randomBy(rng)
+        val tackler = tacklerFor(ctx, finalYards, rng)
         return PlayResult(
             outcome = PlayOutcome.RUN,
             yards = finalYards,
@@ -192,6 +192,26 @@ internal object RunResolution {
     /** Weighted toward the players most likely to be near the ball. */
     private fun List<Player>.randomBy(rng: Rng): Player? =
         if (isEmpty()) null else this[rng.nextInt(size)]
+
+    /**
+     * Who stopped him. A run held at the line belongs to the front seven; one
+     * that got past them belongs to the men behind (docs/SPEC.md 12's weights
+     * live in the tuning table).
+     */
+    internal fun tacklerFor(ctx: PlayContext, yards: Int, rng: Rng): Player? {
+        val defenders = ctx.defense.frontSeven + ctx.defense.secondary
+        if (defenders.isEmpty()) return null
+        val tn = ctx.tuning.tackling
+        val weights = defenders.map { tn.weight(it.position, yards) }
+        val total = weights.sum()
+        if (total <= 0f) return defenders.randomBy(rng)
+        var roll = rng.nextFloat() * total
+        defenders.forEachIndexed { i, defender ->
+            roll -= weights[i]
+            if (roll <= 0f) return defender
+        }
+        return defenders.last()
+    }
 
     /**
      * Roughly 83/12/5 down the rested chart, where a resting back drops to

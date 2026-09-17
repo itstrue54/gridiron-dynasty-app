@@ -19,6 +19,7 @@ data class TuningTable(
     val blocking: Blocking = Blocking(),
     val coverage: Coverage = Coverage(),
     val penalties: Penalties = Penalties(),
+    val tackling: Tackling = Tackling(),
     val injuries: Injuries = Injuries(),
     val gameFlow: GameFlow = GameFlow(),
     val specialTeams: SpecialTeams = SpecialTeams(),
@@ -122,6 +123,46 @@ data class TuningTable(
         /** Carries in a game after which the lead back's handoffs go to the next back. */
         val leadBackCarryCap: Int = 27,
     )
+
+    /**
+     * Who makes the tackle on a run (SPEC 12: the play resolution holds no
+     * numbers of its own). A run stopped at the line is the front seven's; one
+     * that gets past them belongs to the secondary. Crediting it uniformly
+     * across the eleven had corners leading the league in tackles ahead of
+     * linebackers, which is backwards.
+     */
+    @Serializable
+    data class Tackling(
+        /** Yards past which a run has cleared the front seven. */
+        val pastTheFront: Int = 7,
+        val frontNear: Float = 1.0f,
+        val frontPast: Float = 0.35f,
+        val linebackerNear: Float = 1.7f,
+        val linebackerPast: Float = 1.1f,
+        val safetyNear: Float = 0.45f,
+        val safetyPast: Float = 1.5f,
+        val cornerNear: Float = 0.25f,
+        val cornerPast: Float = 0.9f,
+        /**
+         * Share of tackles after a catch made by the man in coverage. The rest
+         * are pursuit: crediting every completion to the defender who covered
+         * it left corners near the league's tackle lead, where they should sit
+         * well behind the linebackers.
+         */
+        val coverageShare: Float = 0.6f,
+    ) {
+        fun weight(position: com.nflsim.engine.model.Position, yards: Int): Float {
+            val past = yards >= pastTheFront
+            return when (position) {
+                com.nflsim.engine.model.Position.EDGE,
+                com.nflsim.engine.model.Position.DT -> if (past) frontPast else frontNear
+                com.nflsim.engine.model.Position.LB -> if (past) linebackerPast else linebackerNear
+                com.nflsim.engine.model.Position.S -> if (past) safetyPast else safetyNear
+                com.nflsim.engine.model.Position.CB -> if (past) cornerPast else cornerNear
+                else -> 0.2f
+            }
+        }
+    }
 
     @Serializable
     data class Blocking(

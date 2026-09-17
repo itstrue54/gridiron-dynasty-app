@@ -191,10 +191,15 @@ internal object PassResolution {
         values["airYards"] = air.toFloat()
         values["yardsAfterCatch"] = yac
 
+        // The man in coverage makes most of these; the rest are pursuit, which
+        // is why a corner does not lead the league in tackles.
+        val stopper = if (rng.nextFloat() < t.tackling.coverageShare) defender
+        else RunResolution.tacklerFor(ctx, total, rng) ?: defender
+
         return PlayResult(
             outcome = PlayOutcome.COMPLETION, yards = total,
             clockRunoff = t.gameFlow.completionClockRunoff,
-            passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = defender.id,
+            passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
             log = SimLog(values,
                 "${qb.lastName} finds ${receiver.name} on the ${call.concept.label} for $total."),
         )

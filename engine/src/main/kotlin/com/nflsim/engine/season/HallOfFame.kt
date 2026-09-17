@@ -94,9 +94,9 @@ object HallOfFame {
         "WR" -> s.receivingYards / 1_700f * 0.7f + s.receivingTouchdowns / 14f * 0.3f
         "TE" -> s.receivingYards / 1_100f * 0.7f + s.receivingTouchdowns / 10f * 0.3f
         "EDGE", "DT" -> s.sacks / 18f * 0.7f + s.tackles / 65f * 0.3f
-        "LB" -> s.tackles / 125f * 0.6f + s.interceptions / 8f * 0.2f + s.sacks / 10f * 0.2f
-        "CB" -> s.interceptions / 9f * 0.5f + s.tackles / 165f * 0.5f
-        "S" -> s.interceptions / 6f * 0.5f + s.tackles / 115f * 0.5f
+        "LB" -> s.tackles / 150f * 0.6f + s.interceptions / 8f * 0.2f + s.sacks / 10f * 0.2f
+        "CB" -> s.interceptions / 9f * 0.5f + s.tackles / 115f * 0.5f
+        "S" -> s.interceptions / 6f * 0.5f + s.tackles / 105f * 0.5f
         // A guard has no stat line at all: his case is the hardware he won.
         else -> 0f
     }
