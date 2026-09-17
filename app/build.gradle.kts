@@ -1,6 +1,16 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Release signing reads keystore.properties, which is gitignored and never
+// committed: storeFile, storePassword, keyAlias, keyPassword. Without it a
+// release build still assembles, unsigned, so the build itself can be checked.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -10,7 +20,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.nflsimtext"
+        // What Google Play knows the app by, and permanent once published. It
+        // is not the code's package: the namespace above stays as it was,
+        // because Play reads only this and renaming every source file would
+        // buy nothing.
+        applicationId = "io.github.itstrue54.nflsimtext"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -19,8 +33,24 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (keystoreProperties.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // A development build installs beside the store one, not over it.
+            applicationIdSuffix = ".debug"
+        }
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             optimization {
                 enable = false
             }
