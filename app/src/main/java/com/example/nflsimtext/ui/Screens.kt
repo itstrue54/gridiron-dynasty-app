@@ -133,6 +133,13 @@ fun HubScreen(
                         "${team.divisionName}, ${dynasty.year}",
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
+                    // Who is in charge, which the hub never used to say.
+                    dynasty.league.coaches[team.staff.headCoach]?.let { coach ->
+                        Text(
+                            "${coach.name}, head coach",
+                            style = NdTheme.type.caption, color = c.chalkDim,
+                        )
+                    }
                     if (stacked) {
                         Text(
                             record.recordText.enDashed(),
@@ -184,6 +191,7 @@ fun HubScreen(
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     if (dynasty.lastGame != null) HubLink("Game day") { onNavigate(Tab.GAME) }
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
+                    HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
