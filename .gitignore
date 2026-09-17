@@ -48,6 +48,8 @@ desktop.ini
 # Committed calibration reports live in docs/CALIBRATION.md instead.
 /engine-cli/out/
 *.sav
+# ...except the saves the tests read, which are fixtures, not someone's dynasty.
+!data/src/test/resources/saves/*.sav
 *.sav.gz
 /testdata/generated/
 
