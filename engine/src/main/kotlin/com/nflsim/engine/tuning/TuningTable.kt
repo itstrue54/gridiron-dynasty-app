@@ -42,7 +42,7 @@ data class TuningTable(
         val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
-        val interceptionBase: Float = 0.025f,
+        val interceptionBase: Float = 0.021f,
         /** How much a badly-lost route matchup raises interception odds. */
         val interceptionCoverageScale: Float = 0.042f,
         val yacScale: Float = 0.35f,
