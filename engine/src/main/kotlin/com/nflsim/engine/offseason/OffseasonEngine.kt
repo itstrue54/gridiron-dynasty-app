@@ -24,6 +24,7 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.RetiredCareer
 import com.nflsim.engine.model.SeasonRecord
 import com.nflsim.engine.season.Awards
+import com.nflsim.engine.season.HallOfFame
 import com.nflsim.engine.stats.StatLine
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
@@ -432,7 +433,14 @@ object OffseasonEngine {
                     leaders = seasonLeaders(dynasty.playerStats, league),
                 ),
                 retired = league.history.retired + state.retiredCareers,
-            ),
+            ).let { withRetirements ->
+                // The vote runs on the history as it now stands, so a man who
+                // retired this spring waits his years like everybody else.
+                withRetirements.copy(
+                    hallOfFame = withRetirements.hallOfFame +
+                        HallOfFame.induct(withRetirements, newYear),
+                )
+            },
             players = survivors.map { if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0) },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )

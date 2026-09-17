@@ -41,11 +41,31 @@ data class RetiredCareer(
     val year: Int = 0,
 )
 
+/**
+ * A career the league decided to keep. The numbers are frozen at induction:
+ * what he did, and what the league said about him while he did it.
+ */
+@Serializable
+data class HallOfFamer(
+    val player: Int,
+    val name: String,
+    val position: String,
+    val inducted: Int,
+    val retired: Int,
+    val seasons: Int,
+    val proBowls: Int = 0,
+    /** The number he is remembered by: yards thrown, run, caught, or tackles. */
+    val headline: Int = 0,
+    /** What the vote was worth, in very good seasons. */
+    val score: Float = 0f,
+)
+
 /** What the league remembers (SPEC 4.7's `history`). */
 @Serializable
 data class LeagueHistory(
     val seasons: List<SeasonRecord> = emptyList(),
     val retired: List<RetiredCareer> = emptyList(),
+    val hallOfFame: List<HallOfFamer> = emptyList(),
 ) {
     fun season(year: Int): SeasonRecord? = seasons.firstOrNull { it.year == year }
 

@@ -60,6 +60,39 @@ fun HistoryScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
             }
         }
 
+        if (history.hallOfFame.isNotEmpty()) {
+            item {
+                SituationBlock("Hall of fame", meta = "${history.hallOfFame.size} in") {
+                    DataTable(
+                        columns = listOf(
+                            ColumnSpec("Pos", 0.8f),
+                            ColumnSpec("Player", 2.2f),
+                            ColumnSpec("Class", 0.9f, numeric = true),
+                            ColumnSpec("Yrs", 0.7f, numeric = true),
+                            ColumnSpec("Career", 1.2f, numeric = true),
+                        ),
+                        rows = history.hallOfFame
+                            .sortedByDescending { it.inducted }
+                            .map { man ->
+                                RowData(listOf(
+                                    man.position,
+                                    man.name,
+                                    "${man.inducted}",
+                                    "${man.seasons}",
+                                    if (man.headline == 0) "--" else "${man.headline}",
+                                ))
+                            },
+                    )
+                    Text(
+                        "Voted three years after a man finishes, on what he did and " +
+                            "what the league said about him while he did it.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s),
+                    )
+                }
+            }
+        }
+
         item {
             SituationBlock("Champions", meta = "Newest first") {
                 DataTable(
