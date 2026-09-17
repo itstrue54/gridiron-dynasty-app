@@ -110,10 +110,11 @@ object PlayCaller {
         // being thrown twenty-two yard posts, which cratered completion
         // percentage and doubled the interception rate. Backs catch flats and
         // checkdowns; nobody throws a go route to a fullback.
+        val passing = ctx.tuning.passing
         val shares = when {
-            concept.airYards <= 6 -> floatArrayOf(0.21f, 0.15f, 0.10f, 0.24f, 0.30f)
-            concept.airYards <= 15 -> floatArrayOf(0.29f, 0.23f, 0.16f, 0.23f, 0.09f)
-            else -> floatArrayOf(0.37f, 0.29f, 0.20f, 0.13f, 0.01f)
+            concept.airYards <= 6 -> passing.targetsQuick
+            concept.airYards <= 15 -> passing.targetsMiddle
+            else -> passing.targetsDeep
         }
         var roll = rng.nextFloat()
         var target = shares.size - 1

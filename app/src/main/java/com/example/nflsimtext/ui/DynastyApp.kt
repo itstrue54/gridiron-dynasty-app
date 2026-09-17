@@ -58,6 +58,8 @@ enum class Tab(val label: String) {
     SCOUTING("Scouting"),
     /** SPEC 8.5: the draft, with the club in the room. */
     DRAFT("Draft room"),
+    /** SPEC 10: what the league remembers, behind the Hub. */
+    HISTORY("History"),
 }
 
 @Composable
@@ -105,6 +107,7 @@ fun DynastyApp(
                     Tab.GALLERY -> DesignGallery { tab = Tab.HUB }
                     Tab.PLAYER -> PlayerCardScreen(dynasty, player) { tab = Tab.ROSTER }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
+                    Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
                     Tab.DRAFT -> DraftRoomScreen(
                         dynasty, store, scope,
                         onFinished = { tab = Tab.OFFSEASON },
@@ -145,7 +148,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Tab.entries.filter {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME,
-                    Tab.SCOUTING, Tab.DRAFT,
+                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {

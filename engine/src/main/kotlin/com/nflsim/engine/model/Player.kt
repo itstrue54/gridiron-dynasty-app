@@ -41,6 +41,8 @@ data class Player(
     val wear: Int = 0,
     /** 0..100. */
     val morale: Int = 75,
+    /** Everything he has done, season by season (SPEC 4, 9.2). */
+    val careerStats: CareerStats = CareerStats(),
 ) {
     init {
         require(archetype.group == position.group) {

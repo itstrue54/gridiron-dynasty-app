@@ -5,4 +5,4 @@ package com.nflsim.data
  * changes, and add a migration step in the same commit - see docs/SPEC.md
  * section 9.1. A dynasty game that eats saves on update is a dead game.
  */
-const val CURRENT_SAVE_VERSION: Int = 4
+const val CURRENT_SAVE_VERSION: Int = 5

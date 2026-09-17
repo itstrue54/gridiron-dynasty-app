@@ -45,6 +45,8 @@ data class Dynasty(
     val champion: Int? = null,
     /** The user's most recent game, kept for the box score screen. */
     val lastGame: GameResult? = null,
+    /** The season's news, newest last. Kept for the year, not forever. */
+    val news: List<com.nflsim.engine.model.NewsEvent> = emptyList(),
     /** What happened between seasons, for the news screen. */
     val lastOffseason: com.nflsim.engine.offseason.OffseasonReport? = null,
 ) {
@@ -118,6 +120,9 @@ object DynastyEngine {
             )
         }
 
+    /** How much of the season's news a save carries. */
+    const val NEWS_KEPT = 240
+
     private fun advanceWeek(dynasty: Dynasty, tuning: TuningTable): Dynasty {
         val teams = WeekRunner.teams(dynasty.league, tuning)
         val played = mutableListOf<GameResult>()
@@ -139,12 +144,33 @@ object DynastyEngine {
             played += g
         }
 
+        // The week, as news. A career mark counts the seasons behind a man as
+        // well as this one, so it is news the week it turns over and not again.
+        fun careerAnd(line: com.nflsim.engine.stats.StatLine?, id: Int): com.nflsim.engine.stats.StatLine {
+            val career = dynasty.league.playersById[com.nflsim.engine.model.PlayerId(id)]
+                ?.careerStats?.seasons?.fold(com.nflsim.engine.stats.StatLine()) { sum, s -> sum + s.stats }
+                ?: com.nflsim.engine.stats.StatLine()
+            return if (line == null) career else career + line
+        }
+        val before = stats.keys.associateWith { careerAnd(dynasty.playerStats[it], it) }
+        val after = stats.mapValues { (id, line) -> careerAnd(line, id) }
+        val filed = NewsDesk.forWeek(
+            league = dynasty.league,
+            week = week,
+            results = played,
+            before = before,
+            after = after,
+            standings = Standings(dynasty.league, outcomes, root.split("news|$week")),
+            alreadySaid = dynasty.news,
+        )
+
         val nextWeek = week + 1
         return dynasty.copy(
             league = WeekRunner.afterWeek(dynasty.league, played, tuning),
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
+            news = (dynasty.news + filed).takeLast(NEWS_KEPT),
             lastGame = userGame,
             phase = if (nextWeek > Schedule.WEEKS) DynastyPhase.PLAYOFFS
                     else DynastyPhase.REGULAR_SEASON,

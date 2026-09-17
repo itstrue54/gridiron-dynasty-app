@@ -20,6 +20,8 @@ data class League(
     val picks: List<PickAsset> = emptyList(),
     /** SPEC 12: every coefficient in the sim, saved with the league. */
     val tuning: com.nflsim.engine.tuning.TuningTable = com.nflsim.engine.tuning.TuningTable.REALISTIC,
+    /** What the league remembers of the seasons behind it (SPEC 4.7, 9.2). */
+    val history: LeagueHistory = LeagueHistory(),
 ) {
     val teamsById: Map<TeamId, Team> by lazy { teams.associateBy { it.id } }
     val playersById: Map<PlayerId, Player> by lazy { players.associateBy { it.id } }
