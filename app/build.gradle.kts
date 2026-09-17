@@ -24,7 +24,7 @@ android {
         // is not the code's package: the namespace above stays as it was,
         // because Play reads only this and renaming every source file would
         // buy nothing.
-        applicationId = "io.github.itstrue54.nflsimtext"
+        applicationId = "io.github.itstrue54.gridirondynasty"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

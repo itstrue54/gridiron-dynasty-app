@@ -1,9 +1,5 @@
 # Store listing
 
-> **Before using this:** Google Play does not allow trademarks you do not own
-> in an app's title, icon or description, and "NFL" is one. The title below
-> leaves it out on purpose. See the note at the end.
-
 ## Title (30 characters max)
 
 Gridiron Dynasty: Text GM
@@ -53,14 +49,10 @@ No ads. No purchases. No accounts. No internet connection needed.
 
 Games -> Sports
 
-## A note on the name
+## The name
 
-The app is called "NFL sim text" on your phone today, and its package name is
-`io.github.itstrue54.nflsimtext`. Before the first upload:
-
-- **The on-device name** (`app_name` in `app/src/main/res/values/strings.xml`)
-  shows on the phone and in Play. It should match the store title and not use
-  "NFL".
-- **The package name** is not shown to players, but it is permanent once
-  published and is visible in the Play URL. "nfl" inside it is a lower risk than
-  in the title, but not zero. It is cheapest to change now, before any upload.
+The app is **Gridiron Dynasty** on the device, and its package name is
+`io.github.itstrue54.gridirondynasty`, which is permanent once published.
+Neither uses "NFL", which is a trademark Play will not accept in an app's
+title, icon or description. The source repository keeps its old name; that is
+never shown in the store.
