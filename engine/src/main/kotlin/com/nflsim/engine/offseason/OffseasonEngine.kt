@@ -575,6 +575,8 @@ object OffseasonEngine {
             results = emptyList(),
             playerStats = emptyMap(),
             previousStats = dynasty.playerStats,
+            // Last year's headlines are not what a league remembers.
+            news = emptyList(),
             playoffs = emptyList(),
             champion = null,
             lastGame = null,

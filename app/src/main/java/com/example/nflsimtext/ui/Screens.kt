@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import com.example.nflsimtext.ui.components.ColumnSpec
 import com.example.nflsimtext.ui.components.DataTable
 import com.example.nflsimtext.ui.components.PlayEvent
@@ -42,6 +43,7 @@ import com.example.nflsimtext.ui.theme.ThemeSetting
 import com.example.nflsimtext.ui.theme.next
 import com.nflsim.engine.model.Conference
 import com.nflsim.engine.model.Division
+import com.nflsim.engine.model.NewsKind
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.TeamId
@@ -235,6 +237,36 @@ fun HubScreen(
             }
         }
 
+        val news = dynasty.news.takeLast(NEWS_SHOWN).reversed()
+        if (news.isNotEmpty()) {
+            item {
+                SituationBlock(
+                    "News",
+                    meta = "Week ${news.first().week}",
+                    situation = if (news.any { it.kind == NewsKind.INJURY && it.team == dynasty.userTeam })
+                        Situation.RED_ZONE else Situation.NORMAL,
+                ) {
+                    news.forEach { story ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            StatusTag(
+                                label(story.kind),
+                                tone(story.kind),
+                                Modifier.padding(end = NdTheme.spacing.s),
+                            )
+                            Text(
+                                story.headline,
+                                style = NdTheme.type.body,
+                                color = if (story.team == dynasty.userTeam) c.chalk else c.chalkDim,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         val last = dynasty.userResults().lastOrNull()
         if (last != null) {
             item {
@@ -282,6 +314,24 @@ fun HubScreen(
             }
         }
     }
+}
+
+/** How much of the week's news the hub carries. */
+private const val NEWS_SHOWN = 5
+
+private fun label(kind: NewsKind) = when (kind) {
+    NewsKind.INJURY -> "Hurt"
+    NewsKind.PERFORMANCE -> "Game"
+    NewsKind.MILESTONE -> "Mark"
+    NewsKind.HOT_SEAT -> "Seat"
+}
+
+private fun tone(kind: NewsKind) = when (kind) {
+    NewsKind.INJURY -> TagTone.URGENT
+    // Stripe belongs to the club's own row in the division table below.
+    NewsKind.HOT_SEAT -> TagTone.NEUTRAL
+    NewsKind.MILESTONE -> TagTone.INFO
+    NewsKind.PERFORMANCE -> TagTone.NEUTRAL
 }
 
 @Composable
@@ -409,6 +459,22 @@ fun RosterScreen(
                     "Set the depth chart", onDepthChart,
                     Modifier.padding(top = NdTheme.spacing.s),
                 )
+                // SPEC 9.4: the roster leaves in the shape the game reads back.
+                var exported by remember { mutableStateOf<String?>(null) }
+                val context = LocalContext.current
+                SecondaryButton(
+                    "Export this roster",
+                    {
+                        exported = try {
+                            "Saved to " + RosterExport.write(dynasty.league, context, team.abbrev)
+                        } catch (e: Exception) {
+                            e.message ?: "The file would not write."
+                        }
+                    },
+                )
+                exported?.let {
+                    Text(it, style = NdTheme.type.caption, color = c.chalkDim)
+                }
             }
         }
         item {
