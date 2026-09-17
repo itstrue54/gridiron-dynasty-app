@@ -504,15 +504,45 @@ data class TuningTable(
     companion object {
         val REALISTIC = TuningTable()
 
-        val ARCADE = TuningTable(
-            passing = Passing(baseCompletion = 0.71f, yacScale = 1.35f, depthPenaltyPerYard = 0.010f),
-            rushing = Rushing(baseYards = 3.8f, breakawayBase = 0.085f, breakawayYards = 16f),
-        )
+        /*
+         * The presets are Realistic with a lean, not tables of their own.
+         * They were written as absolute values once, and every retune of
+         * Realistic left them further behind: by M11 Arcade completed fewer
+         * passes than Realistic and Grinder completed 49 per cent. As offsets
+         * they keep their character whatever Realistic becomes.
+         */
 
-        val GRINDER = TuningTable(
-            passing = Passing(baseCompletion = 0.62f, yacScale = 0.82f, pressureScale = 21f),
-            rushing = Rushing(baseYards = 3.0f, variance = 2.2f, breakawayBase = 0.038f),
-            injuries = Injuries(scale = 1.35f),
-        )
+        /** The offence's game: more completions, more after the catch, more long runs. */
+        val ARCADE = REALISTIC.let { r ->
+            r.copy(
+                passing = r.passing.copy(
+                    baseCompletion = r.passing.baseCompletion + 0.03f,
+                    yacScale = r.passing.yacScale * 1.3f,
+                    depthPenaltyPerYard = r.passing.depthPenaltyPerYard * 0.8f,
+                ),
+                rushing = r.rushing.copy(
+                    baseYards = r.rushing.baseYards + 0.3f,
+                    breakawayBase = r.rushing.breakawayBase * 1.8f,
+                    breakawayYards = r.rushing.breakawayYards * 1.3f,
+                ),
+            )
+        }
+
+        /** The defence's game: tighter windows, more pressure, shorter runs, more bodies hurt. */
+        val GRINDER = REALISTIC.let { r ->
+            r.copy(
+                passing = r.passing.copy(
+                    baseCompletion = r.passing.baseCompletion - 0.04f,
+                    yacScale = r.passing.yacScale * 0.85f,
+                    pressureScale = r.passing.pressureScale * 0.75f,
+                ),
+                rushing = r.rushing.copy(
+                    baseYards = r.rushing.baseYards - 0.35f,
+                    variance = r.rushing.variance * 0.6f,
+                    breakawayBase = r.rushing.breakawayBase * 0.9f,
+                ),
+                injuries = r.injuries.copy(scale = r.injuries.scale * 1.25f),
+            )
+        }
     }
 }
