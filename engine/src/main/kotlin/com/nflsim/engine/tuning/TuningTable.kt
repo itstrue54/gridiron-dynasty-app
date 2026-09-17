@@ -62,6 +62,15 @@ data class TuningTable(
         val scrambleMean: Float = 4.5f,
         val scrambleSpread: Float = 4f,
         val scrambleSpeed: Float = 0.09f,
+        /**
+         * Where the ball goes, by slot - WR1, WR2, WR3, tight ends, backs -
+         * for a quick throw, an intermediate one and a deep one. A back
+         * catches flats and checkdowns; nobody throws a go route to a
+         * fullback (SPEC 12: the play caller holds no numbers of its own).
+         */
+        val targetsQuick: List<Float> = listOf(0.21f, 0.15f, 0.10f, 0.24f, 0.30f),
+        val targetsMiddle: List<Float> = listOf(0.29f, 0.23f, 0.16f, 0.23f, 0.09f),
+        val targetsDeep: List<Float> = listOf(0.44f, 0.29f, 0.13f, 0.13f, 0.01f),
         /** Completion: what quarterback accuracy and receiver separation count for. */
         val accuracyWeight: Float = 0.35f,
         val separationWeight: Float = 0.45f,
