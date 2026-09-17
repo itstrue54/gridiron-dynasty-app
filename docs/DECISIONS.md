@@ -1113,3 +1113,74 @@ the draft is behaviour-preserving to the line.
   is scouted in the engine and invisible in the draft room.
 - **Existing saves keep their old tenure**, so their rosters read hazier
   than a new league's.
+
+## ADR-0xx — A league remembers: careers, records, a hall, and the week's news
+
+Context: SPEC 4 gave a player `careerStats` and SPEC 4.7 gave a league a
+`history`, and neither existed. A season's stat lines were thrown away at
+the rollover, so nothing in the game could say what a player had done or
+who had won anything three years ago - which is most of what a dynasty
+is for.
+
+Decision:
+- **Careers, season by season**, folded in at the start of the offseason
+  and before anybody retires, so a man takes his last year with him. A
+  year already recorded is replaced rather than added, so folding twice
+  cannot double anybody's numbers.
+- **A season record per year**: champion, every club's record, the year's
+  awards, and who led the league in passing, rushing, receiving, sacks
+  and interceptions, each kept with the player's name so a leader who
+  retires is still on the record. The men who retire leave their careers
+  in the league's history, which is the only place they survive.
+- **Retention follows SPEC 9.2**: stat lines forever, standings and
+  awards forever, no play data. Save version 5, migration in the same
+  commit, with a test that a version-4 save loads and simply remembers
+  nothing before the season it is on.
+- **The hall of fame** votes three years after a man finishes, on what he
+  did against what his position is asked to do, plus what the league said
+  about him while he played. Up to three a year over a bar of fourteen
+  leading seasons' worth. A guard is judged entirely on his hardware,
+  which is the only record of what he was.
+- **The week's news** is drawn from the week that was played - injuries,
+  big afternoons, career marks turning over, hot seats - and kept for the
+  season only. A league remembers its standings and its records, not its
+  headlines.
+- **A roster leaves as a spreadsheet** in the shape the game reads back
+  (SPEC 9.4), to the phone's Downloads on Android 10 and up.
+
+Measured. The divisors in the hall of fame were guessed first, and it
+showed: eight of the first nineteen inductees were corners, because a
+corner's 166 tackles and nine interceptions scored as nearly three
+leading seasons at once while a tight end could not reach one however
+good he was. Against measured leading seasons - 1,700 receiving for a
+receiver, 1,100 for a tight end, 18 sacks for an edge, 125 tackles for a
+linebacker, 166 for a corner - a leading season is worth about 1.0
+everywhere, and fourteen years of dynasty then takes ten men from 264
+eligible careers: three quarterbacks, two backs, a receiver, a tackle, a
+linebacker and an edge.
+
+The history screen also caught a calibration fault the bands cannot see.
+The receiving leader read 1,302 on the record; over eight seasons he
+averaged 1,550 against the NFL's 1,700, with the right target share and
+a high catch rate but low yards a catch - he was being fed underneath,
+because the deep-target table gave a first receiver 0.37 of them against
+a second receiver's 0.29. At 0.44 he reads 1,629 on 163 targets. Six
+leagues at 4,000 games: all 18 bands in on average and one league better
+than before. The remaining 70 yards would cost a band, so they are left
+alone. Those shares were literals inside the play caller, which SPEC 12
+forbids, and are now in the tuning table.
+
+### Open, found while doing this
+- **Corners out-tackle linebackers**, 166 to 124, where the NFL has that
+  the other way about. Tackle attribution leans on the secondary.
+- **The rushing record reads 2,583** against a real 2,105 - the price of
+  asking two backs for 1,700 a year, now visible on a records screen
+  where it reads as absurd.
+- **Box scores are not retained.** SPEC 9.2 wants five seasons full and
+  then team totals; the game keeps the last game only.
+- **There is no transactions ledger.** SPEC 4.7 has one, kept forever;
+  signings and trades live in the offseason report and nowhere else.
+- **News has no benchings and no contract disputes**, both of which SPEC
+  10.1 lists. Neither exists in the sim to report on.
+- **The hub's news block and the export button have not been seen on a
+  device.**
