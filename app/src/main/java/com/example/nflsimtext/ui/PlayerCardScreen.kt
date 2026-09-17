@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.AttributeBar
+import com.example.nflsimtext.ui.components.ColumnSpec
+import com.example.nflsimtext.ui.components.DataTable
+import com.example.nflsimtext.ui.components.RowData
 import com.example.nflsimtext.ui.components.SecondaryButton
 import com.example.nflsimtext.ui.components.SituationBlock
 import com.example.nflsimtext.ui.components.StatusTag
@@ -20,6 +23,7 @@ import com.example.nflsimtext.ui.components.TagTone
 import com.example.nflsimtext.ui.theme.NdTheme
 import com.example.nflsimtext.ui.theme.ratingColor
 import com.nflsim.engine.model.Player
+import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.RatingId
 import com.nflsim.engine.ratings.OverallWeights
 import com.nflsim.engine.ratings.SchemeCatalog
@@ -163,6 +167,26 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
             }
         }
 
+        if (player.careerStats.years > 0) {
+            item {
+                SituationBlock(
+                    "Career",
+                    meta = if (player.careerStats.years == 1) "1 season" else "${player.careerStats.years} seasons",
+                ) {
+                    val sheet = careerSheet(player, dynasty)
+                    if (sheet == null) {
+                        Text(
+                            "No stat line for his position. What he does does not " +
+                                "show up in a box score.",
+                            style = NdTheme.type.body, color = c.chalkDim,
+                        )
+                    } else {
+                        DataTable(columns = sheet.columns, rows = sheet.rows)
+                    }
+                }
+            }
+        }
+
         player.contract?.let { contract ->
             item {
                 SituationBlock("Contract", meta = "Signed ${contract.signedYear}") {
@@ -223,3 +247,53 @@ internal fun ratingLabel(rating: RatingId): String = rating.name
         }
     }
     .replaceFirstChar { it.uppercase() }
+
+/** A career table, shaped to the position: a guard has no stat line. */
+private class CareerSheet(val columns: List<ColumnSpec>, val rows: List<RowData>)
+
+private fun careerSheet(player: Player, dynasty: Dynasty): CareerSheet? {
+    fun club(id: Int?) = dynasty.league.teams.firstOrNull { it.id.v == id }?.abbrev ?: "--"
+    val seasons = player.careerStats.seasons.sortedByDescending { it.year }
+    val year = ColumnSpec("Year", 1.0f)
+    val team = ColumnSpec("Club", 0.9f)
+    return when (player.position) {
+        Position.QB -> CareerSheet(
+            listOf(year, team, ColumnSpec("Comp", 1.2f, numeric = true),
+                ColumnSpec("Yards", 1.1f, numeric = true),
+                ColumnSpec("TD", 0.6f, numeric = true), ColumnSpec("Int", 0.6f, numeric = true)),
+            seasons.map { s ->
+                RowData(listOf(
+                    "${s.year}", club(s.team),
+                    "${s.stats.completions}/${s.stats.passAttempts}",
+                    "${s.stats.passYards}", "${s.stats.passTouchdowns}",
+                    "${s.stats.interceptionsThrown}",
+                ))
+            },
+        )
+        Position.RB, Position.FB -> CareerSheet(
+            listOf(year, team, ColumnSpec("Carries", 1.1f, numeric = true),
+                ColumnSpec("Yards", 1.1f, numeric = true), ColumnSpec("TD", 0.6f, numeric = true)),
+            seasons.map { s ->
+                RowData(listOf("${s.year}", club(s.team), "${s.stats.carries}",
+                    "${s.stats.rushYards}", "${s.stats.rushTouchdowns}"))
+            },
+        )
+        Position.WR, Position.TE -> CareerSheet(
+            listOf(year, team, ColumnSpec("Catches", 1.1f, numeric = true),
+                ColumnSpec("Yards", 1.1f, numeric = true), ColumnSpec("TD", 0.6f, numeric = true)),
+            seasons.map { s ->
+                RowData(listOf("${s.year}", club(s.team), "${s.stats.receptions}",
+                    "${s.stats.receivingYards}", "${s.stats.receivingTouchdowns}"))
+            },
+        )
+        Position.EDGE, Position.DT, Position.LB, Position.CB, Position.S -> CareerSheet(
+            listOf(year, team, ColumnSpec("Tackles", 1.1f, numeric = true),
+                ColumnSpec("Sacks", 0.9f, numeric = true), ColumnSpec("Int", 0.6f, numeric = true)),
+            seasons.map { s ->
+                RowData(listOf("${s.year}", club(s.team), "${s.stats.tackles}",
+                    "${s.stats.sacks}", "${s.stats.interceptions}"))
+            },
+        )
+        else -> null
+    }
+}

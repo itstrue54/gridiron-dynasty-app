@@ -864,7 +864,7 @@ object OffseasonEngine {
             leader("Passing yards") { it.passYards },
             leader("Rushing yards") { it.rushYards },
             leader("Receiving yards") { it.receivingYards },
-            leader("Sacks") { it.sacks.toInt() },
+            leader("Sacks") { it.sacks },
             leader("Interceptions") { it.interceptions },
         )
     }
