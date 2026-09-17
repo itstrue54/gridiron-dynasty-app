@@ -51,9 +51,14 @@ rejects a code it has seen) and set `versionName`.
    - Content rating: complete the questionnaire. No violence beyond sport, no
      user interaction, no purchases - expect Everyone / PEGI 3.
 3. **Store listing**: copy from `listing.md`. Assets needed:
-   - app icon, 512 x 512 PNG
-   - feature graphic, 1024 x 500 PNG
-   - at least two phone screenshots
+   - app icon: `assets/icon-512.png`
+   - feature graphic: `assets/feature-graphic-1024x500.png`
+   - at least two phone screenshots, which only you can take (Power +
+     Volume Down on the app's own screens)
+
+   Both images are drawn by `assets/draw-assets.py`, which reuses the
+   launcher icon's mark. Run `python3 assets/draw-assets.py assets` to
+   redraw them if the palette changes.
 4. **Testing** -> Internal testing: upload the `.aab`, add yourself as a
    tester, install from the opt-in link, and play a season through before
    promoting to production.
