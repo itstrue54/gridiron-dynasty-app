@@ -1184,3 +1184,44 @@ forbids, and are now in the tuning table.
   10.1 lists. Neither exists in the sim to report on.
 - **The hub's news block and the export button have not been seen on a
   device.**
+
+## ADR-0xx — Signing and cutting all year, and sixteen men who practise
+
+**Context.** Free agency was ten days in the spring. A club that lost two
+guards in October played the rest of the year short, and the practice
+squad status existed on the model with nothing using it.
+
+**Decision.** `Transactions` signs, releases, poaches and promotes at any
+time; `PracticeSquads` gives every club sixteen.
+
+- A man on the street signs for the league minimum on a one-year deal.
+  Anyone worth more was paid in the spring.
+- Refusals are sentences, not booleans: under contract elsewhere, retired,
+  a full 53, no cap room, a full squad, all six veteran places taken, a
+  third man at one position.
+- A squad player is a free agent his club trains (CBA Article 33): no
+  team on his record, PRACTICE_SQUAD as his status, and the club holding
+  him on `Team.practiceSquad`. Any club may sign him to its 53, his own
+  included, which is a promotion.
+- Squads dissolve in the spring and are chosen again after the cut to 53,
+  snaking through the league so the first club listed does not take the
+  best sixteen. Where the street runs dry, undrafted camp bodies are
+  generated. Saves from before squads (version 5) have theirs filled on
+  load, seeded off the dynasty.
+
+**Measured.** One league over three seasons: every squad 16; squads
+formed in the offseason average 58–62 against 56–58 for the bottom eight
+of the 53, which is close to how it goes in the NFL. The full engine
+suite passes, the 30-season stability gate included.
+
+### Open
+- **Squad pay is not charged.** Roughly $230k a man counts against the
+  real cap; under half a percent per club, and charging it means
+  contracts for men who can leave any Tuesday.
+- **The AI never promotes or poaches.** Its squads are chosen once a
+  year and sit; only the user's club reaches into them.
+- **The best squad players are too good.** The top of the squads reaches
+  the high 70s and low 80s, men the offseason left unsigned. That was true
+  of the street before squads existed; squads only make it visible.
+- **No three-week rule** for a poached player, and no elevations for game
+  day.

@@ -41,6 +41,10 @@ class M6SaveTest {
         val staff = d.team.staff
         assertTrue(d.league.coaches.getValue(staff.offCoordinator).tendencies.passRate != null,
             "coordinators should have tendencies")
+        assertTrue(d.league.teams.all { it.practiceSquad.size == com.nflsim.engine.season.PracticeSquads.SIZE },
+            "every club should have a full practice squad")
+        val squad = d.league.teams.flatMap { it.practiceSquad }.toSet()
+        assertTrue(d.league.teams.none { t -> t.roster.any { it in squad } }, "a squad player is not on a 53")
     }
 
     @Test

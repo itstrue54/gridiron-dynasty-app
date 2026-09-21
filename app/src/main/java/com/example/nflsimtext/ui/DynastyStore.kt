@@ -182,6 +182,52 @@ class DynastyStore(private val saveDir: File) {
         persist(next)
     }
 
+    /** Signs a free agent, or says why the club cannot (SPEC 7, out of season). */
+    suspend fun signFreeAgent(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.sign(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
+    /** Releases a player, charging the dead money his contract says. */
+    suspend fun releasePlayer(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.release(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
+    /** Onto the club's practice squad, off the 53. */
+    suspend fun signToPracticeSquad(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.signToPracticeSquad(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
+    suspend fun releaseFromPracticeSquad(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.releaseFromPracticeSquad(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
+    private suspend fun transact(
+        move: (com.nflsim.engine.model.League, com.nflsim.engine.model.TeamId) ->
+            com.nflsim.engine.season.Transactions.Outcome,
+    ) {
+        val current = dynasty ?: return
+        busy = true
+        try {
+            when (val outcome = move(current.league, current.userTeamId)) {
+                is com.nflsim.engine.season.Transactions.Outcome.Done -> {
+                    val next = current.copy(league = outcome.league)
+                    dynasty = next
+                    message = outcome.note
+                    persist(next)
+                }
+                is com.nflsim.engine.season.Transactions.Outcome.Refused -> {
+                    message = outcome.reason
+                }
+            }
+        } finally {
+            busy = false
+        }
+    }
+
     fun dismissMessage() { message = null }
 
     private suspend fun persist(state: Dynasty) = withContext(Dispatchers.IO) {

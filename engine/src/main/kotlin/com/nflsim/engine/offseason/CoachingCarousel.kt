@@ -175,7 +175,13 @@ object CoachingCarousel {
     }
 
     /** The hot seat at which a club fires its coach: 55 for a patient GM, 35 for the most win-now. */
-    private fun fireBar(team: Team): Int = (FIRE_BAR - team.gm.winNowVsFuture * WIN_NOW_IMPATIENCE).roundToInt()
+    /**
+     * The pressure a head coach is fired at, at this club. An impatient front
+     * office fires sooner, which is why the bar belongs to the club and not to
+     * the league - and why anything showing a hot seat has to ask for it
+     * rather than guess a number.
+     */
+    fun fireBar(team: Team): Int = (FIRE_BAR - team.gm.winNowVsFuture * WIN_NOW_IMPATIENCE).roundToInt()
 
     /** How the seat moves: what carries over, and what a losing season adds. */
     private const val COOLING = 0.6f

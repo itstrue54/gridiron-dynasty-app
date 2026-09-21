@@ -263,8 +263,10 @@ object OffseasonEngine {
 
         // The season just played joins the careers first, so a man who
         // retires this spring takes his last year with him (SPEC 9.2).
+        // Last year's practice squads go back on the street with everyone
+        // else; clubs choose again after the cut to 53.
         var state = OffseasonState(
-            players = league.players.map { p ->
+            players = com.nflsim.engine.season.PracticeSquads.dissolve(league.players).map { p ->
                 val line = season.playerStats[p.id.v]
                 if (line == null) p
                 else p.copy(careerStats = p.careerStats.withSeason(oldYear, p.teamId?.v, line))
@@ -390,6 +392,7 @@ object OffseasonEngine {
         state = stepFillRosters(ctx, state, rng)
         // ---- phase 11: OTAs and camp --------------------------------
         state = stepRosterLimit(ctx, state)
+        state = stepPracticeSquads(ctx, state, rng)
         state = stepResolveUnsigned(ctx, state, rng)
         state = stepDevelopment(ctx, state, rng)
         val developments = state.developments
@@ -407,6 +410,7 @@ object OffseasonEngine {
         val teams: List<Team> = league.teams.map { t ->
             t.copy(
                 roster = (byTeam[t.id] ?: emptyList()).map { it.id },
+                practiceSquad = state.practiceSquads[t.id].orEmpty(),
                 depthPins = t.depthPins.keepOnly((byTeam[t.id] ?: emptyList()).map { it.id.v }.toSet()),
                 finances = t.finances.copy(
                     salaryCap = CapManagement.capFor(newYear),
@@ -658,6 +662,19 @@ object OffseasonEngine {
             cutdownDeadMoney = cut.sumOf { it.contract?.deadCap(ctx.newYear)?.thisYear ?: 0 },
             cutdownFresh = cut.count { it.contract?.signedYear == ctx.newYear },
         )
+    }
+
+    /** Part of SPEC 7 phase 11. Sixteen per club from whoever the cut left. */
+    private fun stepPracticeSquads(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val (players, squads) = com.nflsim.engine.season.PracticeSquads.fill(
+            ctx.league.teams.map { it.copy(practiceSquad = emptyList()) },
+            state.players, ctx.newYear, ctx.league.tuning,
+            rng.split("practice-squads|${ctx.newYear}"))
+        return state.copy(players = players, practiceSquads = squads)
     }
 
     /** Part of SPEC 7 phase 11. A phone that stops ringing in August. */
@@ -1266,8 +1283,10 @@ object OffseasonEngine {
         scheme: (TeamId?, Position) -> Scheme,
         rng: Rng,
     ): Pair<List<Player>, List<Retirement>> {
-        val rostered = players.filter { it.teamId != null }
-        val unsigned = players.filter { it.teamId == null }
+        // A practice squad player has a club, if not a contract: he is not waiting by the phone.
+        val onSquad = { p: Player -> p.status == PlayerStatus.PRACTICE_SQUAD }
+        val rostered = players.filter { it.teamId != null || onSquad(it) }
+        val unsigned = players.filter { it.teamId == null && !onSquad(it) }
         val retirements = mutableListOf<Retirement>()
 
         val remaining = unsigned.filter { p ->
