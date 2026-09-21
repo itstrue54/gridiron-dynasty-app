@@ -71,4 +71,18 @@ class RosterMovesTest {
         assertEquals(PlayerStatus.IR, after.player(id).status, "no room, so the user decides")
         assertTrue(Transactions.activate(after, user, id) is Transactions.Outcome.Refused)
     }
+
+    @Test
+    fun `the wire records the reserve move and the signing, dated by the next game`() {
+        val (l, id) = hurt(league, other, RosterMoves.IR_WEEKS + 2)
+        // After week 5 is played there are 13 games left, so the moves come before week 6.
+        val after = RosterMoves.afterWeek(l, l.tuning, user, weeksLeft = Schedule.WEEKS - 5)
+        val wire = after.transactions
+        val ir = wire.single { it.kind == com.nflsim.engine.model.TransactionKind.INJURED_RESERVE }
+        assertEquals(id.v, ir.player)
+        assertEquals(other.v, ir.team)
+        assertEquals(6, ir.week)
+        val promoted = wire.single { it.kind == com.nflsim.engine.model.TransactionKind.PROMOTED }
+        assertEquals(Transactions.price(Schedule.WEEKS - 5), promoted.amount, "he is paid for the weeks left")
+    }
 }

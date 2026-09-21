@@ -5,6 +5,8 @@ import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.PlayerStatus
+import com.nflsim.engine.model.Transaction
+import com.nflsim.engine.model.TransactionKind
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.offseason.CapManagement
 
@@ -61,6 +63,8 @@ object Transactions {
         playerId: PlayerId,
         year: Int = league.year,
         weeksLeft: Int = Schedule.WEEKS,
+        /** The game week this comes before, for the wire; 0 out of season. */
+        week: Int = 0,
     ): Outcome {
         val cost = price(weeksLeft)
         val player = league.playersById[playerId]
@@ -92,7 +96,9 @@ object Transactions {
             yearsWithClub = 0,
             yearsInSystem = 0,
         )
-        return Outcome.Done(
+        return done(
+            Transaction.of(league.year, week, when (from) { null -> TransactionKind.SIGNED; team -> TransactionKind.PROMOTED; else -> TransactionKind.SIGNED_OFF_SQUAD }, team, player, amount = cost, years = 1, other = from?.takeIf { it != team }),
+
             league.copy(
                 players = league.players.map { if (it.id == playerId) signed else it },
                 teams = league.teams.map {
@@ -111,7 +117,7 @@ object Transactions {
     }
 
     /** Off injured reserve and back on the 53, once he is healthy and there is room. */
-    fun activate(league: League, team: TeamId, playerId: PlayerId): Outcome {
+    fun activate(league: League, team: TeamId, playerId: PlayerId, week: Int = 0): Outcome {
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (player.teamId != team || !RosterMoves.onReserve(player)) {
@@ -126,7 +132,9 @@ object Transactions {
             return Outcome.Refused(
                 "The 53 is full. Release somebody to bring ${player.lastName} back.")
         }
-        return Outcome.Done(
+        return done(
+            Transaction.of(league.year, week, TransactionKind.ACTIVATED, team, player),
+
             league.copy(players = league.players.map {
                 if (it.id == playerId) it.copy(status = PlayerStatus.ACTIVE) else it
             }),
@@ -135,7 +143,7 @@ object Transactions {
     }
 
     /** Onto the club's practice squad: off the 53, so no cap and no roster spot. */
-    fun signToPracticeSquad(league: League, team: TeamId, playerId: PlayerId): Outcome {
+    fun signToPracticeSquad(league: League, team: TeamId, playerId: PlayerId, week: Int = 0): Outcome {
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (!PracticeSquads.unattached(player)) {
@@ -156,7 +164,9 @@ object Transactions {
                 else -> "The squad already carries ${PracticeSquads.PER_POSITION} at ${player.position.label}."
             })
         }
-        return Outcome.Done(
+        return done(
+            Transaction.of(league.year, week, TransactionKind.TO_SQUAD, team, player),
+
             league.copy(
                 players = league.players.map {
                     if (it.id == playerId) it.copy(status = PlayerStatus.PRACTICE_SQUAD) else it
@@ -169,13 +179,15 @@ object Transactions {
         )
     }
 
-    fun releaseFromPracticeSquad(league: League, team: TeamId, playerId: PlayerId): Outcome {
+    fun releaseFromPracticeSquad(league: League, team: TeamId, playerId: PlayerId, week: Int = 0): Outcome {
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (playerId !in league.team(team).practiceSquad) {
             return Outcome.Refused("${player.name} is not on this club's practice squad.")
         }
-        return Outcome.Done(
+        return done(
+            Transaction.of(league.year, week, TransactionKind.OFF_SQUAD, team, player),
+
             league.copy(
                 players = league.players.map {
                     if (it.id == playerId) it.copy(status = PlayerStatus.FREE_AGENT) else it
@@ -188,7 +200,7 @@ object Transactions {
         )
     }
 
-    fun release(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year): Outcome {
+    fun release(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year, week: Int = 0): Outcome {
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (player.teamId != team) {
@@ -208,7 +220,9 @@ object Transactions {
             if (nextYear > 0) append(" and ${money(nextYear)} next")
             append(".")
         }
-        return Outcome.Done(
+        return done(
+            Transaction.of(league.year, week, TransactionKind.RELEASED, team, player, amount = thisYear),
+
             league.copy(
                 players = league.players.map { if (it.id == playerId) cut else it },
                 teams = league.teams.map {
@@ -224,6 +238,9 @@ object Transactions {
             note,
         )
     }
+
+    private fun done(entry: Transaction, league: League, note: String) =
+        Outcome.Done(league.logged(entry), note)
 
     /** Cap figures are in thousands, and nobody reads 840 as money. */
     private fun money(thousands: Int): String =

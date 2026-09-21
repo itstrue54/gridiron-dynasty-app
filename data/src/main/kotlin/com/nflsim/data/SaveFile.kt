@@ -49,6 +49,7 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
+        6 -> envelope.dynasty
         5, 4 -> formSquads(envelope.dynasty)
         3 -> formSquads(giveTendencies(envelope.dynasty))
         2 -> formSquads(giveTendencies(handOutPicks(envelope.dynasty)))
@@ -56,6 +57,12 @@ object SaveFile {
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 6 -> 7: the transactions wire arrived (SPEC 4.7). Nothing to move: a
+     * save from before it starts its wire empty and fills it from the next
+     * move, like the careers did at version 5.
+     */
 
     /**
      * 5 -> 6: practice squads arrived (SPEC 7). A save from before them has

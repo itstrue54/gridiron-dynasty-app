@@ -4,6 +4,8 @@ import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerStatus
 import com.nflsim.engine.model.TeamId
+import com.nflsim.engine.model.Transaction
+import com.nflsim.engine.model.TransactionKind
 import com.nflsim.engine.offseason.TeamNeeds
 import com.nflsim.engine.offseason.rosterValue
 import com.nflsim.engine.ratings.SchemeCatalog
@@ -46,9 +48,12 @@ object RosterMoves {
         userTeam: TeamId? = null,
         weeksLeft: Int = Schedule.WEEKS,
     ): League {
-        var l = placeOnReserve(league)
+        // The wire dates a move by the game it comes before.
+        val wire = Schedule.WEEKS - weeksLeft + 1
+        var l = placeOnReserve(league, wire)
         l.teams.forEach { team ->
-            l = if (team.id != userTeam) manage(l, team.id, tuning, weeksLeft) else returnWhereRoom(l, team.id)
+            l = if (team.id != userTeam) manage(l, team.id, tuning, weeksLeft, wire)
+                else returnWhereRoom(l, team.id, wire)
         }
         return l
     }
@@ -58,26 +63,30 @@ object RosterMoves {
      * for them, as they did before reserve existed. Only a club that filled
      * his place has a decision to make, and that one is left to the user.
      */
-    private fun returnWhereRoom(start: League, team: TeamId): League {
+    private fun returnWhereRoom(start: League, team: TeamId, wire: Int): League {
         var league = start
         league.roster(team).filter(::readyToReturn).forEach { back ->
-            val outcome = Transactions.activate(league, team, back.id)
+            val outcome = Transactions.activate(league, team, back.id, week = wire)
             if (outcome is Transactions.Outcome.Done) league = outcome.league
         }
         return league
     }
 
     /** Everyone out long enough goes on reserve, at every club. */
-    private fun placeOnReserve(league: League): League {
-        val rostered = league.teams.flatMap { it.roster }.toSet()
-        return league.copy(players = league.players.map {
-            if (it.id in rostered && it.status == PlayerStatus.ACTIVE && it.injuryWeeks >= IR_WEEKS) {
+    private fun placeOnReserve(league: League, wire: Int): League {
+        val clubOf = league.teams.flatMap { t -> t.roster.map { it to t.id } }.toMap()
+        val moves = mutableListOf<Transaction>()
+        val players = league.players.map {
+            val club = clubOf[it.id]
+            if (club != null && it.status == PlayerStatus.ACTIVE && it.injuryWeeks >= IR_WEEKS) {
+                moves += Transaction.of(league.year, wire, TransactionKind.INJURED_RESERVE, club, it)
                 it.copy(status = PlayerStatus.IR)
             } else it
-        })
+        }
+        return league.copy(players = players).logged(*moves.toTypedArray())
     }
 
-    private fun manage(start: League, team: TeamId, tuning: TuningTable, weeksLeft: Int): League {
+    private fun manage(start: League, team: TeamId, tuning: TuningTable, weeksLeft: Int, wire: Int): League {
         var league = start
         val club = league.team(team)
         val offence = SchemeCatalog.tuned(club.offenseScheme, tuning)
@@ -96,9 +105,9 @@ object RosterMoves {
                 val spare = active.filter { it.position == back.position }.minByOrNull(::value)
                     ?: active.minByOrNull(::value)
                     ?: return@forEach
-                apply(Transactions.release(league, team, spare.id))
+                apply(Transactions.release(league, team, spare.id, week = wire))
             }
-            apply(Transactions.activate(league, team, back.id))
+            apply(Transactions.activate(league, team, back.id, week = wire))
         }
 
         // Fill the open places where the club is thinnest.
@@ -111,7 +120,7 @@ object RosterMoves {
                 ?: Transactions.freeAgents(league).filter { it.position == need }.maxByOrNull(::value)
                 ?: squad.maxByOrNull(::value)
                 ?: break
-            if (!apply(Transactions.sign(league, team, pick.id, weeksLeft = weeksLeft))) break
+            if (!apply(Transactions.sign(league, team, pick.id, weeksLeft = weeksLeft, week = wire))) break
         }
 
         // And the squad back to sixteen: the street first, then camp bodies.

@@ -118,4 +118,15 @@ class TransactionsTest {
         assertEquals(PlayerStatus.PRACTICE_SQUAD, back.league.player(first).status)
         assertEquals(0, back.league.roster(club).count { it.id == first }, "the squad is not the 53")
     }
+
+    @Test
+    fun `a release goes on the wire with its dead money, under the man's name`() {
+        val spare = league.roster(club).minByOrNull { it.capHit(2026) }!!
+        val done = Transactions.release(league, club, spare.id, week = 3) as Transactions.Outcome.Done
+        val line = done.league.transactions.single()
+        assertEquals(com.nflsim.engine.model.TransactionKind.RELEASED, line.kind)
+        assertEquals(spare.name, line.name)
+        assertEquals(3, line.week)
+        assertEquals(spare.contract?.deadCap(2026)?.thisYear ?: 0, line.amount)
+    }
 }
