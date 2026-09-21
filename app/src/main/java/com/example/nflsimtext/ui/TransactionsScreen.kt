@@ -117,6 +117,13 @@ fun TransactionsScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
     }
 }
 
+/** A week in a column: "Wk 6", or when in the year it was. */
+internal fun weekShort(week: Int): String = when {
+    week == 0 -> "Spring"
+    week > Schedule.WEEKS -> "Post"
+    else -> "Wk $week"
+}
+
 private fun weekTitle(week: Int): String = when {
     week == 0 -> "The offseason"
     week > Schedule.WEEKS -> "After the regular season"
@@ -124,7 +131,7 @@ private fun weekTitle(week: Int): String = when {
 }
 
 /** The part of a move a reader wants next to it: money, a pick, a club. */
-private fun terms(line: Transaction, abbrev: Map<Int, String>): String = when (line.kind) {
+internal fun terms(line: Transaction, abbrev: Map<Int, String>): String = when (line.kind) {
     TransactionKind.SIGNED ->
         if (line.years > 1) "${money(line.amount)} x ${line.years}" else money(line.amount)
     TransactionKind.PROMOTED -> money(line.amount)
