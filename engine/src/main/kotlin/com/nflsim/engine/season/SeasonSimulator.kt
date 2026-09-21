@@ -97,7 +97,7 @@ class SeasonSimulator(
                 injuries += g.injuries
                 played += g
             }
-            current = WeekRunner.afterWeek(current, played, tuning)
+            current = WeekRunner.afterWeek(current, played, tuning, weeksLeft = Schedule.WEEKS - week)
         }
         return finish(outcomes, stats, current, root).copy(injuries = injuries)
     }

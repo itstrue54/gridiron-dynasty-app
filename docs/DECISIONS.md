@@ -1218,10 +1218,53 @@ suite passes, the 30-season stability gate included.
 - **Squad pay is not charged.** Roughly $230k a man counts against the
   real cap; under half a percent per club, and charging it means
   contracts for men who can leave any Tuesday.
-- **The AI never promotes or poaches.** Its squads are chosen once a
-  year and sit; only the user's club reaches into them.
+- **The AI never poaches.** It promotes from its own squad (see the ADR
+  below) but never signs another club's.
 - **The best squad players are too good.** The top of the squads reaches
   the high 70s and low 80s, men the offseason left unsigned. That was true
   of the street before squads existed; squads only make it visible.
 - **No three-week rule** for a poached player, and no elevations for game
   day.
+
+## ADR-0xx — Injured reserve, the Tuesday wire, and legal on cut-down day
+
+**Context.** With practice squads in, the league's clubs still never used
+them: a man hurt for eight weeks sat on the 53 while deeper backups played.
+
+**Decision.**
+- Out four weeks or more (the NFL's minimum stay) goes on injured reserve
+  at every club: still paid, not on the 53. IR does not dress unless the
+  club has left nobody else at his position.
+- The league's clubs fill the place at the position that most needs a
+  body, from their own squad first and the street second, top the squad
+  back to sixteen, and cut the stopgap when the man returns. The user's
+  club decides for itself, except that a healed man walks back into an
+  empty place, as he did before reserve existed. The Hub says when the
+  user's 53 has open places.
+- In-season signings cost the minimum prorated by the weeks left, one
+  eighteenth a game (CBA Article 26), for every club. A street deal is one
+  year of base salary with nothing guaranteed; it had been going through
+  `Contract.of`, which gave a minimum man a 35% signing bonus and left
+  dead money when he was cut.
+- A second cap check on cut-down day. Free agency left every club legal,
+  then rookie deals and template fills put five to nine clubs a year back
+  over, by up to $31M, with nothing checking again. One or two a year
+  started the season over the cap and could not sign anybody when
+  reserve opened a place. The new pass restructures what it must and
+  cuts to the 46 floor if it has to.
+
+**Measured.** One league, one season: 7.2 players a club on reserve, the
+league's clubs at 53 active, squads at 16. Thirty seasons: clubs starting
+a season over the cap, 1-2 a year before and none after; no league club
+ending a season below 50 active; six club-seasons starting at 46 after
+the cut-down pass, filled during the season.
+
+**Changed guard, with the user's agreement.** The 30-season test held
+every club to the same roster size. With reserve, a club's active count
+is what the 53 means; the league's clubs are now held to 46-53 active and
+the test's own unmanaged club only to 53.
+
+### Open
+- The NFL puts around a dozen a club on reserve a season; the sim's 7 is
+  the four-week-plus injuries only, with no preseason injuries.
+- No designated-to-return limit, no practice-squad elevations.

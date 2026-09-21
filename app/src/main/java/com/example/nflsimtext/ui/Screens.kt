@@ -158,6 +158,25 @@ fun HubScreen(
             )
         }
 
+        // Injured reserve opens places the league's clubs fill on their own;
+        // the user's are left open until the user fills them.
+        val open = com.nflsim.engine.season.Transactions.ROSTER_LIMIT -
+            com.nflsim.engine.season.RosterMoves.active(dynasty.league, team.id).size
+        if (open > 0 && dynasty.phase == DynastyPhase.REGULAR_SEASON) {
+            item {
+                SituationBlock(
+                    "${open} open ${if (open == 1) "place" else "places"} on the 53",
+                    situation = Situation.RED_ZONE,
+                    onClick = { onNavigate(Tab.MARKET) },
+                ) {
+                    Text(
+                        "Injured reserve took them. Sign or promote somebody in Free agents.",
+                        style = NdTheme.type.body, color = c.chalkDim,
+                    )
+                }
+            }
+        }
+
         item {
             Column {
                 Text(nextUpTitle(dynasty, next), style = NdTheme.type.headline, color = c.chalk)

@@ -183,8 +183,17 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** Signs a free agent, or says why the club cannot (SPEC 7, out of season). */
-    suspend fun signFreeAgent(playerId: Int) = transact { league, team ->
-        com.nflsim.engine.season.Transactions.sign(
+    suspend fun signFreeAgent(playerId: Int) {
+        val weeks = dynasty?.weeksLeft ?: return
+        transact { league, team ->
+            com.nflsim.engine.season.Transactions.sign(
+                league, team, com.nflsim.engine.model.PlayerId(playerId), weeksLeft = weeks)
+        }
+    }
+
+    /** Off injured reserve, once he is healthy and there is a place. */
+    suspend fun activateFromReserve(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.activate(
             league, team, com.nflsim.engine.model.PlayerId(playerId))
     }
 

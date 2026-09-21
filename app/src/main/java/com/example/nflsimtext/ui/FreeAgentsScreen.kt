@@ -28,6 +28,7 @@ import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.PracticeSquads
+import com.nflsim.engine.season.RosterMoves
 import com.nflsim.engine.season.Transactions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -53,7 +54,10 @@ fun FreeAgentsScreen(
     val c = NdTheme.colors
     val team = dynasty.team
     val league = dynasty.league
-    val roster = league.roster(team.id)
+    val everyone = league.roster(team.id)
+    val roster = everyone.filterNot(RosterMoves::onReserve)
+    val reserve = everyone.filter(RosterMoves::onReserve)
+    val cost = Transactions.price(dynasty.weeksLeft)
     val squad = team.practiceSquad.map { league.player(it) }
     val space = Transactions.spaceFor(league, team.id)
     val offence = SchemeCatalog.tuned(team.offenseScheme, league.tuning)
@@ -107,7 +111,8 @@ fun FreeAgentsScreen(
                 situation = if (full) Situation.RED_ZONE else Situation.NORMAL,
             ) {
                 Text(
-                    "${money(space)} under the cap. The minimum is ${money(Transactions.askingPrice)}.",
+                    "${money(space)} under the cap. A man signed now costs ${money(cost)}" +
+                        if (cost < Transactions.askingPrice) ", the minimum for the weeks left." else ", the minimum.",
                     style = NdTheme.type.data, color = c.chalk,
                 )
                 Text(
@@ -160,6 +165,30 @@ fun FreeAgentsScreen(
             }
         }
 
+        if (reserve.isNotEmpty()) {
+            item {
+                SituationBlock("Injured reserve", meta = "${reserve.size} off the 53") {
+                    reserve.forEach { man ->
+                        Text(
+                            "${man.position.label} ${man.name} - " +
+                                if (man.injuryWeeks == 0) "healthy, waiting for a place"
+                                else "out ${man.injuryWeeks} more ${if (man.injuryWeeks == 1) "week" else "weeks"}",
+                            style = NdTheme.type.data, color = c.chalk,
+                        )
+                        if (man.injuryWeeks == 0) {
+                            SecondaryButton(
+                                "Bring him back",
+                                { scope.launch { store.activateFromReserve(man.id.v) } },
+                                enabled = !full && !store.busy,
+                            )
+                        }
+                    }
+                    Hint("Out ${RosterMoves.IR_WEEKS} weeks or more goes on reserve: still paid, not on the 53. " +
+                        "A healed man comes back on his own while there is a place for him.")
+                }
+            }
+        }
+
         item {
             SituationBlock("Your roster", meta = "Tap to release") {
                 PlayerTable(
@@ -195,7 +224,7 @@ fun FreeAgentsScreen(
                 when (choice.kind) {
                     Kind.STREET -> {
                         PrimaryButton(
-                            "Sign to the 53 for ${money(Transactions.askingPrice)}",
+                            "Sign to the 53 for ${money(cost)}",
                             { act { store.signFreeAgent(choice.id) } },
                             enabled = !full && !store.busy,
                         )
@@ -205,13 +234,13 @@ fun FreeAgentsScreen(
                         )
                     }
                     Kind.POACH -> PrimaryButton(
-                        "Sign him away to the 53 for ${money(Transactions.askingPrice)}",
+                        "Sign him away to the 53 for ${money(cost)}",
                         { act { store.signFreeAgent(choice.id) } },
                         enabled = !full && !store.busy,
                     )
                     Kind.SQUAD -> {
                         PrimaryButton(
-                            "Promote to the 53 for ${money(Transactions.askingPrice)}",
+                            "Promote to the 53 for ${money(cost)}",
                             { act { store.signFreeAgent(choice.id) } },
                             enabled = !full && !store.busy,
                         )

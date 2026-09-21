@@ -62,6 +62,10 @@ object CapManagement {
         year: Int,
         scheme: (TeamId?, Position) -> Scheme,
         rng: Rng,
+        /** Dead money already on each club's books; the league's own figures when null. */
+        deadMoney: Map<Int, Int>? = null,
+        /** How many deals a club will restructure; its GM's habit when null. */
+        restructures: Int? = null,
     ): Triple<List<Player>, Map<Int, Int>, List<Release>> {
         val byTeam = players.filter { it.teamId != null }.groupBy { it.teamId!! }
         val kept = mutableListOf<Player>()
@@ -72,7 +76,7 @@ object CapManagement {
 
         league.teams.forEach { team ->
             val roster = (byTeam[team.id] ?: emptyList()).toMutableList()
-            var dead = team.finances.deadMoney
+            var dead = deadMoney?.get(team.id.v) ?: team.finances.deadMoney
             var guard = 0
 
             // A front office restructures before it releases anybody. It is
@@ -80,7 +84,7 @@ object CapManagement {
             // to have done three years from now, which is the trap the cap is
             // supposed to set (SPEC 8.1).
             var restructured = 0
-            while (committed(roster, year) + dead > cap && restructured < team.gm.restructures) {
+            while (committed(roster, year) + dead > cap && restructured < (restructures ?: team.gm.restructures)) {
                 val target = roster
                     .filter { it.contract?.isActive(year) == true && it.capHit(year) > BIG_DEAL }
                     .maxByOrNull { it.capHit(year) } ?: break

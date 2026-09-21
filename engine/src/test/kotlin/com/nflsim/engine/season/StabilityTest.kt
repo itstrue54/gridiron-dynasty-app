@@ -41,6 +41,7 @@ class StabilityTest {
         val ages = mutableListOf<Double>()
         val champions = mutableListOf<Int>()
         val rosterSizes = mutableListOf<Int>()
+        val userSizes = mutableListOf<Int>()
 
         repeat(years) {
             while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
@@ -48,7 +49,13 @@ class StabilityTest {
             means += leagueMean(d.league)
             elites += elite(d.league)
             ages += d.league.players.filter { it.teamId != null }.map { it.age(d.year) }.average()
-            rosterSizes += d.league.teams.map { d.league.roster(it.id).size }.distinct().size
+            // The 53 counts the active roster; injured reserve is on the books,
+            // not the field. A club with no cap room cannot fill a place reserve
+            // opens, which is legal, so the floor is the 46 a club dresses.
+            // The test's own club has no one signing for it, so it only has a ceiling.
+            rosterSizes += d.league.teams.filter { it.id != d.userTeamId }
+                .map { RosterMoves.active(d.league, it.id).size }
+            userSizes += RosterMoves.active(d.league, d.userTeamId).size
             d = DynastyEngine.advance(d)
         }
 
@@ -75,6 +82,14 @@ class StabilityTest {
         assertTrue(distinct >= 12, "only $distinct clubs won it in $years years")
         val most = champions.filter { it > 0 }.groupingBy { it }.eachCount().values.maxOrNull() ?: 0
         assertTrue(most <= 8, "one club won it $most times in $years years")
-        assertTrue(rosterSizes.all { it == 1 }, "clubs finished a season with different roster sizes")
+        assertTrue(rosterSizes.all { it in GAME_DAY..Transactions.ROSTER_LIMIT },
+            "a club finished a season outside $GAME_DAY-${Transactions.ROSTER_LIMIT} active: " +
+                rosterSizes.filter { it !in GAME_DAY..Transactions.ROSTER_LIMIT })
+        assertTrue(userSizes.all { it <= Transactions.ROSTER_LIMIT }, "the user's club went past 53: $userSizes")
+    }
+
+    private companion object {
+        /** The players an NFL club may dress on game day. */
+        const val GAME_DAY = 46
     }
 }
