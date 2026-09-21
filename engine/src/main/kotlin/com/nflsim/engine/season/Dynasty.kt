@@ -181,7 +181,14 @@ object DynastyEngine {
         val nextWeek = week + 1
         return dynasty.copy(
             league = WeekRunner.afterWeek(
-                dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week),
+                dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week,
+            ).let { l ->
+                l.copy(history = l.history.archived(*played.map { g ->
+                    // Filed against the league as it was when they played.
+                    com.nflsim.engine.model.ArchivedGame.of(
+                        dynasty.year, week, dynasty.league, g.home.v, g.away.v, g.homeScore, g.awayScore, g.boxScore)
+                }.toTypedArray()))
+            },
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
@@ -197,9 +204,18 @@ object DynastyEngine {
         // stands after it: injuries, wear and anything changed mid-season.
         val full = SeasonSimulator(dynasty.league, dynasty.year, dynasty.seed, tuning)
             .postseason(dynasty.results, dynasty.playerStats, dynasty.league)
+        val archive = full.playoffs.mapNotNull { p ->
+            p.box?.let { box ->
+                com.nflsim.engine.model.ArchivedGame.of(
+                    dynasty.year, Schedule.WEEKS + p.round.ordinal + 1, dynasty.league,
+                    p.home.v, p.away.v, p.homeScore, p.awayScore, box)
+            }
+        }
         return dynasty.copy(
+            league = dynasty.league.copy(history = dynasty.league.history.archived(*archive.toTypedArray())),
             phase = DynastyPhase.OFFSEASON,
-            playoffs = full.playoffs,
+            // The boxes live in the archive; the bracket keeps the scores.
+            playoffs = full.playoffs.map { it.copy(box = null) },
             champion = full.champion?.v,
         )
     }

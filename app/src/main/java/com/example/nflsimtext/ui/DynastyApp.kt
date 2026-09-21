@@ -78,6 +78,8 @@ fun DynastyApp(
 ) {
     var tab by remember { mutableStateOf(Tab.HUB) }
     var player by remember { mutableStateOf<Int?>(null) }
+    // A game opened from the schedule; null is the one just played.
+    var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }
     val scope = rememberCoroutineScope()
     val dynasty = store.dynasty
 
@@ -86,12 +88,13 @@ fun DynastyApp(
     BackHandler(enabled = dynasty != null && tab != Tab.HUB) {
         tab = when (tab) {
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
+            Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
             else -> Tab.HUB
         }
     }
 
     Scaffold(
-        bottomBar = { if (dynasty != null) BottomBar(tab) { tab = it } },
+        bottomBar = { if (dynasty != null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -104,9 +107,9 @@ fun DynastyApp(
                         onDepthChart = { tab = Tab.DEPTH },
                         onPlayer = { player = it; tab = Tab.PLAYER },
                     )
-                    Tab.SCHEDULE -> ScheduleScreen(dynasty)
+                    Tab.SCHEDULE -> ScheduleScreen(dynasty) { boxGame = it; tab = Tab.BOX }
                     Tab.OFFSEASON -> OffseasonScreen(dynasty)
-                    Tab.BOX -> BoxScoreScreen(dynasty)
+                    Tab.BOX -> BoxScoreScreen(dynasty, boxGame)
                     Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
@@ -124,7 +127,7 @@ fun DynastyApp(
                     )
                     Tab.GAME -> GameDayScreen(
                         dynasty,
-                        onBoxScore = { tab = Tab.BOX },
+                        onBoxScore = { boxGame = null; tab = Tab.BOX },
                         onBack = { tab = Tab.HUB },
                     )
                 }

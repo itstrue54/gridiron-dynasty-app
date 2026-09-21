@@ -49,7 +49,7 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        6 -> envelope.dynasty
+        7, 6 -> envelope.dynasty
         5, 4 -> formSquads(envelope.dynasty)
         3 -> formSquads(giveTendencies(envelope.dynasty))
         2 -> formSquads(giveTendencies(handOutPicks(envelope.dynasty)))
@@ -57,6 +57,11 @@ object SaveFile {
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 7 -> 8: box scores are archived (SPEC 9.2). Nothing to move: a save
+     * from before keeps the games it played as results only.
+     */
 
     /**
      * 6 -> 7: the transactions wire arrived (SPEC 4.7). Nothing to move: a
