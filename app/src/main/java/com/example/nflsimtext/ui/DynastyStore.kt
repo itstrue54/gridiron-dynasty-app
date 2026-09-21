@@ -194,6 +194,17 @@ class DynastyStore(private val saveDir: File) {
             league, team, com.nflsim.engine.model.PlayerId(playerId))
     }
 
+    /** Onto the club's practice squad, off the 53. */
+    suspend fun signToPracticeSquad(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.signToPracticeSquad(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
+    suspend fun releaseFromPracticeSquad(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.Transactions.releaseFromPracticeSquad(
+            league, team, com.nflsim.engine.model.PlayerId(playerId))
+    }
+
     private suspend fun transact(
         move: (com.nflsim.engine.model.League, com.nflsim.engine.model.TeamId) ->
             com.nflsim.engine.season.Transactions.Outcome,

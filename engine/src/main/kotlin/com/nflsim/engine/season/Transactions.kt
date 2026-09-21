@@ -37,10 +37,14 @@ object Transactions {
     fun spaceFor(league: League, team: TeamId): Int =
         CapManagement.spaceFor(league.roster(team), league.year, league.team(team).finances.deadMoney)
 
-    /** Everyone available: nobody's player, and not retired. */
-    fun freeAgents(league: League): List<Player> = league.players.filter {
-        it.teamId == null && it.status != PlayerStatus.RETIRED
-    }
+    /** Everyone on the street: nobody's player, nobody's squad, and not retired. */
+    fun freeAgents(league: League): List<Player> = league.players.filter(PracticeSquads::unattached)
+
+    /** Other clubs' squad players, each with the club training him. */
+    fun poachable(league: League, team: TeamId): List<Pair<Player, TeamId>> =
+        league.teams.filter { it.id != team }.flatMap { club ->
+            club.practiceSquad.map { league.player(it) to club.id }
+        }
 
     fun sign(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year): Outcome {
         val player = league.playersById[playerId]
@@ -61,6 +65,9 @@ object Transactions {
             return Outcome.Refused(
                 "No room under the cap: ${money(space)} against the ${money(askingPrice)} minimum.")
         }
+        // A squad player is a free agent his club happens to train: anyone
+        // may sign him to a 53, his own club included.
+        val from = PracticeSquads.clubOf(league, playerId)
         val signed = player.copy(
             teamId = team,
             status = PlayerStatus.ACTIVE,
@@ -72,10 +79,71 @@ object Transactions {
             league.copy(
                 players = league.players.map { if (it.id == playerId) signed else it },
                 teams = league.teams.map {
-                    if (it.id == team) it.copy(roster = it.roster + playerId) else it
+                    val squad = it.practiceSquad - playerId
+                    if (it.id == team) it.copy(roster = it.roster + playerId, practiceSquad = squad)
+                    else it.copy(practiceSquad = squad)
                 },
             ),
-            "${player.position.label} ${player.name} signs for ${money(askingPrice)}.",
+            when (from) {
+                null -> "${player.position.label} ${player.name} signs for ${money(askingPrice)}."
+                team -> "${player.position.label} ${player.name} is promoted from the practice squad."
+                else -> "${player.position.label} ${player.name} is signed off " +
+                    "${league.team(from).abbrev}'s practice squad for ${money(askingPrice)}."
+            },
+        )
+    }
+
+    /** Onto the club's practice squad: off the 53, so no cap and no roster spot. */
+    fun signToPracticeSquad(league: League, team: TeamId, playerId: PlayerId): Outcome {
+        val player = league.playersById[playerId]
+            ?: return Outcome.Refused("There is no such player.")
+        if (!PracticeSquads.unattached(player)) {
+            return Outcome.Refused(
+                if (player.status == PlayerStatus.PRACTICE_SQUAD)
+                    "${player.name} is on a practice squad; sign him to the 53 instead."
+                else "${player.name} is not a free agent.")
+        }
+        val squad = league.team(team).practiceSquad.map { league.player(it) }
+        if (!PracticeSquads.hasRoom(squad, player)) {
+            return Outcome.Refused(when {
+                squad.size >= PracticeSquads.SIZE ->
+                    "The practice squad is full at ${PracticeSquads.SIZE}."
+                PracticeSquads.isVeteran(player) &&
+                    squad.count(PracticeSquads::isVeteran) >= PracticeSquads.VETERANS ->
+                    "All ${PracticeSquads.VETERANS} veteran places are taken; " +
+                        "${player.lastName} has ${player.accruedSeasons} accrued seasons."
+                else -> "The squad already carries ${PracticeSquads.PER_POSITION} at ${player.position.label}."
+            })
+        }
+        return Outcome.Done(
+            league.copy(
+                players = league.players.map {
+                    if (it.id == playerId) it.copy(status = PlayerStatus.PRACTICE_SQUAD) else it
+                },
+                teams = league.teams.map {
+                    if (it.id == team) it.copy(practiceSquad = it.practiceSquad + playerId) else it
+                },
+            ),
+            "${player.position.label} ${player.name} joins the practice squad.",
+        )
+    }
+
+    fun releaseFromPracticeSquad(league: League, team: TeamId, playerId: PlayerId): Outcome {
+        val player = league.playersById[playerId]
+            ?: return Outcome.Refused("There is no such player.")
+        if (playerId !in league.team(team).practiceSquad) {
+            return Outcome.Refused("${player.name} is not on this club's practice squad.")
+        }
+        return Outcome.Done(
+            league.copy(
+                players = league.players.map {
+                    if (it.id == playerId) it.copy(status = PlayerStatus.FREE_AGENT) else it
+                },
+                teams = league.teams.map {
+                    if (it.id == team) it.copy(practiceSquad = it.practiceSquad - playerId) else it
+                },
+            ),
+            "${player.position.label} ${player.name} is released from the practice squad.",
         )
     }
 

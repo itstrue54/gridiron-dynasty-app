@@ -83,4 +83,39 @@ class TransactionsTest {
         assertTrue(available.isNotEmpty())
         assertTrue(available.all { it.teamId == null && it.status != PlayerStatus.RETIRED })
     }
+
+    @Test
+    fun `another club's practice squad player can be signed away`() {
+        val (open, _) = withFreeAgent()
+        val (man, owner) = Transactions.poachable(open, club).first()
+        val done = Transactions.sign(open, club, man.id) as Transactions.Outcome.Done
+        assertTrue(man.id in done.league.team(club).roster)
+        assertTrue(man.id !in done.league.team(owner).practiceSquad, "he should leave the squad he was on")
+        assertEquals(club, done.league.player(man.id).teamId)
+        assertTrue(done.note.contains(open.team(owner).abbrev), done.note)
+    }
+
+    @Test
+    fun `a squad player is not on the street`() {
+        val squad = league.teams.flatMap { it.practiceSquad }.toSet()
+        assertTrue(squad.isNotEmpty())
+        assertTrue(Transactions.freeAgents(league).none { it.id in squad })
+    }
+
+    @Test
+    fun `the practice squad stops at sixteen and takes back who it releases`() {
+        val (open, id) = withFreeAgent()
+        val full = Transactions.signToPracticeSquad(open, club, com.nflsim.engine.model.PlayerId(id))
+        assertTrue(full is Transactions.Outcome.Refused, "a new league's squads are full")
+
+        val first = open.team(club).practiceSquad.first()
+        val freed = Transactions.releaseFromPracticeSquad(open, club, first) as Transactions.Outcome.Done
+        assertEquals(PracticeSquads.SIZE - 1, freed.league.team(club).practiceSquad.size)
+        assertEquals(PlayerStatus.FREE_AGENT, freed.league.player(first).status)
+
+        val back = Transactions.signToPracticeSquad(freed.league, club, first)
+        assertTrue(back is Transactions.Outcome.Done, "$back")
+        assertEquals(PlayerStatus.PRACTICE_SQUAD, back.league.player(first).status)
+        assertEquals(0, back.league.roster(club).count { it.id == first }, "the squad is not the 53")
+    }
 }

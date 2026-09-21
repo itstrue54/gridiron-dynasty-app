@@ -35,6 +35,8 @@ class OffseasonContext(
  */
 data class OffseasonState(
     val players: List<Player>,
+    /** Chosen after the cut to 53 (SPEC 7 phase 11). */
+    val practiceSquads: Map<com.nflsim.engine.model.TeamId, List<com.nflsim.engine.model.PlayerId>> = emptyMap(),
     val deadMoney: Map<Int, Int> = emptyMap(),
     /** Who each expiring player was with, for the re-signing window. */
     val previousTeam: Map<Int, TeamId> = emptyMap(),

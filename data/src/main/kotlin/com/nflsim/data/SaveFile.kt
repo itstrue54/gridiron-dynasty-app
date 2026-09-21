@@ -49,13 +49,22 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        4 -> envelope.dynasty
-        3 -> giveTendencies(envelope.dynasty)
-        2 -> giveTendencies(handOutPicks(envelope.dynasty))
-        1 -> giveTendencies(handOutPicks(hireStaffs(envelope.dynasty)))
+        5, 4 -> formSquads(envelope.dynasty)
+        3 -> formSquads(giveTendencies(envelope.dynasty))
+        2 -> formSquads(giveTendencies(handOutPicks(envelope.dynasty)))
+        1 -> formSquads(giveTendencies(handOutPicks(hireStaffs(envelope.dynasty))))
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 5 -> 6: practice squads arrived (SPEC 7). A save from before them has
+     * sixteen empty places per club; they are filled the way a new league's
+     * are, from whoever is on the street and then from camp bodies, seeded off
+     * the dynasty so the same save always gets the same squads.
+     */
+    private fun formSquads(dynasty: Dynasty): Dynasty =
+        dynasty.copy(league = com.nflsim.engine.season.PracticeSquads.fill(dynasty.league, dynasty.seed))
 
     /**
      * 4 -> 5: careers and league history arrived (SPEC 9.2). Nothing needs
