@@ -68,6 +68,13 @@ data class Dynasty(
 
     fun userResults(): List<GameOutcome> = results.filter { it.involves(userTeamId) }
 
+    /** The game week a move made now comes before, for the wire; 0 out of season. */
+    val wireWeek: Int get() = when (phase) {
+        DynastyPhase.REGULAR_SEASON -> week
+        DynastyPhase.PLAYOFFS -> Schedule.WEEKS + 1
+        else -> 0
+    }
+
     /** Game cheques left to pay a man signed today (CBA Article 26). */
     val weeksLeft: Int get() = when (phase) {
         DynastyPhase.REGULAR_SEASON -> Schedule.WEEKS - week + 1

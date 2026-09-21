@@ -432,6 +432,8 @@ object OffseasonEngine {
         val newLeague = league.copy(
             // A new season starts healthy: injuries heal and wear wears off.
             year = newYear, teams = teams,
+            transactions = league.transactions + springWire(
+                newYear, retirements, trades, state.releases, signings, draft.picks, survivors),
             history = league.history.copy(
                 seasons = league.history.seasons.filterNot { it.year == ctx.oldYear } + SeasonRecord(
                     year = ctx.oldYear,
@@ -666,6 +668,36 @@ object OffseasonEngine {
             cutdownDeadMoney = cut.sumOf { it.contract?.deadCap(ctx.newYear)?.thisYear ?: 0 },
             cutdownFresh = cut.count { it.contract?.signedYear == ctx.newYear },
         )
+    }
+
+    /**
+     * The spring on the wire (SPEC 4.7), in the order it happened. The cut
+     * to 53 and the practice squads are left off: a thousand camp bodies a
+     * year would bury the moves anyone reads the wire for.
+     */
+    private fun springWire(
+        year: Int,
+        retirements: List<Retirement>,
+        trades: List<TradeMove>,
+        releases: List<Release>,
+        signings: List<Signing>,
+        picks: List<DraftPick>,
+        players: List<Player>,
+    ): List<com.nflsim.engine.model.Transaction> {
+        val byId = players.associateBy { it.id.v }
+        fun line(kind: com.nflsim.engine.model.TransactionKind, team: Int, player: Int, name: String,
+                 position: String, amount: Int = 0, years: Int = 0, other: Int = 0) =
+            com.nflsim.engine.model.Transaction(year, 0, kind, team, player, name, position, amount, years, other)
+        return retirements.map { line(com.nflsim.engine.model.TransactionKind.RETIRED, 0, it.player, it.name, it.position) } +
+            trades.map { line(com.nflsim.engine.model.TransactionKind.TRADED, it.to, it.player, it.name, it.position, other = it.from) } +
+            releases.map { line(com.nflsim.engine.model.TransactionKind.RELEASED, it.team, it.player, it.name, it.position, amount = it.deadMoney) } +
+            signings.map { line(com.nflsim.engine.model.TransactionKind.SIGNED, it.team, it.player, it.name, it.position, amount = it.value, years = it.years) } +
+            picks.mapNotNull { pick ->
+                byId[pick.player]?.let { p ->
+                    line(com.nflsim.engine.model.TransactionKind.DRAFTED, pick.team, pick.player, p.name, p.position.label,
+                        amount = pick.overallPick, years = pick.round)
+                }
+            }
     }
 
     /**

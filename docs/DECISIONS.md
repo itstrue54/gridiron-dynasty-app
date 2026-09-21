@@ -1178,8 +1178,7 @@ forbids, and are now in the tuning table.
   where it reads as absurd.
 - **Box scores are not retained.** SPEC 9.2 wants five seasons full and
   then team totals; the game keeps the last game only.
-- **There is no transactions ledger.** SPEC 4.7 has one, kept forever;
-  signings and trades live in the offseason report and nowhere else.
+- ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
 - **News has no benchings and no contract disputes**, both of which SPEC
   10.1 lists. Neither exists in the sim to report on.
 - **The hub's news block and the export button have not been seen on a
@@ -1268,3 +1267,27 @@ the test's own unmanaged club only to 53.
 - The NFL puts around a dozen a club on reserve a season; the sim's 7 is
   the four-week-plus injuries only, with no preseason injuries.
 - No designated-to-return limit, no practice-squad elevations.
+
+## ADR-0xx — The transactions wire, kept forever
+
+**Context.** SPEC 4.7 has an append-only ledger and 9.2 keeps it forever.
+With reserve and in-season signings, clubs make hundreds of moves a year
+that nothing recorded.
+
+**Decision.** `League.transactions`: one compact line per move (year, the
+game week it came before, kind, club, player, amount, years, other club).
+Names and positions are copied onto the line because a retired man leaves
+the player list. In season every move through `Transactions` and every
+reserve placement is written; the spring's retirements, trades, releases,
+signings and draft picks come from the lists the offseason already builds.
+The cut to 53 and practice-squad formation are left off: a thousand camp
+bodies a year would bury the moves anyone reads the wire for. Save
+version 7, nothing to migrate.
+
+**Measured.** About 1,500 lines a season, 22KB of compressed save; thirty
+seasons is roughly 660KB on top of a 500KB save.
+
+### Open
+- The league's clubs refill their squads without a line on the wire, for
+  the same reason as the cut to 53.
+- The player screen does not yet show a man's own transactions.

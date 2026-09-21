@@ -22,7 +22,12 @@ data class League(
     val tuning: com.nflsim.engine.tuning.TuningTable = com.nflsim.engine.tuning.TuningTable.REALISTIC,
     /** What the league remembers of the seasons behind it (SPEC 4.7, 9.2). */
     val history: LeagueHistory = LeagueHistory(),
+    /** The transactions wire, append-only and kept forever (SPEC 4.7, 9.2). */
+    val transactions: List<Transaction> = emptyList(),
 ) {
+    /** The league with a move on the wire. */
+    fun logged(vararg moves: Transaction): League = copy(transactions = transactions + moves)
+
     val teamsById: Map<TeamId, Team> by lazy { teams.associateBy { it.id } }
     val playersById: Map<PlayerId, Player> by lazy { players.associateBy { it.id } }
 

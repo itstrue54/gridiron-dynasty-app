@@ -212,6 +212,7 @@ fun HubScreen(
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
                     HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Free agents") { onNavigate(Tab.MARKET) }
+                    HubLink("Transactions") { onNavigate(Tab.WIRE) }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
