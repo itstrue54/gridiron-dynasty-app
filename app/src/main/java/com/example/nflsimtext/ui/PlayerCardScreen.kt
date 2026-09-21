@@ -208,6 +208,34 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
             }
         }
 
+        // Every move he has been part of, from the wire (SPEC 4.7).
+        val moves = dynasty.league.transactions.filter { it.player == player.id.v }.asReversed()
+        if (moves.isNotEmpty()) {
+            val abbrev = dynasty.league.teams.associate { it.id.v to it.abbrev }
+            item {
+                SituationBlock("Moves", meta = "${moves.size}") {
+                    DataTable(
+                        columns = listOf(
+                            ColumnSpec("Year", 0.8f, numeric = true),
+                            ColumnSpec("When", 0.9f),
+                            ColumnSpec("Club", 0.7f),
+                            ColumnSpec("Move", 2.4f),
+                            ColumnSpec("Terms", 1.3f, numeric = true),
+                        ),
+                        rows = moves.map { line ->
+                            RowData(listOf(
+                                "${line.year}",
+                                weekShort(line.week),
+                                abbrev[line.team] ?: "-",
+                                line.kind.verb,
+                                terms(line, abbrev),
+                            ))
+                        },
+                    )
+                }
+            }
+        }
+
         item { SecondaryButton("Back to the roster", onBack) }
     }
 }
