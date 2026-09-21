@@ -139,17 +139,17 @@ data class TuningTable(
         val frontPast: Float = 0.35f,
         val linebackerNear: Float = 1.7f,
         val linebackerPast: Float = 1.1f,
-        val safetyNear: Float = 0.45f,
-        val safetyPast: Float = 1.5f,
+        val safetyNear: Float = 0.7f,
+        val safetyPast: Float = 1.7f,
         val cornerNear: Float = 0.25f,
-        val cornerPast: Float = 0.9f,
+        val cornerPast: Float = 0.7f,
         /**
          * Share of tackles after a catch made by the man in coverage. The rest
          * are pursuit: crediting every completion to the defender who covered
          * it left corners near the league's tackle lead, where they should sit
          * well behind the linebackers.
          */
-        val coverageShare: Float = 0.6f,
+        val coverageShare: Float = 0.45f,
     ) {
         fun weight(position: com.nflsim.engine.model.Position, yards: Int): Float {
             val past = yards >= pastTheFront

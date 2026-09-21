@@ -1291,3 +1291,24 @@ seasons is roughly 660KB on top of a 500KB save.
 - The league's clubs refill their squads without a line on the wire, for
   the same reason as the cut to 53.
 - The player screen does not yet show a man's own transactions.
+
+## ADR-0xx — Safeties out-tackle corners
+
+**Context.** Tackle credit still leaned on the secondary's corners: top 32
+at each position averaged 112 at linebacker, 88 at corner and 74 at
+safety over four seasons. The NFL has safeties well ahead of corners.
+
+**Decision.** In the tuning table: the man in coverage makes 45% of
+tackles after a catch, not 60%; safeties weigh 0.7 near the line (was
+0.45) and 1.7 past it (1.5); corners 0.7 past it (0.9). Who is credited
+has no effect on what happens on a play, so no calibration band can
+move. The Hall of Fame's divisors, which are each position's leading
+season, were re-measured: 140 at linebacker, 115 at safety, 95 at corner.
+
+**Measured.** Four seasons, top-32 average: LB 108, S 91, CB 74, EDGE 45,
+DT 47, which is the NFL's order and near its ranges. Hall of fame over
+sixty seasons: corners 10 to 9, linebackers 9 to 13, safeties 8 to 11.
+
+### Open
+- One tackler a play, no assists, so leaders read as solo tackles: the
+  linebacker leader is about 137 against a real combined 170.

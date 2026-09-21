@@ -86,7 +86,9 @@ object HallOfFame {
      * The divisors are measured, not guessed. Guessing them put eight corners
      * in a nineteen-man hall, because a corner's 166 tackles and nine
      * interceptions were being scored as nearly three leading seasons at once,
-     * while a tight end could not reach one however good he was.
+     * while a tight end could not reach one however good he was. Re-measured
+     * when tackles moved from corners to safeties: leaders of about 140 at
+     * linebacker, 115 at safety and 95 at corner.
      */
     private fun season(position: String, s: StatLine): Float = when (position) {
         "QB" -> s.passYards / 4_800f * 0.6f + s.passTouchdowns / 40f * 0.4f
@@ -94,9 +96,9 @@ object HallOfFame {
         "WR" -> s.receivingYards / 1_700f * 0.7f + s.receivingTouchdowns / 14f * 0.3f
         "TE" -> s.receivingYards / 1_100f * 0.7f + s.receivingTouchdowns / 10f * 0.3f
         "EDGE", "DT" -> s.sacks / 18f * 0.7f + s.tackles / 65f * 0.3f
-        "LB" -> s.tackles / 150f * 0.6f + s.interceptions / 8f * 0.2f + s.sacks / 10f * 0.2f
-        "CB" -> s.interceptions / 9f * 0.5f + s.tackles / 115f * 0.5f
-        "S" -> s.interceptions / 6f * 0.5f + s.tackles / 105f * 0.5f
+        "LB" -> s.tackles / 140f * 0.6f + s.interceptions / 8f * 0.2f + s.sacks / 10f * 0.2f
+        "CB" -> s.interceptions / 9f * 0.5f + s.tackles / 95f * 0.5f
+        "S" -> s.interceptions / 6f * 0.5f + s.tackles / 115f * 0.5f
         // A guard has no stat line at all: his case is the hardware he won.
         else -> 0f
     }
