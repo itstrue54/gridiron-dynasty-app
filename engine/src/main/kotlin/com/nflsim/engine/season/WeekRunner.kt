@@ -4,6 +4,7 @@ import com.nflsim.engine.gen.Tendencies
 import com.nflsim.engine.model.GamePlan
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.Player
+import com.nflsim.engine.model.PlayerStatus
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.SchemeCatalog
 import com.nflsim.engine.sim.GameResult
@@ -35,7 +36,13 @@ object WeekRunner {
      * land, and wear moves with the snaps each player took - less for one
      * durable under load - easing off by the week between games.
      */
-    fun afterWeek(league: League, results: List<GameResult>, tuning: TuningTable): League {
+    fun afterWeek(
+        league: League,
+        results: List<GameResult>,
+        tuning: TuningTable,
+        userTeam: TeamId? = null,
+        weeksLeft: Int = Schedule.WEEKS,
+    ): League {
         val inj = tuning.injuries
         val hurt = results.flatMap { it.injuries }.associate { it.player to it.gamesOut }
         val snaps = results.flatMap { it.snaps.entries }.associate { it.key to it.value }
@@ -45,7 +52,7 @@ object WeekRunner {
             val weeks = hurt[p.id.v] ?: (p.injuryWeeks - 1).coerceAtLeast(0)
             if (weeks == p.injuryWeeks && wear == p.wear) p else p.copy(injuryWeeks = weeks, wear = wear)
         }
-        return league.copy(players = players)
+        return RosterMoves.afterWeek(league.copy(players = players), tuning, userTeam, weeksLeft)
     }
 
     /**
@@ -53,14 +60,25 @@ object WeekRunner {
      * player at a position is out, the least hurt of them plays through it,
      * as a club with nobody else would.
      */
-    private fun dressed(roster: List<Player>): List<Player> {
+    private fun dressed(everyone: List<Player>): List<Player> {
+        // Injured reserve does not dress, healed or not, until he is activated -
+        // unless the club has left nobody else at his position, when he is the
+        // emergency body like anyone else least hurt.
+        val roster = everyone.filterNot(RosterMoves::onReserve)
         val fit = roster.filter { it.injuryWeeks == 0 }
-        val uncovered = roster.map { it.position }.toSet() - fit.map { it.position }.toSet()
-        return fit + uncovered.mapNotNull { pos -> roster.filter { it.position == pos }.minByOrNull { it.injuryWeeks } }
+        val uncovered = everyone.map { it.position }.toSet() - fit.map { it.position }.toSet()
+        return fit + uncovered.mapNotNull { pos ->
+            (roster.filter { it.position == pos }.ifEmpty { everyone.filter { it.position == pos } })
+                .minByOrNull { it.injuryWeeks }
+        }
     }
 
     /** Everyone healthy and fresh: a season, and a replayed one, start here. */
     fun healthy(league: League): League = league.copy(players = league.players.map {
-        if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0)
+        when {
+            RosterMoves.onReserve(it) -> it.copy(status = PlayerStatus.ACTIVE, injuryWeeks = 0, wear = 0)
+            it.injuryWeeks == 0 && it.wear == 0 -> it
+            else -> it.copy(injuryWeeks = 0, wear = 0)
+        }
     })
 }

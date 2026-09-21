@@ -30,8 +30,17 @@ object Transactions {
         data class Refused(val reason: String) : Outcome
     }
 
-    /** What a free agent costs at this time of year: the minimum, for a year. */
+    /** What a free agent costs for a whole season: the league minimum. */
     val askingPrice: Int get() = Contract.MIN_BASE_SALARY
+
+    /**
+     * What he costs signed now. Salary is paid by the week, one eighteenth a
+     * game (CBA Article 26), so a man signed for the last six weeks costs a
+     * third of the minimum - which is how a capped-out club still finds a
+     * body in December.
+     */
+    fun price(weeksLeft: Int): Int =
+        askingPrice * weeksLeft.coerceIn(1, Schedule.WEEKS) / Schedule.WEEKS
 
     /** Cap room the club has after what it already owes and its dead money. */
     fun spaceFor(league: League, team: TeamId): Int =
@@ -46,7 +55,14 @@ object Transactions {
             club.practiceSquad.map { league.player(it) to club.id }
         }
 
-    fun sign(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year): Outcome {
+    fun sign(
+        league: League,
+        team: TeamId,
+        playerId: PlayerId,
+        year: Int = league.year,
+        weeksLeft: Int = Schedule.WEEKS,
+    ): Outcome {
+        val cost = price(weeksLeft)
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (player.teamId != null) {
@@ -56,14 +72,14 @@ object Transactions {
             return Outcome.Refused("${player.name} has retired.")
         }
         val club = league.team(team)
-        if (club.roster.size >= ROSTER_LIMIT) {
+        if (RosterMoves.active(league, team).size >= ROSTER_LIMIT) {
             return Outcome.Refused(
                 "The roster is full at $ROSTER_LIMIT. Release somebody to sign ${player.lastName}.")
         }
         val space = spaceFor(league, team)
-        if (space < askingPrice) {
+        if (space < cost) {
             return Outcome.Refused(
-                "No room under the cap: ${money(space)} against the ${money(askingPrice)} minimum.")
+                "No room under the cap: ${money(space)} against the ${money(cost)} he would cost.")
         }
         // A squad player is a free agent his club happens to train: anyone
         // may sign him to a 53, his own club included.
@@ -71,7 +87,8 @@ object Transactions {
         val signed = player.copy(
             teamId = team,
             status = PlayerStatus.ACTIVE,
-            contract = Contract.of(years = 1, totalValue = askingPrice, signedYear = year),
+            // A street deal: one year, all base salary, nothing guaranteed.
+            contract = Contract(years = 1, baseSalary = listOf(cost), signedYear = year),
             yearsWithClub = 0,
             yearsInSystem = 0,
         )
@@ -85,11 +102,35 @@ object Transactions {
                 },
             ),
             when (from) {
-                null -> "${player.position.label} ${player.name} signs for ${money(askingPrice)}."
+                null -> "${player.position.label} ${player.name} signs for ${money(cost)}."
                 team -> "${player.position.label} ${player.name} is promoted from the practice squad."
                 else -> "${player.position.label} ${player.name} is signed off " +
-                    "${league.team(from).abbrev}'s practice squad for ${money(askingPrice)}."
+                    "${league.team(from).abbrev}'s practice squad for ${money(cost)}."
             },
+        )
+    }
+
+    /** Off injured reserve and back on the 53, once he is healthy and there is room. */
+    fun activate(league: League, team: TeamId, playerId: PlayerId): Outcome {
+        val player = league.playersById[playerId]
+            ?: return Outcome.Refused("There is no such player.")
+        if (player.teamId != team || !RosterMoves.onReserve(player)) {
+            return Outcome.Refused("${player.name} is not on this club's injured reserve.")
+        }
+        if (player.injuryWeeks > 0) {
+            return Outcome.Refused(
+                "${player.name} is still hurt: ${player.injuryWeeks} more " +
+                    (if (player.injuryWeeks == 1) "week." else "weeks."))
+        }
+        if (RosterMoves.active(league, team).size >= ROSTER_LIMIT) {
+            return Outcome.Refused(
+                "The 53 is full. Release somebody to bring ${player.lastName} back.")
+        }
+        return Outcome.Done(
+            league.copy(players = league.players.map {
+                if (it.id == playerId) it.copy(status = PlayerStatus.ACTIVE) else it
+            }),
+            "${player.position.label} ${player.name} comes off injured reserve.",
         )
     }
 

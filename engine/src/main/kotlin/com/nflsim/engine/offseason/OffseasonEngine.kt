@@ -266,7 +266,10 @@ object OffseasonEngine {
         // Last year's practice squads go back on the street with everyone
         // else; clubs choose again after the cut to 53.
         var state = OffseasonState(
+            // Reserve ends with the season: everyone heals over the spring.
             players = com.nflsim.engine.season.PracticeSquads.dissolve(league.players).map { p ->
+                if (p.status == PlayerStatus.IR) p.copy(status = PlayerStatus.ACTIVE) else p
+            }.map { p ->
                 val line = season.playerStats[p.id.v]
                 if (line == null) p
                 else p.copy(careerStats = p.careerStats.withSeason(oldYear, p.teamId?.v, line))
@@ -392,6 +395,7 @@ object OffseasonEngine {
         state = stepFillRosters(ctx, state, rng)
         // ---- phase 11: OTAs and camp --------------------------------
         state = stepRosterLimit(ctx, state)
+        state = stepCutdownCompliance(ctx, state, rng)
         state = stepPracticeSquads(ctx, state, rng)
         state = stepResolveUnsigned(ctx, state, rng)
         state = stepDevelopment(ctx, state, rng)
@@ -661,6 +665,40 @@ object OffseasonEngine {
             cutdownCount = cut.size,
             cutdownDeadMoney = cut.sumOf { it.contract?.deadCap(ctx.newYear)?.thisYear ?: 0 },
             cutdownFresh = cut.count { it.contract?.signedYear == ctx.newYear },
+        )
+    }
+
+    /**
+     * Part of SPEC 7 phase 11. Legal on cut-down day as well as in March.
+     *
+     * Free agency leaves every club under the cap; the draft's rookie deals
+     * and the minimum men signed to fill the template then pushed five to
+     * nine clubs a year back over it, some by $30M, and nothing looked again.
+     * A club that starts the season over the cap cannot sign anybody when a
+     * man goes on reserve. The check is against the dead money the season
+     * will carry, which is what the club is held to from here.
+     */
+    private fun stepCutdownCompliance(
+        ctx: OffseasonContext,
+        state: OffseasonState,
+        rng: Rng,
+    ): OffseasonState {
+        val carried = ctx.league.teams.associate { it.id.v to (state.deadMoney[it.id.v] ?: 0) / 2 }
+        val (players, dead, releases) = CapManagement.enforce(
+            ctx.league, state.players, ctx.newYear, ctx.scheme,
+            rng.split("cutdown-cap|${ctx.newYear}"), deadMoney = carried,
+            // In late August every club restructures what it must, whatever
+            // its habits in March: the alternative is not fielding a team.
+            restructures = CUTDOWN_RESTRUCTURES)
+        // Only what this pass added is new; the books keep their own figure.
+        val deadMoney = ctx.league.teams.associate { t ->
+            val id = t.id.v
+            id to (state.deadMoney[id] ?: 0) + ((dead[id] ?: 0) - carried.getValue(id))
+        }
+        return state.copy(
+            players = players,
+            deadMoney = deadMoney,
+            releases = state.releases + releases,
         )
     }
 
@@ -1329,6 +1367,9 @@ object OffseasonEngine {
     }
 
     private const val ROSTER_LIMIT = 53
+
+    /** Deals a club will restructure to be legal on cut-down day. */
+    private const val CUTDOWN_RESTRUCTURES = 12
 
     /** Roughly eight per team, which is about what a real wire holds. */
     /** Brackets match the age histogram in the CLI health check. */

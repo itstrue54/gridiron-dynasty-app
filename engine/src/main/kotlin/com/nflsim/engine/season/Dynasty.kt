@@ -67,6 +67,13 @@ data class Dynasty(
     fun resultsForWeek(n: Int): List<GameOutcome> = results.filter { it.week == n }
 
     fun userResults(): List<GameOutcome> = results.filter { it.involves(userTeamId) }
+
+    /** Game cheques left to pay a man signed today (CBA Article 26). */
+    val weeksLeft: Int get() = when (phase) {
+        DynastyPhase.REGULAR_SEASON -> Schedule.WEEKS - week + 1
+        DynastyPhase.PLAYOFFS -> 1
+        else -> Schedule.WEEKS
+    }
 }
 
 /**
@@ -166,7 +173,8 @@ object DynastyEngine {
 
         val nextWeek = week + 1
         return dynasty.copy(
-            league = WeekRunner.afterWeek(dynasty.league, played, tuning),
+            league = WeekRunner.afterWeek(
+                dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week),
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
