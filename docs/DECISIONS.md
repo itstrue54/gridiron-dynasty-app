@@ -1176,8 +1176,8 @@ forbids, and are now in the tuning table.
 - ~~**The rushing record reads 2,583**~~ Fixed; see the rushing tail ADR.
 - ~~**Box scores are not retained.**~~ Built; see the box score ADR below.
 - ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
-- **News has no benchings and no contract disputes**, both of which SPEC
-  10.1 lists. Neither exists in the sim to report on.
+- ~~**News has no benchings**~~ Built; see the form ADR below. Contract
+  disputes are still unmodelled.
 - **The hub's news block and the export button have not been seen on a
   device.**
 
@@ -1405,3 +1405,50 @@ which is the cost of leaving a good young player on the squad.
 - Nothing stops a club signing a man away and cutting him the same month;
   the NFL's three-week guarantee for a poached squad player is not
   modelled.
+
+## ADR-0xx — In-season form, and somebody to bench
+
+**Context.** SPEC 10.1 wants benchings in the news, and nothing in the
+sim could produce one: ratings do not move in season, so nobody played
+his way onto the bench or out of a slump.
+
+**Decision.** `Player.form`, -100 to 100, reset every season. It moves on
+what a man did on Sunday against what his position is judged against - a
+passer rating, yards a carry, yards a target, a defender's stops with
+sacks and takeaways worth more - weighted by how much of the day he
+actually had, and decays toward nothing in between. Positions a box score
+does not measure carry no form: inventing one would bench a guard for a
+game nobody watched.
+
+Form is worth a few rating points and is read in exactly one place: the
+copy of the player that dresses for the game, whose ratings are shifted
+by it. So the depth chart that picks the eleven and every rating the play
+resolution reads both see it, while the club's own records, its
+valuations, its scouting and every draft board read his real ratings. A
+slump cannot get a man cut or drop him down a board.
+
+The news says when a club's best man at a position takes less than 40% of
+the snaps somebody behind him takes.
+
+**Measured.** One league over a season: form centres near nothing (mean
+-1.2, sd 26, 5th to 95th percentile -47 to +49), and changes who starts
+at 4.4% of starting places, 3.9 times a club a season. Three leagues:
+points a game 20.13 to 20.08 with form on, yards a carry 4.407 to 4.388,
+completion 64.3% to 64.5%; the passing leader eases from 5,163 to 4,788
+and the rushing leader rises to 1,832, both still in range, because a
+cold starter can lose his place. Benchings in the news: 15-24 a season
+league-wide. Bands are untouched, and the standalone games they measure
+carry no form.
+
+**Also fixed.** Form moved the dice enough to surface the cap edge again:
+one club-season in thirty finished at 43 active, under the 46 floor,
+because a club at the cap cannot pay for replacements. A club below the
+floor with no room now tears up the contract that saves the most per
+point of what the man gives, up to two a week, which is what a real club
+does rather than field 43.
+
+### Open
+- Contract disputes (SPEC 10.1) still have nothing behind them: no
+  holdouts, no extension demands in season.
+- Form is luck as much as anything, as it is in the NFL; it does not read
+  a man's confidence, his coach, or the men blocking for him.

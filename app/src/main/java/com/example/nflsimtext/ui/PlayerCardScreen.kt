@@ -87,12 +87,31 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
                 else "An estimate. The club has him somewhere from ${ovr.low} to ${ovr.high}.",
                 style = NdTheme.type.caption, color = c.chalkDim,
             )
-            if (player.injuryWeeks > 0) {
-                Row(Modifier.padding(top = NdTheme.spacing.s)) {
-                    StatusTag(
-                        if (player.injuryWeeks == 1) "Out 1 week" else "Out ${player.injuryWeeks} weeks",
-                        if (player.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
-                    )
+            // Hurt, and how he is playing this month (SPEC 10.1). Form is not
+            // talent: it is worth a few points on Sunday and nothing else.
+            val form = player.form
+            if (player.injuryWeeks > 0 || form <= -FORM_SHOWN || form >= FORM_SHOWN) {
+                Row(
+                    Modifier.padding(top = NdTheme.spacing.s),
+                    horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                ) {
+                    if (player.injuryWeeks > 0) {
+                        StatusTag(
+                            if (player.injuryWeeks == 1) "Out 1 week" else "Out ${player.injuryWeeks} weeks",
+                            if (player.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
+                        )
+                    }
+                    if (form >= FORM_SHOWN) {
+                        StatusTag(
+                            if (form >= FORM_STRONG) "Playing out of his mind" else "In form",
+                            TagTone.INFO,
+                        )
+                    } else if (form <= -FORM_SHOWN) {
+                        StatusTag(
+                            if (form <= -FORM_STRONG) "Lost his form" else "Out of form",
+                            TagTone.NEUTRAL,
+                        )
+                    }
                 }
             }
         }
@@ -239,6 +258,10 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
         item { SecondaryButton("Back to the roster", onBack) }
     }
 }
+
+/** Form shown from here, and called extreme from here (-100..100). */
+private const val FORM_SHOWN = 25
+private const val FORM_STRONG = 60
 
 private val TRAITS: List<Pair<String, (Player) -> Int>> = listOf(
     "coachability" to { p: Player -> p.traits.coachability },

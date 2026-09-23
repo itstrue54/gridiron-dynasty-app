@@ -90,6 +90,6 @@ class StabilityTest {
 
     private companion object {
         /** The players an NFL club may dress on game day. */
-        const val GAME_DAY = 46
+        const val GAME_DAY = RosterMoves.GAME_DAY
     }
 }

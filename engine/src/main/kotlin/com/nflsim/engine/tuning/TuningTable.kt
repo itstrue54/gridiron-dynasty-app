@@ -25,6 +25,7 @@ data class TuningTable(
     val specialTeams: SpecialTeams = SpecialTeams(),
     val progression: Progression = Progression(),
     val ai: Ai = Ai(),
+    val form: Form = Form(),
     val fatigue: Fatigue = Fatigue(),
     val ratings: Ratings = Ratings(),
 ) {
@@ -392,6 +393,35 @@ data class TuningTable(
         val retireBy32: Float = 0.095f,
         val retireBy34: Float = 0.230f,
         val retireBy36: Float = 0.450f,
+    )
+
+    /**
+     * In-season form (SPEC 10.1 needs somebody to bench). What each position
+     * is judged against, how wide a week has to be to read as hot or cold,
+     * and how fast it comes and goes.
+     */
+    @Serializable
+    data class Form(
+        /** Rating points form is worth on game day at its limit. */
+        val swing: Float = 4f,
+        /** Of last week's form, what is left this week. */
+        val decay: Float = 0.72f,
+        /** How much of a week's surprise enters form. */
+        val gain: Float = 0.45f,
+        /** The week each position is judged against. */
+        val passerRating: Float = 85f,
+        val yardsPerCarry: Float = 4.15f,
+        val yardsPerTarget: Float = 7.5f,
+        val defensiveWeek: Float = 5.2f,
+        /** How far past that reads as a hot week, or short of it a cold one. */
+        val passerSpread: Float = 45f,
+        val yardsPerCarrySpread: Float = 2.5f,
+        val yardsPerTargetSpread: Float = 6f,
+        val defensiveSpread: Float = 6f,
+        /** The day's work that counts in full; less counts pro rata. */
+        val passAttemptsFull: Float = 20f,
+        val carriesFull: Float = 12f,
+        val targetsFull: Float = 5f,
     )
 
     /** SPEC 12's ai group: how hard free agents are chased, how often clubs trade, how the draft weighs need. */

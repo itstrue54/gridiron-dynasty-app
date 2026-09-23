@@ -23,7 +23,7 @@ object WeekRunner {
         league.teams.associate { team ->
             team.id to GameTeam(
                 team = team,
-                roster = dressed(league.roster(team.id)),
+                roster = dressed(league.roster(team.id)).map { Form.dressed(it, tuning) },
                 offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
                 defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
                 aggression = GamePlan.defaultAggression(team.id.v),
@@ -46,11 +46,19 @@ object WeekRunner {
         val inj = tuning.injuries
         val hurt = results.flatMap { it.injuries }.associate { it.player to it.gamesOut }
         val snaps = results.flatMap { it.snaps.entries }.associate { it.key to it.value }
+        // What each man did on Sunday, for his form (SPEC 10.1).
+        val lines = results.fold(emptyMap<Int, com.nflsim.engine.stats.StatLine>()) { acc, r ->
+            acc + r.boxScore.players.mapValues { (id, line) -> (acc[id] ?: com.nflsim.engine.stats.StatLine()) + line }
+        }
+        val played = results.flatMap { r -> listOf(r.home, r.away) }.toSet()
         val players = league.players.map { p ->
             val load = (snaps[p.id.v] ?: 0) * inj.wearPerSnap * (1.5f - p.traits.durabilityUnderLoad / 100f)
             val wear = (p.wear * inj.wearKept + load).toInt().coerceIn(0, 100)
             val weeks = hurt[p.id.v] ?: (p.injuryWeeks - 1).coerceAtLeast(0)
-            if (weeks == p.injuryWeeks && wear == p.wear) p else p.copy(injuryWeeks = weeks, wear = wear)
+            // Only clubs that played move: a bye week neither builds form nor loses it.
+            val form = if (p.teamId in played) Form.next(p, lines[p.id.v], tuning) else p.form
+            if (weeks == p.injuryWeeks && wear == p.wear && form == p.form) p
+            else p.copy(injuryWeeks = weeks, wear = wear, form = form)
         }
         return RosterMoves.afterWeek(league.copy(players = players), tuning, userTeam, weeksLeft)
     }
@@ -76,9 +84,10 @@ object WeekRunner {
     /** Everyone healthy and fresh: a season, and a replayed one, start here. */
     fun healthy(league: League): League = league.copy(players = league.players.map {
         when {
-            RosterMoves.onReserve(it) -> it.copy(status = PlayerStatus.ACTIVE, injuryWeeks = 0, wear = 0)
-            it.injuryWeeks == 0 && it.wear == 0 -> it
-            else -> it.copy(injuryWeeks = 0, wear = 0)
+            RosterMoves.onReserve(it) ->
+                it.copy(status = PlayerStatus.ACTIVE, injuryWeeks = 0, wear = 0, form = 0)
+            it.injuryWeeks == 0 && it.wear == 0 && it.form == 0 -> it
+            else -> it.copy(injuryWeeks = 0, wear = 0, form = 0)
         }
     })
 }
