@@ -161,6 +161,75 @@ object ContractDisputes {
         })
     }
 
+    /**
+     * The least he will take, as a share of the market (SPEC 8.3). His agent
+     * does not publish it: a club learns it by offering less and being told
+     * no. Two men with the same market read differently - an ego wants every
+     * dollar, and a man who likes it where he is will take a discount to
+     * stay - so haggling is a read on the player, not arithmetic.
+     */
+    fun reservation(player: Player, tuning: TuningTable): Float {
+        val t = tuning.ai
+        val ego = (player.traits.ego - 50) / 50f * t.disputeEgoWeight
+        val loyal = (player.traits.loyalty - 50) / 50f * t.disputeLoyaltyWeight
+        // Stable per man, so the same club gets the same answer twice.
+        val quirk = ((player.id.v * 2654435761L) % 61) / 1000f - 0.03f
+        return (t.disputeReservationBase + ego - loyal + quirk)
+            .coerceIn(t.disputeReservationFloor, 1f)
+    }
+
+    /**
+     * An offer at [share] of the market. Above what he will take he signs;
+     * below it he says no, his agent names his floor, and the demand stays
+     * on the club's desk.
+     */
+    fun offer(
+        league: League,
+        team: TeamId,
+        playerId: PlayerId,
+        share: Float,
+        week: Int = 0,
+        stats: Map<Int, StatLine> = emptyMap(),
+    ): Transactions.Outcome {
+        val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
+        if (man.teamId != team) return Transactions.Outcome.Refused("${man.name} does not play for this club.")
+        val pricer = pricer(league, Production.index(league.players, stats))
+        val asking = ask(league, man, pricer)
+        val annual = (asking.market * share).toInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
+        val contract = Contract.of(asking.years, annual * asking.years, league.year)
+        val cost = contract.capHit(league.year) - asking.paid
+        if (Transactions.spaceFor(league, team) < cost) {
+            return Transactions.Outcome.Refused(
+                "No room: that deal costs ${money(cost)} more against the cap this year.")
+        }
+        val floor = reservation(man, league.tuning)
+        if (share + 0.001f < floor) {
+            val wants = (asking.market * floor).toInt()
+            return Transactions.Outcome.Done(
+                league.copy(players = league.players.map {
+                    if (it.id == playerId) it.copy(
+                        morale = (it.morale - league.tuning.ai.disputeSnubMorale).coerceAtLeast(0)) else it
+                }),
+                "${man.lastName} turns down ${money(annual)} a year. His agent says " +
+                    "he will not go below ${money(wants)}.",
+            )
+        }
+        val settled = man.copy(
+            contract = contract,
+            demand = DemandState.SETTLED,
+            // A man who took a discount is a little less delighted about it.
+            morale = (man.morale + (league.tuning.ai.disputeSettledMorale * share).toInt()).coerceAtMost(100),
+        )
+        return done(
+            Transaction.of(league.year, week, TransactionKind.SIGNED, team, man,
+                amount = annual, years = asking.years),
+            league.copy(players = league.players.map { if (it.id == playerId) settled else it }),
+            "${man.position.label} ${man.name} signs for ${asking.years} years at " +
+                "${money(annual)} a year" +
+                if (share < 0.99f) ", ${(100 - share * 100).toInt()}% under the market." else ".",
+        )
+    }
+
     /** Pay him: the market rate, for as long as his age says. */
     fun extend(
         league: League,
@@ -216,6 +285,9 @@ object ContractDisputes {
             "${man.position.label} ${man.name} is told to play out his deal.",
         )
     }
+
+    private fun done(entry: Transaction, league: League, note: String) =
+        Transactions.Outcome.Done(league.logged(entry), note)
 
     private fun canAfford(league: League, team: TeamId, asking: Ask): Boolean =
         Transactions.spaceFor(league, team) >= asking.capChange

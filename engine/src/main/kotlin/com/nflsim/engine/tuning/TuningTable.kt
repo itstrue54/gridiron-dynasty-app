@@ -467,6 +467,17 @@ data class TuningTable(
         val disputeWaitingFloor: Int = 50,
         val disputeRefusedMorale: Int = 18,
         val disputeSettledMorale: Int = 10,
+        /**
+         * Haggling (SPEC 8.3). The least a man will take, as a share of what
+         * the market says he is worth: an ego holds out for all of it, and
+         * loyalty will take less to stay. Nobody goes below the floor.
+         */
+        val disputeReservationBase: Float = 0.90f,
+        val disputeEgoWeight: Float = 0.10f,
+        val disputeLoyaltyWeight: Float = 0.14f,
+        val disputeReservationFloor: Float = 0.74f,
+        /** What a rejected offer costs him, against 18 for being told no outright. */
+        val disputeSnubMorale: Int = 5,
         /** Rating points a star must add over the contender's best at his position. */
         val tradeClearUpgrade: Float = 6f,
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */

@@ -1487,8 +1487,8 @@ told he is worth $8.1M and then signed for $9.3M.
 ### Open
 - No holdouts: a refused man plays on. The user asked for morale and a
   trade request, not missed games.
-- The club cannot offer anything but the market rate: no haggling, no
-  incentives, no restructures in season (SPEC 8.3 still lists those).
+- ~~The club cannot offer anything but the market rate~~ Haggling and
+  in-season restructures are built; incentives are not.
 
 ## ADR-0xx — What a device pass found
 
@@ -1562,3 +1562,36 @@ into slot 2 carried play into that slot.
 - Autosaves land three or four times a season, which is what a phase
   advance means. A bad trade in week 5 is not what they are for.
 - No way to name a slot; it is club, year and week or nothing.
+
+## ADR-0xx — Haggling, and what a man will take to stay
+
+**Context.** A demand had two answers: the market rate or no. A club with
+a player who likes it there should be able to get him for less, and an ego
+should cost every dollar.
+
+**Decision.** Every man has a reservation price, a share of what the market
+says he is worth: 0.90 at the middle, up 0.10 for a full ego, down 0.14
+for full loyalty, with a small quirk derived from his id so two men with
+the same traits are not identical, floored at 0.74. It is not published.
+A club offers 90% or 80% of the market and finds out: above his floor he
+signs, and below it he turns it down, his agent names the figure he will
+not go below, and the demand stays on the desk. A rejected offer costs him
+five morale where being refused outright costs eighteen, and a man who
+signs for a discount is a little less delighted about it than one paid in
+full.
+
+So the second offer is informed - the price of learning is one snub - and
+a club that reads its own players right saves money on the men who want to
+stay.
+
+**Measured.** Tested: a proud man's floor is above a loyal one's; an offer
+under the floor leaves the demand pending, costs morale and names the
+figure; an offer at the floor signs for less than the market; and a club
+without the cap room cannot offer at all.
+
+### Open
+- The league's own clubs still pay the market rate or refuse. They do not
+  haggle, because a club that reads its own player wrong should lose money,
+  and the AI has no read to get wrong yet.
+- No incentives, no guarantees to trade against: the only lever is the
+  annual figure.
