@@ -258,7 +258,11 @@ object Transactions {
         val frees: Int,
         /** What it adds to each year of the deal, this one included. */
         val addsPerYear: Int,
-        /** Dead money if he is released afterwards, against what it is now. */
+        /**
+         * Dead money if he is cut next year, before and after. This year's
+         * does not move - the base falls by what the bonus rises - so the
+         * figure that tells the truth about a restructure is the year after.
+         */
         val deadBefore: Int,
         val deadAfter: Int,
     )
@@ -278,8 +282,8 @@ object Transactions {
             player = player,
             frees = frees,
             addsPerYear = after.proratedBonus - contract.proratedBonus,
-            deadBefore = contract.deadCap(year).thisYear,
-            deadAfter = after.deadCap(year).thisYear,
+            deadBefore = contract.deadCap(year + 1).thisYear,
+            deadAfter = after.deadCap(year + 1).thisYear,
         )
     }
 

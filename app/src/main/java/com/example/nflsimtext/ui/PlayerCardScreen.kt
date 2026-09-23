@@ -280,8 +280,10 @@ fun PlayerCardScreen(
                         style = NdTheme.type.body, color = c.chalk,
                     )
                     Text(
-                        "Release him afterwards and the dead money goes from " +
-                            "${money(restructure.deadBefore)} to ${money(restructure.deadAfter)}.",
+                        if (restructure.deadAfter > restructure.deadBefore)
+                            "Cut him next year and the dead money goes from " +
+                                "${money(restructure.deadBefore)} to ${money(restructure.deadAfter)}."
+                        else "It does not change what cutting him would cost.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                     )
                     PrimaryButton(
