@@ -66,9 +66,63 @@ data class LeagueHistory(
     val seasons: List<SeasonRecord> = emptyList(),
     val retired: List<RetiredCareer> = emptyList(),
     val hallOfFame: List<HallOfFamer> = emptyList(),
+    /** Every game's box score: full for [BOX_SCORE_SEASONS], team totals after (SPEC 9.2). */
+    val games: List<ArchivedGame> = emptyList(),
 ) {
     fun season(year: Int): SeasonRecord? = seasons.firstOrNull { it.year == year }
 
+    fun archived(vararg played: ArchivedGame): LeagueHistory = copy(games = games + played)
+
+    /**
+     * Player lines dropped from every season more than [BOX_SCORE_SEASONS]
+     * behind [year]; the team totals stay forever.
+     */
+    fun compressedFor(year: Int): LeagueHistory = copy(games = games.map {
+        if (it.year > year - BOX_SCORE_SEASONS || it.box.players.isEmpty()) it
+        else it.copy(box = it.box.copy(players = emptyMap()), awayPlayers = emptyList())
+    })
+
+    companion object {
+        /** SPEC 9.2: box scores are kept full for the last five seasons. */
+        const val BOX_SCORE_SEASONS = 5
+    }
+
     val champions: List<Pair<Int, Int>>
         get() = seasons.mapNotNull { r -> r.champion?.let { r.year to it } }
+}
+
+/** One game as the record keeps it (SPEC 9.2). */
+@Serializable
+data class ArchivedGame(
+    val year: Int,
+    /** 1-18 in the regular season; the playoff rounds follow as 19-22. */
+    val week: Int,
+    val home: Int,
+    val away: Int,
+    val homeScore: Int,
+    val awayScore: Int,
+    /** Player lines are empty once the game is more than five seasons old. */
+    val box: com.nflsim.engine.stats.BoxScore,
+    /**
+     * Which of the box's players were the away side's. A box score does not
+     * say, and a man's club today is not necessarily the one he played for.
+     */
+    val awayPlayers: List<Int> = emptyList(),
+) {
+    fun involves(team: Int): Boolean = home == team || away == team
+
+    /** The box's player lines for one side of the game. */
+    fun linesFor(team: Int): Map<Int, com.nflsim.engine.stats.StatLine> {
+        val away = awayPlayers.toSet()
+        return box.players.filterKeys { (it in away) == (team == this.away) }
+    }
+
+    companion object {
+        /** Filed while every player is still with the club he played for. */
+        fun of(year: Int, week: Int, league: League, home: Int, away: Int,
+               homeScore: Int, awayScore: Int, box: com.nflsim.engine.stats.BoxScore) = ArchivedGame(
+            year, week, home, away, homeScore, awayScore, box,
+            awayPlayers = box.players.keys.filter { league.playersById[PlayerId(it)]?.teamId?.v == away },
+        )
+    }
 }

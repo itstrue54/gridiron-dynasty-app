@@ -450,7 +450,8 @@ object OffseasonEngine {
                     hallOfFame = withRetirements.hallOfFame +
                         HallOfFame.induct(withRetirements, newYear),
                 )
-            },
+            // Box scores: full for the last five seasons played (SPEC 9.2).
+            }.compressedFor(ctx.oldYear),
             players = survivors.map { if (it.injuryWeeks == 0 && it.wear == 0) it else it.copy(injuryWeeks = 0, wear = 0) },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )

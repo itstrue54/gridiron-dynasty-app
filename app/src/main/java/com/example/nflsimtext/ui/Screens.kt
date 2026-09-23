@@ -1,5 +1,10 @@
 package com.example.nflsimtext.ui
 
+import com.example.nflsimtext.ui.components.FilterChipRow
+import com.nflsim.engine.model.PlayerId
+import com.nflsim.engine.stats.StatLine
+import com.nflsim.engine.model.LeagueHistory
+import com.nflsim.engine.model.ArchivedGame
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -577,43 +582,67 @@ private fun rosterOrder(dynasty: Dynasty, sort: SortState): Comparator<Player> {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun ScheduleScreen(dynasty: Dynasty) {
-    val games = dynasty.schedule.forTeam(dynasty.userTeamId).sortedBy { it.week }
-    val bye = dynasty.schedule.byeWeek(dynasty.userTeamId)
+fun ScheduleScreen(dynasty: Dynasty, onGame: (ArchivedGame) -> Unit = {}) {
+    val us = dynasty.userTeam
+    val archive = dynasty.league.history.games.filter { it.involves(us) }
+    val years = (archive.map { it.year } + dynasty.year).distinct().sortedDescending()
+    var year by remember(dynasty.year) { mutableStateOf(dynasty.year) }
 
     ScreenList {
+        if (years.size > 1) {
+            item { FilterChipRow(years.map { "$it" }, "$year", { year = it.toInt() }) }
+        }
         item {
-            SituationBlock("${dynasty.year} schedule", meta = "Week ${dynasty.week}") {
+            val played = archive.filter { it.year == year }.associateBy { it.week }
+            val current = year == dynasty.year
+            SituationBlock(
+                "$year schedule",
+                meta = if (current) "Week ${dynasty.week}" else "Tap a game for its box score",
+            ) {
+                val games = if (current) dynasty.schedule.forTeam(dynasty.userTeamId) else emptyList()
+                val bye = if (current) dynasty.schedule.byeWeek(dynasty.userTeamId) else null
+                val weeks = ((if (current) (1..Schedule.WEEKS).toList() else emptyList()) + played.keys)
+                    .distinct().sorted()
                 DataTable(
                     columns = listOf(
-                        ColumnSpec("Wk", 0.6f),
+                        ColumnSpec("Wk", 0.7f),
                         ColumnSpec("", 0.5f),
-                        ColumnSpec("Opponent", 2.6f),
+                        ColumnSpec("Opponent", 2.5f),
                         ColumnSpec("Result", 1.2f),
                     ),
-                    rows = (1..Schedule.WEEKS).map { week ->
+                    rows = weeks.map { week ->
+                        val archived = played[week]
                         val game = games.firstOrNull { it.week == week }
-                        if (game == null) {
-                            RowData(listOf("$week", "", if (week == bye) "Bye" else "", ""))
-                        } else {
-                            val opponent = dynasty.league.team(game.opponentOf(dynasty.userTeamId)!!)
-                            val played = dynasty.results.firstOrNull {
-                                it.week == week && it.involves(dynasty.userTeamId)
+                        when {
+                            archived != null -> {
+                                val home = archived.home == us
+                                val opponent = dynasty.league.team(TeamId(if (home) archived.away else archived.home))
+                                val mine = if (home) archived.homeScore else archived.awayScore
+                                val theirs = if (home) archived.awayScore else archived.homeScore
+                                RowData(
+                                    listOf(
+                                        weekLabel(week), if (home) "vs" else "at", opponent.name,
+                                        "${if (mine > theirs) "W" else if (mine < theirs) "L" else "T"} $mine–$theirs",
+                                    ),
+                                    onClick = { onGame(archived) },
+                                )
                             }
-                            val outcome = played?.let {
-                                val us = it.scoreFor(dynasty.userTeamId)
-                                val them = it.scoreAgainst(dynasty.userTeamId)
-                                "${if (us > them) "W" else if (us < them) "L" else "T"} $us–$them"
-                            } ?: ""
-                            RowData(
+                            game != null -> RowData(
                                 listOf(
-                                    "$week",
+                                    weekLabel(week),
                                     if (game.home == dynasty.userTeamId) "vs" else "at",
-                                    opponent.name,
-                                    outcome,
+                                    dynasty.league.team(game.opponentOf(dynasty.userTeamId)!!).name,
+                                    // Played before box scores were kept: the score, if the season has it.
+                                    dynasty.results.firstOrNull { it.week == week && it.involves(dynasty.userTeamId) }
+                                        ?.let { r ->
+                                            val m = r.scoreFor(dynasty.userTeamId)
+                                            val t = r.scoreAgainst(dynasty.userTeamId)
+                                            "${if (m > t) "W" else if (m < t) "L" else "T"} $m–$t"
+                                        } ?: "",
                                 ),
-                                highlight = week == dynasty.week,
+                                highlight = current && week == dynasty.week,
                             )
+                            else -> RowData(listOf(weekLabel(week), "", if (week == bye) "Bye" else "", ""))
                         }
                     },
                 )
@@ -622,13 +651,30 @@ fun ScheduleScreen(dynasty: Dynasty) {
     }
 }
 
+/** Regular-season weeks by number; the playoff rounds after them by name. */
+private fun weekLabel(week: Int): String = when (week - Schedule.WEEKS) {
+    in Int.MIN_VALUE..0 -> "$week"
+    1 -> "WC"
+    2 -> "Div"
+    3 -> "Conf"
+    else -> "Final"
+}
+
 // ---------------------------------------------------------------------------
 
+/**
+ * A game's box score: the one just played, with its play log, or any game
+ * from the archive (SPEC 9.2) - full for five seasons, team totals after.
+ */
 @Composable
-fun BoxScoreScreen(dynasty: Dynasty) {
+fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
     val c = NdTheme.colors
-    val game = dynasty.lastGame
-    if (game == null) {
+    val last = dynasty.lastGame
+    val game = archived ?: dynasty.league.history.games.lastOrNull { g ->
+        last != null && g.year == dynasty.year && g.home == last.home.v && g.away == last.away.v &&
+            g.homeScore == last.homeScore && g.awayScore == last.awayScore
+    }
+    if (game == null && last == null) {
         Column(Modifier.fillMaxSize().padding(NdTheme.spacing.xl)) {
             Text("No games played yet.", style = NdTheme.type.title, color = c.chalk)
             Text(
@@ -639,20 +685,27 @@ fun BoxScoreScreen(dynasty: Dynasty) {
         return
     }
 
-    val home = dynasty.league.team(game.home)
-    val away = dynasty.league.team(game.away)
-    val h = game.boxScore.home
-    val a = game.boxScore.away
-    val ids = dynasty.league.roster(dynasty.userTeamId).associateBy { it.id.v }
+    val homeId = game?.home ?: last!!.home.v
+    val awayId = game?.away ?: last!!.away.v
+    val home = dynasty.league.team(TeamId(homeId))
+    val away = dynasty.league.team(TeamId(awayId))
+    val box = game?.box ?: last!!.boxScore
+    val h = box.home
+    val a = box.away
+    // The play log is kept for the most recent game only (SPEC 9.2).
+    val plays = if (archived == null) last?.playByPlay.orEmpty() else emptyList()
+    val retired = dynasty.league.history.retired.associate { it.player to it.name }
+    fun name(id: Int) = dynasty.league.playersById[PlayerId(id)]?.name ?: retired[id] ?: "#$id"
 
     ScreenList {
         item {
             Scoreboard(
-                away = TeamScore(away.abbrev, away.name, game.awayScore),
-                home = TeamScore(home.abbrev, home.name, game.homeScore),
+                away = TeamScore(away.abbrev, away.name, game?.awayScore ?: last!!.awayScore),
+                home = TeamScore(home.abbrev, home.name, game?.homeScore ?: last!!.homeScore),
                 quarter = 4,
                 clock = "00:00",
-                status = "Final",
+                status = game?.let { "${it.year}, ${if (it.week > Schedule.WEEKS) weekLabel(it.week) else "week ${it.week}"}" }
+                    ?: "Final",
             )
         }
         item {
@@ -682,51 +735,39 @@ fun BoxScoreScreen(dynasty: Dynasty) {
             }
         }
 
-        val mine = game.boxScore.players.filterKeys { it in ids }
-        val passer = mine.entries.filter { it.value.passAttempts > 0 }
-            .maxByOrNull { it.value.passYards }
-        val rushers = mine.entries.filter { it.value.carries > 0 }
-            .sortedByDescending { it.value.rushYards }.take(3)
-        val receivers = mine.entries.filter { it.value.receptions > 0 }
-            .sortedByDescending { it.value.receivingYards }.take(4)
-        item {
-            SituationBlock("${dynasty.team.nickname} leaders") {
-                DataTable(
-                    columns = listOf(
-                        ColumnSpec("", 0.7f),
-                        ColumnSpec("Player", 2.2f),
-                        ColumnSpec("", 1.0f, numeric = true),
-                        ColumnSpec("Yards", 1.0f, numeric = true),
-                        ColumnSpec("TD", 0.6f, numeric = true),
-                    ),
-                    rows = buildList {
-                        passer?.let { (id, s) ->
-                            add(RowData(listOf(
-                                "Pass", ids[id]!!.name, "${s.completions}/${s.passAttempts}",
-                                "${s.passYards}", "${s.passTouchdowns}",
-                            )))
-                        }
-                        rushers.forEach { (id, s) ->
-                            add(RowData(listOf(
-                                "Run", ids[id]!!.name, "${s.carries} car",
-                                "${s.rushYards}", "${s.rushTouchdowns}",
-                            )))
-                        }
-                        receivers.forEach { (id, s) ->
-                            add(RowData(listOf(
-                                "Catch", ids[id]!!.name, "${s.receptions} rec",
-                                "${s.receivingYards}", "${s.receivingTouchdowns}",
-                            )))
-                        }
-                    },
+        // Both sides' leaders. The archive knows who played for whom; the
+        // last game, before it was archived, reads today's rosters.
+        val sides = listOf(away, home)
+        if (box.players.isEmpty()) {
+            item {
+                Text(
+                    "Player lines are kept for ${LeagueHistory.BOX_SCORE_SEASONS} seasons; " +
+                        "this game keeps its team totals.",
+                    style = NdTheme.type.body, color = c.chalkDim,
                 )
+            }
+        } else sides.forEach { side ->
+            val lines = game?.linesFor(side.id.v)
+                ?: box.players.filterKeys { dynasty.league.playersById[PlayerId(it)]?.teamId == side.id }
+            item {
+                SituationBlock("${side.nickname} leaders") {
+                    DataTable(
+                        columns = listOf(
+                            ColumnSpec("", 0.8f),
+                            ColumnSpec("Player", 2.2f),
+                            ColumnSpec("", 1.0f, numeric = true),
+                            ColumnSpec("Yds", 0.9f, numeric = true),
+                            ColumnSpec("TD", 0.6f, numeric = true),
+                        ),
+                        rows = leaderRows(lines, ::name),
+                    )
+                }
             }
         }
 
-        if (game.playByPlay.isNotEmpty()) {
+        if (plays.isNotEmpty()) {
             item {
                 SituationBlock("Play log", meta = "Newest first") {
-                    val plays = game.playByPlay
                     plays.indices.reversed().take(25).forEach { i ->
                         val play = plays[i]
                         PlayLogEntry(
@@ -745,6 +786,21 @@ fun BoxScoreScreen(dynasty: Dynasty) {
                 }
             }
         }
+    }
+}
+
+private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<RowData> = buildList {
+    lines.entries.filter { it.value.passAttempts > 0 }.maxByOrNull { it.value.passYards }?.let { (id, s) ->
+        add(RowData(listOf("Pass", name(id), "${s.completions}/${s.passAttempts}", "${s.passYards}", "${s.passTouchdowns}")))
+    }
+    lines.entries.filter { it.value.carries > 0 }.sortedByDescending { it.value.rushYards }.take(2).forEach { (id, s) ->
+        add(RowData(listOf("Run", name(id), "${s.carries} car", "${s.rushYards}", "${s.rushTouchdowns}")))
+    }
+    lines.entries.filter { it.value.receptions > 0 }.sortedByDescending { it.value.receivingYards }.take(3).forEach { (id, s) ->
+        add(RowData(listOf("Catch", name(id), "${s.receptions} rec", "${s.receivingYards}", "${s.receivingTouchdowns}")))
+    }
+    lines.entries.filter { it.value.tackles > 0 }.sortedByDescending { it.value.tackles }.take(2).forEach { (id, s) ->
+        add(RowData(listOf("Tkl", name(id), "${s.tackles} tkl", "", if (s.sacks > 0) "${s.sacks} sk" else "")))
     }
 }
 

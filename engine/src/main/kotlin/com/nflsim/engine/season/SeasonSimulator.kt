@@ -31,6 +31,8 @@ data class PlayoffGame(
     val awaySeed: Int,
     val homeScore: Int,
     val awayScore: Int,
+    /** The game's box score, until the dynasty archives it. */
+    val box: com.nflsim.engine.stats.BoxScore? = null,
 ) {
     val winner: TeamId get() = if (homeScore >= awayScore) home else away
     val loser: TeamId get() = if (homeScore >= awayScore) away else home
@@ -204,7 +206,7 @@ class SeasonSimulator(
             if (g.homeScore != g.awayScore || attempt >= MAX_OVERTIME) {
                 val homeScore = if (g.homeScore == g.awayScore) g.homeScore + 3 else g.homeScore
                 return PlayoffGame(round, conference, home, away, homeSeed, awaySeed,
-                    homeScore, g.awayScore)
+                    homeScore, g.awayScore, box = g.boxScore)
             }
             attempt++
         }

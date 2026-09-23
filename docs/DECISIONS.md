@@ -1176,8 +1176,7 @@ forbids, and are now in the tuning table.
 - **The rushing record reads 2,583** against a real 2,105 - the price of
   asking two backs for 1,700 a year, now visible on a records screen
   where it reads as absurd.
-- **Box scores are not retained.** SPEC 9.2 wants five seasons full and
-  then team totals; the game keeps the last game only.
+- ~~**Box scores are not retained.**~~ Built; see the box score ADR below.
 - ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
 - **News has no benchings and no contract disputes**, both of which SPEC
   10.1 lists. Neither exists in the sim to report on.
@@ -1312,3 +1311,26 @@ sixty seasons: corners 10 to 9, linebackers 9 to 13, safeties 8 to 11.
 ### Open
 - One tackler a play, no assists, so leaders read as solo tackles: the
   linebacker leader is about 137 against a real combined 170.
+
+## ADR-0xx — Every game's box score, as SPEC 9.2 keeps them
+
+**Context.** SPEC 9.2 is locked: box scores full for the last five
+seasons, then team totals. The game kept the last game only.
+
+**Decision.** `LeagueHistory.games`: every regular-season and playoff
+game with its box score, filed as it is played. Each offseason drops
+the player lines from seasons more than five back and keeps the team
+totals. A box score does not say which side a player was on, and a man's
+club today may not be the one he played for, so each game also keeps the
+away side's player ids, resolved while everyone is still where he played.
+The play log stays last-game-only (SPEC 9.2: current season, and the
+game kept one). Playoff games carry their box to the archive and the
+bracket drops it, so it is not saved twice. Save version 8, nothing to
+migrate: games from before keep their scores only.
+
+The schedule has a season picker and opens any archived game; the box
+score shows both sides' leaders, and says so when only totals are left.
+
+**Measured.** About 100KB of compressed save a full season, levelling at
+about 500KB for five, and 25KB a season once compressed: thirty years
+adds roughly 1.1MB.
