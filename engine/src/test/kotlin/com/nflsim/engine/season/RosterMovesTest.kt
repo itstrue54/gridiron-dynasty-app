@@ -85,4 +85,38 @@ class RosterMovesTest {
         val promoted = wire.single { it.kind == com.nflsim.engine.model.TransactionKind.PROMOTED }
         assertEquals(Transactions.price(Schedule.WEEKS - 5), promoted.amount, "he is paid for the weeks left")
     }
+
+    @Test
+    fun `a club reaches into another's squad for a man clearly better`() {
+        // A star receiver is parked on a third club's practice squad.
+        val star = league.players.filter { it.position == com.nflsim.engine.model.Position.WR }
+            .maxByOrNull { com.nflsim.engine.ratings.overall(it) }!!
+        val keeper = league.teams[2].id
+        val parked = league.copy(
+            players = league.players.map {
+                if (it.id == star.id) it.copy(
+                    teamId = null, contract = null, status = PlayerStatus.PRACTICE_SQUAD) else it
+            },
+            teams = league.teams.map {
+                when (it.id) {
+                    star.teamId -> it.copy(roster = it.roster - star.id)
+                    keeper -> it.copy(practiceSquad = it.practiceSquad.drop(1) + star.id)
+                    else -> it
+                }
+            },
+        )
+        // And the club next door loses every receiver it has for the year.
+        val short = parked.copy(players = parked.players.map {
+            if (it.teamId == other && it.position == com.nflsim.engine.model.Position.WR)
+                it.copy(injuryWeeks = RosterMoves.IR_WEEKS + 4) else it
+        })
+
+        val after = RosterMoves.afterWeek(short, short.tuning, user)
+        assertEquals(other, after.player(star.id).teamId, "the best man available should be signed")
+        assertTrue(star.id !in after.team(keeper).practiceSquad, "and leave the squad he was parked on")
+        val line = after.transactions.single {
+            it.kind == com.nflsim.engine.model.TransactionKind.SIGNED_OFF_SQUAD && it.player == star.id.v
+        }
+        assertEquals(keeper.v, line.other, "the wire should say whose squad he came off")
+    }
 }
