@@ -242,6 +242,69 @@ object Transactions {
     private fun done(entry: Transaction, league: League, note: String) =
         Outcome.Done(league.logged(entry), note)
 
+    /**
+     * What restructuring a man's deal would do (SPEC 8.3): base salary moved
+     * into bonus, which spreads it over the contract. It is the cheapest
+     * thing a club can do this year and the most expensive thing to have
+     * done three years from now, because the money does not go away - it
+     * follows him, and it follows a release as dead money.
+     *
+     * Null when there is nothing to move: a man on the minimum has no base
+     * to shift, and a deal in its last year has nowhere to shift it to.
+     */
+    data class Restructure(
+        val player: Player,
+        /** Cap room it frees this year. */
+        val frees: Int,
+        /** What it adds to each year of the deal, this one included. */
+        val addsPerYear: Int,
+        /** Dead money if he is released afterwards, against what it is now. */
+        val deadBefore: Int,
+        val deadAfter: Int,
+    )
+
+    fun restructurePreview(player: Player, year: Int = 0): Restructure? {
+        val contract = player.contract ?: return null
+        val i = contract.yearIndex(year)
+        if (i !in 0 until contract.years || contract.years - i < 2) return null
+        val room = contract.baseSalary[i] - Contract.MIN_BASE_SALARY
+        if (room <= 0) return null
+        val moved = (room * CapManagement.RESTRUCTURE_SHARE).toInt()
+        if (moved <= 0) return null
+        val after = contract.restructure(year, moved)
+        val frees = contract.capHit(year) - after.capHit(year)
+        if (frees <= 0) return null
+        return Restructure(
+            player = player,
+            frees = frees,
+            addsPerYear = after.proratedBonus - contract.proratedBonus,
+            deadBefore = contract.deadCap(year).thisYear,
+            deadAfter = after.deadCap(year).thisYear,
+        )
+    }
+
+    /** Moves what the club can move, at the share a front office moves it. */
+    fun restructure(league: League, team: TeamId, playerId: PlayerId, week: Int = 0): Outcome {
+        val man = league.playersById[playerId]
+            ?: return Outcome.Refused("There is no such player.")
+        if (man.teamId != team) return Outcome.Refused("${man.name} does not play for this club.")
+        val preview = restructurePreview(man, league.year)
+            ?: return Outcome.Refused(
+                "Nothing to move: ${man.lastName} is on the minimum, or his deal is in its last year.")
+        val moved = (man.contract!!.baseSalary[man.contract!!.yearIndex(league.year)] -
+            Contract.MIN_BASE_SALARY) * CapManagement.RESTRUCTURE_SHARE
+        val after = man.contract!!.restructure(league.year, moved.toInt())
+        return done(
+            Transaction.of(league.year, week, TransactionKind.RESTRUCTURED, team, man,
+                amount = preview.frees),
+            league.copy(players = league.players.map {
+                if (it.id == playerId) it.copy(contract = after) else it
+            }),
+            "${man.position.label} ${man.name} is restructured: ${money(preview.frees)} freed now, " +
+                "${money(preview.addsPerYear)} on every year of the deal.",
+        )
+    }
+
     /** Cap figures are in thousands, and nobody reads 840 as money. */
     private fun money(thousands: Int): String =
         if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)

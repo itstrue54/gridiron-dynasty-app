@@ -52,4 +52,5 @@ enum class TransactionKind(val verb: String, val short: String) {
     INJURED_RESERVE("placed on injured reserve", "on reserve"),
     ACTIVATED("activated from injured reserve", "activated"),
     RETIRED("retired", "retired"),
+    RESTRUCTURED("had his contract restructured", "restructured"),
 }
