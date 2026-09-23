@@ -1595,3 +1595,24 @@ without the cap room cannot offer at all.
   and the AI has no read to get wrong yet.
 - No incentives, no guarantees to trade against: the only lever is the
   annual figure.
+
+## ADR-0xx — A season of the user's play-by-play
+
+**Context.** SPEC 9.2 keeps play-by-play for the current season. The game
+kept the log of the last game only, so a box score opened from the
+schedule showed its totals and leaders and nothing of how it went.
+
+**Decision.** An archived game carries its play-by-play when it is one of
+the user's, regular season and playoffs, and the year turning over drops
+every log along with the season. Every club's logs would be the letter of
+9.2: about forty thousand plays a season, re-encoded with every weekly
+save, for games nobody opens. The user's are the ones anyone reads.
+
+**Measured.** A season's worth is 2,603 plays and 57KB of compressed save,
+about 136ms added to an encode on a desktop JVM. Tested: every one of the
+user's games keeps its log, nobody else's does, the bracket does not keep
+a second copy of the playoff logs, and the year turning over clears them.
+Save version 12, nothing to migrate.
+
+### Open
+- Other clubs' games open to their box score only.

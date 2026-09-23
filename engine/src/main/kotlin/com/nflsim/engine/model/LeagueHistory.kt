@@ -78,8 +78,10 @@ data class LeagueHistory(
      * behind [year]; the team totals stay forever.
      */
     fun compressedFor(year: Int): LeagueHistory = copy(games = games.map {
-        if (it.year > year - BOX_SCORE_SEASONS || it.box.players.isEmpty()) it
-        else it.copy(box = it.box.copy(players = emptyMap()), awayPlayers = emptyList())
+        // Play-by-play is the current season's only; the year turning over ends it.
+        val game = if (it.plays.isEmpty()) it else it.copy(plays = emptyList())
+        if (game.year > year - BOX_SCORE_SEASONS || game.box.players.isEmpty()) game
+        else game.copy(box = game.box.copy(players = emptyMap()), awayPlayers = emptyList())
     })
 
     companion object {
@@ -108,6 +110,12 @@ data class ArchivedGame(
      * say, and a man's club today is not necessarily the one he played for.
      */
     val awayPlayers: List<Int> = emptyList(),
+    /**
+     * The play-by-play, for the user's own games this season (SPEC 9.2 keeps
+     * play-by-play for the current season). Every club's would be forty
+     * thousand plays re-encoded every week for logs nobody reads.
+     */
+    val plays: List<com.nflsim.engine.sim.PlayLog> = emptyList(),
 ) {
     fun involves(team: Int): Boolean = home == team || away == team
 
@@ -120,9 +128,11 @@ data class ArchivedGame(
     companion object {
         /** Filed while every player is still with the club he played for. */
         fun of(year: Int, week: Int, league: League, home: Int, away: Int,
-               homeScore: Int, awayScore: Int, box: com.nflsim.engine.stats.BoxScore) = ArchivedGame(
+               homeScore: Int, awayScore: Int, box: com.nflsim.engine.stats.BoxScore,
+               plays: List<com.nflsim.engine.sim.PlayLog> = emptyList()) = ArchivedGame(
             year, week, home, away, homeScore, awayScore, box,
             awayPlayers = box.players.keys.filter { league.playersById[PlayerId(it)]?.teamId?.v == away },
+            plays = plays,
         )
     }
 }

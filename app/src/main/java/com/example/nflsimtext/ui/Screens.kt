@@ -755,8 +755,12 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
     val box = game?.box ?: last!!.boxScore
     val h = box.home
     val a = box.away
-    // The play log is kept for the most recent game only (SPEC 9.2).
-    val plays = if (archived == null) last?.playByPlay.orEmpty() else emptyList()
+    // The play log: the game just played, or the archive's for the user's own
+    // games this season (SPEC 9.2 keeps play-by-play for the current season).
+    val plays = when {
+        archived != null -> archived.plays
+        else -> game?.plays?.takeIf { it.isNotEmpty() } ?: last?.playByPlay.orEmpty()
+    }
     val retired = dynasty.league.history.retired.associate { it.player to it.name }
     fun name(id: Int) = dynasty.league.playersById[PlayerId(id)]?.name ?: retired[id] ?: "#$id"
 
