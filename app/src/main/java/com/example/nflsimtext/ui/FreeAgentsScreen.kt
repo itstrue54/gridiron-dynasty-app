@@ -172,6 +172,8 @@ fun FreeAgentsScreen(
                         Text(
                             "${man.position.label} ${man.name} - " +
                                 if (man.injuryWeeks == 0) "healthy, waiting for a place"
+                                else if (man.injuryWeeks >= com.nflsim.engine.sim.Injury.SEASON_ENDING)
+                                    "out for the season"
                                 else "out ${man.injuryWeeks} more ${if (man.injuryWeeks == 1) "week" else "weeks"}",
                             style = NdTheme.type.data, color = c.chalk,
                         )

@@ -270,7 +270,9 @@ fun HubScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             StatusTag(
-                                if (p.injuryWeeks == 1) "Out 1 week" else "Out ${p.injuryWeeks} weeks",
+                                // A thirty week injury is this season and next: say so.
+                                if (p.injuryWeeks >= com.nflsim.engine.sim.Injury.SEASON_ENDING) "Out for the season"
+                                else if (p.injuryWeeks == 1) "Out 1 week" else "Out ${p.injuryWeeks} weeks",
                                 if (p.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
                             )
                         }
@@ -729,7 +731,8 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
                 home = TeamScore(home.abbrev, home.name, game?.homeScore ?: last!!.homeScore),
                 quarter = 4,
                 clock = "00:00",
-                status = game?.let { "${it.year}, ${if (it.week > Schedule.WEEKS) weekLabel(it.week) else "week ${it.week}"}" }
+                // Short enough for the scoreboard's middle column.
+                status = game?.let { "${it.year} ${weekLabel(it.week).let { w -> if (it.week > Schedule.WEEKS) w else "wk $w" }}" }
                     ?: "Final",
             )
         }

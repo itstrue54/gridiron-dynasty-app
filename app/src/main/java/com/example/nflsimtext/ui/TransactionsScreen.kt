@@ -88,16 +88,16 @@ fun TransactionsScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                 SituationBlock(weekTitle(week), meta = "${lines.size}") {
                     DataTable(
                         columns = listOfNotNull(
-                            if (whose == LEAGUE) ColumnSpec("Club", 0.8f) else null,
-                            ColumnSpec("Player", 2.3f),
-                            ColumnSpec("Move", 2.2f),
-                            ColumnSpec("Terms", 1.3f, numeric = true),
+                            if (whose == LEAGUE) ColumnSpec("Club", 0.7f) else null,
+                            ColumnSpec("Player", 2.7f),
+                            ColumnSpec("Move", 1.5f),
+                            ColumnSpec("Terms", 1.2f, numeric = true),
                         ),
                         rows = lines.take(ROWS).map { line ->
                             RowData(listOfNotNull(
                                 if (whose == LEAGUE) abbrev[line.team] ?: "-" else null,
                                 "${line.position} ${line.name}",
-                                line.kind.verb,
+                                line.kind.short,
                                 terms(line, abbrev),
                             ))
                         },

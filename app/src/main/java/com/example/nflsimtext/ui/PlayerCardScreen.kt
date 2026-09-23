@@ -97,7 +97,10 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
                 ) {
                     if (player.injuryWeeks > 0) {
                         StatusTag(
-                            if (player.injuryWeeks == 1) "Out 1 week" else "Out ${player.injuryWeeks} weeks",
+                            if (player.injuryWeeks >= com.nflsim.engine.sim.Injury.SEASON_ENDING)
+                                "Out for the season"
+                            else if (player.injuryWeeks == 1) "Out 1 week"
+                            else "Out ${player.injuryWeeks} weeks",
                             if (player.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
                         )
                     }
@@ -246,7 +249,7 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
                                 "${line.year}",
                                 weekShort(line.week),
                                 abbrev[line.team] ?: "-",
-                                line.kind.verb,
+                                line.kind.short,
                                 terms(line, abbrev),
                             ))
                         },
