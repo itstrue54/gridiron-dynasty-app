@@ -80,4 +80,50 @@ class ContractDisputeTest {
         d = DynastyEngine.advance(d)
         assertTrue(d.league.players.all { it.demand == DemandState.NONE }, "the spring settles everything")
     }
+
+    @Test
+    fun `an offer above what he will take is signed, below it is turned down`() {
+        val (l, id) = underpaidStar()
+        val man = l.player(id)
+        val floor = ContractDisputes.reservation(man, l.tuning)
+        assertTrue(floor in 0.74f..1f, "his floor was $floor")
+
+        // Under his floor: no deal, and his agent says what it is.
+        val low = ContractDisputes.offer(l, club, id, floor - 0.05f) as Transactions.Outcome.Done
+        assertEquals(DemandState.PENDING, low.league.player(id).demand, "the demand stays on the desk")
+        assertTrue(low.note.contains("will not go below"), low.note)
+        assertTrue(low.league.player(id).morale < man.morale, "a lowball costs him a little")
+
+        // At it: he signs, for less than the market.
+        val market = ContractDisputes.pending(l, club).single().market
+        val done = ContractDisputes.offer(l, club, id, floor) as Transactions.Outcome.Done
+        val signed = done.league.player(id)
+        assertEquals(DemandState.SETTLED, signed.demand)
+        assertTrue(signed.contract!!.averagePerYear < market, "he took a discount: ${signed.contract}")
+        assertTrue(done.league.transactions.any { it.player == id.v })
+    }
+
+    @Test
+    fun `an ego holds out for more than a loyal man does`() {
+        val man = league.roster(club).first()
+        val tuning = league.tuning
+        val proud = man.copy(traits = man.traits.copy(ego = 95, loyalty = 20))
+        val settled = man.copy(traits = man.traits.copy(ego = 20, loyalty = 95))
+        assertTrue(
+            ContractDisputes.reservation(proud, tuning) > ContractDisputes.reservation(settled, tuning),
+            "ego ${ContractDisputes.reservation(proud, tuning)} vs loyal " +
+                "${ContractDisputes.reservation(settled, tuning)}",
+        )
+    }
+
+    @Test
+    fun `a club cannot offer what it has not got`() {
+        val (l, id) = underpaidStar()
+        val broke = l.copy(players = l.players.map {
+            if (it.teamId == club && it.id != id) it.copy(
+                contract = com.nflsim.engine.model.Contract(
+                    years = 3, baseSalary = listOf(6_000, 6_000, 6_000), signedYear = 2026)) else it
+        })
+        assertTrue(ContractDisputes.offer(broke, club, id, 1f) is Transactions.Outcome.Refused)
+    }
 }

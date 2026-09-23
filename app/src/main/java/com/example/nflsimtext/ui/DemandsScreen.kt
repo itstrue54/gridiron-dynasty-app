@@ -2,6 +2,7 @@ package com.example.nflsimtext.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -82,22 +83,33 @@ fun DemandsScreen(
                             style = NdTheme.type.caption, color = c.chalkDim,
                         )
                     }
-                    Row(
+                    FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
                         PrimaryButton(
-                            "Pay him",
+                            "Pay him ${money(ask.market)}",
                             { scope.launch { store.extendContract(ask.player.id.v) } },
                             enabled = affordable && !store.busy,
                         )
+                        // Haggling (SPEC 8.3): what he will take is his own
+                        // business until a club offers less and finds out.
+                        OFFERS.forEach { share ->
+                            SecondaryButton(
+                                "Offer ${money((ask.market * share).toInt())}",
+                                { scope.launch { store.offerContract(ask.player.id.v, share) } },
+                            )
+                        }
                         SecondaryButton(
                             "Tell him no",
                             { scope.launch { store.refuseDemand(ask.player.id.v) } },
                         )
                     }
                     Text(
-                        "Refused, he plays out his deal with his morale down, and remembers " +
+                        "A man will take less to stay if he likes it here, and an ego " +
+                            "will not. Offer under what he will take and his agent says " +
+                            "so, and the demand stays on your desk. Refuse it outright " +
+                            "and he plays out his deal with his morale down, and remembers " +
                             "it in the spring when he decides whether to ask for a trade.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(top = NdTheme.spacing.s),
@@ -109,6 +121,9 @@ fun DemandsScreen(
         item { SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth()) }
     }
 }
+
+/** The shares of the market a club can put on the table. */
+private val OFFERS = listOf(0.9f, 0.8f)
 
 private fun money(thousands: Int): String =
     if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)

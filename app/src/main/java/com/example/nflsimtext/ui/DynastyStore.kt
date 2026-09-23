@@ -271,6 +271,15 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** An offer at a share of what the market says he is worth (SPEC 8.3). */
+    suspend fun offerContract(playerId: Int, share: Float) {
+        val stats = dynasty?.playerStats ?: return
+        transact { league, team ->
+            com.nflsim.engine.season.ContractDisputes.offer(
+                league, team, com.nflsim.engine.model.PlayerId(playerId), share, wireWeek(), stats)
+        }
+    }
+
     /** Tell him to play out his deal. */
     suspend fun refuseDemand(playerId: Int) = transact { league, team ->
         com.nflsim.engine.season.ContractDisputes.refuse(
