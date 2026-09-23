@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.nflsimtext.ui.theme.NdTheme
@@ -83,6 +84,7 @@ fun DataTable(
                     style = NdTheme.type.label,
                     color = if (active) c.chalk else c.chalkDim,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
                     modifier = Modifier
                         .then(
@@ -145,6 +147,8 @@ fun DataTable(
                             style = NdTheme.type.data,
                             color = ink(col, cell),
                             maxLines = 1,
+                            // A clipped name should read as clipped, not as somebody else.
+                            overflow = TextOverflow.Ellipsis,
                             textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,
                             modifier = Modifier.weight(col.weight),
                         )

@@ -40,16 +40,16 @@ data class Transaction(
 }
 
 @Serializable
-enum class TransactionKind(val verb: String) {
-    SIGNED("signed"),
-    RELEASED("released"),
-    DRAFTED("drafted"),
-    TRADED("acquired by trade"),
-    PROMOTED("promoted from the practice squad"),
-    SIGNED_OFF_SQUAD("signed off a practice squad"),
-    TO_SQUAD("signed to the practice squad"),
-    OFF_SQUAD("released from the practice squad"),
-    INJURED_RESERVE("placed on injured reserve"),
-    ACTIVATED("activated from injured reserve"),
-    RETIRED("retired"),
+enum class TransactionKind(val verb: String, val short: String) {
+    SIGNED("signed", "signed"),
+    RELEASED("released", "released"),
+    DRAFTED("drafted", "drafted"),
+    TRADED("acquired by trade", "traded in"),
+    PROMOTED("promoted from the practice squad", "promoted"),
+    SIGNED_OFF_SQUAD("signed off a practice squad", "signed away"),
+    TO_SQUAD("signed to the practice squad", "to the squad"),
+    OFF_SQUAD("released from the practice squad", "off the squad"),
+    INJURED_RESERVE("placed on injured reserve", "on reserve"),
+    ACTIVATED("activated from injured reserve", "activated"),
+    RETIRED("retired", "retired"),
 }

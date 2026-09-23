@@ -56,3 +56,28 @@ The app is **Gridiron Dynasty** on the device, and its package name is
 Neither uses "NFL", which is a trademark Play will not accept in an app's
 title, icon or description. The source repository keeps its old name; that is
 never shown in the store.
+
+## Screenshots
+
+`assets/screenshots/` holds eight phone screenshots, taken on a Galaxy
+(1080x2340) from a 2026 season played to week 14:
+
+| File | Screen |
+|---|---|
+| 1-hub | the club, its record, what needs attention, next week's game |
+| 2-roster | the roster with the club's own read on each man, as a range |
+| 3-transactions | the league's wire, filtered to signings |
+| 4-free-agents | the market, the practice squad and the prorated minimum |
+| 5-game-plan | the tendencies a coordinator calls from |
+| 6-staff | the head coach, his coordinators and the building |
+| 7-standings | the division |
+| 8-box-score | a game from the archive: team stats and both sides' leaders |
+
+Two versions of each: the plain file is the phone's own 1080x2136 with the
+status bar and navigation bar cropped off (the status bar carries the
+owner's notifications, and neither is part of the app). The `store-`
+version is the same image letterboxed onto 1080x1920 in the app's own
+background colour, because Play asks for 16:9 or 9:16.
+
+Play needs at least two; all eight are worth uploading. Nothing in them
+is a mock-up - every number was played.
