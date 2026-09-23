@@ -21,6 +21,13 @@ class Ratings(val values: IntArray) {
 
     operator fun get(id: RatingId): Int = values[id.ordinal]
 
+    /** Every rating moved by the same amount, for a man in or out of form. */
+    fun shifted(points: Int): Ratings {
+        if (points == 0) return this
+        val copy = IntArray(values.size) { (values[it] + points).coerceIn(MIN, MAX) }
+        return Ratings(copy)
+    }
+
     /** Returns a copy with the given ratings replaced. */
     fun with(vararg changes: Pair<RatingId, Int>): Ratings {
         val copy = values.copyOf()

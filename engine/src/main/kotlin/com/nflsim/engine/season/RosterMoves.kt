@@ -33,6 +33,12 @@ object RosterMoves {
     /** The NFL's minimum stay on injured reserve, in games. */
     const val IR_WEEKS = 4
 
+    /** The players an NFL club dresses on game day: the floor it has to reach. */
+    const val GAME_DAY = 46
+
+    /** Contracts a club will tear up in a week to be able to field a team. */
+    private const val MAX_SALARY_CLEARED = 2
+
     fun onReserve(p: Player): Boolean = p.status == PlayerStatus.IR
 
     /** Everyone who counts against the 53. */
@@ -108,6 +114,25 @@ object RosterMoves {
                 apply(Transactions.release(league, team, spare.id, week = wire))
             }
             apply(Transactions.activate(league, team, back.id, week = wire))
+        }
+
+        // A club that cannot field a team clears salary, the way a real one
+        // does: without this a club at the cap plays out the year short,
+        // because every replacement costs money it has not got.
+        var cleared = 0
+        while (active(league, team).size < GAME_DAY &&
+            Transactions.spaceFor(league, team) < Transactions.price(weeksLeft) &&
+            cleared++ < MAX_SALARY_CLEARED
+        ) {
+            val worth = Transactions.price(weeksLeft) * 2
+            val cut = active(league, team)
+                .filter { it.capHit(league.year) - (it.contract?.deadCap(league.year)?.thisYear ?: 0) > worth }
+                // The most money saved per point of what he gives.
+                .maxByOrNull { p ->
+                    val saving = p.capHit(league.year) - (p.contract?.deadCap(league.year)?.thisYear ?: 0)
+                    saving / value(p).coerceAtLeast(1f)
+                } ?: break
+            if (!apply(Transactions.release(league, team, cut.id, week = wire))) break
         }
 
         // Fill the open places where the club is thinnest.

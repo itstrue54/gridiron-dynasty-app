@@ -123,6 +123,55 @@ object NewsDesk {
             }
         }
 
+        // Who lost his place. A club's best man at his position sat while
+        // somebody behind him played: the coach is going on form, not talent
+        // (SPEC 10.1). Said once about any one man.
+        val benched = alreadySaid.filter { it.kind == NewsKind.BENCHING }.mapNotNull { it.player }.toSet()
+        results.forEach { game ->
+            listOf(game.home, game.away).forEach { id ->
+                val club = league.team(id)
+                val offence = com.nflsim.engine.ratings.SchemeCatalog.tuned(club.offenseScheme, league.tuning)
+                val defence = com.nflsim.engine.ratings.SchemeCatalog.tuned(club.defenseScheme, league.tuning)
+                BENCHABLE.forEach { position ->
+                    val scheme = if (position.isOffense) offence else defence
+                    val group = league.roster(id).filter {
+                        it.position == position && it.injuryWeeks == 0 &&
+                            it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE
+                    }
+                    if (group.size < 2) return@forEach
+                    val best = group.maxByOrNull { com.nflsim.engine.ratings.overall(it, scheme) }
+                        ?: return@forEach
+                    if (best.id.v in benched) return@forEach
+                    fun snaps(p: com.nflsim.engine.model.Player) = game.snaps[p.id.v] ?: 0
+                    // Whoever played the position. A benched man still gets a
+                    // few snaps, so it is the share that tells the story.
+                    val playing = group.maxByOrNull(::snaps) ?: return@forEach
+                    if (playing.id == best.id || snaps(playing) < BENCHING_SNAPS) return@forEach
+                    if (snaps(best) > snaps(playing) * BENCHING_SHARE) return@forEach
+                    news += NewsEvent(
+                        week, NewsKind.BENCHING,
+                        "${best.name} (${position.label}, ${club.abbrev}) has lost his place to " +
+                            "${playing.name}.",
+                        best.id.v, id.v,
+                    )
+                }
+            }
+        }
+
         return news
     }
+
+    /** Positions a coach benches a man at. Nobody reads that a guard sat. */
+    private val BENCHABLE = listOf(
+        com.nflsim.engine.model.Position.QB, com.nflsim.engine.model.Position.RB,
+        com.nflsim.engine.model.Position.WR, com.nflsim.engine.model.Position.TE,
+        com.nflsim.engine.model.Position.LB, com.nflsim.engine.model.Position.CB,
+        com.nflsim.engine.model.Position.S,
+    )
+
+    /** Snaps the man in front of him has to take before it reads as a benching. */
+    private const val BENCHING_SNAPS = 10
+
+    /** Of those snaps, what the man behind can still take and not read as benched. */
+    private const val BENCHING_SHARE = 0.4f
 }

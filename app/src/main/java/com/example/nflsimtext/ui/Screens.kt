@@ -358,6 +358,7 @@ private fun label(kind: NewsKind) = when (kind) {
     NewsKind.PERFORMANCE -> "Game"
     NewsKind.MILESTONE -> "Mark"
     NewsKind.HOT_SEAT -> "Seat"
+    NewsKind.BENCHING -> "Bench"
 }
 
 private fun tone(kind: NewsKind) = when (kind) {
@@ -366,6 +367,7 @@ private fun tone(kind: NewsKind) = when (kind) {
     NewsKind.HOT_SEAT -> TagTone.NEUTRAL
     NewsKind.MILESTONE -> TagTone.INFO
     NewsKind.PERFORMANCE -> TagTone.NEUTRAL
+    NewsKind.BENCHING -> TagTone.INFO
 }
 
 @Composable

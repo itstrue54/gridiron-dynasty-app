@@ -41,6 +41,8 @@ data class Player(
     val wear: Int = 0,
     /** 0..100. */
     val morale: Int = 75,
+    /** -100..100: how he is playing this month, not how good he is. Resets each season. */
+    val form: Int = 0,
     /** Everything he has done, season by season (SPEC 4, 9.2). */
     val careerStats: CareerStats = CareerStats(),
 ) {
