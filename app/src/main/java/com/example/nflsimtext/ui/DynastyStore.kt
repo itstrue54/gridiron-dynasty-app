@@ -215,6 +215,21 @@ class DynastyStore(private val saveDir: File) {
             league, team, com.nflsim.engine.model.PlayerId(playerId), week = wireWeek())
     }
 
+    /** Pay a man who has asked his club to fix his deal (SPEC 10.1). */
+    suspend fun extendContract(playerId: Int) {
+        val stats = dynasty?.playerStats ?: return
+        transact { league, team ->
+            com.nflsim.engine.season.ContractDisputes.extend(
+                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), stats)
+        }
+    }
+
+    /** Tell him to play out his deal. */
+    suspend fun refuseDemand(playerId: Int) = transact { league, team ->
+        com.nflsim.engine.season.ContractDisputes.refuse(
+            league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek())
+    }
+
     private fun wireWeek(): Int = dynasty?.wireWeek ?: 0
 
     private suspend fun transact(

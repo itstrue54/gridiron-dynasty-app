@@ -163,6 +163,26 @@ fun HubScreen(
             )
         }
 
+        // Men waiting on an answer about their contracts (SPEC 10.1).
+        val demands = com.nflsim.engine.season.ContractDisputes
+            .pending(dynasty.league, team.id, dynasty.playerStats)
+        if (demands.isNotEmpty()) {
+            item {
+                SituationBlock(
+                    if (demands.size == 1) "A contract to answer" else "${demands.size} contracts to answer",
+                    situation = Situation.THIRD_DOWN,
+                    onClick = { onNavigate(Tab.DEMANDS) },
+                ) {
+                    Text(
+                        demands.take(2).joinToString("; ") {
+                            "${it.player.position.label} ${it.player.name} wants ${it.market / 1000}M a year"
+                        } + ". Every week you leave it costs him morale.",
+                        style = NdTheme.type.body, color = c.chalkDim,
+                    )
+                }
+            }
+        }
+
         // Injured reserve opens places the league's clubs fill on their own;
         // the user's are left open until the user fills them.
         val open = com.nflsim.engine.season.Transactions.ROSTER_LIMIT -
@@ -218,6 +238,7 @@ fun HubScreen(
                     HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Free agents") { onNavigate(Tab.MARKET) }
                     HubLink("Transactions") { onNavigate(Tab.WIRE) }
+                    HubLink("Demands") { onNavigate(Tab.DEMANDS) }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }
@@ -359,6 +380,7 @@ private fun label(kind: NewsKind) = when (kind) {
     NewsKind.MILESTONE -> "Mark"
     NewsKind.HOT_SEAT -> "Seat"
     NewsKind.BENCHING -> "Bench"
+    NewsKind.DISPUTE -> "Deal"
 }
 
 private fun tone(kind: NewsKind) = when (kind) {
@@ -368,6 +390,7 @@ private fun tone(kind: NewsKind) = when (kind) {
     NewsKind.MILESTONE -> TagTone.INFO
     NewsKind.PERFORMANCE -> TagTone.NEUTRAL
     NewsKind.BENCHING -> TagTone.INFO
+    NewsKind.DISPUTE -> TagTone.INFO
 }
 
 @Composable

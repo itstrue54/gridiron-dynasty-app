@@ -451,6 +451,22 @@ data class TuningTable(
          * rather promote its own, and the man it takes has to go on its 53.
          */
         val poachClearUpgrade: Float = 8f,
+        /**
+         * Contract disputes (SPEC 10.1). A man with accrued seasons behind
+         * him, good enough to have leverage, whose market has moved this far
+         * past his deal, asks his club to fix it - and keeps asking.
+         */
+        val disputeFirstWeek: Int = 3,
+        val disputeLastWeek: Int = 15,
+        val disputeAccruedSeasons: Int = 3,
+        val disputeVoice: Int = 74,
+        val disputePayGap: Float = 1.8f,
+        val disputeWeeklyChance: Float = 0.02f,
+        val disputeWaitingMorale: Int = 2,
+        /** Waiting wears on him only so far; a refusal can take him lower. */
+        val disputeWaitingFloor: Int = 50,
+        val disputeRefusedMorale: Int = 18,
+        val disputeSettledMorale: Int = 10,
         /** Rating points a star must add over the contender's best at his position. */
         val tradeClearUpgrade: Float = 6f,
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */

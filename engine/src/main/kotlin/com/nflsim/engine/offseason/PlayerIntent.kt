@@ -113,7 +113,9 @@ object PlayerIntent {
             // who had got good. They are underpaid by construction; that is
             // what a rookie contract is.
             val pressure = if (intent == Intent.WANTS_PAYING) worst * MONEY_PATIENCE else worst
-            val nerve = pressure - p.traits.loyalty / 160f + rng.gaussian(0f, 0.18f)
+            // A club that told him no in the autumn has used up his patience.
+            val refused = if (p.demand == com.nflsim.engine.model.DemandState.REFUSED) REFUSED_NERVE else 0f
+            val nerve = pressure + refused - p.traits.loyalty / 160f + rng.gaussian(0f, 0.18f)
             val demands = nerve > DEMAND && p.contract!!.isActive(ctx.year + 1)
 
             wishes += Wish(
@@ -264,6 +266,14 @@ object PlayerIntent {
 
     /** How much less a money grievance pushes a player out the door. */
     private const val MONEY_PATIENCE = 0.42f
+
+    /**
+     * What a refused in-season demand adds to his nerve in the spring. At
+     * 0.25 a refused man asked out no more often than anyone else, which
+     * made the refusal invisible; money grievances are damped hard by
+     * MONEY_PATIENCE and a refusal has to clear that.
+     */
+    private const val REFUSED_NERVE = 0.95f
 
 
     /** A suitor has to value him above what he costs. */

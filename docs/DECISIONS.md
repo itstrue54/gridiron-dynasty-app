@@ -1176,8 +1176,8 @@ forbids, and are now in the tuning table.
 - ~~**The rushing record reads 2,583**~~ Fixed; see the rushing tail ADR.
 - ~~**Box scores are not retained.**~~ Built; see the box score ADR below.
 - ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
-- ~~**News has no benchings**~~ Built; see the form ADR below. Contract
-  disputes are still unmodelled.
+- ~~**News has no benchings and no contract disputes**~~ Both built; see
+  the form and dispute ADRs below.
 - **The hub's news block and the export button have not been seen on a
   device.**
 
@@ -1452,3 +1452,40 @@ does rather than field 43.
   holdouts, no extension demands in season.
 - Form is luck as much as anything, as it is in the NFL; it does not read
   a man's confidence, his coach, or the men blocking for him.
+
+## ADR-0xx — Men who have noticed what they are paid
+
+**Context.** SPEC 10.1 lists contract disputes and nothing produced one.
+The offseason already knew who was underpaid (`PlayerIntent`); the season
+did not.
+
+**Decision, the user's rules.** A man with three accrued seasons behind
+him, good enough to have leverage (74), whose market has moved past 1.8
+times his cap hit, asks his club to fix it - weekly odds scaled by his
+ego and damped by his loyalty, between weeks 3 and 15. Rookies on slotted
+deals are underpaid by construction and never ask.
+
+The league's own clubs answer the same week: they pay the market rate for
+as long as his age says (four years under 28, three to 30, two after) if
+they have the cap room, and refuse if they have not. The user's club is
+asked and left to decide, on a Demands screen and flagged on the Hub.
+Waiting costs him two morale a week down to a floor of 50, because what
+sours a man past that is being told no, not being kept waiting.
+
+Refused: eighteen morale, which is worth a little of every rating he has
+through the morale term, and the spring finds him with less patience
+(`REFUSED_NERVE` 0.95 on top of the money grievance, which
+`MONEY_PATIENCE` damps hard - at 0.25 the refusal was invisible).
+
+**Measured.** Ten leagues, a season each: 8-18 demands settled a season
+league-wide and 0-3 refused, which is the volume of extension and holdout
+stories a real season carries. Of ten refused men, four carried the
+grievance into the spring and two asked for a trade. Prices come from the
+same pricer for the headline, the screen and the deal, so a man is not
+told he is worth $8.1M and then signed for $9.3M.
+
+### Open
+- No holdouts: a refused man plays on. The user asked for morale and a
+  trade request, not missed games.
+- The club cannot offer anything but the market rate: no haggling, no
+  incentives, no restructures in season (SPEC 8.3 still lists those).
