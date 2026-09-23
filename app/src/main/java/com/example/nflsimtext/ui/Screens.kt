@@ -9,6 +9,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -232,7 +233,10 @@ fun HubScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !store.busy,
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState())) {
+                // Wrapped, not scrolled: half of these used to sit off the right
+                // edge of the phone with nothing to say they were there, and the
+                // row scrolled back to the start every time the hub was reopened.
+                FlowRow(Modifier.fillMaxWidth()) {
                     if (dynasty.lastGame != null) HubLink("Game day") { onNavigate(Tab.GAME) }
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
                     HubLink("Staff") { onNavigate(Tab.STAFF) }
@@ -270,9 +274,9 @@ fun HubScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             StatusTag(
-                                // A thirty week injury is this season and next: say so.
-                                if (p.injuryWeeks >= com.nflsim.engine.sim.Injury.SEASON_ENDING) "Out for the season"
-                                else if (p.injuryWeeks == 1) "Out 1 week" else "Out ${p.injuryWeeks} weeks",
+                                // Longer than the season has left is out for the season,
+                                // whether that reads as 25 weeks or 30.
+                                injuryLabel(p.injuryWeeks, dynasty),
                                 if (p.injuryWeeks > 4) TagTone.URGENT else TagTone.NEUTRAL,
                             )
                         }
@@ -294,7 +298,7 @@ fun HubScreen(
             }
         }
 
-        val news = dynasty.news.takeLast(NEWS_SHOWN).reversed()
+        val news = hubNews(dynasty.news)
         if (news.isNotEmpty()) {
             item {
                 SituationBlock(
@@ -373,8 +377,39 @@ fun HubScreen(
     }
 }
 
-/** How much of the week's news the hub carries. */
+/**
+ * The week's news as the hub carries it: newest first, and no more than
+ * [NEWS_PER_KIND] of any one kind. Benchings are filed last, so taking the
+ * five newest buried the week's results under four men losing their places.
+ */
+internal fun hubNews(all: List<com.nflsim.engine.model.NewsEvent>): List<com.nflsim.engine.model.NewsEvent> {
+    val newestFirst = all.asReversed()
+    return newestFirst
+        .groupBy { it.kind }
+        .flatMap { (_, of) -> of.take(NEWS_PER_KIND) }
+        .sortedBy { newestFirst.indexOf(it) }
+        .take(NEWS_SHOWN)
+}
+
+/**
+ * What to call an injury: weeks, until the weeks run past what the season
+ * has left - counting the playoffs, which a club has to plan for.
+ */
+internal fun injuryLabel(weeks: Int, dynasty: Dynasty): String {
+    val left = (Schedule.WEEKS - dynasty.week + 1 + PLAYOFF_WEEKS).coerceAtLeast(1)
+    return when {
+        weeks >= left -> "Out for the season"
+        weeks == 1 -> "Out 1 week"
+        else -> "Out $weeks weeks"
+    }
+}
+
+/** Wild card, divisional, conference, final. */
+private const val PLAYOFF_WEEKS = 4
+
+/** How much of the week's news the hub carries, and how much of any one kind. */
 private const val NEWS_SHOWN = 5
+private const val NEWS_PER_KIND = 2
 
 private fun label(kind: NewsKind) = when (kind) {
     NewsKind.INJURY -> "Hurt"

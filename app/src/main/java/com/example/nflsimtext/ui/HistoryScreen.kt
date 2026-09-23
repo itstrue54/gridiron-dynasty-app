@@ -27,9 +27,21 @@ fun HistoryScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
     val history = dynasty.league.history
     if (history.seasons.isEmpty()) {
         Column(Modifier.fillMaxSize().padding(NdTheme.spacing.xl)) {
-            Text("No seasons behind you yet.", style = NdTheme.type.title, color = c.chalk)
+            // A season joins the record when the year turns over, not when its
+            // last game is played, and finishing 10-7 and being told nothing is
+            // behind you reads like a fault.
+            val played = dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON
             Text(
-                "Play a year through the offseason and it lands here: champions, " +
+                if (played) "${dynasty.year} is not in the record yet."
+                else "No seasons behind you yet.",
+                style = NdTheme.type.title, color = c.chalk,
+            )
+            Text(
+                if (played)
+                    "The year joins the record when it turns over. Open the draft " +
+                        "room from the hub and ${dynasty.year} lands here with its " +
+                        "champion, its awards and everyone who finished."
+                else "Play a year through the offseason and it lands here: champions, " +
                     "awards, the best seasons anyone has had, and the men who finish.",
                 style = NdTheme.type.body, color = c.chalkDim,
             )
