@@ -1214,8 +1214,7 @@ suite passes, the 30-season stability gate included.
 - **Squad pay is not charged.** Roughly $230k a man counts against the
   real cap; under half a percent per club, and charging it means
   contracts for men who can leave any Tuesday.
-- **The AI never poaches.** It promotes from its own squad (see the ADR
-  below) but never signs another club's.
+- ~~**The AI never poaches.**~~ Built; see the poaching ADR below.
 - **The best squad players are too good.** The top of the squads reaches
   the high 70s and low 80s, men the offseason left unsigned. That was true
   of the street before squads existed; squads only make it visible.
@@ -1384,3 +1383,25 @@ at 4,000 games: 17 of 18, as before; attribution cannot move an outcome.
   man who made the stop keeps his credit on an assisted play rather than
   both men reading as assists. The combined figure is the one that
   matches.
+
+## ADR-0xx — Clubs sign men off each other's practice squads
+
+**Context.** A squad player is a free agent his club happens to train, so
+any club may sign him to its 53. Only the user's club did.
+
+**Decision.** Filling a place opened by reserve, a club looks at its own
+squad and the street first and reaches into another club's squad only for
+a man who beats both by `ai.poachClearUpgrade` rating points: he costs a
+53 place, and taking him leaves that club a hole. Eight points, swept
+from five: at five the league signed 79 a season away, about 2.5 a club,
+against the NFL's rough one to two, and the user's club lost five or six
+a year.
+
+**Measured.** Two leagues over two seasons each: 47-52 a season
+league-wide, about 1.5 a club, and the user's club lost two or three -
+which is the cost of leaving a good young player on the squad.
+
+### Open
+- Nothing stops a club signing a man away and cutting him the same month;
+  the NFL's three-week guarantee for a poached squad player is not
+  modelled.

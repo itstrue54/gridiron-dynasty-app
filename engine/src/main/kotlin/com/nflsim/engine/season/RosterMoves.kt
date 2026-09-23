@@ -116,10 +116,21 @@ object RosterMoves {
             val healthy = active(league, team).filter { it.injuryWeeks == 0 }.groupingBy { it.position }.eachCount()
             val need = TeamNeeds.ROSTER_TEMPLATE.maxByOrNull { (pos, required) -> required - (healthy[pos] ?: 0) }!!.key
             val squad = league.team(team).practiceSquad.map { league.player(it) }
-            val pick = squad.filter { it.position == need }.maxByOrNull(::value)
-                ?: Transactions.freeAgents(league).filter { it.position == need }.maxByOrNull(::value)
-                ?: squad.maxByOrNull(::value)
-                ?: break
+            // Its own squad first, then the street; another club's squad only
+            // for a man clearly better than either, since he costs a 53 place
+            // and leaves that club a hole it will fill from the street.
+            val home = listOfNotNull(
+                squad.filter { it.position == need }.maxByOrNull(::value),
+                Transactions.freeAgents(league).filter { it.position == need }.maxByOrNull(::value),
+            ).maxByOrNull(::value)
+            val poach = Transactions.poachable(league, team)
+                .map { it.first }.filter { it.position == need }.maxByOrNull(::value)
+            val margin = tuning.ai.poachClearUpgrade
+            val pick = when {
+                poach != null && (home == null || value(poach) >= value(home) + margin) -> poach
+                home != null -> home
+                else -> squad.maxByOrNull(::value) ?: break
+            }
             if (!apply(Transactions.sign(league, team, pick.id, weeksLeft = weeksLeft, week = wire))) break
         }
 

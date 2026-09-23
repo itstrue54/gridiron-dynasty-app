@@ -415,6 +415,12 @@ data class TuningTable(
         val contenderWinPct: Float = 0.55f,
         val buyerWinNow: Float = 0.6f,
         val sellerWinNow: Float = 0.4f,
+        /**
+         * Rating points another club's practice squad man must beat a club's
+         * own squad and the street by before it signs him away. A club would
+         * rather promote its own, and the man it takes has to go on its 53.
+         */
+        val poachClearUpgrade: Float = 8f,
         /** Rating points a star must add over the contender's best at his position. */
         val tradeClearUpgrade: Float = 6f,
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */
