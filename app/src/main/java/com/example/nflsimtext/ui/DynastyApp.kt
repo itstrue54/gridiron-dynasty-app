@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -68,6 +69,8 @@ enum class Tab(val label: String) {
     WIRE("Transactions"),
     /** SPEC 10.1: men who have noticed what they are paid, behind the Hub. */
     DEMANDS("Demands"),
+    /** SPEC 9.1: five slots and the autosaves, behind the Hub. */
+    SAVES("Saves"),
 }
 
 @Composable
@@ -123,6 +126,7 @@ fun DynastyApp(
                     Tab.MARKET -> FreeAgentsScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.WIRE -> TransactionsScreen(dynasty) { tab = Tab.HUB }
                     Tab.DEMANDS -> DemandsScreen(dynasty, store, scope) { tab = Tab.HUB }
+                    Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.HUB }
                     Tab.DRAFT -> DraftRoomScreen(
                         dynasty, store, scope,
                         onFinished = { tab = Tab.OFFSEASON },
@@ -163,7 +167,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Tab.entries.filter {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME,
-                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS,
+                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
@@ -193,8 +197,28 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             color = NdTheme.colors.chalkDim,
         )
         Spacer(Modifier.height(32.dp))
-        PrimaryButton("Start a new dynasty", { scope.launch { store.newDynasty() } })
-        if (store.hasSave) {
+
+        // What is already on the phone, in the slots it is in (SPEC 9.1).
+        var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
+        LaunchedEffect(Unit) { cards = store.cards() }
+        cards.filterNot { it.auto }.forEach { card ->
+            SecondaryButton(
+                "Slot ${card.slot}: ${card.summary}",
+                { scope.launch { store.load(card.slot) } },
+                Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        PrimaryButton(
+            "Start a new dynasty",
+            {
+                scope.launch {
+                    val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
+                    store.newDynasty(into = free ?: 1)
+                }
+            },
+        )
+        if (cards.none { !it.auto } && store.hasSave) {
             Spacer(Modifier.height(12.dp))
             SecondaryButton("Load the saved dynasty", { scope.launch { store.load() } })
         }
