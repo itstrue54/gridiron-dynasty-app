@@ -799,8 +799,14 @@ private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<R
     lines.entries.filter { it.value.receptions > 0 }.sortedByDescending { it.value.receivingYards }.take(3).forEach { (id, s) ->
         add(RowData(listOf("Catch", name(id), "${s.receptions} rec", "${s.receivingYards}", "${s.receivingTouchdowns}")))
     }
-    lines.entries.filter { it.value.tackles > 0 }.sortedByDescending { it.value.tackles }.take(2).forEach { (id, s) ->
-        add(RowData(listOf("Tkl", name(id), "${s.tackles} tkl", "", if (s.sacks > 0) "${s.sacks} sk" else "")))
+    // Combined tackles, as a leaderboard counts them: his own stops and his assists.
+    lines.entries.filter { it.value.combinedTackles > 0 }
+        .sortedByDescending { it.value.combinedTackles }.take(2).forEach { (id, s) ->
+        add(RowData(listOf(
+            "Tkl", name(id), "${s.combinedTackles} tkl",
+            if (s.assists > 0) "${s.assists} ast" else "",
+            if (s.sacks > 0) "${s.sacks} sk" else "",
+        )))
     }
 }
 

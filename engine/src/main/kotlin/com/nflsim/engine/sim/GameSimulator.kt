@@ -581,6 +581,7 @@ class GameSimulator(
         }
         if (result.outcome != PlayOutcome.INCOMPLETE) {
             stats.update(result.tackler) { it.copy(tackles = it.tackles + 1) }
+            stats.update(result.assister) { it.copy(assists = it.assists + 1) }
         }
     }
 

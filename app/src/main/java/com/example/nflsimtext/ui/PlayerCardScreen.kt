@@ -318,7 +318,8 @@ private fun careerSheet(player: Player, dynasty: Dynasty): CareerSheet? {
             listOf(year, team, ColumnSpec("Tackles", 1.1f, numeric = true),
                 ColumnSpec("Sacks", 0.9f, numeric = true), ColumnSpec("Int", 0.6f, numeric = true)),
             seasons.map { s ->
-                RowData(listOf("${s.year}", club(s.team), "${s.stats.tackles}",
+                // Tackles read combined, the way a leaderboard does.
+                RowData(listOf("${s.year}", club(s.team), "${s.stats.combinedTackles}",
                     "${s.stats.sacks}", "${s.stats.interceptions}"))
             },
         )

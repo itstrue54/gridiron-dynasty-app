@@ -162,12 +162,14 @@ internal object RunResolution {
         }
 
         val tackler = tacklerFor(ctx, finalYards, rng)
+        val assister = assisterFor(ctx, finalYards, rng, tackler)
         return PlayResult(
             outcome = PlayOutcome.RUN,
             yards = finalYards,
             clockRunoff = t.gameFlow.runPlayClockRunoff,
             ballCarrier = carrier.id,
             tackler = tackler?.id,
+            assister = assister?.id,
             log = SimLog(values, narrate(carrier, call, finalYards, broke, tackler)),
         )
     }
@@ -211,6 +213,26 @@ internal object RunResolution {
             if (roll <= 0f) return defender
         }
         return defenders.last()
+    }
+
+    /**
+     * The second man in, on the quarter of tackles that are not made alone.
+     * He is chosen the same way as the tackler, from everyone else.
+     */
+    internal fun assisterFor(ctx: PlayContext, yards: Int, rng: Rng, tackler: Player?): Player? {
+        if (tackler == null || rng.nextFloat() >= ctx.tuning.tackling.assistShare) return null
+        val others = (ctx.defense.frontSeven + ctx.defense.secondary).filter { it.id != tackler.id }
+        if (others.isEmpty()) return null
+        val tn = ctx.tuning.tackling
+        val weights = others.map { tn.weight(it.position, yards) }
+        val total = weights.sum()
+        if (total <= 0f) return others.randomBy(rng)
+        var roll = rng.nextFloat() * total
+        others.forEachIndexed { i, man ->
+            roll -= weights[i]
+            if (roll <= 0f) return man
+        }
+        return others.last()
     }
 
     /**

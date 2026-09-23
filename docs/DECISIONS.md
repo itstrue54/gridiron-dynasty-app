@@ -1307,8 +1307,7 @@ DT 47, which is the NFL's order and near its ranges. Hall of fame over
 sixty seasons: corners 10 to 9, linebackers 9 to 13, safeties 8 to 11.
 
 ### Open
-- One tackler a play, no assists, so leaders read as solo tackles: the
-  linebacker leader is about 137 against a real combined 170.
+- ~~One tackler a play, no assists~~ Built; see the assists ADR below.
 
 ## ADR-0xx — Every game's box score, as SPEC 9.2 keeps them
 
@@ -1361,3 +1360,27 @@ before this change.
 
 **Changed guard.** The season plausibility test allowed a leader up to
 2,600; it now holds him to 1,200-2,300.
+
+## ADR-0xx — Assisted tackles, so a leaderboard reads like one
+
+**Context.** One credit a play. The NFL's leaderboards count combined
+tackles - his own stops and the ones he helped on - so the sim's
+linebacker leader read about 137 where a real one reads about 170.
+
+**Decision.** A quarter of tackles have a second man in (tuning:
+`assistShare`), chosen from the other ten by the same position weights,
+and credited an assist. `StatLine.tackles` keeps its meaning - the man
+who made the stop - so the hall of fame's divisors, the award scores and
+production all read what they read before. `combinedTackles` is the two
+together, and that is what the box score and a career sheet show.
+
+**Measured.** Four seasons: 1,071 combined a club a season against the
+NFL's 1,050; leaders 163-193 at linebacker (real 160-185), about 143 at
+safety, 106 at corner, 76 at edge and 74 at tackle. Bands on one league
+at 4,000 games: 17 of 18, as before; attribution cannot move an outcome.
+
+### Open
+- The NFL's split is 63% solo, 37% assists; this is 81/19, because the
+  man who made the stop keeps his credit on an assisted play rather than
+  both men reading as assists. The combined figure is the one that
+  matches.

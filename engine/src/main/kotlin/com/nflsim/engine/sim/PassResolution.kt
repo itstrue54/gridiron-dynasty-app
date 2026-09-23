@@ -195,11 +195,13 @@ internal object PassResolution {
         // is why a corner does not lead the league in tackles.
         val stopper = if (rng.nextFloat() < t.tackling.coverageShare) defender
         else RunResolution.tacklerFor(ctx, total, rng) ?: defender
+        val helper = RunResolution.assisterFor(ctx, total, rng, stopper)
 
         return PlayResult(
             outcome = PlayOutcome.COMPLETION, yards = total,
             clockRunoff = t.gameFlow.completionClockRunoff,
             passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
+            assister = helper?.id,
             log = SimLog(values,
                 "${qb.lastName} finds ${receiver.name} on the ${call.concept.label} for $total."),
         )
