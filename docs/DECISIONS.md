@@ -1527,3 +1527,38 @@ that the app owns the screen before every tap and brings it back to the
 front rather than tapping into anything else. The save was copied off the
 phone before each pass and restored byte for byte after, checksums
 matched, and the CSV the export test wrote was deleted.
+
+## ADR-0xx — Five slots and three autosaves, as SPEC 9.1 locks them
+
+**Context.** SPEC 9.1 is locked on five user slots and a rolling autosave
+keeping the last three, written on every phase advance. The game kept one
+file, `dynasty.sav`. During this project an uninstall took a dynasty with
+it, which is exactly what the locked line is there to prevent.
+
+**Decision.** `slot-1..5.sav` are the user's, `auto-1..3.sav` are the
+game's. A slot is written after every advance, as before; an autosave is
+written whenever the phase turns over - the playoffs starting, the
+offseason running, a new year - and the rotation overwrites whichever of
+the three is oldest, so three phases of history are always behind you.
+
+The single save older builds wrote is adopted as slot 1 on first run, once
+and only into an empty slot: a dynasty carried over from before slots
+existed is not something to lose. The start screen lists what is on the
+phone by slot, club, year and week rather than offering one "load"
+button, and a Saves screen behind the hub loads, copies, overwrites (with
+a confirmation) and deletes, and restores an autosave into the slot being
+played.
+
+**Measured.** Unit tested: a slot keeps and describes what it was given;
+the rotation keeps the three most recent and drops the oldest; the legacy
+save is adopted once; an unreadable file is listed as unreadable rather
+than hidden. End to end through the store: a week inside the season
+writes no autosave, the playoffs turning over writes one, the offseason
+another. On a phone: the legacy save became slot 1 and loaded, the Saves
+screen reads "Indianapolis Speed, 2026 week 1" with the date, and a copy
+into slot 2 carried play into that slot.
+
+### Open
+- Autosaves land three or four times a season, which is what a phase
+  advance means. A bad trade in week 5 is not what they are for.
+- No way to name a slot; it is club, year and week or nothing.

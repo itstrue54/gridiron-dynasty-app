@@ -243,6 +243,7 @@ fun HubScreen(
                     HubLink("Free agents") { onNavigate(Tab.MARKET) }
                     HubLink("Transactions") { onNavigate(Tab.WIRE) }
                     HubLink("Demands") { onNavigate(Tab.DEMANDS) }
+                    HubLink("Saves") { onNavigate(Tab.SAVES) }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }

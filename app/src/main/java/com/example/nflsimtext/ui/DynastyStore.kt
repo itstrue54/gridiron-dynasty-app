@@ -34,19 +34,61 @@ class DynastyStore(private val saveDir: File) {
     var message by mutableStateOf<String?>(null)
         private set
 
-    private val saveFile: File get() = File(saveDir, SAVE_NAME)
+    /** SPEC 9.1: five slots and three rotating autosaves. */
+    val saves = Saves(saveDir)
 
-    val hasSave: Boolean get() = saveFile.exists()
+    /** The slot the dynasty in hand is written to. */
+    var slot by mutableStateOf(1)
+        private set
 
-    suspend fun load(): Boolean = withContext(Dispatchers.IO) {
-        runCatching { SaveFile.decode(saveFile.readBytes()) }
-            .onSuccess { dynasty = it }
-            .onFailure { message = "Could not read the save: ${it.message}" }
+    // Existence only: reading five saves to answer it would block a frame.
+    val hasSave: Boolean get() = saves.any()
+
+    /** Every slot and autosave, for the start screen and the saves screen. */
+    suspend fun cards(): List<Saves.Card> = withContext(Dispatchers.IO) {
+        saves.adoptLegacySave()
+        saves.cards()
+    }
+
+    suspend fun load(from: Int = slot): Boolean = withContext(Dispatchers.IO) {
+        saves.adoptLegacySave()
+        runCatching { saves.load(saves.slotFile(from)) }
+            .onSuccess { dynasty = it; slot = from }
+            .onFailure { message = "Could not read slot $from: ${it.message}" }
             .isSuccess
     }
 
-    suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime()) {
+    /** An autosave, read back into the slot it is loaded into. */
+    suspend fun restore(card: Saves.Card, into: Int = slot): Boolean = withContext(Dispatchers.IO) {
+        runCatching { saves.load(card.file) }
+            .onSuccess {
+                dynasty = it
+                slot = into
+                saves.write(into, it)
+                message = "${card.label} restored into slot $into."
+            }
+            .onFailure { message = "Could not read ${card.label}: ${it.message}" }
+            .isSuccess
+    }
+
+    /** Copies the dynasty in hand into another slot and keeps playing there. */
+    suspend fun copyTo(other: Int) {
+        val current = dynasty ?: return
+        withContext(Dispatchers.IO) {
+            runCatching { saves.write(other, current) }
+                .onSuccess { slot = other; message = "Saved to slot $other." }
+                .onFailure { message = "Save failed: ${it.message}" }
+        }
+    }
+
+    suspend fun deleteSave(card: Saves.Card) = withContext(Dispatchers.IO) {
+        saves.delete(card.file)
+        if (!card.auto && card.slot == slot) dynasty = null
+    }
+
+    suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime(), into: Int = slot) {
         busy = true
+        slot = into
         try {
             val fresh = withContext(Dispatchers.Default) {
                 val league = LeagueGenerator.generate(YEAR, seed)
@@ -70,6 +112,11 @@ class DynastyStore(private val saveDir: File) {
             val next = withContext(Dispatchers.Default) { DynastyEngine.advance(current) }
             dynasty = next
             persist(next)
+            // SPEC 9.1: an autosave every time the phase turns over, so the
+            // worst a bad write can cost is the week it happened in.
+            if (next.phase != current.phase) {
+                withContext(Dispatchers.IO) { runCatching { saves.autosave(next) } }
+            }
         } finally {
             busy = false
         }
@@ -258,15 +305,12 @@ class DynastyStore(private val saveDir: File) {
     fun dismissMessage() { message = null }
 
     private suspend fun persist(state: Dynasty) = withContext(Dispatchers.IO) {
-        runCatching {
-            saveDir.mkdirs()
-            saveFile.writeBytes(SaveFile.encode(state))
-        }.onFailure { message = "Save failed: ${it.message}" }
+        runCatching { saves.write(slot, state) }
+            .onFailure { message = "Save failed: ${it.message}" }
     }
 
     companion object {
         const val YEAR = 2026
-        private const val SAVE_NAME = "dynasty.sav"
 
         fun forContext(context: Context) = DynastyStore(File(context.filesDir, "saves"))
     }
