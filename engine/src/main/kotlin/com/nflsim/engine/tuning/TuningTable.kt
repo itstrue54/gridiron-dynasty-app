@@ -150,6 +150,12 @@ data class TuningTable(
          * well behind the linebackers.
          */
         val coverageShare: Float = 0.45f,
+        /**
+         * Share of tackles with a second man in, who is credited an assist.
+         * The NFL counts those as combined tackles, which is why its leaders
+         * read near 170 where one credit a play reads near 140.
+         */
+        val assistShare: Float = 0.25f,
     ) {
         fun weight(position: com.nflsim.engine.model.Position, yards: Int): Float {
             val past = yards >= pastTheFront

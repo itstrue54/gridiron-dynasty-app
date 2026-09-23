@@ -99,6 +99,8 @@ data class PlayResult(
     val target: PlayerId? = null,
     val ballCarrier: PlayerId? = null,
     val tackler: PlayerId? = null,
+    /** The second man in, when there was one. */
+    val assister: PlayerId? = null,
     val turnover: Boolean = false,
     val penalty: Penalty? = null,
     val log: SimLog = SimLog(),

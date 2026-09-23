@@ -19,7 +19,10 @@ data class StatLine(
     val receptions: Int = 0,
     val receivingYards: Int = 0,
     val receivingTouchdowns: Int = 0,
+    /** Tackles where he was the man who made the stop. */
     val tackles: Int = 0,
+    /** Plays where he was the second man in. Combined tackles are the two together. */
+    val assists: Int = 0,
     val sacks: Int = 0,
     val interceptions: Int = 0,
 ) {
@@ -31,8 +34,12 @@ data class StatLine(
         rushTouchdowns + other.rushTouchdowns, fumblesLost + other.fumblesLost,
         targets + other.targets, receptions + other.receptions,
         receivingYards + other.receivingYards, receivingTouchdowns + other.receivingTouchdowns,
-        tackles + other.tackles, sacks + other.sacks, interceptions + other.interceptions,
+        tackles + other.tackles, assists + other.assists,
+        sacks + other.sacks, interceptions + other.interceptions,
     )
+
+    /** What a tackle leaderboard counts: his own stops and the ones he helped on. */
+    val combinedTackles: Int get() = tackles + assists
 
     val totalTouchdowns: Int get() = rushTouchdowns + receivingTouchdowns
     val touches: Int get() = carries + receptions
