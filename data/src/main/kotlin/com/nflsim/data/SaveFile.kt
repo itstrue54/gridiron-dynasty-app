@@ -49,7 +49,7 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        9, 8, 7, 6 -> envelope.dynasty
+        10, 9, 8, 7, 6 -> envelope.dynasty
         5, 4 -> formSquads(envelope.dynasty)
         3 -> formSquads(giveTendencies(envelope.dynasty))
         2 -> formSquads(giveTendencies(handOutPicks(envelope.dynasty)))
@@ -57,6 +57,11 @@ object SaveFile {
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 10 -> 11: contract disputes arrived (SPEC 10.1). Nothing to move: a
+     * save from before has nobody asking, and the asking starts next season.
+     */
 
     /**
      * 9 -> 10: in-season form arrived (SPEC 10.1). Nothing to move: every

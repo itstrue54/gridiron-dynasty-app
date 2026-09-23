@@ -2,6 +2,10 @@ package com.nflsim.engine.model
 
 import kotlinx.serialization.Serializable
 
+/** A contract dispute, from the club's side of the table. */
+@Serializable
+enum class DemandState { NONE, PENDING, REFUSED, SETTLED }
+
 @Serializable
 enum class PlayerStatus { ACTIVE, IR, PUP, SUSPENDED, PRACTICE_SQUAD, FREE_AGENT, RETIRED }
 
@@ -43,6 +47,8 @@ data class Player(
     val morale: Int = 75,
     /** -100..100: how he is playing this month, not how good he is. Resets each season. */
     val form: Int = 0,
+    /** Where his club stands on the deal he has asked it to fix (SPEC 10.1). */
+    val demand: DemandState = DemandState.NONE,
     /** Everything he has done, season by season (SPEC 4, 9.2). */
     val careerStats: CareerStats = CareerStats(),
 ) {

@@ -454,8 +454,12 @@ object OffseasonEngine {
             }.compressedFor(ctx.oldYear),
             // A new season starts healthy, fresh, and nobody hot or cold.
             players = survivors.map {
-                if (it.injuryWeeks == 0 && it.wear == 0 && it.form == 0) it
-                else it.copy(injuryWeeks = 0, wear = 0, form = 0)
+                if (it.injuryWeeks == 0 && it.wear == 0 && it.form == 0 &&
+                    it.demand == com.nflsim.engine.model.DemandState.NONE) it
+                else it.copy(
+                    injuryWeeks = 0, wear = 0, form = 0,
+                    demand = com.nflsim.engine.model.DemandState.NONE,
+                )
             },
             picks = Picks.rollOver(state.picks + compensation, league.teams.map { it.id }, newYear),
         )

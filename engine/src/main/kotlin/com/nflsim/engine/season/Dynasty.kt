@@ -179,20 +179,25 @@ object DynastyEngine {
         )
 
         val nextWeek = week + 1
+        val afterGames = WeekRunner.afterWeek(
+            dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week,
+        ).let { l ->
+            l.copy(history = l.history.archived(*played.map { g ->
+                // Filed against the league as it was when they played.
+                com.nflsim.engine.model.ArchivedGame.of(
+                    dynasty.year, week, dynasty.league, g.home.v, g.away.v, g.homeScore, g.awayScore, g.boxScore)
+            }.toTypedArray()))
+        }
+        // Who has noticed what he is paid (SPEC 10.1). The league's clubs
+        // answer at once; the user's are asked and left to decide.
+        val disputes = ContractDisputes.afterWeek(
+            afterGames, nextWeek, dynasty.userTeamId, stats, root.split("disputes|${dynasty.year}|$week"))
         return dynasty.copy(
-            league = WeekRunner.afterWeek(
-                dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week,
-            ).let { l ->
-                l.copy(history = l.history.archived(*played.map { g ->
-                    // Filed against the league as it was when they played.
-                    com.nflsim.engine.model.ArchivedGame.of(
-                        dynasty.year, week, dynasty.league, g.home.v, g.away.v, g.homeScore, g.awayScore, g.boxScore)
-                }.toTypedArray()))
-            },
+            league = disputes.league,
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
-            news = (dynasty.news + filed).takeLast(NEWS_KEPT),
+            news = (dynasty.news + filed + disputes.news).takeLast(NEWS_KEPT),
             lastGame = userGame,
             phase = if (nextWeek > Schedule.WEEKS) DynastyPhase.PLAYOFFS
                     else DynastyPhase.REGULAR_SEASON,
