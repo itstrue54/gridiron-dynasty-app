@@ -185,7 +185,9 @@ object DynastyEngine {
             l.copy(history = l.history.archived(*played.map { g ->
                 // Filed against the league as it was when they played.
                 com.nflsim.engine.model.ArchivedGame.of(
-                    dynasty.year, week, dynasty.league, g.home.v, g.away.v, g.homeScore, g.awayScore, g.boxScore)
+                    dynasty.year, week, dynasty.league, g.home.v, g.away.v, g.homeScore, g.awayScore, g.boxScore,
+                    plays = if (g.home == dynasty.userTeamId || g.away == dynasty.userTeamId) g.playByPlay
+                        else emptyList())
             }.toTypedArray()))
         }
         // Who has noticed what he is paid (SPEC 10.1). The league's clubs
@@ -213,14 +215,16 @@ object DynastyEngine {
             p.box?.let { box ->
                 com.nflsim.engine.model.ArchivedGame.of(
                     dynasty.year, Schedule.WEEKS + p.round.ordinal + 1, dynasty.league,
-                    p.home.v, p.away.v, p.homeScore, p.awayScore, box)
+                    p.home.v, p.away.v, p.homeScore, p.awayScore, box,
+                    plays = if (p.home == dynasty.userTeamId || p.away == dynasty.userTeamId) p.plays
+                        else emptyList())
             }
         }
         return dynasty.copy(
             league = dynasty.league.copy(history = dynasty.league.history.archived(*archive.toTypedArray())),
             phase = DynastyPhase.OFFSEASON,
             // The boxes live in the archive; the bracket keeps the scores.
-            playoffs = full.playoffs.map { it.copy(box = null) },
+            playoffs = full.playoffs.map { it.copy(box = null, plays = emptyList()) },
             champion = full.champion?.v,
         )
     }

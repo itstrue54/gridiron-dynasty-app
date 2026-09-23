@@ -45,4 +45,29 @@ class BoxScoreArchiveTest {
         assertEquals((2026..2030).toList(), full)
         assertTrue(history.games.all { it.box.home.points == 20 }, "team totals stay forever")
     }
+
+    @Test
+    fun `the user's games keep their play-by-play for the season, and lose it at the turn`() {
+        val league = LeagueGenerator.generate(2026, 5L)
+        var d = DynastyEngine.start(league, 2026, 5L, league.teams.first().id)
+        val us = d.userTeam
+        while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
+
+        val games = d.league.history.games.filter { it.year == 2026 }
+        val ours = games.filter { it.involves(us) }
+        assertTrue(ours.isNotEmpty() && ours.all { it.plays.size > 80 },
+            "every game of ours should carry its log: ${ours.map { it.plays.size }}")
+        assertTrue(games.filterNot { it.involves(us) }.all { it.plays.isEmpty() },
+            "nobody else's logs are kept")
+        assertTrue(d.playoffs.all { it.plays.isEmpty() }, "the bracket should not keep a second copy")
+
+        // The last play of a log is the final score.
+        val last = ours.first().let { it to it.plays.last() }
+        assertEquals(last.first.homeScore to last.first.awayScore,
+            last.second.homeScore to last.second.awayScore)
+
+        // The year turning over ends it.
+        d = DynastyEngine.advance(d)
+        assertTrue(d.league.history.games.all { it.plays.isEmpty() }, "play-by-play is the current season's only")
+    }
 }
