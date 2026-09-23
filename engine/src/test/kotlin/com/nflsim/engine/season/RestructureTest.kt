@@ -29,7 +29,10 @@ class RestructureTest {
         val preview = Transactions.restructurePreview(l.player(id), 2026)!!
         assertTrue(preview.frees > 0)
         assertTrue(preview.addsPerYear > 0)
-        assertTrue(preview.deadAfter > preview.deadBefore, "the bonus follows a release as dead money")
+        // This year's dead money does not move; next year's does, because the
+        // bonus is still on the books and the base that paid for it is gone.
+        assertTrue(preview.deadAfter > preview.deadBefore,
+            "dead money next year: ${preview.deadBefore} to ${preview.deadAfter}")
 
         val done = Transactions.restructure(l, club, id) as Transactions.Outcome.Done
         val after = done.league.player(id)
