@@ -1178,8 +1178,8 @@ forbids, and are now in the tuning table.
 - ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
 - ~~**News has no benchings and no contract disputes**~~ Both built; see
   the form and dispute ADRs below.
-- **The hub's news block and the export button have not been seen on a
-  device.**
+- ~~**The hub's news block and the export button have not been seen on a
+  device.**~~ Both walked on a phone; see the device pass ADR below.
 
 ## ADR-0xx — Signing and cutting all year, and sixteen men who practise
 
@@ -1489,3 +1489,41 @@ told he is worth $8.1M and then signed for $9.3M.
   trade request, not missed games.
 - The club cannot offer anything but the market rate: no haggling, no
   incentives, no restructures in season (SPEC 8.3 still lists those).
+
+## ADR-0xx — What a device pass found
+
+**Context.** The hub's news block, the roster export, the Demands screen,
+History and the draft room had all been built and tested and never seen
+on a phone.
+
+**Walked on a Galaxy S-series**, a 2026 season played through to the
+offseason. Working as built: the export writes a 13KB CSV of 52 men and
+every rating column to Downloads and says so; Demands reads "Nobody is
+asking" with the club's cap room; the draft room opens on the clock with
+a board of 484 prospects, each a range rather than a number; the news
+block files benchings.
+
+**Four faults, fixed.**
+- Half the hub's links sat off the right edge of the phone in a
+  horizontally scrolling row, with nothing to say they were there and the
+  scroll snapping back every time the hub reopened. Demands, Scouting,
+  History, Tuning and Design were effectively undiscoverable. The row
+  wraps now: all nine show at once.
+- The news block took the five newest, and benchings are filed last, so
+  a week's results and milestones were buried under four men losing
+  their places. It now carries no more than two of any one kind.
+- An injury of 25 weeks read "Out 25 weeks" where 30 read "Out for the
+  season". Anything longer than the season has left, playoffs included,
+  now reads as out for the season.
+- History said "No seasons behind you yet" to a club that had just
+  finished 10-7, because a season joins the record when the year turns
+  over. It now says the year is not in the record yet and what to do
+  about it.
+
+**On driving the user's phone.** Twice during this work the screen
+changed hands mid-pass - an ongoing media card, then another app - and
+blind taps would have landed in the user's own apps. The driver checks
+that the app owns the screen before every tap and brings it back to the
+front rather than tapping into anything else. The save was copied off the
+phone before each pass and restored byte for byte after, checksums
+matched, and the CSV the export test wrote was deleted.
