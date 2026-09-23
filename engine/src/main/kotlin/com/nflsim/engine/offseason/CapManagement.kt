@@ -210,7 +210,8 @@ object CapManagement {
     private const val BIG_DEAL = 6_000
 
     /** How much of a restructurable base salary gets converted. */
-    private const val RESTRUCTURE_SHARE = 0.6f
+    /** Of the base salary a club may move into bonus, how much it moves. */
+    const val RESTRUCTURE_SHARE = 0.6f
 
     private const val MEANINGFUL_SAVING = 2_500
 

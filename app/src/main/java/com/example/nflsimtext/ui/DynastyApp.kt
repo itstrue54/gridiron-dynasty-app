@@ -119,7 +119,7 @@ fun DynastyApp(
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.GALLERY -> DesignGallery { tab = Tab.HUB }
-                    Tab.PLAYER -> PlayerCardScreen(dynasty, player) { tab = Tab.ROSTER }
+                    Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope) { tab = Tab.ROSTER }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
                     Tab.STAFF -> StaffScreen(dynasty) { tab = Tab.HUB }

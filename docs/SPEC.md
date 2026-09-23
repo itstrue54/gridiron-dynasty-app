@@ -661,11 +661,18 @@ which is usually the team that is wrong about him) and need premiums (the team
 without a quarterback pays more for one). Both are how a hole on the roster
 becomes a hole on the cap sheet two years later.
 
-Still to do: restructures and extensions during the season, franchise and
-transition tags, and proactive cap cuts - a team that wants a player it cannot
-afford should be able to release a bad contract to fund the signing. Until
-that exists, teams only cut to become compliant, and a team that is never over
-the cap never cuts anyone.
+**Implemented since.** Extensions during the season are how a contract
+dispute is settled (SPEC 10.1): a man whose market has moved past his deal
+asks, and his club pays him the market rate or tells him no. Restructures
+run in two places - a club clears what it must on cut-down day, and the
+user may move base salary into bonus on any player's card, which frees
+cap this year and puts it on every year of the deal and on the dead money
+if he is ever released. Proactive cap cuts exist in season: a club below
+the 46 it has to dress with no room tears up the contract that saves the
+most per point of what the man gives.
+
+Still to do: transition tags, and haggling over an extension - the club
+can only offer the market rate, take it or leave it.
 
 ### 8.4 Trades
 

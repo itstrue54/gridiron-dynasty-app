@@ -1,5 +1,6 @@
 package com.example.nflsimtext.ui
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,7 @@ import com.example.nflsimtext.ui.components.AttributeBar
 import com.example.nflsimtext.ui.components.ColumnSpec
 import com.example.nflsimtext.ui.components.DataTable
 import com.example.nflsimtext.ui.components.RowData
+import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.SecondaryButton
 import com.example.nflsimtext.ui.components.SituationBlock
 import com.example.nflsimtext.ui.components.StatusTag
@@ -39,7 +41,13 @@ import com.nflsim.engine.season.Dynasty
  * fits the scheme. Nothing the club has not seen is given a number.
  */
 @Composable
-fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) {
+fun PlayerCardScreen(
+    dynasty: Dynasty,
+    playerId: Int?,
+    store: DynastyStore? = null,
+    scope: kotlinx.coroutines.CoroutineScope? = null,
+    onBack: () -> Unit = {},
+) {
     val c = NdTheme.colors
     val player = playerId?.let { id ->
         dynasty.league.roster(dynasty.userTeamId).firstOrNull { it.id.v == id }
@@ -209,6 +217,10 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
         player.contract?.let { contract ->
             item {
                 SituationBlock("Contract", meta = "Signed ${contract.signedYear}") {
+                    Text(
+                        "${money(contract.capHit(dynasty.year))} against the cap this year.",
+                        style = NdTheme.type.data, color = c.chalk,
+                    )
                     val left = contract.signedYear + contract.years - 1 - dynasty.year
                     Text(
                         when {
@@ -255,6 +267,33 @@ fun PlayerCardScreen(dynasty: Dynasty, playerId: Int?, onBack: () -> Unit = {}) 
             }
         }
 
+        // SPEC 8.3: the club's cheapest lever, and its most expensive habit.
+        val restructure = com.nflsim.engine.season.Transactions
+            .restructurePreview(player, dynasty.year)
+        if (restructure != null && store != null && scope != null) {
+            item {
+                SituationBlock("Restructure", meta = "Cap now, cap later") {
+                    Text(
+                        "Moving base salary into bonus frees " +
+                            "${money(restructure.frees)} this year and puts " +
+                            "${money(restructure.addsPerYear)} on every year of the deal.",
+                        style = NdTheme.type.body, color = c.chalk,
+                    )
+                    Text(
+                        "Release him afterwards and the dead money goes from " +
+                            "${money(restructure.deadBefore)} to ${money(restructure.deadAfter)}.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                    )
+                    PrimaryButton(
+                        "Restructure his deal",
+                        { scope.launch { store.restructure(player.id.v) } },
+                        Modifier.padding(top = NdTheme.spacing.s),
+                        enabled = !store.busy,
+                    )
+                }
+            }
+        }
+
         item { SecondaryButton("Back to the roster", onBack) }
     }
 }
@@ -279,10 +318,14 @@ private fun bio(player: Player, dynasty: Dynasty): String = buildString {
     append(", ${dynasty.team.name}")
 }
 
-private fun money(dollars: Int): String = when {
-    dollars >= 1_000_000 -> "$%.1fm".format(dollars / 1_000_000.0)
-    dollars >= 1_000 -> "$%dk".format(dollars / 1_000)
-    else -> "$$dollars"
+/**
+ * Every cap figure in the engine is thousands - 840 is the league minimum,
+ * $840k. Read as dollars, a $15M quarterback's deal showed on his card as
+ * "$15k against the cap", which is what it said until this was fixed.
+ */
+private fun money(thousands: Int): String = when {
+    thousands >= 1_000 -> "$%.1fM".format(thousands / 1_000.0)
+    else -> "$%dk".format(thousands)
 }
 
 /** THROW_ACC_SHORT reads as "Throw accuracy short" on a card. */
