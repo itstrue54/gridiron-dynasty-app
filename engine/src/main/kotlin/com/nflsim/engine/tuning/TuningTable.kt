@@ -92,7 +92,7 @@ data class TuningTable(
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.58f,
+        val baseYards: Float = 3.63f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
@@ -107,10 +107,10 @@ data class TuningTable(
         /** Blocking advantage lost per yard inside the twenty. */
         val redZoneCompression: Float = 0.32f,
         /** Yards per point of vision over 70, and per point of break-tackle over the tackler. */
-        val visionScale: Float = 0.032f,
-        val breakTackleScale: Float = 0.032f,
+        val visionScale: Float = 0.027f,
+        val breakTackleScale: Float = 0.027f,
         /** Breakaway chance per point of elusiveness over 70, and how speed stretches the run. */
-        val breakawayElusiveness: Float = 0.0011f,
+        val breakawayElusiveness: Float = 0.0009f,
         val breakawaySpeedBase: Float = 0.75f,
         val breakawaySpeedRange: Float = 0.5f,
         /** Fumbles: ball security, and how hard the hit is. */
@@ -118,10 +118,10 @@ data class TuningTable(
         val fumbleHitBase: Float = 0.7f,
         val fumbleHitScale: Float = 140f,
         /** Backfield rotation, cumulative: the lead back's share of carries, then the top two's. */
-        val rbRotationLead: Float = 0.86f,
-        val rbRotationTopTwo: Float = 0.95f,
+        val rbRotationLead: Float = 0.64f,
+        val rbRotationTopTwo: Float = 0.90f,
         /** Carries in a game after which the lead back's handoffs go to the next back. */
-        val leadBackCarryCap: Int = 27,
+        val leadBackCarryCap: Int = 23,
     )
 
     /**

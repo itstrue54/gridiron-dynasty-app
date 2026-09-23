@@ -175,8 +175,9 @@ class SeasonTest {
         assertTrue(passing.isNotEmpty() && rushing.isNotEmpty())
         assertTrue(passing.first().value in 3200..5800,
             "passing leader threw for ${passing.first().value}")
-        // Bellcow backs: the top two clear 1,700 most seasons, so the leader can pass 2,300.
-        assertTrue(rushing.first().value in 900..2600,
+        // The NFL's leader runs 1,459-2,027 with the record at 2,105; eighteen
+        // measured seasons here ran 1,425-2,065 (the rushing tail ADR).
+        assertTrue(rushing.first().value in 1_200..2_300,
             "rushing leader ran for ${rushing.first().value}")
     }
 

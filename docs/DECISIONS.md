@@ -1173,9 +1173,7 @@ forbids, and are now in the tuning table.
 ### Open, found while doing this
 - **Corners out-tackle linebackers**, 166 to 124, where the NFL has that
   the other way about. Tackle attribution leans on the secondary.
-- **The rushing record reads 2,583** against a real 2,105 - the price of
-  asking two backs for 1,700 a year, now visible on a records screen
-  where it reads as absurd.
+- ~~**The rushing record reads 2,583**~~ Fixed; see the rushing tail ADR.
 - ~~**Box scores are not retained.**~~ Built; see the box score ADR below.
 - ~~**There is no transactions ledger.**~~ Built; see the wire ADR below.
 - **News has no benchings and no contract disputes**, both of which SPEC
@@ -1334,3 +1332,32 @@ score shows both sides' leaders, and says so when only totals are left.
 **Measured.** About 100KB of compressed save a full season, levelling at
 about 500KB for five, and 25KB a season once compressed: thirty years
 adds roughly 1.1MB.
+
+## ADR-0xx — The rushing leader runs like the NFL's, and M8's rule goes
+
+**Context.** M8 asked for the top two backs to clear 1,700 a year. The
+only lever was volume, so the lead back took 86% of his club's carries:
+404 in a median season, 444 at the top, at 5.7 a carry. The league
+leader ran 2,290 in a median season and the record read 2,678 against a
+real 2,105. Measured over eighteen league-seasons.
+
+**Decision, with the user's agreement, replacing M8's rule.** The NFL's
+figures: leader 1,459-2,027 over the last twenty years, second about
+1,550, 300-370 carries, record 2,105. So the lead back's share drops
+from 0.86 to 0.64 and the top two's from 0.95 to 0.90, his game cap from
+27 carries to 23, and the elite back's edge per carry is compressed
+(vision and break-tackle 0.032 to 0.027 a point, breakaway elusiveness
+0.0011 to 0.0009). Spreading carries to worse backs cost 0.4 points a
+game league-wide, paid back with the neutral carry at 3.63 yards instead
+of 3.58, which holds yards a carry at the 4.40 the earlier ADR
+calibrated.
+
+**Measured.** Eighteen league-seasons: leader 1,425-2,065, median 1,719;
+second 1,570; lead back 314 carries, 373 at the top. Bands on three
+leagues at 4,000 games: 17 of 18 each, against 16, 17 and 16 before -
+no band the baseline passed was lost, third down and one-score games
+came back in, and the two leagues under the scoring floor were under it
+before this change.
+
+**Changed guard.** The season plausibility test allowed a leader up to
+2,600; it now holds him to 1,200-2,300.
