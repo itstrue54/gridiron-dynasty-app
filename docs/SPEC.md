@@ -838,19 +838,19 @@ skew young because of decisions, not because players spontaneously retire.
 
 | Data | Retention |
 |---|---|
-| Play-by-play | Current season only |
+| Play-by-play | The user's club's games, current season only |
 | Box scores | Last 5 seasons full, then compressed to team totals |
 | Player season stat lines | Forever (this is career stats — it's small) |
 | Transactions ledger | Forever |
 | Draft results, awards, standings | Forever |
 
-**Implementation deviation - needs a decision.** Play-by-play is kept for
-the *user's* games this season, not every game: every club's would be about
-forty thousand plays re-encoded with each weekly save, for games nobody
-opens (ADR "A season of the user's play-by-play"). The policy above is
-LOCKED, so either it is amended to "the user's games, current season only"
-or every game's log is kept. The transactions ledger also leaves off the
-cut to 53 and practice-squad formation, about a thousand camp moves a year.
+*Amended Sept 2026, with the owner's sign-off:* play-by-play was "current
+season only" for every game. It is kept for the user's club's games: the
+league's would be about forty thousand plays a season re-encoded with every
+weekly save, for games nobody opens, where the user's are 2,603 plays and
+57KB (ADR "A season of the user's play-by-play"). Every other game keeps
+its box score as above. The transactions ledger leaves off the cut to 53
+and practice-squad formation, about a thousand camp moves a year.
 
 ### 9.4 Roster import / export **[LOCKED]**
 
@@ -941,16 +941,24 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 
 ### 10.3 State pattern
 
-Each screen: `XxxScreen` (stateless composable) + `XxxViewModel` (exposes a `StateFlow<XxxUiState>`) + `XxxUiState` (immutable data class). The ViewModel calls into a `LeagueRepository` that owns the current `League` and applies engine functions. **No engine call happens on the main thread.**
+One `DynastyStore` owns the current `Dynasty`, the save slots, and the
+offseason's in-memory pauses, and applies engine functions to them. Screens
+are composables that read the store's Compose state and call its suspend
+functions; there are no per-screen ViewModels. **No engine call happens on
+the main thread:** the store runs them on `Dispatchers.Default` and writes
+saves on `Dispatchers.IO`.
 
-**Implementation deviation - needs a decision.** The app has no per-screen
-ViewModels or `LeagueRepository`: one `DynastyStore` holds the dynasty and
-the offseason's in-memory pauses, and screens read it directly. It is one
-store per process, on the application context, so a rotation or a theme
-change keeps the offseason in hand; process death still ends the pauses and
-the offseason runs again from the save. Engine calls do run off the main
-thread. Either the store becomes the pattern here, or the app is moved to
-the ViewModel pattern.
+The store is one per process, built on the application context, so a
+rotation, a theme change or a font change - which rebuild the Activity -
+keeps the dynasty and any offseason pause in hand, and the screen the user
+was on is kept with `rememberSaveable`. If Android kills the process in the
+background, the pauses go and the offseason runs again from the save; the
+pauses are too large for saved state, which ViewModels would not change.
+
+*Amended Sept 2026, with the owner's sign-off:* this section described a
+`XxxScreen` + `XxxViewModel` + `XxxUiState` pattern over a
+`LeagueRepository`. The single store is what the app was built on, and it
+is now the rule.
 
 ### 10.4 Narrative generation
 
