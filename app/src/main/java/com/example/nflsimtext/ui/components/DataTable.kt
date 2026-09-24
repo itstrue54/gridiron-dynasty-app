@@ -68,12 +68,15 @@ fun describeRow(columns: List<ColumnSpec>, row: RowData): String {
     val cell = { i: Int -> row.cells.getOrElse(i) { "" }.trim() }
     val names = columns.indices.filterNot { columns[it].numeric }.map(cell).filter { it.isNotEmpty() }
     val numbers = columns.indices.filter { columns[it].numeric }.mapNotNull { i ->
-        val v = cell(i).takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+        // A scouting range "80-93" is heard as "80 to 93", not "80 minus 93".
+        val v = cell(i).takeIf { it.isNotEmpty() }?.replace(RANGE, "$1 to $2") ?: return@mapNotNull null
         val label = columns[i].label.trim()
         if (label.isEmpty()) v else "$label $v"
     }
     return (names + numbers).joinToString(", ")
 }
+
+private val RANGE = Regex("""^(\d+)-(\d+)$""")
 
 /**
  * Numbers right-aligned in tabular figures, names left, a 1dp rule between

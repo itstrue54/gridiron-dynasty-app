@@ -15,7 +15,7 @@ class DescribeRowTest {
 
     @Test
     fun `names first, then each number with its column`() {
-        assertEquals("QB, R. Harlan, Age 27, OVR 58-71",
+        assertEquals("QB, R. Harlan, Age 27, OVR 58 to 71",
             describeRow(roster, RowData(listOf("QB", "R. Harlan", "27", "58-71"))))
     }
 

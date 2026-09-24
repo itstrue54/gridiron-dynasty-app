@@ -170,7 +170,9 @@ fun DynastyApp(
 
             if (store.busy) {
                 Box(
-                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)),
+                    // The scrim is the turf colour, so in the day theme it has to be
+                    // nearly opaque to veil the screen at all.
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.88f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     // A week says how far along it is; anything else spins (SPEC 11).
@@ -185,7 +187,9 @@ fun DynastyApp(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Text(
-                            "Game ${shown.first} of ${shown.second}",
+                            // After the last game come the news and the save.
+                            if (shown.first == shown.second) "Finishing the week"
+                            else "Game ${shown.first} of ${shown.second}",
                             style = NdTheme.type.caption, color = NdTheme.colors.chalk,
                             modifier = Modifier.padding(top = NdTheme.spacing.s),
                         )
