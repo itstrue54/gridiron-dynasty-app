@@ -1852,3 +1852,22 @@ and the offseason runs again from the save.
 **Measured.** On a phone, the Activity was torn down and rebuilt in the
 same process (same pid) with the user in camp; the hub read "Back to camp"
 where it had read "Start the offseason".
+
+## ADR-0xx — Headlines draw their wording from a stream of their own
+
+**Context.** News headlines moved from Kotlin into `narrative/news.json`
+with ten variants a story, so something random has to pick the variant.
+Drawing it from a stream the sim already uses - the disputes stream, say -
+would shift every later draw on that stream, and a change of wording would
+change which veterans ask for money.
+
+**Decision.** The variant is picked from splits kept for wording:
+`headlines|year|week` for the week's news, `headlines|poached|year|week`
+for practice-squad signings, and `split("headlines")` of the disputes
+stream for dispute stories. A split is a pure function of its parent's seed
+and its label, so adding these moved no existing stream.
+
+**Measured.** A fingerprint of a full season and offseason on seed 91 -
+results, stats, transactions, every player's state, and which stories were
+filed about whom - hashed the same before and after
+(`7efa2f187b3448553353cfbe3fe9941f`). No calibration band can have moved.

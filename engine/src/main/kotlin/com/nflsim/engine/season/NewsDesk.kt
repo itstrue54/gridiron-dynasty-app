@@ -4,6 +4,7 @@ import com.nflsim.engine.model.League
 import com.nflsim.engine.model.NewsEvent
 import com.nflsim.engine.model.NewsKind
 import com.nflsim.engine.model.PlayerId
+import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.sim.GameResult
 import com.nflsim.engine.stats.StatLine
 
@@ -36,7 +37,8 @@ object NewsDesk {
     /**
      * What happened this week. [before] is each player's total through last
      * week - career plus season - so a mark is only news the week it turns
-     * over, and [standings] decides whose seat is warm.
+     * over, and [standings] decides whose seat is warm. [rng] picks how each
+     * story is worded and nothing else (SPEC 10.4).
      */
     fun forWeek(
         league: League,
@@ -46,6 +48,7 @@ object NewsDesk {
         after: Map<Int, StatLine>,
         standings: Standings,
         alreadySaid: List<NewsEvent> = emptyList(),
+        rng: Rng,
     ): List<NewsEvent> {
         val news = mutableListOf<NewsEvent>()
         fun name(id: Int) = league.playersById[PlayerId(id)]
@@ -60,8 +63,11 @@ object NewsDesk {
                 week = week,
                 kind = NewsKind.INJURY,
                 headline = if (hurt.gamesOut >= com.nflsim.engine.sim.Injury.SEASON_ENDING)
-                    "${p.name} (${p.position.label}, $side) is out for the season."
-                else "${p.name} (${p.position.label}, $side) is out ${hurt.gamesOut} weeks.",
+                    Headlines.write("injury.season", rng,
+                        "player" to p.name, "pos" to p.position.label, "club" to side)
+                else Headlines.write("injury.weeks", rng,
+                    "player" to p.name, "pos" to p.position.label, "club" to side,
+                    "weeks" to hurt.gamesOut),
                 player = p.id.v,
                 team = hurt.team,
             )
@@ -73,14 +79,17 @@ object NewsDesk {
                 val p = name(id) ?: return@forEach
                 val side = club(p.teamId?.v)?.abbrev ?: ""
                 val note = when {
-                    line.passYards >= BIG_PASSING ->
-                        "${p.name} threw for ${line.passYards} and ${line.passTouchdowns} for $side."
-                    line.rushYards >= BIG_RUSHING ->
-                        "${p.name} ran for ${line.rushYards} on ${line.carries} carries for $side."
-                    line.receivingYards >= BIG_RECEIVING ->
-                        "${p.name} caught ${line.receptions} for ${line.receivingYards} for $side."
-                    line.sacks >= BIG_SACKS ->
-                        "${p.name} had ${line.sacks} sacks for $side."
+                    line.passYards >= BIG_PASSING -> Headlines.write("big.passing", rng,
+                        "player" to p.name, "club" to side,
+                        "yards" to line.passYards, "tds" to line.passTouchdowns)
+                    line.rushYards >= BIG_RUSHING -> Headlines.write("big.rushing", rng,
+                        "player" to p.name, "club" to side,
+                        "yards" to line.rushYards, "carries" to line.carries)
+                    line.receivingYards >= BIG_RECEIVING -> Headlines.write("big.receiving", rng,
+                        "player" to p.name, "club" to side,
+                        "yards" to line.receivingYards, "catches" to line.receptions)
+                    line.sacks >= BIG_SACKS -> Headlines.write("big.sacks", rng,
+                        "player" to p.name, "club" to side, "sacks" to line.sacks)
                     else -> null
                 }
                 if (note != null) {
@@ -97,7 +106,7 @@ object NewsDesk {
                 val crossed = marks.lastOrNull { of(now) >= it && of(was) < it } ?: return
                 news += NewsEvent(
                     week, NewsKind.MILESTONE,
-                    "${p.name} passed $crossed career $what.",
+                    Headlines.write("milestone", rng, "player" to p.name, "mark" to crossed, "what" to what),
                     p.id.v, p.teamId?.v,
                 )
             }
@@ -117,7 +126,8 @@ object NewsDesk {
                 val coach = league.coaches[team.staff.headCoach] ?: return@forEach
                 news += NewsEvent(
                     week, NewsKind.HOT_SEAT,
-                    "${team.name} are ${record.wins}-${record.losses} and ${coach.name} is under pressure.",
+                    Headlines.write("hot_seat", rng, "team" to team.name,
+                        "wins" to record.wins, "losses" to record.losses, "coach" to coach.name),
                     null, team.id.v,
                 )
             }
@@ -150,8 +160,8 @@ object NewsDesk {
                     if (snaps(best) > snaps(playing) * BENCHING_SHARE) return@forEach
                     news += NewsEvent(
                         week, NewsKind.BENCHING,
-                        "${best.name} (${position.label}, ${club.abbrev}) has lost his place to " +
-                            "${playing.name}.",
+                        Headlines.write("benching", rng, "player" to best.name,
+                            "pos" to position.label, "club" to club.abbrev, "replacement" to playing.name),
                         best.id.v, id.v,
                     )
                 }
