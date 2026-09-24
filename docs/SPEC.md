@@ -504,6 +504,27 @@ Two-stage: (1) does an injury event occur on this play, (2) how severe.
 - Recurrence: a previously injured body part carries an elevated multiplier that decays over ~2 seasons.
 - Target: ~1.8 injuries per team-game causing at least one missed game somewhere in the league per week ≈ 40–60 players on IR league-wide by week 12.
 
+### 5.9a In-season form
+
+Every player carries `form`, -100 to 100, reset each season. After each game
+it moves on what he did against what his position is judged against - passer
+rating, yards a carry, yards a target, a defender's stops with sacks and
+takeaways worth more - weighted by how much of the day he had, then decays
+(72% kept a week, 45% of a week's surprise taken in). Positions a box score
+does not measure (the line, the specialists) carry none. Form is worth up to
+4 rating points and is read in one place: the copy of the player that dresses
+for the game, whose ratings are shifted by it. The depth chart and the play
+resolution see it; valuations, scouting and draft boards read his real
+ratings. Weights live in `TuningTable.form`.
+
+### 5.9b Tackle credit
+
+One man is credited with each tackle, by position and by how far the play
+went (`TuningTable.tackling`); a quarter of tackles (`assistShare`) have a
+second man in, credited an assist. `tackles` is the man who made the stop,
+and combined tackles - what a leaderboard, a box score and a career sheet
+show - are the two together.
+
 ### 5.10 Special teams, clock, weather
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
@@ -915,6 +936,20 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
 - **Play-by-play line:** `"{QB} finds {WR} for {yards} on a {concept} against {coverage}."` with variant pools per outcome type.
 - **Game recap:** picks the 3–5 highest-leverage plays by win-probability delta and writes around them.
 - **Weekly news:** injuries, benchings, hot seats, contract disputes, breakout performances, milestone chases.
+  A *benching* is filed when a club's best man at a position, by talent,
+  takes under 40% of the snaps of the man who played it, and at least ten
+  snaps went to someone else - once a man, which form (§5.9a) makes happen.
+  A *contract dispute* is a veteran with three accrued seasons, rated 74 or
+  better, whose market has passed 1.8 times his cap hit, asking his club to
+  fix it between weeks 3 and 15 (2% a week, up for ego and down for loyalty).
+  The league's clubs pay the market rate if they have the room and refuse if
+  not. The user answers on the Demands screen: pay him (any of the ways §8.3
+  lists), offer 90% or 80% against a reservation price (0.90 of market, up to
+  0.10 more for ego, 0.14 less for loyalty, never below 0.74; a snub costs
+  him 5 morale and names his floor), tell him no (18 morale, and far less
+  patience in the spring), or let the front office answer. A demand left
+  waiting costs 2 morale a week, down to 50. News also carries a line when
+  another club signs a man off the user's practice squad.
 - **Press conference / storyline beats:** a holdout, a rookie QB controversy, a coach on the hot seat.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
