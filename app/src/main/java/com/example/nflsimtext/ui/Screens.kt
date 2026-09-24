@@ -523,6 +523,10 @@ fun StandingsScreen(dynasty: Dynasty) {
                 }
             }
         }
+        item {
+            val season = remember(dynasty) { com.nflsim.data.export.SeasonExporter.current(dynasty) }
+            SeasonShareBlock(season, dynasty.league, dynasty.userTeamId)
+        }
     }
 }
 

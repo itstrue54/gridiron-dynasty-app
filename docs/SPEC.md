@@ -1051,6 +1051,13 @@ turnover by reading the line.
 - Respect system font scaling — a text game that breaks at 200% font size is broken.
 - Sim a full week in under 2 s on a mid-range phone; show a determinate progress indicator.
 - Export a season as CSV/Markdown (people who play these games want to post about them).
+  Built: the Standings screen shares the season so far and History any
+  season on record (`data/export/SeasonExporter`). "Share this season" sends
+  Markdown through the phone's share sheet - the champion, the user's
+  record and place, his club game by game (byes included), every
+  division's standings, the awards and the league leaders - and "Save the
+  standings as CSV" writes one row a club to Downloads. Results and
+  aggregates only, so nothing exported reads a rating (§4.6).
 
 ---
 
