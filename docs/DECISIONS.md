@@ -1897,3 +1897,22 @@ streams and finds them identical apart from their words.
 "intercept" and "fumble" in the line, and the old lines said "picks off"
 and "is stripped", so no turnover was ever highlighted. Every turnover
 template now uses those words, and a test holds them to it.
+
+## ADR-0xx — Win probability lives with the recap, not in the tuning table
+
+**Context.** SPEC 10.4's recap picks the plays with the biggest
+win-probability swing, and there was no win-probability model. AGENTS
+rule 4 puts simulation coefficients in `TuningTable`.
+
+**Decision.** `engine/narrative/WinProbability` is a small closed-form
+model (a normal final margin: score plus field position, spread by the
+square root of the time left) with its four numbers as named constants in
+the object. They are not simulation coefficients: the model reads a game's
+log after the game is over and changes nothing the sim does, the same way
+`NewsDesk`'s thresholds for a big game sit in `NewsDesk`. Putting them in
+`TuningTable` would make them look tunable when changing them moves no
+statistic. If the sim ever calls plays off win probability, the model
+moves into the tuning table then.
+
+**Consequences.** Recaps need only the play log, so no save change. They
+exist for games whose plays are kept (the user's, this season, SPEC 9.2).

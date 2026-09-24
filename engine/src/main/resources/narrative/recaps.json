@@ -1,0 +1,102 @@
+{
+  "lead.default": [
+    "The {winner} beat the {loser} {ws}-{ls}.",
+    "The {winner} got past the {loser}, {ws}-{ls}.",
+    "{ws}-{ls}: the {winner} took care of the {loser}.",
+    "The {loser} could not keep up with the {winner}, who won {ws}-{ls}.",
+    "The {winner} handled the {loser}, {ws}-{ls}.",
+    "A {ws}-{ls} win for the {winner} over the {loser}.",
+    "The {winner} came away with a {ws}-{ls} win over the {loser}.",
+    "The {winner} were the better side, beating the {loser} {ws}-{ls}."
+  ],
+  "lead.close": [
+    "The {winner} edged the {loser}, {ws}-{ls}.",
+    "The {winner} held on to beat the {loser} {ws}-{ls}.",
+    "It came down to the end, and the {winner} beat the {loser} {ws}-{ls}.",
+    "{ws}-{ls}. The {winner} got out with a win over the {loser}, just.",
+    "The {winner} survived the {loser}, {ws}-{ls}.",
+    "One score in it all day, and the {winner} beat the {loser} {ws}-{ls}.",
+    "The {loser} pushed them to the wire, but the {winner} won {ws}-{ls}.",
+    "A nervy {ws}-{ls} win for the {winner} over the {loser}."
+  ],
+  "lead.blowout": [
+    "The {winner} routed the {loser}, {ws}-{ls}.",
+    "The {winner} ran the {loser} off the field, {ws}-{ls}.",
+    "{ws}-{ls}. It was over early, and the {winner} kept going against the {loser}.",
+    "The {loser} had no answers in a {ws}-{ls} loss to the {winner}.",
+    "The {winner} buried the {loser}, {ws}-{ls}.",
+    "A long afternoon for the {loser}: the {winner} won {ws}-{ls}.",
+    "The {winner} made a statement, beating the {loser} {ws}-{ls}.",
+    "The {winner} rolled over the {loser} {ws}-{ls}."
+  ],
+  "lead.comeback": [
+    "The {winner} came back from {deficit} down to beat the {loser} {ws}-{ls}.",
+    "Down {deficit}, the {winner} rallied past the {loser}, {ws}-{ls}.",
+    "The {loser} led by {deficit} and still lost, {ws}-{ls} to the {winner}.",
+    "The {winner} climbed out of a {deficit}-point hole to beat the {loser} {ws}-{ls}.",
+    "It looked lost, {deficit} points down, but the {winner} beat the {loser} {ws}-{ls}.",
+    "A comeback from {deficit} down: the {winner} beat the {loser} {ws}-{ls}.",
+    "The {winner} would not go away. Down {deficit}, they beat the {loser} {ws}-{ls}.",
+    "The {loser} let a {deficit}-point lead slip and lost to the {winner} {ws}-{ls}."
+  ],
+  "lead.tie": [
+    "The {home} and the {away} could not be separated, {score}-{score}.",
+    "A tie: the {home} and the {away} finished level at {score}.",
+    "Nobody won. The {home} and the {away} tied {score}-{score}.",
+    "Sixty minutes and more, and the {home} and the {away} ended {score}-{score}.",
+    "The {home} and the {away} settled for a {score}-{score} tie.",
+    "All square at {score}: the {home} and the {away} tied.",
+    "Neither the {home} nor the {away} could find a winner, {score}-{score}.",
+    "The {home} and the {away} played to a {score}-{score} draw."
+  ],
+  "moment": [
+    "{clock} left in {period}, {team} {situation}{fourth}. {play}",
+    "With {clock} to go in {period} and {team} {situation}{fourth}: {play}",
+    "In {period}, {team} {situation}{fourth} with {clock} left. {play}",
+    "{team} {situation}{fourth}, {clock} left in {period}. {play}",
+    "The swing came with {clock} left in {period}, {team} {situation}{fourth}. {play}",
+    "{clock} to play in {period}, and {team} {situation}{fourth}. {play}",
+    "Then, {clock} left in {period} and {team} {situation}{fourth}: {play}",
+    "With {team} {situation}{fourth} and {clock} left in {period}: {play}"
+  ],
+  "situation.trailing": [
+    "trailing {us}-{them}",
+    "down {us}-{them}",
+    "behind {us}-{them}",
+    "chasing at {us}-{them}",
+    "trailing by {gap}",
+    "down {gap}",
+    "{points} behind",
+    "needing {points}"
+  ],
+  "situation.leading": [
+    "leading {us}-{them}",
+    "up {us}-{them}",
+    "ahead {us}-{them}",
+    "in front {us}-{them}",
+    "leading by {gap}",
+    "up {gap}",
+    "{points} ahead",
+    "protecting a {gap}-point lead"
+  ],
+  "situation.level": [
+    "level at {us}",
+    "tied at {us}",
+    "all square at {us}",
+    "even at {us}-{us}",
+    "tied {us}-{us}",
+    "level at {us}-{us}",
+    "with the score tied at {us}",
+    "locked at {us}"
+  ],
+  "fourth": [
+    " on fourth and {distance}",
+    " facing fourth and {distance}",
+    " at fourth and {distance}",
+    ", fourth and {distance}",
+    " on fourth-and-{distance}",
+    " facing a fourth and {distance}",
+    " with fourth and {distance} to go",
+    " on a fourth and {distance}"
+  ]
+}

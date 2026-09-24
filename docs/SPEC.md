@@ -969,6 +969,21 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
 
 - **Play-by-play line:** `"{QB} finds {WR} for {yards} on a {concept} against {coverage}."` with variant pools per outcome type.
 - **Game recap:** picks the 3–5 highest-leverage plays by win-probability delta and writes around them.
+  Built as `engine/narrative/Recaps`, from `narrative/recaps.json`. Win
+  probability (`WinProbability`) treats the final margin as normal: centred
+  on the score plus what the ball is worth (-1.5 points at the offence's own
+  goal line, +0.075 a yard, -0.5 a down used), spread 13.5 points over a
+  whole game and shrinking with the square root of the time left. A play's
+  swing is the change from its chance to the next play's, or to the result
+  after the last. The recap tells the three biggest swings, and up to five
+  if the fourth and fifth moved the game 8% or more, in the order they were
+  played. It opens by the kind of game: a tie, a comeback (the winner fell
+  to 20% or less), a rout (21 or more), a close one (3 or fewer), or
+  otherwise. A moment on fourth down says so. The wording is drawn from the
+  dynasty seed split by the game's clubs, score and play count, so a game
+  reads the same on the game screen and in the box score. It shows at the
+  end of the game screen and at the top of the box score, for any game
+  whose plays are kept (§9.2: the user's, this season).
 - **Weekly news:** injuries, benchings, hot seats, contract disputes, breakout performances, milestone chases.
   A *benching* is filed when a club's best man at a position, by talent,
   takes under 40% of the snaps of the man who played it, and at least ten
