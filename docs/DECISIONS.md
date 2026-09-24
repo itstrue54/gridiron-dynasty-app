@@ -1771,7 +1771,8 @@ front office reproduces the old offseason exactly; and making no offers
 still leaves a full roster, filled with camp bodies.
 
 ### Open
-- The cut to 53 at camp is still made for the user by the league's logic.
+- ~~The cut to 53 at camp is still made for the user by the league's logic.~~
+  Built; see the camp ADR below.
 - ~~No haggling in free agency~~ Built; see the next ADR.
 
 ## ADR-0xx — Talking to a free agent's agent before the market opens
@@ -1798,3 +1799,36 @@ recorded with the offseason's signings.
 market and he stays signed through the ten days; under it, his agent
 names the floor, and after two offers he stops talking, even at his
 floor; a loyal man coming home takes less than a proud stranger.
+
+## ADR-0xx — The user makes his own cut to 53
+
+**Context.** Camp was the last offseason decision the league made for the
+user: after the draft, the fill signed undrafted camp bodies and the cut
+took every roster to 53.
+
+**Decision.** A fourth pause, after the draft (`CutdownPause`). The user
+releases whoever he wants at the dead money his contract says and signs
+off the street at a year of the minimum, and cannot leave camp outside
+46-53. Suggestions are the league's fill and cut run on his roster alone,
+without the fill's random tiebreak; "Let the front office fill and cut"
+runs camp exactly as before. A position every club must field (QB, K, P,
+LS) left empty is filled off the street for him, deterministically, or
+with a camp body from a split of the offseason's random stream.
+
+No new cut logic: `enforceRosterLimit` already leaves a roster within 53
+alone, so the user's legal cut stands, and one over 53 is finished by the
+league's logic as any club's is.
+
+**The random stream.** The camp fill draws from one shared stream as it
+walks the clubs, so leaving the user's club out of it changes the draws
+for the clubs after him - their camp bodies can differ from the automatic
+path's. That is the manual path only; the automatic path is unchanged and
+a test pins it to the old offseason player for player. No RNG code
+changed.
+
+**Measured.** Tested: the front office's camp is the old offseason; the
+suggestions make a legal 53 with every must-field position; a man cut is
+gone at his dead money and a man signed stays; an empty kicker room is
+filled; a camp left over 53 is cut to exactly 53. No calibration band can
+move: the bands play standalone games, and the 30-season gate runs the
+automatic path.

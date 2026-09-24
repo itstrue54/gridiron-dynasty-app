@@ -204,15 +204,15 @@ fun DraftRoomScreen(
                         StatusTag("All your picks are in", TagTone.INFO)
                     }
                     PrimaryButton(
-                        "Finish the offseason",
-                        { scope.launch { store.finishOffseason(); onFinished() } },
+                        "On to camp and the cut to 53",
+                        { scope.launch { store.goToCamp(); if (store.cutdown != null) onFinished() } },
                         Modifier.fillMaxWidth(),
                         enabled = !store.busy,
                     )
                 } else {
                     SecondaryButton(
                         "Let the scouts run the rest of the draft",
-                        { scope.launch { store.finishOffseason(); onFinished() } },
+                        { scope.launch { store.goToCamp(); if (store.cutdown != null) onFinished() } },
                         Modifier.fillMaxWidth(),
                         enabled = !store.busy,
                     )

@@ -303,16 +303,37 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
-    /** Finishes the draft and the rest of the offseason. */
-    suspend fun finishOffseason() {
+    /** Camp, stopped for the user's own fill and cut to 53 (SPEC 7 phases 10-11). In memory. */
+    var cutdown by mutableStateOf<com.nflsim.engine.offseason.CutdownPause?>(null)
+        private set
+
+    /** The draft done: on to camp, where the user makes his own cut. */
+    suspend fun goToCamp() {
         val room = draftRoom ?: return
         busy = true
         try {
+            cutdown = withContext(Dispatchers.Default) { room.pause.toCutdown(room.picks) }
+            draftRoom = null
+        } catch (e: Exception) {
+            message = e.message ?: "Camp would not open."
+        } finally {
+            busy = false
+        }
+    }
+
+    /**
+     * The cut made - or, with null, the front office's fill and cut - and
+     * the rest of the offseason, into the new year.
+     */
+    suspend fun finishCamp(cut: com.nflsim.engine.offseason.CutdownPause.Cut?) {
+        val camp = cutdown ?: return
+        busy = true
+        try {
             val next = withContext(Dispatchers.Default) {
-                val (rolled, report) = room.pause.finish(room.picks)
+                val (rolled, report) = camp.decide(cut)
                 rolled.copy(lastOffseason = report)
             }
-            draftRoom = null
+            cutdown = null
             dynasty = next
             persist(next)
             // The year turning over is a phase advance like any other (SPEC

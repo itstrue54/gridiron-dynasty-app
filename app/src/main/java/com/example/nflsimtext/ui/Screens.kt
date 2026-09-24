@@ -214,6 +214,7 @@ fun HubScreen(
                         // Back to whichever step is in hand: leaving one by
                         // the bottom bar must not throw its decisions away.
                         DynastyPhase.OFFSEASON -> when {
+                            store.cutdown != null -> "Back to camp"
                             store.draftRoom != null -> "Back to the draft room"
                             store.freeAgency != null -> "Back to free agency"
                             store.contracts != null -> "Back to your contracts"
@@ -226,6 +227,7 @@ fun HubScreen(
                         // its expiring contracts first, then the draft room.
                         if (dynasty.phase == DynastyPhase.OFFSEASON) {
                             when {
+                                store.cutdown != null -> onNavigate(Tab.CUTDOWN)
                                 store.draftRoom != null -> onNavigate(Tab.DRAFT)
                                 store.freeAgency != null -> onNavigate(Tab.FREE_AGENCY)
                                 store.contracts != null -> onNavigate(Tab.CONTRACTS)
