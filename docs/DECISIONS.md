@@ -1616,3 +1616,40 @@ Save version 12, nothing to migrate.
 
 ### Open
 - Other clubs' games open to their box score only.
+
+## ADR-0xx — The user's club decides its own expiring contracts
+
+**Context.** The draft was the only offseason decision the user made.
+Re-signing and the franchise and transition tags were run for the user's
+club by the same logic as everyone else's, so a dynasty's most important
+calls about its own players were watched, not made.
+
+**Decision, the user's choice of scope.** The offseason stops before
+re-signing (`OffseasonEngine.runToContracts`), the way it already stopped
+before the draft, and hands the user his expiring players: what the market
+says each is worth, what he asks his own club for and for how long, and
+what either tag would cost. For each: re-sign at his asking price, put
+the franchise or the transition tag on him (one tag, as the CBA allows),
+or let him go to market. Then re-signing and tags run for every other
+club - skipping the user's - and free agency and the draft go on as
+before.
+
+Every price is the one the league's clubs are quoted: the asking price is
+`Extensions.asking`, the term `MarketValue.termFor`, the tags the CBA's
+top-five and top-ten averages at his position. And the screen starts from
+what the club's own front office would do - the same logic on the same
+random draws - so tapping straight through is the offseason the AI would
+have run, and the user changes only what he disagrees with.
+
+**Measured.** Tested: the user's expiring men are listed with prices; a
+man re-signed stays and the men let go are not quietly re-signed by the
+league's logic; only one tag is honoured and a franchise-tagged man stays;
+leaving it to the league produces exactly the offseason it always did;
+and taking the front office's advice keeps exactly the same men. The
+30-season stability gate runs through the new pause and passes.
+
+### Open
+- Matching a transition-tagged man's offer is automatic when the club has
+  the room; there is no "do you match?" for the user. If nobody bids he is
+  a free agent - there is no tender, which the CBA has.
+- Free-agency bidding is still the AI's for the user's club.

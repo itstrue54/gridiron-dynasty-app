@@ -215,7 +215,16 @@ object OffseasonEngine {
      * lives in memory, and the phases before the draft are deterministic, so
      * a club that puts the phone down simply runs them again.
      */
-    fun runToDraft(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): DraftPause {
+    fun runToDraft(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): DraftPause =
+        runToContracts(season, rng).decide(null)
+
+    /**
+     * Everything up to re-signing, so the user's club can decide its own
+     * expiring players - who to keep, who to tag, who to let walk - before
+     * the league's clubs decide theirs. Like the draft, the pause lives in
+     * memory and everything before it is deterministic.
+     */
+    fun runToContracts(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): ContractsPause {
         val oldYear = season.year
         val newYear = oldYear + 1
 
@@ -342,13 +351,8 @@ object OffseasonEngine {
         val valueCuts = state.valueCuts
         val afterPrune = state.players
 
-        // ---- phase 6: re-signing ------------------------------------
-        state = stepReSigning(ctx, state, rng)
-        state = stepFranchiseTag(ctx, state)
-        // ---- phase 7: free agency -----------------------------------
-        state = stepFreeAgency(ctx, state, rng)
-        // ---- phase 9: draft -----------------------------------------
-        return DraftPause(
+        // ---- phase 6: re-signing, which the user's club may decide ----
+        return ContractsPause(
             ctx = ctx,
             state = state,
             rng = rng,
@@ -361,6 +365,37 @@ object OffseasonEngine {
             wishes = wishes,
             trades = trades,
             valueCuts = valueCuts,
+        )
+    }
+
+    /** Re-signing, tags and free agency, once the user's club has decided its own. */
+    internal fun continueToDraft(pause: ContractsPause, choices: Map<Int, ContractChoice>?): DraftPause {
+        val ctx = pause.ctx
+        val rng = pause.rng
+        val user = ctx.dynasty.userTeamId
+        // With choices, the user's club is the user's: its decisions go in
+        // first, and the league's logic skips it. Without, the AI decides for
+        // every club, as it always has.
+        var state = if (choices == null) pause.state else pause.apply(choices)
+        val skip = if (choices == null) null else user
+        state = stepReSigning(ctx, state, rng, skip)
+        state = stepFranchiseTag(ctx, state, skip)
+        // ---- phase 7: free agency -----------------------------------
+        state = stepFreeAgency(ctx, state, rng)
+        // ---- phase 9: draft -----------------------------------------
+        return DraftPause(
+            ctx = ctx,
+            state = state,
+            rng = rng,
+            carousel = pause.carousel,
+            awards = pause.awards,
+            previousTeam = pause.previousTeam,
+            deadMoney = pause.deadMoney,
+            releases = pause.releases,
+            pricer = pause.pricer,
+            wishes = pause.wishes,
+            trades = pause.trades,
+            valueCuts = pause.valueCuts,
         )
     }
 
@@ -776,6 +811,7 @@ object OffseasonEngine {
         ctx: OffseasonContext,
         state: OffseasonState,
         rng: Rng,
+        skip: TeamId? = null,
     ): OffseasonState {
         val result = Extensions.run(
             league = ctx.league,
@@ -786,6 +822,7 @@ object OffseasonEngine {
             scheme = ctx.scheme,
             pricer = state.requirePricer(),
             rng = rng.split("extend|${ctx.newYear}"),
+            skip = skip,
         )
         // A new deal ends a run of tags; the CBA escalates consecutive ones only.
         val kept = result.signings.map { it.player }.toSet()
@@ -976,10 +1013,15 @@ object OffseasonEngine {
     }
 
     /** SPEC 7 phase 5. One tag a club, on a player it could not keep (2020 CBA). */
-    private fun stepFranchiseTag(ctx: OffseasonContext, state: OffseasonState): OffseasonState {
+    private fun stepFranchiseTag(ctx: OffseasonContext, state: OffseasonState, skip: TeamId? = null): OffseasonState {
         val result = FranchiseTag.run(ctx.league, state.players, state.previousTeam, state.deadMoney,
-            ctx.scheme, state.requirePricer(), ctx.newYear)
-        return state.copy(players = result.players, tags = result.tags, transitionTags = result.rightToMatch)
+            ctx.scheme, state.requirePricer(), ctx.newYear, skip)
+        // Added to, not replaced: the user's own tag may already be in.
+        return state.copy(
+            players = result.players,
+            tags = state.tags + result.tags,
+            transitionTags = state.transitionTags + result.rightToMatch,
+        )
     }
 
     /** SPEC 7 phase 7. Ten days of bidding; teams overpay, and that is the point. */

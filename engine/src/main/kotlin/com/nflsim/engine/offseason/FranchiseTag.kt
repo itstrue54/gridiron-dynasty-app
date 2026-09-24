@@ -84,6 +84,8 @@ object FranchiseTag {
         scheme: (TeamId?, Position) -> Scheme,
         pricer: MarketValue.Pricer,
         year: Int,
+        /** A club whose tag is decided elsewhere - the user's. */
+        skip: TeamId? = null,
     ): Result {
         val franchise = prices(players, year, FRANCHISE_TOP)
         val transition = prices(players, year, TRANSITION_TOP)
@@ -92,6 +94,7 @@ object FranchiseTag {
         val rightToMatch = mutableMapOf<Int, TeamId>()
 
         league.teams.forEach { team ->
+            if (team.id == skip) return@forEach
             val expiring = players.filter { it.teamId == null && previousTeam[it.id.v] == team.id }
             if (expiring.isEmpty()) return@forEach
             val space = CapManagement.spaceFor(
@@ -121,6 +124,10 @@ object FranchiseTag {
         }
         return Result(players.map { byId.getValue(it.id.v) }, tags, rightToMatch)
     }
+
+    /** Both tags' prices by CBA position this year: franchise, then transition. */
+    fun prices(players: List<Player>, year: Int): Pair<Map<String, Int>, Map<String, Int>> =
+        prices(players, year, FRANCHISE_TOP) to prices(players, year, TRANSITION_TOP)
 
     /** A one-year tender, all of it guaranteed. */
     fun tender(price: Int, year: Int): Contract =

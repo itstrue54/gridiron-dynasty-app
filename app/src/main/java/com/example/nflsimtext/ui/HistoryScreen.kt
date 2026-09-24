@@ -38,8 +38,8 @@ fun HistoryScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
             )
             Text(
                 if (played)
-                    "The year joins the record when it turns over. Open the draft " +
-                        "room from the hub and ${dynasty.year} lands here with its " +
+                    "The year joins the record when it turns over. Start the " +
+                        "offseason from the hub and ${dynasty.year} lands here with its " +
                         "champion, its awards and everyone who finished."
                 else "Play a year through the offseason and it lands here: champions, " +
                     "awards, the best seasons anyone has had, and the men who finish.",

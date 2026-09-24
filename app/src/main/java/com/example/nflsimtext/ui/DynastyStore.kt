@@ -166,6 +166,47 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** Runs the offseason up to the club's first pick and stops there. */
+    /**
+     * The offseason stopped before re-signing, so the user decides his own
+     * expiring players (SPEC 7 phases 5-6). In memory, like the draft room:
+     * everything before it is deterministic and simply runs again.
+     */
+    var contracts by mutableStateOf<com.nflsim.engine.offseason.ContractsPause?>(null)
+        private set
+
+    suspend fun openContracts() {
+        val current = dynasty ?: return
+        busy = true
+        try {
+            contracts = withContext(Dispatchers.Default) {
+                com.nflsim.engine.offseason.OffseasonEngine.runToContracts(current)
+            }
+        } catch (e: Exception) {
+            message = e.message ?: "The offseason would not open."
+        } finally {
+            busy = false
+        }
+    }
+
+    /** The user's decisions made: on through free agency to the draft room. */
+    suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractChoice>) {
+        val current = dynasty ?: return
+        val pause = contracts ?: return
+        busy = true
+        try {
+            val room = withContext(Dispatchers.Default) {
+                val draft = pause.decide(choices)
+                DraftRoom(draft, emptyMap(), draft.boardFor(current.userTeamId))
+            }
+            draftRoom = room
+            contracts = null
+        } catch (e: Exception) {
+            message = e.message ?: "The draft would not open."
+        } finally {
+            busy = false
+        }
+    }
+
     suspend fun openDraftRoom() {
         val current = dynasty ?: return
         busy = true
