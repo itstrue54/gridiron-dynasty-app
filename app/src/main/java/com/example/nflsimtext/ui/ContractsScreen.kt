@@ -53,7 +53,7 @@ fun ContractsScreen(
     val decisions = remember(pause) { mutableStateMapOf<Int, ContractDecision>() }
     val undecided = pause.expiring.count { it.player.id.v !in decisions }
     fun go(choices: Map<Int, ContractDecision>?) {
-        scope.launch { store.decideContracts(choices); if (store.draftRoom != null) onDraft() }
+        scope.launch { store.decideContracts(choices); if (store.freeAgency != null) onDraft() }
     }
     val cost = pause.cost(decisions)
     val left = pause.capSpace - cost
@@ -213,7 +213,7 @@ fun ContractsScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
                 PrimaryButton(
-                    if (undecided == 0) "On to free agency and the draft"
+                    if (undecided == 0) "On to free agency"
                     else "$undecided still to decide",
                     { go(decisions.toMap()) },
                     Modifier.fillMaxWidth(),

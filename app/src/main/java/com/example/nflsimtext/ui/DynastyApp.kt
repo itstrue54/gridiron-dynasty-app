@@ -73,6 +73,8 @@ enum class Tab(val label: String) {
     SAVES("Saves"),
     /** SPEC 7 phases 5-6: the club's own expiring players, before the draft. */
     CONTRACTS("Contracts"),
+    /** SPEC 7 phase 7: the club's own free-agency offers. */
+    FREE_AGENCY("Free agency"),
 }
 
 @Composable
@@ -131,6 +133,11 @@ fun DynastyApp(
                     Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.HUB }
                     Tab.CONTRACTS -> ContractsScreen(
                         dynasty, store, scope,
+                        onDraft = { tab = Tab.FREE_AGENCY },
+                        onBack = { tab = Tab.HUB },
+                    )
+                    Tab.FREE_AGENCY -> FreeAgencyScreen(
+                        dynasty, store, scope,
                         onDraft = { tab = Tab.DRAFT },
                         onBack = { tab = Tab.HUB },
                     )
@@ -174,7 +181,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Tab.entries.filter {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME,
-                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS,
+                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {

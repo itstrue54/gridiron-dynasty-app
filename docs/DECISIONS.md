@@ -1734,6 +1734,42 @@ room and refusing without; a user's injured places wait for him with the
 roster left to him and are filled when handed over. Save version 13.
 
 ### Open
-- Free-agency bidding is still the front office's, with no manual option;
-  the user chose to keep it automatic when the offseason decisions were
-  scoped.
+- ~~Free-agency bidding is still the front office's~~ Built; see the
+  free-agency ADR below.
+
+## ADR-0xx — The user bids in free agency
+
+**Context.** The last offseason decision the league still made for the
+user was who to chase in free agency. He asked for the gap to be fixed:
+his moves first, the front office only if asked.
+
+**Decision.** The offseason stops a third time, after re-signing and tags
+and before the ten days (`FreeAgencyPause`). The user sees the market -
+every man's scouting read, what he is worth, what he opens asking, the
+club he left - with advice on each: bid his market if he would start for
+this club and it fits, one year if he is past the age a club pays
+through, and pass on anyone who would sit, since the draft buys depth
+cheaper. He puts standing offers on whoever he wants - under, at, or over
+the market, for one to five years - or hands the whole thing to the front
+office, which bids for him by the league's logic exactly as before.
+
+A standing offer is bid every day the man is unsigned and the club can
+still pay it, and each offer on the table counts against the room for the
+others, so a club cannot spend its cap twice. The offers compete under the
+auction's own rules: a man takes the most appealing package that clears
+his asking price - money first, then winning and fit - and asks about
+4.5% less each day he waits. So an offer at market can lose him to a
+contender on the first day, and one under market can land on the seventh.
+The draft room opens with word of what happened: who signed, who went
+where and for how much, and who is still waiting.
+
+**Measured.** Tested: the market is listed with worth and asking price
+for every man; an offer of half again his market signs him, and one of
+half his market never does; offers on twenty men at everything the club
+has land one at most and never take it over the cap; handing it to the
+front office reproduces the old offseason exactly; and making no offers
+still leaves a full roster, filled with camp bodies.
+
+### Open
+- The cut to 53 at camp is still made for the user by the league's logic.
+- No haggling in free agency: an offer is what it is for ten days.
