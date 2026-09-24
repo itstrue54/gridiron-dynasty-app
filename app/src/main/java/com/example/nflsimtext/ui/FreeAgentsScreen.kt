@@ -126,6 +126,13 @@ fun FreeAgentsScreen(
                         style = NdTheme.type.caption, color = c.chalkDim,
                     )
                 }
+                // The moves are the user's; the front office makes them only if asked.
+                SecondaryButton(
+                    if (dynasty.frontOfficeRoster) "Front office fills injured places: on"
+                    else "Let the front office fill injured places",
+                    { scope.launch { store.setFrontOfficeRoster(!dynasty.frontOfficeRoster) } },
+                    Modifier.padding(top = NdTheme.spacing.s),
+                )
                 FilterChipRow(
                     options = GROUPS,
                     selected = position,

@@ -188,8 +188,12 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
-    /** The user's decisions made: on through free agency to the draft room. */
-    suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractDecision>) {
+    /**
+     * The user's decisions made - or, with null, his front office's, exactly
+     * as the league's logic would have run his club - and on through free
+     * agency to the draft room.
+     */
+    suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractDecision>?) {
         val current = dynasty ?: return
         val pause = contracts ?: return
         busy = true
@@ -322,6 +326,25 @@ class DynastyStore(private val saveDir: File) {
         transact { league, team ->
             com.nflsim.engine.season.ContractDisputes.offer(
                 league, team, com.nflsim.engine.model.PlayerId(playerId), share, wireWeek(), stats)
+        }
+    }
+
+    /** Hands the in-season roster moves to the front office, or takes them back. */
+    suspend fun setFrontOfficeRoster(on: Boolean) {
+        val current = dynasty ?: return
+        val next = current.copy(frontOfficeRoster = on)
+        dynasty = next
+        persist(next)
+        message = if (on) "Your front office will fill injured places and the practice squad."
+            else "Injured places and the practice squad are yours to fill again."
+    }
+
+    /** The front office answers a demand the way the league's clubs do. */
+    suspend fun frontOfficeAnswer(playerId: Int) {
+        val stats = dynasty?.playerStats ?: return
+        transact { league, team ->
+            com.nflsim.engine.season.ContractDisputes.frontOfficeAnswer(
+                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), stats)
         }
     }
 
