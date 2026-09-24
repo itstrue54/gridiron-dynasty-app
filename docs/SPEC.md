@@ -504,6 +504,27 @@ Two-stage: (1) does an injury event occur on this play, (2) how severe.
 - Recurrence: a previously injured body part carries an elevated multiplier that decays over ~2 seasons.
 - Target: ~1.8 injuries per team-game causing at least one missed game somewhere in the league per week ≈ 40–60 players on IR league-wide by week 12.
 
+### 5.9a In-season form
+
+Every player carries `form`, -100 to 100, reset each season. After each game
+it moves on what he did against what his position is judged against - passer
+rating, yards a carry, yards a target, a defender's stops with sacks and
+takeaways worth more - weighted by how much of the day he had, then decays
+(72% kept a week, 45% of a week's surprise taken in). Positions a box score
+does not measure (the line, the specialists) carry none. Form is worth up to
+4 rating points and is read in one place: the copy of the player that dresses
+for the game, whose ratings are shifted by it. The depth chart and the play
+resolution see it; valuations, scouting and draft boards read his real
+ratings. Weights live in `TuningTable.form`.
+
+### 5.9b Tackle credit
+
+One man is credited with each tackle, by position and by how far the play
+went (`TuningTable.tackling`); a quarter of tackles (`assistShare`) have a
+second man in, credited an assist. `tackles` is the man who made the stop,
+and combined tackles - what a leaderboard, a box score and a career sheet
+show - are the two together.
+
 ### 5.10 Special teams, clock, weather
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
@@ -535,6 +556,32 @@ interface Rng {
 - Tiebreakers: implement the full NFL cascade (H2H, division record, common games, conference record, strength of victory, strength of schedule, then coin flip from the RNG). Write this as a testable list of predicates — it is a classic source of "why did my 11-6 team miss."
 - Awards: MVP, OPOY, DPOY, OROY, DROY, CPOY, Coach of the Year, All-Pro 1st/2nd, Pro Bowl. Voting = a weighted score function over stats + team success + narrative bonuses, with deliberate voter noise so it isn't purely mechanical.
 
+### 6.1 In-season roster
+
+- **Injured reserve.** A man out 4 weeks or more goes on IR at every club:
+  still paid, off the 53, and not dressed unless the club has nobody else at
+  his position. Healed, he comes back when there is a place for him.
+- **Practice squads.** Sixteen per club, no more than six men past two
+  accrued seasons, no more than three at a position. A squad player has no
+  team on his record: he is a free agent his club trains, so any club may
+  sign him to its 53. Squads dissolve each spring and are chosen again after
+  the cut to 53, the league snaking through them.
+- **The league's clubs** fill a place reserve opens at the position they are
+  thinnest - their own squad first, the street second, another club's squad
+  only for a man better than both by 8 rating points (`ai.poachClearUpgrade`)
+  - top the squad back up, and cut the stopgap when the man returns. A club
+  below the 46 it dresses with no cap room tears up the contract that saves
+  the most per point of what the man gives.
+- **The user's club** makes its own moves on the Free agents screen: sign off
+  the street or another club's squad, promote or release squad men, release
+  from the 53, bring a healed man back. "Let the front office fill injured
+  places" hands them to the league's logic, and is saved with the dynasty.
+  The hub says when the 53 has open places and when the squad is short, and
+  the news when another club signs a man off his squad.
+- **Signing in season** costs the minimum prorated by the weeks left, one
+  eighteenth a game (CBA Article 26): one year, all base salary, nothing
+  guaranteed.
+
 ---
 
 ## 7. Offseason — the phase machine **[LOCKED]**
@@ -558,6 +605,38 @@ The offseason is an explicit enum. Each phase has an `advance()` that returns a 
 Then `PRESEASON → REGULAR_SEASON`.
 
 **Rule:** a phase can only be advanced when its blocking conditions are met (e.g. you cannot leave `CONTRACT_DECISIONS` while over the cap). The UI shows the blocking condition as a to-do list.
+
+**The user's club decides its own offseason.** Every decision below is the
+user's first, with the league's own logic available on request - "Let the
+front office decide", "bid", "fill and cut", "Let the scouts pick" -
+running his club exactly as it runs every other. The offseason stops at
+each decision (`ContractsPause`, `FreeAgencyPause`, the draft room's
+`DraftPause`, `CutdownPause`); the pauses live in memory and are not saved
+half-finished (§10.3).
+
+**Expiring contracts (phases 5-6, the user's club).** Each expiring man is
+shown with his market, what he asks his own club for and for how long,
+anything he has said he wants, and the franchise tender. Nothing is
+decided until the user decides it: re-sign, franchise tag, transition tag
+(one tag, as the CBA allows) or let him go. Each shows a recommendation
+and its reason, judged on what he is to this club - whether he starts,
+whether his ask is within 8% of his market, whether he is under the age a
+club pays through (31), whether it fits - taken down the list most
+valuable first, so the one tag goes where it suits and the room runs out
+where it would. The front office's own call is shown beside it where they
+differ. A re-signing can be written any of the ways §8.3 lists. The
+blocking condition is that every man is decided, or the undecided are let
+go to market.
+
+**Free agency (phase 7, the user's club).** Before the ten days the user
+may talk to any free agent's agent (§8.3) and puts standing offers on
+whoever he wants - under, at or over the market, for one to five years.
+An offer is bid every day the man is unsigned and the club can still pay
+it, each counting against the room for the others, and competes under the
+auction's own rules. Each man shows advice: his market if he would start
+for this club and it fits, one year if he is past the age a club pays
+through, pass on anyone who would sit. The draft room opens with who
+signed, who went where, and who is still waiting.
 
 **Camp and the cut to 53 (phases 10-11, the user's club).** The offseason
 stops after the draft (`CutdownPause`) and hands the user his camp roster
@@ -688,9 +767,34 @@ man below his reservation price turns it down and names his floor.
 Franchise and transition tags were already built (`FranchiseTag`, with the
 right to match), which an earlier version of this note got wrong.
 
-Still to do: the user's own offseason. Re-signing, tags and free-agency
-bidding are run for the user's club by the same logic as everyone else's;
-only the draft is the user's to make.
+**Every way to write a deal** (`ContractOptions`). A man names a figure for
+the length he wants; a year shorter costs the club 5% more a year and a
+year longer 3% less, because security is what a contract is for. Each
+length is offered in three structures, written out explicitly because
+this engine back-loads salary and spreads bonus evenly: *standard* (the
+usual deal), *cap-light* (the minimum in salary this year, a bonus spread
+over the deal - least cap now, most dead money) and *pay as you go* (flat
+salary, no bonus - more cap now, no dead money beyond the guarantee). A
+one-year deal is written one way only. The advice writes a kept man's
+deal for no longer than his prime, cap-light when the room is tight, pay
+as you go near the age line, standard otherwise. Restructures come in a
+quarter, half or all of what can move, with the advice to leave it when
+there is room.
+
+**The user bids and haggles in free agency.** Standing offers are
+described in §7. Before the market opens he may also make up to two
+offers to a man's agent: at or above his reservation price he signs on the
+spot, before anyone else can bid; under it his agent names his floor, and
+after the second no he goes to market. The floor starts at 1.02 of his
+market; an ego adds up to 0.10, a star worth 12% of the cap 0.06, loyalty
+takes up to 0.14 off for the club he played for, a club that won 60% of
+its games 0.05; never below 0.90 or above 1.25.
+
+Still to do: the league's own clubs do not haggle - they pay the market
+or refuse - and there are no incentives or guarantee terms to trade
+against, only the annual figure. Matching a transition-tagged man's offer
+is automatic when the club has the room, and he gets no tender if nobody
+bids.
 
 ### 8.4 Trades
 
@@ -739,6 +843,14 @@ skew young because of decisions, not because players spontaneously retire.
 | Player season stat lines | Forever (this is career stats — it's small) |
 | Transactions ledger | Forever |
 | Draft results, awards, standings | Forever |
+
+**Implementation deviation - needs a decision.** Play-by-play is kept for
+the *user's* games this season, not every game: every club's would be about
+forty thousand plays re-encoded with each weekly save, for games nobody
+opens (ADR "A season of the user's play-by-play"). The policy above is
+LOCKED, so either it is amended to "the user's games, current season only"
+or every game's log is kept. The transactions ledger also leaves off the
+cut to 53 and practice-squad formation, about a thousand camp moves a year.
 
 ### 9.4 Roster import / export **[LOCKED]**
 
@@ -815,15 +927,30 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **League leaders** | Sortable stat leaderboards, all positions |
 | **Finances** | Cap table, dead money, future years, restructure/cut tool with live cap impact |
 | **Free agency** | Board, offers, negotiation, day-by-day market |
+| **Expiring contracts** | Offseason: each expiring man's market and ask, a recommendation and why, every way to write a re-signing, the two tags, let him go (§7) |
 | **Draft room** | Big board, your board vs consensus, needs, live picks, trade offers |
+| **Camp** | Offseason: the camp roster with dead money if cut, the street to sign from, suggested cuts and why, the 46–53 bounds (§7) |
 | **Trades** | Block, proposal builder with AI valuation feedback |
 | **Staff** | Hire/fire, coach cards with scheme + dev ratings, coordinator tree |
+| **Free agents (in season)** | The street and other clubs' practice squads to sign from, the user's squad and IR, releases with their dead money, the front office roster toggle (§6.1) |
+| **Contract demands** | Demands from the user's own men: every way to pay, 90%/80% offers, refuse, or let the front office answer (§10.4) |
+| **Transactions** | The league's wire by season, the user's club or everyone, filtered by kind (§4.7, §9.2) |
+| **Saves** | Five slots and three autosaves: play, copy, overwrite, delete, restore, start a new dynasty in an empty slot (§9.1) |
 | **History** | Champions, awards, records, franchise timeline, hall of fame |
 | **Settings / Tuning** | Sliders (§12), sim speed, autosave, export |
 
 ### 10.3 State pattern
 
 Each screen: `XxxScreen` (stateless composable) + `XxxViewModel` (exposes a `StateFlow<XxxUiState>`) + `XxxUiState` (immutable data class). The ViewModel calls into a `LeagueRepository` that owns the current `League` and applies engine functions. **No engine call happens on the main thread.**
+
+**Implementation deviation - needs a decision.** The app has no per-screen
+ViewModels or `LeagueRepository`: one `DynastyStore` holds the dynasty and
+the offseason's in-memory pauses, and screens read it directly. It is one
+store per process, on the application context, so a rotation or a theme
+change keeps the offseason in hand; process death still ends the pauses and
+the offseason runs again from the save. Engine calls do run off the main
+thread. Either the store becomes the pattern here, or the app is moved to
+the ViewModel pattern.
 
 ### 10.4 Narrative generation
 
@@ -832,9 +959,28 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
 - **Play-by-play line:** `"{QB} finds {WR} for {yards} on a {concept} against {coverage}."` with variant pools per outcome type.
 - **Game recap:** picks the 3–5 highest-leverage plays by win-probability delta and writes around them.
 - **Weekly news:** injuries, benchings, hot seats, contract disputes, breakout performances, milestone chases.
+  A *benching* is filed when a club's best man at a position, by talent,
+  takes under 40% of the snaps of the man who played it, and at least ten
+  snaps went to someone else - once a man, which form (§5.9a) makes happen.
+  A *contract dispute* is a veteran with three accrued seasons, rated 74 or
+  better, whose market has passed 1.8 times his cap hit, asking his club to
+  fix it between weeks 3 and 15 (2% a week, up for ego and down for loyalty).
+  The league's clubs pay the market rate if they have the room and refuse if
+  not. The user answers on the Demands screen: pay him (any of the ways §8.3
+  lists), offer 90% or 80% against a reservation price (0.90 of market, up to
+  0.10 more for ego, 0.14 less for loyalty, never below 0.74; a snub costs
+  him 5 morale and names his floor), tell him no (18 morale, and far less
+  patience in the spring), or let the front office answer. A demand left
+  waiting costs 2 morale a week, down to 50. News also carries a line when
+  another club signs a man off the user's practice squad.
 - **Press conference / storyline beats:** a holdout, a rookie QB controversy, a coach on the hot seat.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
+
+**Implementation deviation - to fix.** Every news headline is written in
+Kotlin (`NewsDesk`, `ContractDisputes`, `Dynasty`), one variant each, and
+AGENTS.md rule 8 says the same as this section: narrative lives in JSON.
+They should move to `narrative/*.json` with variants.
 
 ---
 
@@ -967,7 +1113,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 - **[OPEN]** Room in v1 or defer to v2? — Deferred. Revisit at M7 with real save-size numbers.
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - **[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.
-- **[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin? Prototype at M8 and decide by feel.
+- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. Gameday inactives are still open: every healthy man on the 53 dresses.
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
 
 ---
