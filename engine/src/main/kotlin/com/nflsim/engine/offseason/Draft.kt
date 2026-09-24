@@ -320,7 +320,8 @@ object DraftRunner {
 /** What a roster is short of, 0 (set) to 1 (desperate). */
 object TeamNeeds {
 
-    private val STARTERS: Map<Position, Int> = mapOf(
+    /** How many start at each position. */
+    val STARTERS: Map<Position, Int> = mapOf(
         Position.QB to 1, Position.RB to 1, Position.FB to 1, Position.WR to 3,
         Position.TE to 1, Position.LT to 1, Position.LG to 1, Position.C to 1,
         Position.RG to 1, Position.RT to 1, Position.EDGE to 2, Position.DT to 2,

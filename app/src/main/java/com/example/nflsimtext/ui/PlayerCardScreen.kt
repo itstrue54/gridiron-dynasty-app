@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.AttributeBar
@@ -268,27 +272,49 @@ fun PlayerCardScreen(
         }
 
         // SPEC 8.3: the club's cheapest lever, and its most expensive habit.
-        val restructure = com.nflsim.engine.season.Transactions
-            .restructurePreview(player, dynasty.year)
-        if (restructure != null && store != null && scope != null) {
+        val options = com.nflsim.engine.offseason.ContractOptions.restructures(player, dynasty.year)
+        if (options.isNotEmpty() && store != null && scope != null) {
+            val room = com.nflsim.engine.season.Transactions.spaceFor(dynasty.league, dynasty.userTeamId)
+            val advice = com.nflsim.engine.offseason.ContractOptions.bestRestructure(
+                options, room, com.nflsim.engine.offseason.CapManagement.capFor(dynasty.year), dynasty.league.tuning)
             item {
+                var picked by remember(player.id) { mutableStateOf(advice.pick ?: options[1.coerceAtMost(options.lastIndex)]) }
                 SituationBlock("Restructure", meta = "Cap now, cap later") {
                     Text(
-                        "Moving base salary into bonus frees " +
-                            "${money(restructure.frees)} this year and puts " +
-                            "${money(restructure.addsPerYear)} on every year of the deal.",
-                        style = NdTheme.type.body, color = c.chalk,
+                        "Best: ${if (advice.pick == null) "leave it" else advice.pick!!.label.lowercase() + " of what can move"}",
+                        style = NdTheme.type.data, color = c.chalk,
+                    )
+                    Text(advice.why, style = NdTheme.type.caption, color = c.chalkDim)
+                    DataTable(
+                        columns = listOf(
+                            ColumnSpec("Move", 1.3f),
+                            ColumnSpec("Frees now", 1.2f, numeric = true),
+                            ColumnSpec("Each year", 1.2f, numeric = true),
+                            ColumnSpec("Dead next*", 1.2f, numeric = true),
+                        ),
+                        rows = options.map { o ->
+                            RowData(
+                                listOf(
+                                    o.label + if (o == advice.pick) " ★" else "",
+                                    money(o.preview.frees),
+                                    "+" + money(o.preview.addsPerYear),
+                                    money(o.preview.deadAfter),
+                                ),
+                                highlight = o == picked,
+                                onClick = { picked = o },
+                            )
+                        },
                     )
                     Text(
-                        if (restructure.deadAfter > restructure.deadBefore)
-                            "Cut him next year and the dead money goes from " +
-                                "${money(restructure.deadBefore)} to ${money(restructure.deadAfter)}."
-                        else "It does not change what cutting him would cost.",
+                        "Moving base salary into bonus frees cap now and puts it on every year of the deal. " +
+                            "*Dead money if you cut him next year: " +
+                            "${money(options.first().preview.deadBefore)} as the deal stands.",
                         style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
                     )
                     PrimaryButton(
-                        "Restructure his deal",
-                        { scope.launch { store.restructure(player.id.v) } },
+                        "Restructure: ${picked.label.lowercase()}, frees ${money(picked.preview.frees)}",
+                        { scope.launch { store.restructure(player.id.v, picked.share) } },
                         Modifier.padding(top = NdTheme.spacing.s),
                         enabled = !store.busy,
                     )

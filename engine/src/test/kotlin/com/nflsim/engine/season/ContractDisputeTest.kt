@@ -126,4 +126,25 @@ class ContractDisputeTest {
         })
         assertTrue(ContractDisputes.offer(broke, club, id, 1f) is Transactions.Outcome.Refused)
     }
+
+    @Test
+    fun `the advice pays him when there is room and says how to make it when there is not`() {
+        val (l, id) = underpaidStar()
+        val ask = ContractDisputes.pending(l, club).single()
+        val advice = ContractDisputes.advise(l, club, ask)
+        assertTrue(advice.deal != null && advice.headline.startsWith("Pay him"), advice.headline)
+        // And the deal it recommends is one he signs, written as advised.
+        val done = ContractDisputes.extend(l, club, id, years = advice.deal!!.years,
+            structure = advice.deal!!.structure) as Transactions.Outcome.Done
+        assertEquals(advice.deal!!.contract, done.league.player(id).contract)
+
+        val broke = l.copy(players = l.players.map {
+            if (it.teamId == club && it.id != id) it.copy(
+                contract = com.nflsim.engine.model.Contract(
+                    years = 3, baseSalary = listOf(6_000, 6_000, 6_000), signedYear = 2026)) else it
+        })
+        val none = ContractDisputes.advise(broke, club, ContractDisputes.pending(broke, club).single())
+        assertEquals(null, none.deal)
+        assertTrue(none.why.contains("Restructure"), none.why)
+    }
 }

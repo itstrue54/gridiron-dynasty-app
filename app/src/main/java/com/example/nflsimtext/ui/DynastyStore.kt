@@ -189,7 +189,7 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** The user's decisions made: on through free agency to the draft room. */
-    suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractChoice>) {
+    suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractDecision>) {
         val current = dynasty ?: return
         val pause = contracts ?: return
         busy = true
@@ -304,11 +304,15 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** Pay a man who has asked his club to fix his deal (SPEC 10.1). */
-    suspend fun extendContract(playerId: Int) {
+    suspend fun extendContract(
+        playerId: Int,
+        years: Int? = null,
+        structure: com.nflsim.engine.offseason.ContractOptions.Structure? = null,
+    ) {
         val stats = dynasty?.playerStats ?: return
         transact { league, team ->
             com.nflsim.engine.season.ContractDisputes.extend(
-                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), stats)
+                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), stats, years, structure)
         }
     }
 
@@ -328,10 +332,11 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** SPEC 8.3: base salary into bonus - cheap now, dearer every year after. */
-    suspend fun restructure(playerId: Int) = transact { league, team ->
-        com.nflsim.engine.season.Transactions.restructure(
-            league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek())
-    }
+    suspend fun restructure(playerId: Int, share: Float = com.nflsim.engine.offseason.CapManagement.RESTRUCTURE_SHARE) =
+        transact { league, team ->
+            com.nflsim.engine.season.Transactions.restructure(
+                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), share)
+        }
 
     private fun wireWeek(): Int = dynasty?.wireWeek ?: 0
 

@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.SecondaryButton
@@ -62,6 +66,9 @@ fun DemandsScreen(
 
         asks.forEach { ask ->
             item {
+                val advice = ContractDisputes.advise(dynasty.league, dynasty.userTeamId, ask)
+                val deals = ContractDisputes.deals(dynasty.league, ask)
+                var picked by remember(ask.player.id) { mutableStateOf(advice.deal) }
                 val affordable = space >= ask.capChange
                 SituationBlock(
                     "${ask.player.position.label} ${ask.player.name}",
@@ -83,14 +90,29 @@ fun DemandsScreen(
                             style = NdTheme.type.caption, color = c.chalkDim,
                         )
                     }
+                    // The recommendation, and the reason for it.
+                    Text(
+                        "Best: ${advice.headline}",
+                        style = NdTheme.type.data, color = c.chalk,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s),
+                    )
+                    Text(advice.why, style = NdTheme.type.caption, color = c.chalkDim)
+
+                    // Every way to write it at his price; the row picked is the one paid.
+                    Column(Modifier.padding(top = NdTheme.spacing.s)) {
+                        DealTable(deals, picked, advice.deal) { picked = it }
+                    }
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
+                        val deal = picked
                         PrimaryButton(
-                            "Pay him ${money(ask.market)}",
-                            { scope.launch { store.extendContract(ask.player.id.v) } },
-                            enabled = affordable && !store.busy,
+                            if (deal == null) "Pay him ${money(ask.market)}"
+                            else "Pay him: ${deal.years}y at ${money(deal.annual)}",
+                            { scope.launch { store.extendContract(ask.player.id.v, deal?.years, deal?.structure) } },
+                            enabled = !store.busy &&
+                                (deal?.let { space >= it.capNow - ask.paid } ?: affordable),
                         )
                         // Haggling (SPEC 8.3): what he will take is his own
                         // business until a club offers less and finds out.
