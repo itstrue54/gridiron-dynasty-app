@@ -1048,6 +1048,12 @@ turnover by reading the line.
 ## 11. Accessibility & polish (non-optional)
 
 - All tables navigable by screen reader with proper content descriptions.
+  Built in `DataTable`, which every table uses: the table announces itself
+  as a collection of so many rows and columns, each row is one item read
+  names first and then every number with its column's name ("QB, R.
+  Harlan, Age 27, OVR 58-71"; `describeRow`), a row that opens something
+  is a button, and a sortable header says "sort by" and which way it is
+  sorted.
 - Respect system font scaling — a text game that breaks at 200% font size is broken.
 - Sim a full week in under 2 s on a mid-range phone; show a determinate progress indicator.
 - Export a season as CSV/Markdown (people who play these games want to post about them).

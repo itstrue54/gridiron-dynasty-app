@@ -20,6 +20,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,6 +60,22 @@ data class RowData(
 data class SortState(val column: Int, val descending: Boolean = true)
 
 /**
+ * A row as a screen reader says it (SPEC 11): the names first, then each
+ * number with its column's name, so "88" is heard as "OVR 88". A blank cell
+ * says nothing; a column with no name says its value alone.
+ */
+fun describeRow(columns: List<ColumnSpec>, row: RowData): String {
+    val cell = { i: Int -> row.cells.getOrElse(i) { "" }.trim() }
+    val names = columns.indices.filterNot { columns[it].numeric }.map(cell).filter { it.isNotEmpty() }
+    val numbers = columns.indices.filter { columns[it].numeric }.mapNotNull { i ->
+        val v = cell(i).takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+        val label = columns[i].label.trim()
+        if (label.isEmpty()) v else "$label $v"
+    }
+    return (names + numbers).joinToString(", ")
+}
+
+/**
  * Numbers right-aligned in tabular figures, names left, a 1dp rule between
  * rows and no rounding: a spreadsheet with good typography (docs/DESIGN.md 5).
  */
@@ -63,7 +90,10 @@ fun DataTable(
 ) {
     val c = NdTheme.colors
     val stacked = LocalConfiguration.current.fontScale > 1.3f
-    Column(modifier.fillMaxWidth()) {
+    // A table, to a screen reader: this many rows of this many columns.
+    Column(modifier.fillMaxWidth().semantics {
+        collectionInfo = CollectionInfo(rowCount = rows.size, columnCount = columns.size)
+    }) {
         // Stacked rows carry their own labels, so a header that no longer lines
         // up with anything is noise - unless it is the only way to sort.
         val header = !stacked || onSort != null
@@ -91,17 +121,33 @@ fun DataTable(
                             if (stacked) Modifier.padding(end = NdTheme.spacing.m)
                             else Modifier.weight(col.weight)
                         )
-                        .then(if (onSort != null) Modifier.clickable { onSort(i) } else Modifier),
+                        .then(if (onSort != null) Modifier.clickable(
+                            onClickLabel = "sort by ${col.label.ifBlank { "this column" }}",
+                            role = Role.Button,
+                        ) { onSort(i) }.semantics {
+                            if (active) stateDescription = if (sort.descending) "sorted, highest first"
+                                else "sorted, lowest first"
+                        } else Modifier),
                 )
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.turfLine))
-        rows.forEach { row ->
+        rows.forEachIndexed { index, row ->
             val rowModifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = if (stacked) NdTheme.spacing.twoLineHeight else NdTheme.spacing.rowHeight)
                 .background(if (row.highlight) c.stripe else c.turfRaised)
                 .then(if (row.onClick != null) Modifier.clickable { row.onClick.invoke() } else Modifier)
+                // One thing to hear per row, with every number named, rather
+                // than a string of bare cells (SPEC 11).
+                .clearAndSetSemantics {
+                    contentDescription = describeRow(columns, row)
+                    collectionItemInfo = CollectionItemInfo(index, 1, 0, columns.size)
+                    row.onClick?.let { open ->
+                        role = Role.Button
+                        onClick { open(); true }
+                    }
+                }
                 .padding(horizontal = NdTheme.spacing.xs)
             fun ink(col: ColumnSpec, cell: String): Color = when {
                 row.highlight -> c.onStripe
