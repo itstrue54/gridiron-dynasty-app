@@ -211,16 +211,16 @@ fun HubScreen(
                 PrimaryButton(
                     text = when (dynasty.phase) {
                         DynastyPhase.PLAYOFFS -> "Play the postseason"
-                        DynastyPhase.OFFSEASON -> "Open the draft room"
+                        DynastyPhase.OFFSEASON -> "Start the offseason"
                         else -> "Play week ${dynasty.week}"
                     },
                     onClick = {
-                        // The year turns over through the draft room, where the
-                        // club makes its own picks, rather than in one jump.
+                        // The year turns over through the club's own decisions:
+                        // its expiring contracts first, then the draft room.
                         if (dynasty.phase == DynastyPhase.OFFSEASON) {
                             scope.launch {
-                                store.openDraftRoom()
-                                if (store.draftRoom != null) onNavigate(Tab.DRAFT)
+                                store.openContracts()
+                                if (store.contracts != null) onNavigate(Tab.CONTRACTS)
                             }
                         } else {
                             scope.launch {

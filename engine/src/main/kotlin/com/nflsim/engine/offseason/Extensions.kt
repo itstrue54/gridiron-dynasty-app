@@ -39,6 +39,8 @@ object Extensions {
         scheme: (TeamId?, Position) -> Scheme,
         pricer: MarketValue.Pricer,
         rng: Rng,
+        /** A club whose own players are decided elsewhere - the user's. */
+        skip: TeamId? = null,
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -49,6 +51,7 @@ object Extensions {
         val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         league.teams.forEach { team ->
+            if (team.id == skip) return@forEach
             val current = roster.getOrPut(team.id) { mutableListOf() }
             val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0)
             if (space <= Contract.MIN_BASE_SALARY * 4) return@forEach
@@ -77,7 +80,7 @@ object Extensions {
                 // one takes less to stay, a mercenary wants what the market
                 // would pay - and the club decides how far it will go before
                 // it lets him test the market.
-                val ask = market * (PLAYER_ASK - p.traits.loyalty / 100f * PLAYER_LOYALTY)
+                val ask = asking(p, market).toFloat()
                 val limit = market * (CLUB_LIMIT + team.gm.loyaltyToOwnPlayers * CLUB_LOYALTY +
                     keepPremium(p, team.gm, needs, free, scheme(team.id, p.position), year))
                 if (ask > limit) return@forEach
@@ -179,4 +182,26 @@ object Extensions {
     private const val KEEP_THRESHOLD = 1.6f
 
     private const val NEED_WEIGHT = 10f
+
+    /**
+     * What a man asks his own club for to stay: a loyal one takes less, a
+     * mercenary wants what the market would pay. The same figure the league's
+     * clubs are asked, and the one the user is.
+     */
+    fun asking(p: Player, market: Int): Int =
+        (market * (PLAYER_ASK - p.traits.loyalty / 100f * PLAYER_LOYALTY)).roundToInt()
+            .coerceAtLeast(Contract.MIN_BASE_SALARY)
+
+    /** The deal a man re-signs on: what he asked, for as long as his age says. */
+    fun kept(p: Player, team: TeamId, annual: Int, year: Int): Player {
+        val years = MarketValue.termFor(p.age(year), depth = 0)
+        return p.copy(
+            teamId = team,
+            status = PlayerStatus.ACTIVE,
+            contract = Contract.of(years = years, totalValue = annual * years, signedYear = year,
+                guaranteedShare = 0.50f),
+            yearsInSystem = p.yearsInSystem + 1, yearsWithClub = p.clubYears + 1,
+            timesTagged = 0,
+        )
+    }
 }
