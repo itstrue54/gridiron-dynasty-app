@@ -170,9 +170,31 @@ fun DynastyApp(
 
             if (store.busy) {
                 Box(
-                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)),
+                    // The scrim is the turf colour, so in the day theme it has to be
+                    // nearly opaque to veil the screen at all.
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.88f)),
                     contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+                ) {
+                    // A week says how far along it is; anything else spins (SPEC 11).
+                    val shown = store.progress
+                    if (shown == null) CircularProgressIndicator()
+                    else Column(
+                        Modifier.fillMaxWidth(0.7f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { shown.first.toFloat() / shown.second },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            // After the last game come the news and the save.
+                            if (shown.first == shown.second) "Finishing the week"
+                            else "Game ${shown.first} of ${shown.second}",
+                            style = NdTheme.type.caption, color = NdTheme.colors.chalk,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                    }
+                }
             }
         }
     }

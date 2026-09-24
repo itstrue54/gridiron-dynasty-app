@@ -1048,8 +1048,20 @@ turnover by reading the line.
 ## 11. Accessibility & polish (non-optional)
 
 - All tables navigable by screen reader with proper content descriptions.
+  Built in `DataTable`, which every table uses: the table announces itself
+  as a collection of so many rows and columns, each row is one item read
+  names first and then every number with its column's name ("QB, R.
+  Harlan, Age 27, OVR 58 to 71"; `describeRow`), a row that opens something
+  is a button, and a sortable header says "sort by" and which way it is
+  sorted.
 - Respect system font scaling — a text game that breaks at 200% font size is broken.
 - Sim a full week in under 2 s on a mid-range phone; show a determinate progress indicator.
+  The week's progress is determinate: `DynastyEngine.advance` reports each
+  finished game to an `onGame` listener that cannot change the week, and
+  the busy overlay shows a bar and "Game 5 of 16", then "Finishing the
+  week" while the news and the save are written. The playoffs and the
+  offseason, which the engine runs as single steps, still show a spinner.
+  On the test phone a week takes about 1.8 s from the tap.
 - Export a season as CSV/Markdown (people who play these games want to post about them).
   Built: the Standings screen shares the season so far and History any
   season on record (`data/export/SeasonExporter`). "Share this season" sends

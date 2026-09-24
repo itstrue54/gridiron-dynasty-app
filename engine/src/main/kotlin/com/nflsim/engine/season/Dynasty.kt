@@ -111,10 +111,19 @@ object DynastyEngine {
     }
 
     /** Plays the current week, or the next playoff round. */
-    fun advance(dynasty: Dynasty, tuning: TuningTable = dynasty.league.tuning): Dynasty =
+    /**
+     * [onGame] hears each game of a regular-season week as it finishes, as
+     * (games done, games in the week), so a screen can show how far along
+     * it is (SPEC 11). It is told, never asked: it cannot change the week.
+     */
+    fun advance(
+        dynasty: Dynasty,
+        tuning: TuningTable = dynasty.league.tuning,
+        onGame: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): Dynasty =
         when (dynasty.phase) {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
-            DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning)
+            DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning, onGame)
             DynastyPhase.PLAYOFFS -> runPlayoffs(dynasty, tuning)
             DynastyPhase.OFFSEASON -> rollOver(dynasty)
         }
@@ -144,7 +153,7 @@ object DynastyEngine {
     /** How much of the season's news a save carries. */
     const val NEWS_KEPT = 240
 
-    private fun advanceWeek(dynasty: Dynasty, tuning: TuningTable): Dynasty {
+    private fun advanceWeek(dynasty: Dynasty, tuning: TuningTable, onGame: (Int, Int) -> Unit): Dynasty {
         val teams = WeekRunner.teams(dynasty.league, tuning)
         val played = mutableListOf<GameResult>()
         val root = SplitMixRng(dynasty.seed)
@@ -154,7 +163,8 @@ object DynastyEngine {
         val outcomes = dynasty.results.toMutableList()
         var userGame: GameResult? = dynasty.lastGame
 
-        dynasty.schedule.week(week).forEach { matchup ->
+        val games = dynasty.schedule.week(week)
+        games.forEachIndexed { done, matchup ->
             val rng = root.split(
                 "y=${dynasty.year}|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
             val g = GameSimulator(
@@ -163,6 +173,7 @@ object DynastyEngine {
             stats = merge(stats, g.boxScore.players)
             if (matchup.involves(dynasty.userTeamId)) userGame = g
             played += g
+            onGame(done + 1, games.size)
         }
 
         // The week, as news. A career mark counts the seasons behind a man as
