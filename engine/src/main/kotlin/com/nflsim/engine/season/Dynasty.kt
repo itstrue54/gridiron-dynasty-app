@@ -194,12 +194,28 @@ object DynastyEngine {
         // answer at once; the user's are asked and left to decide.
         val disputes = ContractDisputes.afterWeek(
             afterGames, nextWeek, dynasty.userTeamId, stats, root.split("disputes|${dynasty.year}|$week"))
+        // What other clubs did to the user's this week. Signing a man off his
+        // practice squad is theirs to do and his to hear about: it is on the
+        // wire, and nobody reads the wire for news of their own club.
+        val raided = disputes.league.transactions.drop(dynasty.league.transactions.size)
+            .filter {
+                it.kind == com.nflsim.engine.model.TransactionKind.SIGNED_OFF_SQUAD &&
+                    it.other == dynasty.userTeam
+            }
+            .map { line ->
+                val by = disputes.league.teams.firstOrNull { it.id.v == line.team }?.abbrev ?: "?"
+                com.nflsim.engine.model.NewsEvent(
+                    nextWeek, com.nflsim.engine.model.NewsKind.POACHED,
+                    "$by have signed ${line.position} ${line.name} off your practice squad.",
+                    line.player, dynasty.userTeam,
+                )
+            }
         return dynasty.copy(
             league = disputes.league,
             week = nextWeek,
             results = outcomes,
             playerStats = stats,
-            news = (dynasty.news + filed + disputes.news).takeLast(NEWS_KEPT),
+            news = (dynasty.news + filed + disputes.news + raided).takeLast(NEWS_KEPT),
             lastGame = userGame,
             phase = if (nextWeek > Schedule.WEEKS) DynastyPhase.PLAYOFFS
                     else DynastyPhase.REGULAR_SEASON,
