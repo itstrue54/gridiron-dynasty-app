@@ -53,6 +53,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
     val cap = CapManagement.capFor(dynasty.year)
     val committed = roster.sumOf { it.capHit(dynasty.year) }
     val dead = team.finances.deadMoney
+    val carried = team.finances.carryover
 
     ScreenList {
         item {
@@ -73,9 +74,10 @@ fun OffseasonScreen(dynasty: Dynasty) {
         item {
             Section("Your cap sheet") {
                 Line("salary cap", money(cap))
+                if (carried > 0) Line("carried over", money(carried))
                 Line("committed", money(committed))
                 if (dead > 0) Line("dead money", money(dead), warn = true)
-                Line("space", money(cap - committed - dead), bold = true)
+                Line("space", money(cap + carried - committed - dead), bold = true)
                 Spacer(Modifier.height(8.dp))
                 Text("Biggest hits", style = NdTheme.type.label, color = NdTheme.colors.chalkDim)
                 roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->

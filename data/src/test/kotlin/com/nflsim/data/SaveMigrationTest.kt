@@ -121,6 +121,28 @@ class SaveMigrationTest {
     }
 
     @Test
+    fun `a save from before cap carryover loads carrying nothing`() {
+        val d = dynasty()
+        val raw = cbor.encodeToByteArray(Envelope.serializer(), Envelope(14, d))
+        val out = ByteArrayOutputStream()
+        GZIPOutputStream(out).use { it.write(raw) }
+        val loaded = SaveFile.decode(out.toByteArray())
+        assertTrue(loaded.league.teams.all { it.finances.carryover == 0 },
+            "a club starts carrying room at its next offseason")
+        assertEquals(1.0f, loaded.league.tuning.ai.capCarryoverShare)
+    }
+
+    @Test
+    fun `carried-over room survives a save`() {
+        val d = dynasty()
+        val carried = d.copy(league = d.league.copy(teams = d.league.teams.mapIndexed { i, t ->
+            t.copy(finances = t.finances.copy(carryover = 1_000 * (i + 1)))
+        }))
+        val loaded = SaveFile.decode(SaveFile.encode(carried))
+        assertEquals(carried.league.teams.map { it.finances }, loaded.league.teams.map { it.finances })
+    }
+
+    @Test
     fun `a current save round trips untouched`() {
         val original = dynasty()
         val loaded = SaveFile.decode(SaveFile.encode(original))

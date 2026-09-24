@@ -64,7 +64,8 @@ class FreeAgencyPause internal constructor(
     /** The user's roster as free agency opens. */
     val roster: List<Player> get() = state.players.filter { it.teamId == userTeam }
 
-    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0)
+    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0,
+        carryover = ctx.league.team(userTeam).finances.carryover)
 
     /** What to offer, if anything, and why. */
     data class Advice(val offer: FreeAgency.Offer?, val headline: String, val why: String)
@@ -81,7 +82,10 @@ class FreeAgencyPause internal constructor(
         val scheme = ctx.scheme(userTeam, p.position)
         val rank = roster.count { it.position == p.position && overall(it, scheme) > overall(p, scheme) }
         val starter = rank < (TeamNeeds.STARTERS[p.position] ?: 1)
+        val yours = state.letGo[p.id.v] == userTeam
         return when {
+            yours && !Extensions.willingToReturn(p, ctx.league.tuning) -> Advice(null, "He will not come back",
+                "You let him go this spring, and he is too proud to sign with you again.")
             !starter -> Advice(null, "Pass", "He would be a backup for you: the draft buys depth cheaper.")
             age > ctx.league.tuning.ai.payThroughAge ->
                 Advice(FreeAgency.Offer(p.id.v, c.market, 1), "Offer one year at ${money(c.market)}",
@@ -127,6 +131,9 @@ class FreeAgencyPause internal constructor(
         val c = candidates.firstOrNull { it.player.id.v == playerId }
             ?: return Talk(this, false, "He is not on the market.")
         val p = c.player
+        if (state.letGo[p.id.v] == userTeam && !Extensions.willingToReturn(p, ctx.league.tuning)) {
+            return Talk(this, false, "${p.lastName}'s agent will not take the call: you let him go.")
+        }
         if (talksLeft(playerId) == 0) {
             return Talk(this, false, "${p.lastName} is done talking. He will take his chances on the market.")
         }

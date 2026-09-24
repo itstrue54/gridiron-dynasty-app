@@ -45,8 +45,29 @@ object CapManagement {
 
     fun committed(roster: List<Player>, year: Int): Int = roster.sumOf { it.capHit(year) }
 
-    fun spaceFor(roster: List<Player>, year: Int, deadMoney: Int = 0): Int =
-        capFor(year) - committed(roster, year) - deadMoney
+    /**
+     * Room under a club's cap: the league's cap, plus what the club carried
+     * over from last year, less what it owes its players and its dead money.
+     * The carryover has no default, so no caller can forget it.
+     */
+    fun spaceFor(roster: List<Player>, year: Int, deadMoney: Int = 0, carryover: Int): Int =
+        capFor(year) + carryover - committed(roster, year) - deadMoney
+
+    /**
+     * Next year's carryover for every club (SPEC 8.1): the room it left
+     * unused as the league year it has [finished] closed, times the carryover
+     * share, written onto the clubs of [into]. A club over the cap carries
+     * nothing, and it owes nothing extra for being over.
+     */
+    fun carryForward(finished: League, into: League): League {
+        val share = finished.tuning.ai.capCarryoverShare
+        val carried = finished.teams.associate { t ->
+            t.id to (com.nflsim.engine.season.Transactions.spaceFor(finished, t.id).coerceAtLeast(0) * share).toInt()
+        }
+        return into.copy(teams = into.teams.map {
+            it.copy(finances = it.finances.copy(carryover = carried[it.id] ?: 0))
+        })
+    }
 
     /**
      * Cuts until every team is legal.
@@ -72,9 +93,10 @@ object CapManagement {
         val released = mutableListOf<Player>()
         val notes = mutableListOf<Release>()
         val deadMoneyByTeam = mutableMapOf<Int, Int>()
-        val cap = capFor(year)
 
         league.teams.forEach { team ->
+            // A club's own cap: the league's, and what it carried over.
+            val cap = capFor(year) + team.finances.carryover
             val roster = (byTeam[team.id] ?: emptyList()).toMutableList()
             var dead = deadMoney?.get(team.id.v) ?: team.finances.deadMoney
             var guard = 0

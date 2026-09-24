@@ -44,9 +44,10 @@ object Transactions {
     fun price(weeksLeft: Int): Int =
         askingPrice * weeksLeft.coerceIn(1, Schedule.WEEKS) / Schedule.WEEKS
 
-    /** Cap room the club has after what it already owes and its dead money. */
-    fun spaceFor(league: League, team: TeamId): Int =
-        CapManagement.spaceFor(league.roster(team), league.year, league.team(team).finances.deadMoney)
+    /** Cap room the club has after what it already owes and its dead money, with last year's room carried over. */
+    fun spaceFor(league: League, team: TeamId): Int = league.team(team).finances.let {
+        CapManagement.spaceFor(league.roster(team), league.year, it.deadMoney, carryover = it.carryover)
+    }
 
     /** Everyone on the street: nobody's player, nobody's squad, and not retired. */
     fun freeAgents(league: League): List<Player> = league.players.filter(PracticeSquads::unattached)

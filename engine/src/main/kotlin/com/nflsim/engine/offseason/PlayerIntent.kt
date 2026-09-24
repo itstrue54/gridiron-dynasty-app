@@ -195,7 +195,8 @@ object PlayerIntent {
                 .filter { it.id != from }
                 .mapNotNull { t ->
                     val theirs = roster.getOrPut(t.id) { mutableListOf() }
-                    val space = CapManagement.spaceFor(theirs, ctx.year, dead[t.id.v] ?: 0)
+                    val space = CapManagement.spaceFor(theirs, ctx.year, dead[t.id.v] ?: 0,
+                        carryover = t.finances.carryover)
                     if (space < hit) return@mapNotNull null
 
                     val sch = ctx.scheme(t.id, player.position)

@@ -27,6 +27,14 @@ import kotlin.math.roundToInt
  */
 object Extensions {
 
+    /**
+     * Whether a man the user's club let walk this spring will sign with it
+     * again (SPEC 7). He has to want to: his loyalty at least matches his
+     * ego. The price is whatever he would take anyway.
+     */
+    fun willingToReturn(player: Player, tuning: com.nflsim.engine.tuning.TuningTable): Boolean =
+        player.traits.loyalty - player.traits.ego >= tuning.ai.returnLoyaltyOverEgo
+
     data class Result(val players: List<Player>, val signings: List<Signing>)
 
     fun run(
@@ -53,7 +61,8 @@ object Extensions {
         league.teams.forEach { team ->
             if (team.id == skip) return@forEach
             val current = roster.getOrPut(team.id) { mutableListOf() }
-            val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0)
+            val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0,
+                carryover = team.finances.carryover)
             if (space <= Contract.MIN_BASE_SALARY * 4) return@forEach
 
             // Only part of the space goes on your own players - the rest is

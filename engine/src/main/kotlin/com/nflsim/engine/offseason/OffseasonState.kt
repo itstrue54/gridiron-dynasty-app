@@ -90,6 +90,8 @@ data class OffseasonState(
     val tags: List<Tag> = emptyList(),
     /** Transition-tagged players, and the club that may match an offer for each. */
     val transitionTags: Map<Int, TeamId> = emptyMap(),
+    /** Men the user's club let walk this spring, and that club: they return only if willing (SPEC 7). */
+    val letGo: Map<Int, TeamId> = emptyMap(),
     /** Transition-tagged players who stayed, matched or on the tender. */
     val transitionKept: Int = 0,
 ) {

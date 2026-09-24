@@ -87,6 +87,8 @@ object FreeAgency {
         manual: TeamId? = null,
         /** Its standing offers, bid every day the man is unsigned and the club can pay. */
         offers: List<Offer> = emptyList(),
+        /** Men the user's club let walk this spring: they take its offer only if willing. */
+        letGo: Map<Int, TeamId> = emptyMap(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -115,7 +117,8 @@ object FreeAgency {
                     // The user's club bids what he told it to, and only what
                     // it can pay: each offer on the table counts against the
                     // room for the others, the way a real cap sheet does.
-                    var space = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0)
+                    var space = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0,
+                        carryover = team.finances.carryover)
                     offers.forEach { o ->
                         val p = pool.firstOrNull { it.id.v == o.player } ?: return@forEach
                         val worth = market[o.player] ?: return@forEach
@@ -134,7 +137,8 @@ object FreeAgency {
                 // not. That difference is where bad contracts come from, and
                 // bad contracts are what the cap is for.
                 val front = team.gm
-                val rawSpace = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0)
+                val rawSpace = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0,
+                    carryover = team.finances.carryover)
 
                 // A full roster still has a use for cap room: sign the better
                 // player and release the one he displaces. Without this a team
@@ -207,6 +211,9 @@ object FreeAgency {
                 val live = offers.filter { b ->
                     b.replaces == null || ((upgrades[b.team.v] ?: 0) < league.tuning.ai.faMaxUpgrades &&
                         roster[b.team]?.any { it.id.v == b.replaces } == true)
+                }.filter { b ->
+                    // The club that let him go gets him back only if he is willing.
+                    letGo[id] != b.team || Extensions.willingToReturn(player, league.tuning)
                 }
                 // A loyal player gives his old club the benefit of the doubt.
                 val best = live.maxByOrNull { b ->
@@ -223,7 +230,8 @@ object FreeAgency {
                 // A transition tag: his old club may match the offer he takes (CBA).
                 val matcher = rightToMatch[id]?.takeIf { club ->
                     club != best.team &&
-                        CapManagement.spaceFor(roster[club] ?: emptyList(), year, dead[club.v] ?: 0) >= best.annual
+                        CapManagement.spaceFor(roster[club] ?: emptyList(), year, dead[club.v] ?: 0,
+                            carryover = league.team(club).finances.carryover) >= best.annual
                 }
                 val team = matcher ?: best.team
 

@@ -241,7 +241,10 @@ object OffseasonEngine {
         val carousel = CoachingCarousel.run(
             season.league, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
             previousWinPct, rng.split("carousel|$newYear"))
-        val dynasty = season.copy(league = carousel.league)
+        // Last year's unused room joins next year's cap (SPEC 8.1). It is
+        // read from the books as the season closed and written before any
+        // phase counts money, so every cap check this spring includes it.
+        val dynasty = season.copy(league = CapManagement.carryForward(season.league, carousel.league))
         val league = dynasty.league
 
         // The league's schemes, each carrying its scheme-fit tuning, built once.
@@ -387,6 +390,14 @@ object OffseasonEngine {
         val skip = if (choices == null) null else user
         state = stepReSigning(ctx, state, rng, skip)
         state = stepFranchiseTag(ctx, state, skip)
+        if (choices == null) {
+            // The front office decided for the user's club, and whoever it
+            // let go is let go all the same: he comes back only if willing.
+            val letGo = pause.expiring.map { it.player.id.v }.filter { id ->
+                state.players.first { it.id.v == id }.teamId == null && id !in state.transitionTags
+            }.associateWith { user }
+            state = state.copy(letGo = state.letGo + letGo)
+        }
         return FreeAgencyPause(
             ctx = ctx, state = state, rng = rng, carousel = pause.carousel, awards = pause.awards,
             previousTeam = pause.previousTeam, deadMoney = pause.deadMoney, releases = pause.releases,
@@ -546,7 +557,8 @@ object OffseasonEngine {
         val finalRosters = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val capSpace = league.teams.map { t ->
             CapManagement.spaceFor(
-                finalRosters[t.id] ?: emptyList(), newYear, (state.deadMoney[t.id.v] ?: 0) / 2)
+                finalRosters[t.id] ?: emptyList(), newYear, (state.deadMoney[t.id.v] ?: 0) / 2,
+                carryover = t.finances.carryover)
         }
 
         // Every contract big enough to be worth cutting, against what the
@@ -724,6 +736,7 @@ object OffseasonEngine {
             pricer = state.requirePricer(),
             rng = rng.split("fa|${ctx.newYear}"),
             skip = skip,
+            letGo = state.letGo,
         )
         return state.copy(
             players = players,
@@ -1092,6 +1105,7 @@ object OffseasonEngine {
             rightToMatch = state.transitionTags,
             manual = manual,
             offers = offers,
+            letGo = state.letGo,
         )
         // A transition-tagged player nobody signed plays on the tender.
         val tenders = state.tags.filter { it.kind == FranchiseTag.TRANSITION }.associateBy { it.player }
@@ -1116,7 +1130,7 @@ object OffseasonEngine {
         val leagueSpace = ctx.league.teams.sumOf { t ->
             CapManagement.spaceFor(
                 capRosters[t.id] ?: emptyList(), ctx.newYear,
-                state.deadMoney[t.id.v] ?: 0).toLong()
+                state.deadMoney[t.id.v] ?: 0, carryover = t.finances.carryover).toLong()
         }.coerceAtLeast(1L)
         val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE -
             rostered.size - DraftRunner.ROUNDS * League.TEAM_COUNT).coerceAtLeast(1)
@@ -1546,6 +1560,8 @@ object OffseasonEngine {
         rng: Rng,
         /** A club that signed its own camp bodies - the user's - left out of the fill. */
         skip: TeamId? = null,
+        /** Men the user's club let walk: it signs one back only if he is willing. */
+        letGo: Map<Int, TeamId> = emptyMap(),
     ): Pair<List<Player>, List<Signing>> {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -1565,7 +1581,11 @@ object OffseasonEngine {
                 val current = roster.getOrPut(teamId) { mutableListOf() }
                 var have = current.count { it.position == position }
                 while (have < required) {
-                    val candidates = freeAgents.filter { it.position == position }
+                    // A man this club let walk comes back only if he wants to.
+                    val candidates = freeAgents.filter { p ->
+                        p.position == position &&
+                            (letGo[p.id.v] != teamId || Extensions.willingToReturn(p, league.tuning))
+                    }
                     val best = candidates.maxByOrNull { p ->
                         rosterValue(p, scheme(teamId, position), year,
                             league.team(teamId).gm.winNowVsFuture) + rng.gaussian(0f, 3f)
@@ -1592,7 +1612,8 @@ object OffseasonEngine {
                     // is less. A capped-out team fills its roster with minimum
                     // deals, which is exactly how a good roster gets thin.
                     val worth = pricer.annual(pick, scheme(teamId, position), year)
-                    val space = CapManagement.spaceFor(current, year, deadMoney[teamId.v] ?: 0)
+                    val space = CapManagement.spaceFor(current, year, deadMoney[teamId.v] ?: 0,
+                        carryover = league.team(teamId).finances.carryover)
                     val value = when {
                         space <= Contract.MIN_BASE_SALARY * 2 -> Contract.MIN_BASE_SALARY
                         else -> worth.coerceAtMost((space / 3).coerceAtLeast(Contract.MIN_BASE_SALARY))

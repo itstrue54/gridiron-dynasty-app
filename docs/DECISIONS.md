@@ -1916,3 +1916,54 @@ moves into the tuning table then.
 
 **Consequences.** Recaps need only the play log, so no save change. They
 exist for games whose plays are kept (the user's, this season, SPEC 9.2).
+
+## ADR-0xx — A man the user's club lets go comes back only if he is willing
+
+**Context.** A test promised that whoever the user lets walk is gone. It
+held by luck: when the front office ran the user's free agency, nothing
+stopped the late roster fill signing a let-go man back, and a change in
+the market (cap carryover) made it happen. The user's rule: he can come
+back if there is nobody better, he is still available, and he is willing.
+
+**Decision.** The offseason records the men the user's club let go
+(`OffseasonState.letGo`), whether the user decided or its front office
+did - so taking the front office's suggestions is still the offseason it
+would have run, as another test pins. The auction drops that club's bids
+for an unwilling man, the fill passes over him, and before the market his
+agent will not talk. Willing is trait-only: loyalty at least matches ego.
+Price is left to the rules that already set it, so a loyal man still
+gives his old club the hometown discount SPEC 8.3 describes. The rule was
+put to Jev, which chose applying it to the user's club whoever decides
+(0.98) over user decisions only or every club.
+
+**Consequences.** The 31 league clubs are unchanged, so no calibration
+band moves. The rule lives in `Extensions.willingToReturn`.
+
+## ADR-0xx — Cap carryover is written onto the league the offseason works from
+
+**Context.** SPEC 8.1 lists carryover of unused cap room, and
+`TeamFinances.carryover` existed but was never set. About forty places
+work out a club's room, most of them inside the offseason, which spends
+next year's cap long before the new year's books are written at the end.
+
+**Decision.** `CapManagement.carryForward` reads each club's room from
+the books as the season closed and writes it, times
+`ai.capCarryoverShare`, onto the clubs of the league the offseason runs
+on, before any phase counts money. Every room calculation then reads it
+from the club, and `CapManagement.spaceFor` takes it as a parameter with
+no default, so a caller cannot forget it and the compiler lists them all.
+The new year's books keep it, so in-season room counts it too. It is not
+folded into dead money, which grows through the spring and is halved at
+the new year.
+
+**Measured.** 15 seasons each on seeds 91 and 7, before and after: win
+spread 2.89 to 2.83 and 2.61 to 2.62, champions 9 and 12 either way,
+average room at season's end $31M to $37M and $35M to $40M, free-agent
+spending $3.21B to $3.58B and $3.14B to $3.50B a year. A club that does
+not spend banks room: the most any club held by year 15 rose to $211M
+and $257M. The in-game calibration bands are per-game and do not read the
+cap; the 30-season stability test passes.
+
+**Consequences.** Save version 15; old saves carry nothing until their
+next offseason. Found on the way: the roster fill could sign back a man
+the user let go (see the ADR before this one).

@@ -32,7 +32,7 @@ class ContractsPauseTest {
     }
 
     @Test
-    fun `whoever the user keeps stays, and whoever he lets go is gone`() {
+    fun `whoever the user keeps stays, and whoever he lets go returns only if willing`() {
         val pause = OffseasonEngine.runToContracts(season)
         val user = pause.userTeam
         val best = pause.expiring.first().player.id.v
@@ -42,9 +42,40 @@ class ContractsPauseTest {
 
         val kept = roster(pause.decideChoices(choices), user)
         assertTrue(best in kept, "the man the user re-signed should be on the roster")
-        // The league's logic did not quietly re-sign the ones the user let go.
+        // The front office may bring one back later in the spring, but only
+        // a man who wants to come (SPEC 7).
         val stayed = rest.filter { it in kept }
-        assertTrue(stayed.isEmpty(), "let go but still here: $stayed")
+        val byId = season.league.playersById
+        assertTrue(stayed.all { Extensions.willingToReturn(byId.getValue(com.nflsim.engine.model.PlayerId(it)), season.league.tuning) },
+            "let go and brought back against his will: $stayed")
+    }
+
+    /** The same season, with every man on the user's club too proud to come back. */
+    private val proud: Dynasty by lazy {
+        val user = season.userTeamId
+        season.copy(league = season.league.copy(players = season.league.players.map {
+            if (it.teamId == user) it.copy(traits = it.traits.copy(ego = 95, loyalty = 5)) else it
+        }))
+    }
+
+    @Test
+    fun `a proud man the user lets go never comes back`() {
+        val pause = OffseasonEngine.runToContracts(proud)
+        val user = pause.userTeam
+        val walked = pause.expiring.map { it.player.id.v }
+        val kept = roster(pause.decideChoices(walked.associateWith { ContractChoice.WALK }), user)
+        assertTrue(walked.none { it in kept }, "back after being let go: ${walked.filter { it in kept }}")
+    }
+
+    @Test
+    fun `free agency tells the user who will not come back`() {
+        val pause = OffseasonEngine.runToContracts(proud)
+        val walked = pause.expiring.map { it.player.id.v }
+        val fa = pause.toFreeAgency(walked.associateWith { ContractDecision(ContractChoice.WALK) })
+        val him = fa.candidates.first { it.player.id.v in walked }
+        assertEquals("He will not come back", fa.advice(him).headline)
+        val talk = fa.negotiate(him.player.id.v, him.market * 2, him.years)
+        assertTrue(!talk.signed && "let him go" in talk.note, talk.note)
     }
 
     @Test
