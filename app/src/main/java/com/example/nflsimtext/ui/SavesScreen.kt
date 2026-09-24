@@ -93,6 +93,7 @@ fun SavesScreen(store: DynastyStore, scope: CoroutineScope, onBack: () -> Unit =
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
                         if (card != null && !here) {
                             PrimaryButton(

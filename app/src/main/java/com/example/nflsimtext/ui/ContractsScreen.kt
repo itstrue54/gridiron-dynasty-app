@@ -84,6 +84,7 @@ fun ContractsScreen(
                 FlowRow(
                     Modifier.padding(top = NdTheme.spacing.s),
                     horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                    verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                 ) {
                     SecondaryButton("Take all the advice", {
                         recs.forEach { (id, r) -> decisions[id] = r.decision }
@@ -158,6 +159,7 @@ fun ContractsScreen(
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
                         Chip("Let him go", d?.choice == ContractChoice.WALK) {
                             decisions[id] = ContractDecision(ContractChoice.WALK)

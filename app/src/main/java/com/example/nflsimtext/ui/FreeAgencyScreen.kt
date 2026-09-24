@@ -108,6 +108,7 @@ fun FreeAgencyScreen(
                 FlowRow(
                     Modifier.padding(top = NdTheme.spacing.s),
                     horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                    verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                 ) {
                     PrimaryButton(
                         if (offers.isEmpty()) "Open free agency with no offers" else "Open free agency",
@@ -120,7 +121,7 @@ fun FreeAgencyScreen(
 
         store.message?.let { note ->
             item {
-                SituationBlock("His agent", situation = Situation.THIRD_DOWN) {
+                SituationBlock("Signed", situation = Situation.THIRD_DOWN) {
                     Text(note, style = NdTheme.type.body, color = c.chalk)
                     SecondaryButton("Clear", { store.dismissMessage() }, Modifier.padding(top = NdTheme.spacing.s))
                 }
@@ -158,6 +159,7 @@ fun FreeAgencyScreen(
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
                         Chip("No offer", mine == null) { offers.remove(id) }
                         OFFER_SHARES.forEach { (share, label) ->
@@ -173,6 +175,7 @@ fun FreeAgencyScreen(
                         FlowRow(
                             Modifier.padding(top = NdTheme.spacing.xs),
                             horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                            verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                         ) {
                             (1..com.nflsim.engine.offseason.ContractOptions.MAX_YEARS).forEach { y ->
                                 Chip("${y}y", o.years == y) { offers[id] = o.copy(years = y) }
@@ -182,6 +185,12 @@ fun FreeAgencyScreen(
 
                     // Haggling: an offer to his agent now, before anyone else can bid.
                     val left = pause.talksLeft(id)
+                    store.agentReply?.takeIf { it.first == id }?.let { (_, said) ->
+                        Text(
+                            said, style = NdTheme.type.body, color = c.chalk,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                    }
                     Text(
                         if (left == 0) "He is done talking: it is the market or nothing."
                         else "Or talk to his agent now, before the market opens. He signs on the spot " +
@@ -194,6 +203,7 @@ fun FreeAgencyScreen(
                         FlowRow(
                             Modifier.padding(top = NdTheme.spacing.xs),
                             horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                            verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                         ) {
                             val years = mine?.years
                                 ?: if (p.age(pause.year) > dynasty.league.tuning.ai.payThroughAge) 1 else cand.years

@@ -40,4 +40,16 @@ class AutosaveTest {
         assertEquals(store.dynasty!!.team.name, card.club)
         assertTrue(store.saves.cards().any { !it.auto && it.slot == store.slot })
     }
+
+    @Test
+    fun `the year turning over through the draft room writes an autosave too`() = runBlocking {
+        val store = DynastyStore(temp.root)
+        store.newDynasty(seed = 8L)
+        while (store.dynasty!!.phase != DynastyPhase.OFFSEASON) store.advance()
+        val before = store.saves.cards().count { it.auto }
+        store.openDraftRoom()
+        store.finishOffseason()
+        assertEquals(DynastyPhase.REGULAR_SEASON, store.dynasty!!.phase)
+        assertEquals("the new year should leave a save behind", before + 1, store.saves.cards().count { it.auto })
+    }
 }
