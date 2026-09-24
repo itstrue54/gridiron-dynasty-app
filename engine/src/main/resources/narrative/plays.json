@@ -1,0 +1,327 @@
+{
+  "kneel": [
+    "{qb} takes a knee.",
+    "{qb} kneels on it.",
+    "{qb} takes the snap and goes down.",
+    "Victory formation. {qb} takes a knee.",
+    "{qb} drops to a knee to run the clock.",
+    "{qb} kneels and the clock keeps moving.",
+    "Nothing fancy: {qb} takes a knee.",
+    "{qb} puts a knee down."
+  ],
+  "spike": [
+    "{qb} spikes it to stop the clock.",
+    "{qb} hurries them up and spikes it.",
+    "{qb} throws it into the turf to stop the clock.",
+    "Clock stopped: {qb} spikes the ball.",
+    "{qb} gets them lined up and spikes it.",
+    "{qb} kills the clock with a spike.",
+    "A quick spike from {qb} stops the clock.",
+    "{qb} spikes it with the clock running down."
+  ],
+  "penalty.false_start": [
+    "False start, {who}. Five yards.",
+    "Flag before the snap: false start on {who}. Five yards.",
+    "False start on {who}. That is five yards.",
+    "The crowd gets to them. False start, {who}, five yards.",
+    "Before the snap, a flag: {who} moved early. Five yards.",
+    "Five yards back for a false start on {who}.",
+    "False start. It is on {who}, five yards.",
+    "A flinch on the line: false start, {who}. Five yards."
+  ],
+  "penalty.offside": [
+    "Offside, {who}. Five yards.",
+    "Flag: {who} is offside. Five yards.",
+    "Offside on {who}. Five free yards.",
+    "Too early off the ball, {who}. Offside, five yards.",
+    "A jump into the neutral zone: offside on {who}, five yards.",
+    "Five yards for offside on {who}.",
+    "Offside. It is on {who}, five yards.",
+    "The snap count gets {who}: offside, five yards."
+  ],
+  "penalty.pass_holding": [
+    "Flag - holding on {who}, play comes back.",
+    "But there is a flag: holding on {who}. It comes back.",
+    "A flag on the play: holding, {who}. It will not count.",
+    "It comes back. Holding on {who}.",
+    "Holding is called on {who}, and the play comes back.",
+    "The officials have holding on {who}. Wiped out.",
+    "Flag on the line - holding, {who}. It comes back.",
+    "It will not count: {who} is flagged for holding."
+  ],
+  "penalty.pass_interference": [
+    "Flag downfield - pass interference. Ball spotted {spot} yards on.",
+    "Pass interference on the defence. The ball is spotted {spot} yards on.",
+    "A flag downfield: pass interference, {spot} yards.",
+    "The defender got there early. Pass interference, ball moved {spot} yards on.",
+    "Interference on the throw downfield. That is {spot} yards.",
+    "Flag for pass interference. They pick up {spot} yards.",
+    "Too much contact downfield: pass interference, spotted {spot} yards on.",
+    "Pass interference is called, and the ball moves {spot} yards on."
+  ],
+  "penalty.run_holding": [
+    "Holding on {who} wipes it out.",
+    "But it comes back: holding on {who}.",
+    "A flag on the play. Holding, {who}, and it does not count.",
+    "It will not stand. Holding on {who}.",
+    "The run is wiped out by holding on {who}.",
+    "Flag on the line: holding, {who}. It comes back.",
+    "It will not count: {who} is flagged for holding.",
+    "Holding is called on {who}, and the run comes back."
+  ],
+  "pass.sack": [
+    "{sacker} gets home. {qb} sacked for {loss}.",
+    "{sacker} gets to {qb} and drops him for a loss of {loss}.",
+    "Sack. {sacker} brings down {qb} for {loss}.",
+    "{qb} has nowhere to go: {sacker} sacks him for a loss of {loss}.",
+    "{sacker} beats his man and sacks {qb}. Loss of {loss}.",
+    "{qb} goes down. {sacker} with the sack, {loss} lost.",
+    "{sacker} comes free and buries {qb} for {loss}.",
+    "The pocket collapses and {sacker} sacks {qb} for {loss}.",
+    "{qb} holds it too long. {sacker} sacks him for a loss of {loss}."
+  ],
+  "pass.sack.team": [
+    "The defence gets home. {qb} sacked for {loss}.",
+    "{qb} is sacked for a loss of {loss}.",
+    "Sack. {qb} goes down for {loss}.",
+    "{qb} has nowhere to go and is sacked for {loss}.",
+    "The pocket collapses on {qb}. Loss of {loss}.",
+    "{qb} is buried for a loss of {loss}.",
+    "{qb} holds it too long and goes down for {loss}.",
+    "They swarm {qb} for a sack, {loss} lost."
+  ],
+  "pass.scramble": [
+    "{qb} escapes the rush and picks up {gain}.",
+    "{qb} tucks it and runs for {gain}.",
+    "Nobody open, so {qb} takes off for {gain}.",
+    "{qb} scrambles out of trouble for {gain}.",
+    "{qb} slips the rush and gets {gain} with his legs.",
+    "The pocket breaks down and {qb} runs for {gain}.",
+    "{qb} leaves the pocket and picks up {gain}.",
+    "{qb} sees a lane and takes {gain} on the ground."
+  ],
+  "pass.scramble.stopped": [
+    "{qb} tries to escape the rush and gets nothing.",
+    "{qb} scrambles, but they run him down behind the line.",
+    "{qb} takes off and goes nowhere.",
+    "{qb} leaves the pocket and is caught before he gets back to the line.",
+    "No room for {qb}, who is chased down scrambling.",
+    "{qb} tucks it, but there is nothing there.",
+    "{qb} tries to run and is stopped short of the line.",
+    "{qb} scrambles for his life and comes up empty."
+  ],
+  "pass.throwaway": [
+    "{qb} throws it away under pressure.",
+    "{qb} is in trouble and throws it out of bounds.",
+    "Nothing there. {qb} throws it away.",
+    "{qb} sails it into the sideline to avoid the sack.",
+    "{qb} gets rid of it under pressure. Incomplete.",
+    "{qb} throws it over everybody's head and out of bounds.",
+    "Under pressure, {qb} throws it away.",
+    "{qb} lives to fight another down and throws it away."
+  ],
+  "pass.nobody_open": [
+    "Nobody open. Incomplete.",
+    "Nobody to throw to. Incomplete.",
+    "Nobody is open, and the pass falls incomplete.",
+    "No one gets open. Incomplete.",
+    "Covered everywhere. Incomplete.",
+    "Nobody open downfield. Incomplete.",
+    "Nothing there at all. Incomplete.",
+    "Every man covered. The pass falls incomplete."
+  ],
+  "pass.interception": [
+    "{defender} jumps the {concept} and intercepts {qb}!",
+    "Intercepted! {defender} steps in front of the {concept}.",
+    "{qb} throws it right to {defender}. Intercepted!",
+    "{defender} reads the {concept} all the way and intercepts it!",
+    "Intercepted by {defender}! {qb} never saw him.",
+    "{qb}'s {concept} is intercepted by {defender}!",
+    "{defender} undercuts the {concept}. Intercepted!",
+    "A bad decision by {qb}, and {defender} intercepts it!",
+    "{defender} goes up and intercepts the {concept}!"
+  ],
+  "pass.incomplete": [
+    "{qb}'s {concept} for {receiver} falls incomplete.",
+    "{qb} looks for {receiver} on the {concept}. Incomplete.",
+    "The {concept} for {receiver} is off the mark.",
+    "{qb} and {receiver} are not on the same page. Incomplete.",
+    "{receiver} cannot hang on to the {concept}. Incomplete.",
+    "{qb} throws the {concept} to {receiver}, and it is broken up.",
+    "Incomplete. {qb} misses {receiver} on the {concept}.",
+    "{qb} puts the {concept} too far in front of {receiver}.",
+    "The {concept} to {receiver} falls to the turf."
+  ],
+  "pass.complete": [
+    "{qb} finds {receiver} on the {concept} for {yards}.",
+    "{qb} hits {receiver} on the {concept}, a gain of {yards}.",
+    "{receiver} catches the {concept} from {qb} for {yards}.",
+    "{qb} to {receiver} on the {concept}. {yardage}.",
+    "{qb} puts the {concept} on {receiver} for {yards}.",
+    "Complete on the {concept}: {qb} to {receiver} for {yards}.",
+    "{receiver} is open on the {concept}, and {qb} finds him for {yards}.",
+    "{qb} connects with {receiver} on the {concept} for {yards}.",
+    "{receiver} hauls in the {concept} from {qb}, {yardage}."
+  ],
+  "pass.complete.nothing": [
+    "{qb} finds {receiver} on the {concept}, but there is nothing after the catch.",
+    "{receiver} catches the {concept} and is dropped at once.",
+    "{qb} dumps it to {receiver} on the {concept}. Nowhere to go.",
+    "The {concept} to {receiver} is complete, but he goes nowhere.",
+    "{receiver} makes the catch on the {concept} and is swarmed.",
+    "{qb} hits {receiver} on the {concept}, and they are waiting for him.",
+    "Complete to {receiver} on the {concept}, for nothing.",
+    "{receiver} catches the {concept} behind the line and is brought down."
+  ],
+  "run.fumble": [
+    "{carrier} fumbles on the {concept}!",
+    "{carrier} is stripped on the {concept}. Fumble, and they lose it!",
+    "Fumble! {carrier} coughs it up on the {concept}.",
+    "The ball comes out on the {concept}. {carrier} fumbles and they recover!",
+    "{carrier} puts it on the ground on the {concept}. Fumble lost!",
+    "Fumble on the {concept}! {carrier} could not hang on.",
+    "They punch it out of {carrier}'s hands on the {concept}. Fumble!",
+    "{carrier} is hit and fumbles on the {concept}, and the defence has it!"
+  ],
+  "run.loss": [
+    "{carrier} is dropped for {loss} on the {concept}{stop}.",
+    "{carrier} is caught behind the line on the {concept} for a loss of {loss}{stop}.",
+    "The {concept} goes nowhere. {carrier} loses {loss}{stop}.",
+    "{carrier} is swallowed up in the backfield on the {concept}, a loss of {loss}{stop}.",
+    "Nothing there on the {concept}: {carrier} is thrown for a loss of {loss}{stop}.",
+    "{carrier} runs into traffic on the {concept} and loses {loss}{stop}.",
+    "The {concept} is blown up. {carrier} drops {loss}{stop}.",
+    "{carrier} gets hit behind the line on the {concept} and loses {loss}{stop}."
+  ],
+  "run.stuffed": [
+    "{carrier} is stuffed at the line on the {concept}{stop}.",
+    "No gain for {carrier} on the {concept}{stop}.",
+    "{carrier} runs the {concept} into a wall{stop}.",
+    "The {concept} is stopped cold at the line{stop}.",
+    "{carrier} gets nothing on the {concept}{stop}.",
+    "Nowhere to go for {carrier} on the {concept}{stop}.",
+    "{carrier} is met at the line on the {concept}{stop}.",
+    "The {concept} goes nowhere. {carrier} is held to no gain{stop}."
+  ],
+  "run.breakaway": [
+    "{carrier} breaks through on the {concept} for {yards}!",
+    "{carrier} is loose on the {concept}! A gain of {yards}!",
+    "{carrier} bursts through the hole on the {concept} for {yards}!",
+    "Nobody lays a hand on {carrier}: {yards} on the {concept}!",
+    "{carrier} breaks a tackle on the {concept} and is gone, {yards}!",
+    "The {concept} springs {carrier} for {yards}!",
+    "{carrier} finds daylight on the {concept}! {yardage}!",
+    "{carrier} shakes free on the {concept} and runs for {yards}!"
+  ],
+  "run.big": [
+    "{carrier} rips off {yards} on the {concept}{stop}.",
+    "{carrier} finds a crease on the {concept} and gains {yards}{stop}.",
+    "A big run on the {concept}: {carrier} for {yards}{stop}.",
+    "{carrier} gets to the second level on the {concept}, {yardage}{stop}.",
+    "The {concept} is blocked well and {carrier} goes for {yards}{stop}.",
+    "{carrier} bounces the {concept} and picks up {yards}{stop}.",
+    "{carrier} runs hard on the {concept} for a gain of {yards}{stop}.",
+    "{yardage} for {carrier} on the {concept}{stop}."
+  ],
+  "run.gain": [
+    "{carrier} gains {yards} on the {concept}{stop}.",
+    "{carrier} runs the {concept} for {yardage}{stop}.",
+    "{carrier} picks up {yards} on the {concept}{stop}.",
+    "The {concept} gets {yards} for {carrier}{stop}.",
+    "{carrier} pushes forward on the {concept} for {yards}{stop}.",
+    "{carrier} carries on the {concept}, a gain of {yards}{stop}.",
+    "{carrier} finds {yardage} on the {concept}{stop}.",
+    "{carrier} takes the {concept} for {yards}{stop}.",
+    "On the {concept}, {carrier} gets {yards}{stop}."
+  ],
+  "run.tackle": [
+    ", tackled by {tackler}",
+    ", brought down by {tackler}",
+    ", where {tackler} makes the stop",
+    ", {tackler} with the tackle",
+    ", and {tackler} wraps him up",
+    ", stopped by {tackler}",
+    ", and {tackler} brings him down",
+    ", {tackler} making the tackle"
+  ],
+  "fg.good": [
+    "{kicker}'s {distance} yard attempt is good.",
+    "{kicker} drills it from {distance}. Good.",
+    "The {distance} yarder from {kicker} is good.",
+    "{kicker} splits the uprights from {distance}.",
+    "It is good! {kicker} from {distance} yards.",
+    "{kicker} knocks through a {distance} yard field goal.",
+    "From {distance} yards, {kicker} is good.",
+    "{kicker} makes it from {distance}. Three points."
+  ],
+  "fg.miss": [
+    "{kicker} misses from {distance}.",
+    "{kicker}'s {distance} yard attempt is no good.",
+    "No good. {kicker} misses from {distance} yards.",
+    "{kicker} pushes the {distance} yarder wide.",
+    "{kicker} hooks it from {distance}. No good.",
+    "The {distance} yard try from {kicker} falls short.",
+    "Wide! {kicker} misses from {distance}.",
+    "{kicker} cannot convert from {distance} yards."
+  ],
+  "fg.no_kicker": [
+    "No kicker available.",
+    "There is no kicker available, and the attempt fails.",
+    "With no kicker available, the attempt comes up empty.",
+    "No kicker on the roster. The kick is no good.",
+    "They have no kicker available, and it shows.",
+    "No kicker available: the field goal is no good.",
+    "A field goal with no kicker available goes nowhere.",
+    "No kicker available, and the try misses."
+  ],
+  "punt": [
+    "{punter} punts {gross} yards{return}.",
+    "{punter} gets off a {gross} yard punt{return}.",
+    "The punt from {punter} goes {gross} yards{return}.",
+    "{punter} booms it {gross} yards{return}.",
+    "{punter} kicks it away, {gross} yards{return}.",
+    "A {gross} yard punt from {punter}{return}.",
+    "{punter} sends it {gross} yards downfield{return}.",
+    "{punter} flips the field with a {gross} yard punt{return}."
+  ],
+  "punt.touchback": [
+    "{punter}'s punt sails into the end zone. Touchback.",
+    "{punter} kicks it too far. Touchback.",
+    "The punt from {punter} bounces into the end zone. Touchback.",
+    "{punter} outkicks the coverage into the end zone. Touchback.",
+    "Touchback. {punter}'s punt carries into the end zone.",
+    "{punter}'s punt goes all the way into the end zone for a touchback.",
+    "{punter} cannot keep it out of the end zone. Touchback.",
+    "Into the end zone from {punter}. Touchback."
+  ],
+  "punt.no_punter": [
+    "The punt travels {gross} yards.",
+    "With no punter, the punt goes {gross} yards.",
+    "A makeshift punt travels {gross} yards.",
+    "Somebody punts it {gross} yards.",
+    "The emergency punt goes {gross} yards.",
+    "No punter available. The kick goes {gross} yards.",
+    "An ugly punt, but it travels {gross} yards.",
+    "They punt it away without a punter: {gross} yards."
+  ],
+  "punt.return": [
+    ", returned {ret}",
+    ", brought back {ret}",
+    ", with a {ret} yard return",
+    ", run back {ret}",
+    ", and it is returned {ret}",
+    ", taken back {ret} yards",
+    ", returned {ret} yards",
+    ", and a return of {ret}"
+  ],
+  "punt.return.named": [
+    ", returned {ret} by {returner}",
+    ", and {returner} brings it back {ret}",
+    ", {returner} returning it {ret} yards",
+    ", run back {ret} by {returner}",
+    ", and {returner} takes it back {ret}",
+    ", with {returner} returning it {ret}",
+    ", and {returner} weaves back {ret} yards",
+    ", {returner} with a {ret} yard return"
+  ]
+}

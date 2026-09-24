@@ -35,10 +35,12 @@ object SpecialTeams {
         rng: Rng,
         clutch: Boolean = false,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+        narration: Rng? = null,
     ): KickResult {
+        val words = narration ?: rng.split("narration")
         // Snap, hold, and seven yards of backfield, plus the ten yard end zone.
         val distance = yardsToGoal + 17
-        if (kicker == null) return KickResult(false, distance, "No kicker available.")
+        if (kicker == null) return KickResult(false, distance, PlayLines.write("fg.no_kicker", words))
 
         val power = rate(kicker, RatingId.KICK_POWER, scheme)
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
@@ -56,8 +58,8 @@ object SpecialTeams {
         chance = chance.coerceIn(0.005f, 0.995f)
 
         val good = rng.nextFloat() < chance
-        val text = if (good) "${kicker.lastName}'s $distance yard attempt is good."
-        else "${kicker.lastName} misses from $distance."
+        val text = PlayLines.write(if (good) "fg.good" else "fg.miss", words,
+            "kicker" to kicker.lastName, "distance" to distance)
         return KickResult(good, distance, text)
     }
 
@@ -69,10 +71,12 @@ object SpecialTeams {
         returnScheme: Scheme,
         rng: Rng,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+        narration: Rng? = null,
     ): PuntResult {
+        val words = narration ?: rng.split("narration")
         val yardsToGoal = 100 - yardLine
         if (punter == null) {
-            return PuntResult(35, false, 0, "The punt travels 35 yards.")
+            return PuntResult(NO_PUNTER_YARDS, false, 0, PlayLines.write("punt.no_punter", words, "gross" to NO_PUNTER_YARDS))
         }
 
         val power = rate(punter, RatingId.PUNT_POWER, puntScheme)
@@ -92,7 +96,7 @@ object SpecialTeams {
                 return PuntResult(
                     netYards = (80 - yardLine).coerceAtLeast(5),
                     touchback = true, returnYards = 0,
-                    narrative = "${punter.lastName}'s punt sails into the end zone. Touchback.",
+                    narrative = PlayLines.write("punt.touchback", words, "punter" to punter.lastName),
                 )
             }
             gross = (99 - yardLine) - 1
@@ -108,12 +112,13 @@ object SpecialTeams {
         }
 
         val net = (gross - ret).coerceAtLeast(1)
-        val text = buildString {
-            append("${punter.lastName} punts $gross yards")
-            if (ret > 12) append(", returned $ret by ${returner?.lastName}")
-            else if (ret > 0) append(", returned $ret")
-            append(".")
+        val back = when {
+            ret > 12 && returner != null ->
+                PlayLines.write("punt.return.named", words, "ret" to ret, "returner" to returner.lastName)
+            ret > 0 -> PlayLines.write("punt.return", words, "ret" to ret)
+            else -> ""
         }
+        val text = PlayLines.write("punt", words, "punter" to punter.lastName, "gross" to gross, "return" to back)
         return PuntResult(net, false, ret, text)
     }
 
@@ -147,6 +152,9 @@ object SpecialTeams {
         val text = if (spot >= 45) "A big return out to the $spot." else "Returned to the $spot."
         return spot to text
     }
+
+    /** How far a punt goes when nobody on the roster can punt. */
+    private const val NO_PUNTER_YARDS = 35
 
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)

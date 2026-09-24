@@ -6,6 +6,7 @@ import com.nflsim.engine.ratings.RatingContext
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.effectiveRating
 import com.nflsim.engine.rng.Rng
+import com.nflsim.engine.rng.SplitMixRng
 import com.nflsim.engine.tuning.TuningTable
 import kotlin.math.exp
 import kotlin.math.ln
@@ -41,7 +42,15 @@ data class PlayContext(
     val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     /** A player's carries so far this game, for the lead back's workload. */
     val carries: (Int) -> Int = { 0 },
-)
+    /**
+     * Picks how the snap is worded and nothing else (SPEC 10.4). A game hands
+     * in its own narration stream; a snap played on its own words itself from
+     * a split of its stream, which is pure, so the words never move the play.
+     */
+    val narration: Rng? = null,
+) {
+    internal val words: Rng get() = narration ?: SplitMixRng(0L)
+}
 
 // ---------------------------------------------------------------------------
 // Run
@@ -157,7 +166,8 @@ internal object RunResolution {
                 ballCarrier = carrier.id,
                 turnover = true,
                 log = SimLog(values + ("fumbleChance" to fumbleChance),
-                    "${carrier.name} is stripped on ${call.concept.label}."),
+                    PlayLines.write("run.fumble", ctx.words,
+                        "carrier" to carrier.name, "concept" to call.concept.label)),
             )
         }
 
@@ -170,25 +180,29 @@ internal object RunResolution {
             ballCarrier = carrier.id,
             tackler = tackler?.id,
             assister = assister?.id,
-            log = SimLog(values, narrate(carrier, call, finalYards, broke, tackler)),
+            log = SimLog(values, narrate(ctx.words, carrier, call, finalYards, broke, tackler)),
         )
     }
 
     private fun narrate(
+        words: Rng,
         carrier: Player,
         call: OffensivePlayCall.Run,
         yards: Int,
         broke: Boolean,
         tackler: Player?,
     ): String {
-        val stop = tackler?.let { ", tackled by ${it.lastName}" } ?: ""
-        return when {
-            yards < 0 -> "${carrier.name} is dropped for ${-yards} on ${call.concept.label}$stop."
-            yards == 0 -> "${carrier.name} is stuffed at the line on ${call.concept.label}$stop."
-            broke && yards >= 20 -> "${carrier.name} breaks through on ${call.concept.label} for $yards!"
-            yards >= 10 -> "${carrier.name} rips off $yards on ${call.concept.label}$stop."
-            else -> "${carrier.name} gains $yards on ${call.concept.label}$stop."
+        val stop = tackler?.let { PlayLines.write("run.tackle", words, "tackler" to it.lastName) } ?: ""
+        val key = when {
+            yards < 0 -> "run.loss"
+            yards == 0 -> "run.stuffed"
+            broke && yards >= 20 -> "run.breakaway"
+            yards >= 10 -> "run.big"
+            else -> "run.gain"
         }
+        return PlayLines.write(key, words,
+            "carrier" to carrier.name, "concept" to call.concept.label, "stop" to stop,
+            "yards" to yards, "loss" to -yards, "yardage" to PlayLines.yardage(yards))
     }
 
     /** Weighted toward the players most likely to be near the ball. */

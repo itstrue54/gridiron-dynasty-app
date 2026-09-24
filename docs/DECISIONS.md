@@ -1871,3 +1871,29 @@ and its label, so adding these moved no existing stream.
 results, stats, transactions, every player's state, and which stories were
 filed about whom - hashed the same before and after
 (`7efa2f187b3448553353cfbe3fe9941f`). No calibration band can have moved.
+
+## ADR-0xx — Each game words its plays from a stream of its own
+
+**Context.** The play-by-play moved from Kotlin into `narrative/plays.json`
+with 8 or 9 ways of saying each line, so every snap now picks a variant.
+Picking from the game's stream would shift every later draw in the game,
+and every result in the league, whenever a template was added.
+
+**Decision.** `GameSimulator` takes `split("narration")` of the game's
+stream once, as it already does for injuries, and hands it to every snap
+through `PlayContext.narration` and to kicks and punts. A snap simulated
+on its own, with no game around it, words itself from
+`split("narration")` of the stream it was given. That split is pure, so
+the same seed replays the same line, and the play's own draws are
+untouched.
+
+**Measured.** A season and offseason on seed 91, serialized at every one
+of its 20 states with its 34,649 lines of text removed, hashed
+`4fe3b6a0624abc364b9478c7ad58453a` before and after. No calibration band
+can have moved. A test plays 500 snaps twice with different narration
+streams and finds them identical apart from their words.
+
+**Found on the way.** The game log highlights turnovers by looking for
+"intercept" and "fumble" in the line, and the old lines said "picks off"
+and "is stripped", so no turnover was ever highlighted. Every turnover
+template now uses those words, and a test holds them to it.
