@@ -86,12 +86,52 @@ class DynastyStore(private val saveDir: File) {
         if (!card.auto && card.slot == slot) dynasty = null
     }
 
+    /**
+     * A league generated and waiting for the user to choose his club. Held
+     * in memory: nothing is saved until he has chosen.
+     */
+    var pendingLeague by mutableStateOf<com.nflsim.engine.model.League?>(null)
+        private set
+    private var pendingSeed = 0L
+    private var pendingSlot = 1
+
+    /** Generates the league a new dynasty will be played in, for the user to pick his club from. */
+    suspend fun previewLeague(seed: Long = System.nanoTime(), into: Int = slot) {
+        busy = true
+        try {
+            pendingLeague = withContext(Dispatchers.Default) { LeagueGenerator.generate(YEAR, seed) }
+            pendingSeed = seed
+            pendingSlot = into
+        } finally {
+            busy = false
+        }
+    }
+
+    /** Back out of choosing a club; the generated league is thrown away. */
+    fun cancelPreview() { pendingLeague = null }
+
+    /** Starts the dynasty with the club the user chose, or a random one with null. */
+    suspend fun startWith(teamAbbrev: String?) {
+        val league = pendingLeague ?: return
+        start(league, pendingSeed, teamAbbrev, pendingSlot)
+        pendingLeague = null
+    }
+
     suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime(), into: Int = slot) {
+        val league = withContext(Dispatchers.Default) { LeagueGenerator.generate(YEAR, seed) }
+        start(league, seed, teamAbbrev, into)
+    }
+
+    private suspend fun start(
+        league: com.nflsim.engine.model.League,
+        seed: Long,
+        teamAbbrev: String?,
+        into: Int,
+    ) {
         busy = true
         slot = into
         try {
             val fresh = withContext(Dispatchers.Default) {
-                val league = LeagueGenerator.generate(YEAR, seed)
                 val team = teamAbbrev
                     ?.let { a -> league.teams.firstOrNull { it.abbrev == a } }
                     ?: league.teams.random()

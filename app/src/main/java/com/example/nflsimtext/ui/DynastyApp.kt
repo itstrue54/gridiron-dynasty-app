@@ -107,10 +107,15 @@ fun DynastyApp(
     }
 
     Scaffold(
-        bottomBar = { if (dynasty != null) BottomBar(tab) { boxGame = null; tab = it } },
+        // No tabs while choosing a club: they lead to the dynasty being left behind.
+        bottomBar = { if (dynasty != null && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
+                // Choosing a club takes the whole screen, whether or not a
+                // dynasty is already in hand.
+                store.pendingLeague != null ->
+                    TeamPickerScreen(store.pendingLeague!!, store, scope) { tab = Tab.HUB }
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
                     Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
@@ -237,7 +242,8 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             {
                 scope.launch {
                     val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
-                    store.newDynasty(into = free ?: 1)
+                    // The league first, so the user can choose which club to take over.
+                    store.previewLeague(into = free ?: 1)
                 }
             },
         )
