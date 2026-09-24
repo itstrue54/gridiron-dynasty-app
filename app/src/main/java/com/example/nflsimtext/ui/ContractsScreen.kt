@@ -47,10 +47,13 @@ fun ContractsScreen(
         return
     }
     val recs = remember(pause) { pause.expiring.associate { it.player.id.v to pause.recommend(it) } }
-    // Starts from the recommendations, so tapping straight through keeps the
-    // men the club's own front office would.
-    val decisions = remember(pause) {
-        mutableStateMapOf<Int, ContractDecision>().apply { recs.forEach { (id, r) -> put(id, r.decision) } }
+    // The calls are the user's: nothing is decided until he decides it. The
+    // advice sits beside each man, and the front office will take the whole
+    // thing off his hands if he asks it to.
+    val decisions = remember(pause) { mutableStateMapOf<Int, ContractDecision>() }
+    val undecided = pause.expiring.count { it.player.id.v !in decisions }
+    fun go(choices: Map<Int, ContractDecision>?) {
+        scope.launch { store.decideContracts(choices); if (store.draftRoom != null) onDraft() }
     }
     val cost = pause.cost(decisions)
     val left = pause.capSpace - cost
@@ -63,11 +66,30 @@ fun ContractsScreen(
             Column {
                 Text("Expiring contracts", style = NdTheme.type.display, color = c.chalk)
                 Text(
-                    "${pause.expiring.size} deals have run out. Each shows the best option and why; " +
-                        "everything is set to it, so change only what you disagree with. Anyone you " +
-                        "do not keep goes to market when free agency opens.",
+                    "${pause.expiring.size} deals have run out, and the calls are yours. Each man " +
+                        "shows the best option and why. Anyone you do not keep goes to market when " +
+                        "free agency opens.",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
+            }
+        }
+
+        item {
+            SituationBlock("Rather not?", divider = false) {
+                Text(
+                    "Take the advice on every man in one go, or hand the lot to your front office " +
+                        "and it will decide them the way it decides for every other club.",
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                )
+                FlowRow(
+                    Modifier.padding(top = NdTheme.spacing.s),
+                    horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                ) {
+                    SecondaryButton("Take all the advice", {
+                        recs.forEach { (id, r) -> decisions[id] = r.decision }
+                    })
+                    SecondaryButton("Let the front office decide", { go(null) }, enabled = !store.busy)
+                }
             }
         }
 
@@ -90,7 +112,7 @@ fun ContractsScreen(
             item {
                 val id = e.player.id.v
                 val rec = recs.getValue(id)
-                val d = decisions[id] ?: ContractDecision(ContractChoice.WALK)
+                val d = decisions[id]
                 val deals = pause.deals(e)
                 val recDeal = deals.firstOrNull {
                     rec.decision.choice == ContractChoice.RESIGN &&
@@ -100,7 +122,11 @@ fun ContractsScreen(
                 SituationBlock(
                     "${e.player.position.label} ${e.player.name}",
                     meta = "${e.player.age(pause.year)}",
-                    situation = if (d.choice == ContractChoice.WALK) Situation.NORMAL else Situation.THIRD_DOWN,
+                    situation = when (d?.choice) {
+                        null -> Situation.RED_ZONE
+                        ContractChoice.WALK -> Situation.NORMAL
+                        else -> Situation.THIRD_DOWN
+                    },
                 ) {
                     Text(
                         "The market says ${dealMoney(e.market)} a year. He asks you for " +
@@ -133,27 +159,27 @@ fun ContractsScreen(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
-                        Chip("Let him go", d.choice == ContractChoice.WALK) {
+                        Chip("Let him go", d?.choice == ContractChoice.WALK) {
                             decisions[id] = ContractDecision(ContractChoice.WALK)
                         }
-                        Chip("Re-sign", d.choice == ContractChoice.RESIGN) {
+                        Chip("Re-sign", d?.choice == ContractChoice.RESIGN) {
                             val start = recDeal ?: deals.first {
                                 it.years == e.years && it.structure == ContractOptions.Structure.STANDARD
                             }
                             decisions[id] = ContractDecision(ContractChoice.RESIGN, start.years, start.structure)
                         }
                         if (tagger == null || tagger == id) {
-                            Chip("Franchise ${dealMoney(e.franchise)}", d.choice == ContractChoice.FRANCHISE) {
+                            Chip("Franchise ${dealMoney(e.franchise)}", d?.choice == ContractChoice.FRANCHISE) {
                                 decisions[id] = ContractDecision(ContractChoice.FRANCHISE)
                             }
-                            Chip("Transition", d.choice == ContractChoice.TRANSITION) {
+                            Chip("Transition", d?.choice == ContractChoice.TRANSITION) {
                                 decisions[id] = ContractDecision(ContractChoice.TRANSITION)
                             }
                         }
                     }
 
                     // Every way to write it, once he is being kept.
-                    if (d.choice == ContractChoice.RESIGN) {
+                    if (d?.choice == ContractChoice.RESIGN) {
                         val picked = deals.firstOrNull { it.years == d.years && it.structure == d.structure }
                         Column(Modifier.padding(top = NdTheme.spacing.s)) {
                             DealTable(deals, picked, recDeal) { deal ->
@@ -185,12 +211,26 @@ fun ContractsScreen(
         }
 
         item {
-            PrimaryButton(
-                "On to free agency and the draft",
-                { scope.launch { store.decideContracts(decisions.toMap()); if (store.draftRoom != null) onDraft() } },
-                Modifier.fillMaxWidth(),
-                enabled = !store.busy,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
+                PrimaryButton(
+                    if (undecided == 0) "On to free agency and the draft"
+                    else "$undecided still to decide",
+                    { go(decisions.toMap()) },
+                    Modifier.fillMaxWidth(),
+                    enabled = undecided == 0 && !store.busy,
+                )
+                if (undecided > 0) {
+                    SecondaryButton(
+                        "Let the $undecided undecided go to market",
+                        {
+                            pause.expiring.forEach { e ->
+                                decisions.putIfAbsent(e.player.id.v, ContractDecision(ContractChoice.WALK))
+                            }
+                        },
+                        Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
         item { SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth()) }
     }

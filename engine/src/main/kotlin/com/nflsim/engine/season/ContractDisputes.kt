@@ -262,6 +262,23 @@ object ContractDisputes {
                 "and it costs him five morale rather than eighteen.")
     }
 
+    /**
+     * The answer the league's own clubs give, for a user who would rather
+     * not: pay the market rate if there is room, tell him no if there is not.
+     */
+    fun frontOfficeAnswer(
+        league: League,
+        team: TeamId,
+        playerId: PlayerId,
+        week: Int = 0,
+        stats: Map<Int, StatLine> = emptyMap(),
+    ): Transactions.Outcome {
+        val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
+        val asking = ask(league, man, stats) ?: return Transactions.Outcome.Refused("${man.name} has no contract to fix.")
+        return if (canAfford(league, team, asking)) extend(league, team, playerId, week, stats)
+        else refuse(league, team, playerId, week)
+    }
+
     /** Pay him the market rate: as he asked, or as one of [deals] writes it. */
     fun extend(
         league: League,

@@ -147,4 +147,19 @@ class ContractDisputeTest {
         assertEquals(null, none.deal)
         assertTrue(none.why.contains("Restructure"), none.why)
     }
+
+    @Test
+    fun `the front office answers the way the league's clubs do`() {
+        val (l, id) = underpaidStar()
+        val paid = ContractDisputes.frontOfficeAnswer(l, club, id) as Transactions.Outcome.Done
+        assertEquals(DemandState.SETTLED, paid.league.player(id).demand, "with room, it pays him")
+
+        val broke = l.copy(players = l.players.map {
+            if (it.teamId == club && it.id != id) it.copy(
+                contract = com.nflsim.engine.model.Contract(
+                    years = 3, baseSalary = listOf(6_000, 6_000, 6_000), signedYear = 2026)) else it
+        })
+        val no = ContractDisputes.frontOfficeAnswer(broke, club, id) as Transactions.Outcome.Done
+        assertEquals(DemandState.REFUSED, no.league.player(id).demand, "without room, it tells him no")
+    }
 }

@@ -119,4 +119,20 @@ class RosterMovesTest {
         }
         assertEquals(keeper.v, line.other, "the wire should say whose squad he came off")
     }
+
+    @Test
+    fun `the user's places wait for him, unless he hands them to the front office`() {
+        fun afterAWeek(delegate: Boolean): Int {
+            var d = DynastyEngine.start(league, 2026, 9L, user).copy(frontOfficeRoster = delegate)
+            // His receivers hurt for the year, before a week is played.
+            d = d.copy(league = d.league.copy(players = d.league.players.map {
+                if (it.teamId == user && it.position == com.nflsim.engine.model.Position.WR)
+                    it.copy(injuryWeeks = RosterMoves.IR_WEEKS + 6) else it
+            }))
+            d = DynastyEngine.advance(d)
+            return RosterMoves.active(d.league, user).size
+        }
+        assertTrue(afterAWeek(delegate = false) < Transactions.ROSTER_LIMIT, "left to the user, the places wait")
+        assertEquals(Transactions.ROSTER_LIMIT, afterAWeek(delegate = true), "handed over, they are filled")
+    }
 }

@@ -49,6 +49,13 @@ data class Dynasty(
     val news: List<com.nflsim.engine.model.NewsEvent> = emptyList(),
     /** What happened between seasons, for the news screen. */
     val lastOffseason: com.nflsim.engine.offseason.OffseasonReport? = null,
+    /**
+     * Whether the user has handed his in-season roster moves to his front
+     * office: filling places reserve opens, topping up the practice squad,
+     * cutting the stopgap when a man comes back. Off by default - the moves
+     * are his to make.
+     */
+    val frontOfficeRoster: Boolean = false,
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)
@@ -180,7 +187,11 @@ object DynastyEngine {
 
         val nextWeek = week + 1
         val afterGames = WeekRunner.afterWeek(
-            dynasty.league, played, tuning, dynasty.userTeamId, weeksLeft = Schedule.WEEKS - week,
+            // A user who has handed his roster to the front office is managed
+            // like every other club; otherwise his places wait for him.
+            dynasty.league, played, tuning,
+            if (dynasty.frontOfficeRoster) null else dynasty.userTeamId,
+            weeksLeft = Schedule.WEEKS - week,
         ).let { l ->
             l.copy(history = l.history.archived(*played.map { g ->
                 // Filed against the league as it was when they played.

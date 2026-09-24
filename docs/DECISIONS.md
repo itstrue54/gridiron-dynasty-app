@@ -1704,3 +1704,36 @@ room and says to restructure when there is not; and the restructure
 advice says leave it with room to spare. On a phone, on copies of the
 user's save: the corner's advice read re-sign for five years at $21.8M,
 with "your front office would have let him go" beneath it.
+
+## ADR-0xx — The moves are the user's, and the front office only if asked
+
+**Context.** The user: "you should have the first option to make all the
+moves yourself with the option to let the ai make the decisions for you."
+The expiring contracts screen started from the advice with every decision
+pre-set, so tapping through made the moves for him; the draft room had it
+the right way round already, with "Let the scouts pick" beside his own
+choice.
+
+**Decision.** Every decision screen is manual first, with the AI as an
+option the user takes rather than a default he has to undo.
+- Expiring contracts start undecided. The advice sits beside each man
+  with "Take the advice"; at the top, "Take all the advice" or "Let the
+  front office decide", which hands the whole thing to the league's own
+  logic exactly as it runs every other club. Moving on needs every man
+  decided, or "Let the undecided go to market".
+- A contract demand gains "Let the front office answer": the league's
+  rule, pay the market rate if there is room and refuse if not.
+- In-season roster moves stay the user's. "Let the front office fill
+  injured places", on the Free agents screen, hands them over - filling
+  places reserve opens, topping up the practice squad, cutting the
+  stopgap - and can be switched back. It is saved with the dynasty.
+- The draft room already worked this way and is unchanged.
+
+**Measured.** Tested: the front office answers a demand by paying with
+room and refusing without; a user's injured places wait for him with the
+roster left to him and are filled when handed over. Save version 13.
+
+### Open
+- Free-agency bidding is still the front office's, with no manual option;
+  the user chose to keep it automatic when the offseason decisions were
+  scoped.

@@ -49,7 +49,7 @@ object SaveFile {
      */
     private fun migrate(envelope: Envelope): Dynasty = when (envelope.version) {
         CURRENT_SAVE_VERSION -> envelope.dynasty
-        11, 10, 9, 8, 7, 6 -> envelope.dynasty
+        12, 11, 10, 9, 8, 7, 6 -> envelope.dynasty
         5, 4 -> formSquads(envelope.dynasty)
         3 -> formSquads(giveTendencies(envelope.dynasty))
         2 -> formSquads(giveTendencies(handOutPicks(envelope.dynasty)))
@@ -57,6 +57,11 @@ object SaveFile {
         else -> error(
             "save was written by version ${envelope.version}, this build reads $CURRENT_SAVE_VERSION")
     }
+
+    /**
+     * 12 -> 13: the user can hand his in-season roster moves to his front
+     * office. Nothing to move: every save starts with the moves his own.
+     */
 
     /**
      * 11 -> 12: play-by-play is kept for the user's games this season (SPEC

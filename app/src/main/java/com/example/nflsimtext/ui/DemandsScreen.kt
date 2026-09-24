@@ -126,6 +126,11 @@ fun DemandsScreen(
                             "Tell him no",
                             { scope.launch { store.refuseDemand(ask.player.id.v) } },
                         )
+                        // For a user who would rather not: the league's own rule.
+                        SecondaryButton(
+                            "Let the front office answer",
+                            { scope.launch { store.frontOfficeAnswer(ask.player.id.v) } },
+                        )
                     }
                     Text(
                         "A man will take less to stay if he likes it here, and an ego " +
