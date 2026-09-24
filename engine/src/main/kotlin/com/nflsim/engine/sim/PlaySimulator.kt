@@ -16,11 +16,13 @@ import kotlin.math.roundToInt
 object PlaySimulator {
 
     fun simPlay(
-        ctx: PlayContext,
+        context: PlayContext,
         offCall: OffensivePlayCall,
         defCall: DefensivePlayCall,
         rng: Rng,
     ): PlayResult {
+        val ctx = if (context.narration != null) context
+            else context.copy(narration = rng.split("narration"))
         // Pre-snap flags happen before anybody moves, so they short-circuit.
         preSnapPenalty(ctx, defCall, rng)?.let { return it }
 
@@ -30,11 +32,11 @@ object PlaySimulator {
             is OffensivePlayCall.Kneel -> PlayResult(
                 PlayOutcome.KNEEL, -1, ctx.tuning.gameFlow.runPlayClockRunoff,
                 ballCarrier = ctx.offense.quarterback.id,
-                log = SimLog(narrative = "${ctx.offense.quarterback.name} takes a knee."),
+                log = SimLog(narrative = PlayLines.write("kneel", ctx.words, "qb" to ctx.offense.quarterback.name)),
             )
             is OffensivePlayCall.Spike -> PlayResult(
                 PlayOutcome.SPIKE, 0, 2, passer = ctx.offense.quarterback.id,
-                log = SimLog(narrative = "${ctx.offense.quarterback.lastName} spikes it to stop the clock."),
+                log = SimLog(narrative = PlayLines.write("spike", ctx.words, "qb" to ctx.offense.quarterback.lastName)),
             )
             else -> PlayResult(
                 PlayOutcome.RUN, 0, ctx.tuning.gameFlow.runPlayClockRunoff,
@@ -64,7 +66,8 @@ object PlaySimulator {
             return PlayResult(
                 PlayOutcome.INCOMPLETE, 0, 0,
                 penalty = Penalty(PenaltyType.FALSE_START, -5, guilty?.id),
-                log = SimLog(narrative = "False start, ${guilty?.lastName ?: "offense"}. Five yards."),
+                log = SimLog(narrative = PlayLines.write("penalty.false_start", ctx.words,
+                    "who" to (guilty?.lastName ?: "the offense"))),
             )
         }
 
@@ -76,7 +79,8 @@ object PlaySimulator {
             return PlayResult(
                 PlayOutcome.INCOMPLETE, 0, 0,
                 penalty = Penalty(PenaltyType.OFFSIDE, 5, guilty?.id),
-                log = SimLog(narrative = "Offside, ${guilty?.lastName ?: "defense"}. Five yards."),
+                log = SimLog(narrative = PlayLines.write("penalty.offside", ctx.words,
+                    "who" to (guilty?.lastName ?: "the defence"))),
             )
         }
         return null
@@ -102,8 +106,8 @@ object PlaySimulator {
                 return result.copy(
                     penalty = Penalty(PenaltyType.OFFENSIVE_HOLDING, -10, guilty?.id),
                     log = result.log.copy(
-                        narrative = result.log.narrative +
-                            " Flag - holding on ${guilty?.lastName ?: "the offense"}, play comes back."),
+                        narrative = result.log.narrative + " " + PlayLines.write("penalty.pass_holding",
+                            ctx.words, "who" to (guilty?.lastName ?: "the offense"))),
                 )
             }
         }
@@ -125,7 +129,7 @@ object PlaySimulator {
                     outcome = PlayOutcome.INCOMPLETE,
                     penalty = Penalty(PenaltyType.PASS_INTERFERENCE, spot, result.tackler),
                     log = result.log.copy(
-                        narrative = "Flag downfield - pass interference. Ball spotted $spot yards on."),
+                        narrative = PlayLines.write("penalty.pass_interference", ctx.words, "spot" to spot)),
                 )
             }
         }
@@ -137,8 +141,8 @@ object PlaySimulator {
                 return result.copy(
                     penalty = Penalty(PenaltyType.OFFENSIVE_HOLDING, -10, guilty?.id),
                     log = result.log.copy(
-                        narrative = result.log.narrative +
-                            " Holding on ${guilty?.lastName ?: "the offense"} wipes it out."),
+                        narrative = result.log.narrative + " " + PlayLines.write("penalty.run_holding",
+                            ctx.words, "who" to (guilty?.lastName ?: "the offense"))),
                 )
             }
         }

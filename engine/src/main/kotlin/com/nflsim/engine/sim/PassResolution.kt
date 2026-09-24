@@ -79,7 +79,9 @@ internal object PassResolution {
                     clockRunoff = t.gameFlow.runPlayClockRunoff,
                     passer = qb.id, ballCarrier = qb.id, tackler = sacker?.id,
                     log = SimLog(values + ("sackChance" to sackChance),
-                        "${sacker?.lastName ?: "The defense"} gets home. ${qb.name} sacked for ${-loss}."),
+                        if (sacker != null) PlayLines.write("pass.sack", ctx.words,
+                            "sacker" to sacker.lastName, "qb" to qb.name, "loss" to -loss)
+                        else PlayLines.write("pass.sack.team", ctx.words, "qb" to qb.name, "loss" to -loss)),
                 )
             }
 
@@ -92,7 +94,9 @@ internal object PassResolution {
                     outcome = PlayOutcome.SCRAMBLE, yards = gain,
                     clockRunoff = t.gameFlow.runPlayClockRunoff,
                     passer = qb.id, ballCarrier = qb.id,
-                    log = SimLog(values, "${qb.name} escapes the rush and picks up $gain."),
+                    log = SimLog(values,
+                        if (gain > 0) PlayLines.write("pass.scramble", ctx.words, "qb" to qb.name, "gain" to gain)
+                        else PlayLines.write("pass.scramble.stopped", ctx.words, "qb" to qb.name)),
                 )
             }
 
@@ -100,7 +104,7 @@ internal object PassResolution {
                 return PlayResult(
                     outcome = PlayOutcome.THROWAWAY, yards = 0,
                     clockRunoff = t.gameFlow.incompleteClockRunoff, passer = qb.id,
-                    log = SimLog(values, "${qb.name} throws it away under pressure."),
+                    log = SimLog(values, PlayLines.write("pass.throwaway", ctx.words, "qb" to qb.name)),
                 )
             }
         }
@@ -109,7 +113,7 @@ internal object PassResolution {
         val targets = ctx.offense.skillPlayers
         if (targets.isEmpty()) {
             return PlayResult(PlayOutcome.INCOMPLETE, 0, t.gameFlow.incompleteClockRunoff,
-                passer = qb.id, log = SimLog(values, "Nobody open. Incomplete."))
+                passer = qb.id, log = SimLog(values, PlayLines.write("pass.nobody_open", ctx.words)))
         }
         val targetIndex = call.primaryTarget.coerceIn(0, targets.size - 1)
         val receiver = targets[targetIndex]
@@ -164,7 +168,8 @@ internal object PassResolution {
                 outcome = PlayOutcome.INTERCEPTION, yards = 0,
                 clockRunoff = t.gameFlow.incompleteClockRunoff,
                 passer = qb.id, target = receiver.id, tackler = defender.id, turnover = true,
-                log = SimLog(values, "${defender.name} jumps the ${call.concept.label} and picks off ${qb.lastName}!"),
+                log = SimLog(values, PlayLines.write("pass.interception", ctx.words,
+                    "defender" to defender.name, "concept" to call.concept.label, "qb" to qb.lastName)),
             )
         }
 
@@ -173,8 +178,8 @@ internal object PassResolution {
                 outcome = PlayOutcome.INCOMPLETE, yards = 0,
                 clockRunoff = t.gameFlow.incompleteClockRunoff,
                 passer = qb.id, target = receiver.id,
-                log = SimLog(values,
-                    "${qb.lastName}'s ${call.concept.label} for ${receiver.lastName} falls incomplete."),
+                log = SimLog(values, PlayLines.write("pass.incomplete", ctx.words,
+                    "qb" to qb.lastName, "concept" to call.concept.label, "receiver" to receiver.lastName)),
             )
         }
 
@@ -202,8 +207,10 @@ internal object PassResolution {
             clockRunoff = t.gameFlow.completionClockRunoff,
             passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
             assister = helper?.id,
-            log = SimLog(values,
-                "${qb.lastName} finds ${receiver.name} on the ${call.concept.label} for $total."),
+            log = SimLog(values, PlayLines.write(
+                if (total > 0) "pass.complete" else "pass.complete.nothing", ctx.words,
+                "qb" to qb.lastName, "receiver" to receiver.name, "concept" to call.concept.label,
+                "yards" to total, "yardage" to PlayLines.yardage(total))),
         )
     }
 

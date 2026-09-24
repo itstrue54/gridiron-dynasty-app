@@ -996,8 +996,15 @@ save replays with the same headlines and the wording never moves what the
 sim does. A slot a template uses that its story does not fill is an error,
 not braces on screen.
 
-**Implementation deviation - to fix.** Play-by-play lines are still written
-in Kotlin (`Resolution`, `PassResolution`), one way per outcome.
+The play-by-play is written the same way from `narrative/plays.json`: 32
+kinds of line, 8 or 9 ways each - every run, pass, sack, scramble, turnover,
+penalty, kick and punt - with fragments (`run.tackle`, `punt.return`) spliced
+into the line they finish. Each game words its plays from its own
+`narration` split of the game's stream, so the words never move a snap and
+a replayed game reads the same; a snap played on its own words itself from
+`split("narration")` of its stream. Every interception line says
+"intercept" and every fumble line "fumble", because the game log marks a
+turnover by reading the line.
 
 ---
 

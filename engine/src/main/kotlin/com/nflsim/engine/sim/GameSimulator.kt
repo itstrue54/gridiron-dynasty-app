@@ -102,10 +102,13 @@ class GameSimulator(
     private val out = mutableSetOf<Int>()
     val injuries = mutableListOf<Injury>()
     private var injuryRng: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
+    /** How the plays are worded (SPEC 10.4): its own stream, so words never move a snap. */
+    private var words: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
 
     fun simulate(rng: Rng): GameResult {
         // Its own stream, so a game nobody is hurt in plays exactly as before.
         injuryRng = rng.split("injuries")
+        words = rng.split("narration")
         // Coin toss. The team that defers gets the ball out of the half.
         val awayReceivesFirst = rng.nextBoolean()
         val firstReceiver = if (awayReceivesFirst) Side.AWAY else Side.HOME
@@ -188,7 +191,8 @@ class GameSimulator(
                         val punt = SpecialTeams.punt(
                             SpecialTeams.punterFor(punting.offDepth),
                             SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
-                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams)
+                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams,
+                            narration = words)
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
                         state = advanceClock(state, 12)
@@ -205,7 +209,8 @@ class GameSimulator(
                             SpecialTeams.kickerFor(kicking.offDepth),
                             100 - state.yardLine, kicking.offScheme,
                             home.team.stadium.altitudeFt, rng,
-                            clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams)
+                            clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams,
+                            narration = words)
                         log(state, kick.narrative)
                         state = advanceClock(state, 6)
                         if (kick.good) {
@@ -313,6 +318,7 @@ class GameSimulator(
             offPlan = offTeam.plan,
             defPlan = defTeam.plan,
             carries = stats::carries,
+            narration = words,
         )
         val offCall = PlayCaller.offense(probe, rng)
         val defCall = PlayCaller.defense(probe, rng)
