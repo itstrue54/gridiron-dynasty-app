@@ -535,6 +535,32 @@ interface Rng {
 - Tiebreakers: implement the full NFL cascade (H2H, division record, common games, conference record, strength of victory, strength of schedule, then coin flip from the RNG). Write this as a testable list of predicates — it is a classic source of "why did my 11-6 team miss."
 - Awards: MVP, OPOY, DPOY, OROY, DROY, CPOY, Coach of the Year, All-Pro 1st/2nd, Pro Bowl. Voting = a weighted score function over stats + team success + narrative bonuses, with deliberate voter noise so it isn't purely mechanical.
 
+### 6.1 In-season roster
+
+- **Injured reserve.** A man out 4 weeks or more goes on IR at every club:
+  still paid, off the 53, and not dressed unless the club has nobody else at
+  his position. Healed, he comes back when there is a place for him.
+- **Practice squads.** Sixteen per club, no more than six men past two
+  accrued seasons, no more than three at a position. A squad player has no
+  team on his record: he is a free agent his club trains, so any club may
+  sign him to its 53. Squads dissolve each spring and are chosen again after
+  the cut to 53, the league snaking through them.
+- **The league's clubs** fill a place reserve opens at the position they are
+  thinnest - their own squad first, the street second, another club's squad
+  only for a man better than both by 8 rating points (`ai.poachClearUpgrade`)
+  - top the squad back up, and cut the stopgap when the man returns. A club
+  below the 46 it dresses with no cap room tears up the contract that saves
+  the most per point of what the man gives.
+- **The user's club** makes its own moves on the Free agents screen: sign off
+  the street or another club's squad, promote or release squad men, release
+  from the 53, bring a healed man back. "Let the front office fill injured
+  places" hands them to the league's logic, and is saved with the dynasty.
+  The hub says when the 53 has open places and when the squad is short, and
+  the news when another club signs a man off his squad.
+- **Signing in season** costs the minimum prorated by the weeks left, one
+  eighteenth a game (CBA Article 26): one year, all base salary, nothing
+  guaranteed.
+
 ---
 
 ## 7. Offseason — the phase machine **[LOCKED]**
@@ -1024,7 +1050,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 - **[OPEN]** Room in v1 or defer to v2? — Deferred. Revisit at M7 with real save-size numbers.
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - **[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.
-- **[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin? Prototype at M8 and decide by feel.
+- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. Gameday inactives are still open: every healthy man on the 53 dresses.
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
 
 ---
