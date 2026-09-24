@@ -89,6 +89,12 @@ object FreeAgency {
         offers: List<Offer> = emptyList(),
         /** Men the user's club let walk this spring: they take its offer only if willing. */
         letGo: Map<Int, TeamId> = emptyMap(),
+        /**
+         * For [manual]'s transition-tagged men, the most a year it will match
+         * (SPEC 8.3); a man not listed is not matched. The league's clubs
+         * match whatever fits.
+         */
+        matchUpTo: Map<Int, Int> = emptyMap(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -230,6 +236,7 @@ object FreeAgency {
                 // A transition tag: his old club may match the offer he takes (CBA).
                 val matcher = rightToMatch[id]?.takeIf { club ->
                     club != best.team &&
+                        (club != manual || best.annual <= (matchUpTo[id] ?: 0)) &&
                         CapManagement.spaceFor(roster[club] ?: emptyList(), year, dead[club.v] ?: 0,
                             carryover = league.team(club).finances.carryover) >= best.annual
                 }

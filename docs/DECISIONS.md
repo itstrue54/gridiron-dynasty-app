@@ -1967,3 +1967,25 @@ cap; the 30-season stability test passes.
 **Consequences.** Save version 15; old saves carry nothing until their
 next offseason. Found on the way: the roster fill could sign back a man
 the user let go (see the ADR before this one).
+
+## ADR-0xx — The user sets a match ceiling for a transition tag before the market opens
+
+**Context.** A transition-tagged man's club may match any offer sheet.
+Every club matched automatically whenever it had the room - the user's
+included, against the rule that he makes his own club's calls. The
+auction runs its ten days in one go, so there is no moment mid-auction to
+ask him.
+
+**Decision.** Before free agency the user sets, for each of his tagged
+men, how far he would match: up to his market, 10% over, 25% over, or
+never, with a recommended ceiling. `FreeAgency.run` takes the ceilings
+(`matchUpTo`) and matches the user's man only at or under his. Handed to
+the front office, the club matches whatever fits, like every other. Put
+to Jev against a plain match/let-go toggle and against pausing the
+auction at each offer sheet: it chose the ceiling (0.91). A toggle
+commits him to an offer he has not seen; a pause means rebuilding the
+auction into resumable days.
+
+**Consequences.** The league's clubs are unchanged, so no calibration
+band moves. The presets are advice, so they are constants in
+`FreeAgencyPause`, not tuning fields.

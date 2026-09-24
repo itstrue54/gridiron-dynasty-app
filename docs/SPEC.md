@@ -812,11 +812,20 @@ market; an ego adds up to 0.10, a star worth 12% of the cap 0.06, loyalty
 takes up to 0.14 off for the club he played for, a club that won 60% of
 its games 0.05; never below 0.90 or above 1.25.
 
+**Transition tags, the user's club.** A transition tag lets his club match
+any offer sheet another club makes. The auction runs in one go, so the
+user answers before it opens: for each tagged man, match offers up to his
+market, 10% over, 25% over, or never, with a recommendation (never for a
+man who would be a backup, his market past the age a club pays through,
+10% over for a starter). An offer sheet above the ceiling takes him; at or
+under it, and with the room, the club keeps him. A tagged man nobody bids
+for plays on the tender. Handed to the front office, the club matches
+whatever fits, as the league's clubs do. The free-agency report says who
+was kept and who was lost.
+
 Still to do: the league's own clubs do not haggle - they pay the market
 or refuse - and there are no incentives or guarantee terms to trade
-against, only the annual figure. Matching a transition-tagged man's offer
-is automatic when the club has the room, and he gets no tender if nobody
-bids.
+against, only the annual figure.
 
 ### 8.4 Trades
 

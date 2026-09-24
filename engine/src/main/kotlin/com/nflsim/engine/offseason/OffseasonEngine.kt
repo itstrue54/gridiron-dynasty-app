@@ -404,7 +404,11 @@ object OffseasonEngine {
     }
 
     /** Free agency - with the user's own offers, or with null, the league's logic bidding for him. */
-    internal fun finishFreeAgency(pause: FreeAgencyPause, offers: List<FreeAgency.Offer>?): DraftPause {
+    internal fun finishFreeAgency(
+        pause: FreeAgencyPause,
+        offers: List<FreeAgency.Offer>?,
+        matchUpTo: Map<Int, Int> = emptyMap(),
+    ): DraftPause {
         val ctx = pause.ctx
         val rng = pause.rng
         // ---- phase 7: free agency -----------------------------------
@@ -412,6 +416,7 @@ object OffseasonEngine {
             ctx, pause.state, rng,
             manual = if (offers == null) null else ctx.dynasty.userTeamId,
             offers = offers.orEmpty(),
+            matchUpTo = matchUpTo,
         )
         // ---- phase 9: draft -----------------------------------------
         return DraftPause(
@@ -1071,6 +1076,7 @@ object OffseasonEngine {
         rng: Rng,
         manual: TeamId? = null,
         offers: List<FreeAgency.Offer> = emptyList(),
+        matchUpTo: Map<Int, Int> = emptyMap(),
     ): OffseasonState {
         val auction = FreeAgency.run(
             league = ctx.league,
@@ -1086,6 +1092,7 @@ object OffseasonEngine {
             manual = manual,
             offers = offers,
             letGo = state.letGo,
+            matchUpTo = matchUpTo,
         )
         // A transition-tagged player nobody signed plays on the tender.
         val tenders = state.tags.filter { it.kind == FranchiseTag.TRANSITION }.associateBy { it.player }

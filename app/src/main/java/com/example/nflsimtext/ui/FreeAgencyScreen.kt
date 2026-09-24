@@ -55,6 +55,8 @@ fun FreeAgencyScreen(
     // Keyed to the dynasty, not the pause: talking to an agent makes a new
     // pause, and the offers on the table should survive it.
     val offers = remember(dynasty) { mutableStateMapOf<Int, FreeAgency.Offer>() }
+    // How far to match each transition-tagged man's offer sheet; the suggestion until changed.
+    val matches = remember(dynasty) { mutableStateMapOf<Int, Int>() }
     // A man signed before the market opens is no longer anyone to bid on.
     val onMarket = pause.candidates.map { it.player.id.v }.toSet()
     LaunchedEffect(onMarket) { offers.keys.filter { it !in onMarket }.forEach { offers.remove(it) } }
@@ -63,7 +65,7 @@ fun FreeAgencyScreen(
     val offence = SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)
     val defence = SchemeCatalog.tuned(dynasty.team.defenseScheme, dynasty.league.tuning)
     fun go(list: List<FreeAgency.Offer>?) {
-        scope.launch { store.runFreeAgency(list); if (store.draftRoom != null) onDraft() }
+        scope.launch { store.runFreeAgency(list, matches.toMap()); if (store.draftRoom != null) onDraft() }
     }
     val shown = pause.candidates
         .filter { position == ALL || it.player.position.group.name == position }
@@ -115,6 +117,37 @@ fun FreeAgencyScreen(
                         { go(offers.values.toList()) }, enabled = !store.busy,
                     )
                     SecondaryButton("Let the front office bid", { go(null) }, enabled = !store.busy)
+                }
+            }
+        }
+
+        if (pause.tagged.isNotEmpty()) {
+            item {
+                SituationBlock("Your transition tags", meta = "${pause.tagged.size}") {
+                    Text(
+                        "Another club may make him an offer sheet; you can match it and keep him. The market " +
+                            "runs in one go, so say now how far you would go. Hand free agency to the front " +
+                            "office and it matches whatever fits.",
+                        style = NdTheme.type.body, color = c.chalkDim,
+                    )
+                    pause.tagged.forEach { t ->
+                        val man = t.candidate.player
+                        val id = man.id.v
+                        val chosen = matches[id] ?: t.advice.upTo
+                        Text(
+                            "${man.position.label} ${man.name}, worth ${dealMoney(t.candidate.market)} a year",
+                            style = NdTheme.type.data, color = c.chalk,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                            verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        ) {
+                            t.options.forEach { o -> Chip(o.label, chosen == o.upTo) { matches[id] = o.upTo } }
+                        }
+                        Text("Best: ${t.advice.label}", style = NdTheme.type.caption, color = c.chalk)
+                        Text(t.why, style = NdTheme.type.caption, color = c.chalkDim)
+                    }
                 }
             }
         }

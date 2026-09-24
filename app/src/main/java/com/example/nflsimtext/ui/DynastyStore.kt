@@ -261,13 +261,17 @@ class DynastyStore(private val saveDir: File) {
      * front office bidding for him - and on to the draft room, with word of
      * how each offer went.
      */
-    suspend fun runFreeAgency(offers: List<com.nflsim.engine.offseason.FreeAgency.Offer>?) {
+    suspend fun runFreeAgency(
+        offers: List<com.nflsim.engine.offseason.FreeAgency.Offer>?,
+        /** How far to match for each transition-tagged man; left out, the suggestion. */
+        matches: Map<Int, Int> = emptyMap(),
+    ) {
         val current = dynasty ?: return
         val pause = freeAgency ?: return
         busy = true
         try {
             val room = withContext(Dispatchers.Default) {
-                val draft = pause.decide(offers)
+                val draft = pause.decide(offers, matches)
                 DraftRoom(draft, emptyMap(), draft.boardFor(current.userTeamId))
             }
             draftRoom = room
@@ -302,9 +306,15 @@ class DynastyStore(private val saveDir: File) {
         after: com.nflsim.engine.offseason.OffseasonEngine.DraftPause,
         offers: List<com.nflsim.engine.offseason.FreeAgency.Offer>,
     ): String {
-        if (offers.isEmpty()) return "You made no offers in free agency."
         val now = after.signedPlayers
         val abbrev = current.league.teams.associate { it.id to it.abbrev }
+        // The transition-tagged men: matched or on the tender, or gone to an offer sheet.
+        val tags = before.tagged.mapNotNull { t ->
+            val man = now[t.candidate.player.id.v] ?: return@mapNotNull null
+            if (man.teamId == before.userTeam) "Kept ${man.position.label} ${man.name}."
+            else man.teamId?.let { "Lost ${man.name} to ${abbrev[it] ?: "?"}, past what you would match." }
+        }.joinToString(" ")
+        if (offers.isEmpty()) return listOf("You made no offers in free agency.", tags).filter { it.isNotEmpty() }.joinToString(" ")
         val won = offers.mapNotNull { o -> now[o.player]?.takeIf { it.teamId == before.userTeam } }
         val lost = offers.mapNotNull { o -> now[o.player]?.takeIf { it.teamId != null && it.teamId != before.userTeam } }
         val parts = mutableListOf<String>()
@@ -314,6 +324,7 @@ class DynastyStore(private val saveDir: File) {
         } + "."
         val unsigned = offers.size - won.size - lost.size
         if (unsigned > 0) parts += "$unsigned still unsigned: nobody met what they asked."
+        if (tags.isNotEmpty()) parts += tags
         return parts.joinToString(" ")
     }
 
