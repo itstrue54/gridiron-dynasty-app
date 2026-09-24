@@ -33,7 +33,9 @@ class MainActivity : ComponentActivity() {
             NdTheme(theme) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
                     val store = remember { DynastyStore.forContext(applicationContext) }
-                    LaunchedEffect(Unit) { if (store.hasSave) store.load() }
+                    // A rebuilt Activity finds the dynasty already in hand, and
+                    // reloading it from the save would drop what is in memory.
+                    LaunchedEffect(Unit) { if (store.dynasty == null && store.hasSave) store.load() }
                     DynastyApp(
                         store = store,
                         theme = theme,

@@ -157,7 +157,9 @@ fun CutdownScreen(
                         RowData(
                             listOf(
                                 p.position.label,
-                                (if (cutting) "Cut: " else "") + p.name + if (p.id.v in suggested.release) " ★" else "",
+                                // The highlight says he is being cut; the star leads so a
+                                // long name cannot push it off the end.
+                                (if (p.id.v in suggested.release) "★ " else "") + p.name,
                                 read(p),
                                 dealMoney(p.capHit(pause.year)),
                                 dealMoney(pause.deadIfCut(p)),
@@ -168,8 +170,8 @@ fun CutdownScreen(
                     },
                 )
                 Text(
-                    "★ a suggested cut: the ones the front office would let go, counting what each costs " +
-                        "to release. Tap a man to cut him, and again to keep him.",
+                    "Highlighted: being cut. ★ a suggested cut: the ones the front office would let go, " +
+                        "counting what each costs to release. Tap a man to cut him, and again to keep him.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                     modifier = Modifier.padding(top = NdTheme.spacing.s),
                 )
@@ -197,7 +199,7 @@ fun CutdownScreen(
                         RowData(
                             listOf(
                                 p.position.label,
-                                (if (signing) "Signed: " else "") + p.name + if (p.id.v in suggested.sign) " ★" else "",
+                                (if (p.id.v in suggested.sign) "★ " else "") + p.name,
                                 "${p.age(pause.year)}",
                                 read(p),
                             ),
@@ -207,8 +209,8 @@ fun CutdownScreen(
                     },
                 )
                 Text(
-                    "Undrafted men and veterans nobody signed, the best for your schemes first. ★ the ones " +
-                        "the front office would bring to camp. A year at the minimum each.",
+                    "Undrafted men and veterans nobody signed, the best for your schemes first. Highlighted: " +
+                        "signed. ★ the ones the front office would bring to camp. A year at the minimum each.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                     modifier = Modifier.padding(top = NdTheme.spacing.s),
                 )

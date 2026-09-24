@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -87,7 +88,8 @@ fun DynastyApp(
     haptics: Boolean,
     onHaptics: (Boolean) -> Unit,
 ) {
-    var tab by remember { mutableStateOf(Tab.HUB) }
+    // Which screen he was on survives the Activity being rebuilt.
+    var tab by rememberSaveable { mutableStateOf(Tab.HUB) }
     var player by remember { mutableStateOf<Int?>(null) }
     // A game opened from the schedule; null is the one just played.
     var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }

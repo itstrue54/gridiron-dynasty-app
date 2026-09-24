@@ -1832,3 +1832,23 @@ gone at his dead money and a man signed stays; an empty kicker room is
 filled; a camp left over 53 is cut to exactly 53. No calibration band can
 move: the bands play standalone games, and the 30-season gate runs the
 automatic path.
+
+## ADR-0xx — One store for the process, so a rotation keeps the offseason
+
+**Context.** The offseason's pauses - contracts, free agency, the draft
+room, camp - live in memory by design (ADR on the contracts pause). The
+store holding them was created per Activity, and Android rebuilds the
+Activity on a rotation, a dark-mode switch or a font change. On a phone
+that had turned on its side, the whole offseason in hand - contract calls,
+offers, picks and the cut - went, and the hub read "Start the offseason".
+
+**Decision.** `DynastyStore.forContext` returns one store for the process,
+built on the application context. A rebuilt Activity finds the dynasty
+already in hand and does not reload it from the save, and the screen the
+user was on is kept with `rememberSaveable`. The limit is unchanged and
+stated: if Android kills the process in the background, the pauses go,
+and the offseason runs again from the save.
+
+**Measured.** On a phone, the Activity was torn down and rebuilt in the
+same process (same pid) with the user in camp; the hub read "Back to camp"
+where it had read "Start the offseason".
