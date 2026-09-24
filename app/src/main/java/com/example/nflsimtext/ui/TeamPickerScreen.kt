@@ -30,7 +30,12 @@ import kotlinx.coroutines.launch
  * cap room there is. The outlook is a tier, never a rating (SPEC 4.6).
  */
 @Composable
-fun TeamPickerScreen(league: League, store: DynastyStore, scope: CoroutineScope) {
+fun TeamPickerScreen(
+    league: League,
+    store: DynastyStore,
+    scope: CoroutineScope,
+    onStarted: () -> Unit = {},
+) {
     val c = NdTheme.colors
     val outlook = remember(league) { Outlook.of(league) }
     var picked by remember(league) { mutableStateOf<String?>(null) }
@@ -65,7 +70,7 @@ fun TeamPickerScreen(league: League, store: DynastyStore, scope: CoroutineScope)
                     )
                     PrimaryButton(
                         "Take over the ${team.nickname}",
-                        { scope.launch { store.startWith(abbrev) } },
+                        { scope.launch { store.startWith(abbrev); onStarted() } },
                         Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
                         enabled = !store.busy,
                     )
@@ -97,7 +102,7 @@ fun TeamPickerScreen(league: League, store: DynastyStore, scope: CoroutineScope)
 
         item {
             SecondaryButton(
-                "Surprise me", { scope.launch { store.startWith(null) } },
+                "Surprise me", { scope.launch { store.startWith(null); onStarted() } },
                 Modifier.fillMaxWidth(), enabled = !store.busy,
             )
         }

@@ -105,12 +105,15 @@ fun DynastyApp(
     }
 
     Scaffold(
-        bottomBar = { if (dynasty != null) BottomBar(tab) { boxGame = null; tab = it } },
+        // No tabs while choosing a club: they lead to the dynasty being left behind.
+        bottomBar = { if (dynasty != null && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                dynasty == null && store.pendingLeague != null ->
-                    TeamPickerScreen(store.pendingLeague!!, store, scope)
+                // Choosing a club takes the whole screen, whether or not a
+                // dynasty is already in hand.
+                store.pendingLeague != null ->
+                    TeamPickerScreen(store.pendingLeague!!, store, scope) { tab = Tab.HUB }
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
                     Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }

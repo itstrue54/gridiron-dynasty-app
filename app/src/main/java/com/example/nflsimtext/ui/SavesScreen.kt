@@ -111,6 +111,15 @@ fun SavesScreen(store: DynastyStore, scope: CoroutineScope, onBack: () -> Unit =
                         if (card != null && !here) {
                             SecondaryButton("Delete", { confirming = card })
                         }
+                        // A dynasty already in hand should not stop the user starting
+                        // another with the club of his choosing.
+                        if (card == null) {
+                            SecondaryButton(
+                                "Start a new dynasty here",
+                                { scope.launch { store.previewLeague(into = n) } },
+                                enabled = !store.busy,
+                            )
+                        }
                     }
                 }
             }
