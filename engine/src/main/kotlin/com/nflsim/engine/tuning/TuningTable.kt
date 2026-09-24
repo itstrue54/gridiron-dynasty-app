@@ -478,6 +478,29 @@ data class TuningTable(
         val disputeReservationFloor: Float = 0.74f,
         /** What a rejected offer costs him, against 18 for being told no outright. */
         val disputeSnubMorale: Int = 5,
+        /**
+         * A deal's length against what he wants: a year shorter costs the
+         * club this much more a year, because he gives up security; a year
+         * longer buys this much off, because he gains it.
+         */
+        val termShorterPremium: Float = 0.05f,
+        val termLongerDiscount: Float = 0.03f,
+        /** The age a club stops wanting to pay a man through. */
+        val payThroughAge: Int = 31,
+        /**
+         * Cap room, as a share of the cap, below which a club is tight: the
+         * advice turns to deals that cost less now, and to restructures.
+         */
+        val tightCapShare: Float = 0.05f,
+        /**
+         * The advice on an expiring man: an ask within this share of his
+         * market is fair; a backup is worth keeping up to this many times
+         * the minimum; and past his prime a franchise tag is the answer if
+         * it costs no more than this share of what he asks.
+         */
+        val fairAskShare: Float = 1.08f,
+        val cheapDepthMinimums: Float = 3f,
+        val veteranTagShare: Float = 1.15f,
         /** Rating points a star must add over the contender's best at his position. */
         val tradeClearUpgrade: Float = 6f,
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */

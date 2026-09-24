@@ -230,15 +230,49 @@ object ContractDisputes {
         )
     }
 
-    /** Pay him: the market rate, for as long as his age says. */
+    /** Every way to write the deal he asked for: his term and a year either side, three ways each. */
+    fun deals(league: League, ask: Ask): List<com.nflsim.engine.offseason.ContractOptions.Deal> =
+        com.nflsim.engine.offseason.ContractOptions.deals(ask.market, ask.years, league.year, league.tuning)
+
+    /** What to do about a demand, and why. */
+    data class Advice(
+        val deal: com.nflsim.engine.offseason.ContractOptions.Deal?,
+        val headline: String,
+        val why: String,
+    )
+
+    fun advise(league: League, team: TeamId, ask: Ask): Advice {
+        val space = Transactions.spaceFor(league, team)
+        val cap = com.nflsim.engine.offseason.CapManagement.capFor(league.year)
+        val all = deals(league, ask)
+        val affordable = all.filter { it.capNow - ask.paid <= space }
+        if (affordable.isEmpty()) {
+            val cheapest = all.minOf { it.capNow - ask.paid }
+            return Advice(null, "You cannot pay him yet",
+                "The cheapest way to write it needs ${money(cheapest)} more room than your " +
+                    "${money(space)}. Restructure a big contract to make the room, or tell him no.")
+        }
+        val best = com.nflsim.engine.offseason.ContractOptions.bestDeal(
+            ask.player, affordable, ask.years, space + ask.paid, cap, league.year, league.tuning)
+        val d = best.pick
+        return Advice(d,
+            "Pay him: ${d.years} ${if (d.years == 1) "year" else "years"} at ${money(d.annual)}, " +
+                d.structure.label.lowercase(),
+            "${best.why} Or offer 90% first: if he will not take it, his agent names his floor, " +
+                "and it costs him five morale rather than eighteen.")
+    }
+
+    /** Pay him the market rate: as he asked, or as one of [deals] writes it. */
     fun extend(
         league: League,
         team: TeamId,
         playerId: PlayerId,
         week: Int = 0,
         stats: Map<Int, StatLine> = emptyMap(),
+        years: Int? = null,
+        structure: com.nflsim.engine.offseason.ContractOptions.Structure? = null,
     ): Transactions.Outcome = extend(
-        league, team, playerId, week, pricer(league, Production.index(league.players, stats)))
+        league, team, playerId, week, pricer(league, Production.index(league.players, stats)), years, structure)
 
     private fun extend(
         league: League,
@@ -246,28 +280,37 @@ object ContractDisputes {
         playerId: PlayerId,
         week: Int,
         pricer: MarketValue.Pricer,
+        years: Int? = null,
+        structure: com.nflsim.engine.offseason.ContractOptions.Structure? = null,
     ): Transactions.Outcome {
         val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
         if (man.teamId != team) return Transactions.Outcome.Refused("${man.name} does not play for this club.")
         if (man.contract == null) return Transactions.Outcome.Refused("${man.name} has no contract to fix.")
         val asking = ask(league, man, pricer)
-        if (!canAfford(league, team, asking)) {
-            return Transactions.Outcome.Refused(
-                "No room: the new deal costs ${money(asking.capChange)} more against the cap this year.")
+        // The deal as chosen, or his own terms written the standard way.
+        val deal = deals(league, asking).let { all ->
+            all.firstOrNull {
+                it.years == (years ?: asking.years) &&
+                    it.structure == (structure ?: com.nflsim.engine.offseason.ContractOptions.Structure.STANDARD)
+            } ?: all.first { it.years == asking.years }
         }
-        val contract = Contract.of(asking.years, asking.total, league.year)
+        if (Transactions.spaceFor(league, team) < deal.capNow - asking.paid) {
+            return Transactions.Outcome.Refused(
+                "No room: that deal costs ${money(deal.capNow - asking.paid)} more against the cap this year.")
+        }
+        val contract = deal.contract
         val settled = man.copy(
             contract = contract,
             demand = DemandState.SETTLED,
             morale = (man.morale + league.tuning.ai.disputeSettledMorale).coerceAtMost(100),
         )
         val note = "${man.position.label} ${man.name} signs a new deal: " +
-            "${asking.years} years at ${money(asking.market)} a year."
+            "${deal.years} years at ${money(deal.annual)} a year, ${deal.structure.label.lowercase()}."
         return Transactions.Outcome.Done(
             league.copy(players = league.players.map { if (it.id == playerId) settled else it })
                 .logged(Transaction.of(
                     league.year, week, TransactionKind.SIGNED, team, man,
-                    amount = asking.market, years = asking.years)),
+                    amount = deal.annual, years = deal.years)),
             note,
         )
     }

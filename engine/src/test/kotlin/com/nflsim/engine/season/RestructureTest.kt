@@ -70,4 +70,22 @@ class RestructureTest {
         assertTrue(total in (was - deal.years)..was, "was $was, now $total")
         assertTrue(preview.frees < deal.capHit(2026))
     }
+
+    @Test
+    fun `three sizes of restructure, and the advice is to leave it when there is room`() {
+        val deal = Contract(years = 4, baseSalary = listOf(12_000, 14_000, 16_000, 18_000), signedYear = 2026)
+        val (l, id) = withDeal(deal)
+        val options = com.nflsim.engine.offseason.ContractOptions.restructures(l.player(id), 2026)
+        assertEquals(3, options.size)
+        assertTrue(options.zipWithNext().all { (a, b) -> a.preview.frees < b.preview.frees },
+            "a bigger restructure frees more: ${options.map { it.preview.frees }}")
+
+        val cap = com.nflsim.engine.offseason.CapManagement.capFor(2026)
+        val roomy = com.nflsim.engine.offseason.ContractOptions.bestRestructure(options, cap / 5, cap, l.tuning)
+        assertEquals(null, roomy.pick, "with room to spare, the advice is not to")
+        assertTrue(roomy.why.startsWith("Leave it"), roomy.why)
+
+        val tight = com.nflsim.engine.offseason.ContractOptions.bestRestructure(options, 0, cap, l.tuning)
+        assertTrue(tight.pick != null, "with no room, the advice is to move something")
+    }
 }

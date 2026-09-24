@@ -267,13 +267,18 @@ object Transactions {
         val deadAfter: Int,
     )
 
-    fun restructurePreview(player: Player, year: Int = 0): Restructure? {
+    fun restructurePreview(
+        player: Player,
+        year: Int = 0,
+        /** Of what can be moved, how much; a front office's habit when left alone. */
+        share: Float = CapManagement.RESTRUCTURE_SHARE,
+    ): Restructure? {
         val contract = player.contract ?: return null
         val i = contract.yearIndex(year)
         if (i !in 0 until contract.years || contract.years - i < 2) return null
         val room = contract.baseSalary[i] - Contract.MIN_BASE_SALARY
         if (room <= 0) return null
-        val moved = (room * CapManagement.RESTRUCTURE_SHARE).toInt()
+        val moved = (room * share).toInt()
         if (moved <= 0) return null
         val after = contract.restructure(year, moved)
         val frees = contract.capHit(year) - after.capHit(year)
@@ -287,16 +292,22 @@ object Transactions {
         )
     }
 
-    /** Moves what the club can move, at the share a front office moves it. */
-    fun restructure(league: League, team: TeamId, playerId: PlayerId, week: Int = 0): Outcome {
+    /** Moves [share] of what the club can move; a front office's habit by default. */
+    fun restructure(
+        league: League,
+        team: TeamId,
+        playerId: PlayerId,
+        week: Int = 0,
+        share: Float = CapManagement.RESTRUCTURE_SHARE,
+    ): Outcome {
         val man = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
         if (man.teamId != team) return Outcome.Refused("${man.name} does not play for this club.")
-        val preview = restructurePreview(man, league.year)
+        val preview = restructurePreview(man, league.year, share)
             ?: return Outcome.Refused(
                 "Nothing to move: ${man.lastName} is on the minimum, or his deal is in its last year.")
         val moved = (man.contract!!.baseSalary[man.contract!!.yearIndex(league.year)] -
-            Contract.MIN_BASE_SALARY) * CapManagement.RESTRUCTURE_SHARE
+            Contract.MIN_BASE_SALARY) * share
         val after = man.contract!!.restructure(league.year, moved.toInt())
         return done(
             Transaction.of(league.year, week, TransactionKind.RESTRUCTURED, team, man,

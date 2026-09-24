@@ -38,9 +38,9 @@ class ContractsPauseTest {
         val best = pause.expiring.first().player.id.v
         val rest = pause.expiring.drop(1).map { it.player.id.v }
         val choices = mapOf(best to ContractChoice.RESIGN) + rest.associateWith { ContractChoice.WALK }
-        assertTrue(pause.cost(choices) > 0)
+        assertTrue(pause.cost(choices.mapValues { ContractDecision(it.value) }) > 0)
 
-        val kept = roster(pause.decide(choices), user)
+        val kept = roster(pause.decideChoices(choices), user)
         assertTrue(best in kept, "the man the user re-signed should be on the roster")
         // The league's logic did not quietly re-sign the ones the user let go.
         val stayed = rest.filter { it in kept }
@@ -53,7 +53,7 @@ class ContractsPauseTest {
         val user = pause.userTeam
         val two = pause.expiring.take(2).map { it.player.id.v }
         val choices = two.associateWith { ContractChoice.FRANCHISE }
-        val draft = pause.decide(choices)
+        val draft = pause.decideChoices(choices)
         val tags = draft.state.tags.filter { it.team == user.v }
         assertEquals(1, tags.size, "the CBA allows one tag: $tags")
         assertTrue(tags.single().player in roster(draft, user), "a franchise-tagged man stays")
@@ -70,8 +70,71 @@ class ContractsPauseTest {
     fun `taking the front office's advice is the offseason the AI would have run`() {
         val pause = OffseasonEngine.runToContracts(season)
         val user = pause.userTeam
-        val advised = roster(pause.decide(pause.suggested), user)
+        val advised = roster(pause.decideChoices(pause.suggested), user)
         val auto = roster(OffseasonEngine.runToContracts(season).decide(null), user)
         assertEquals(auto, advised, "the suggested choices should keep the same men")
+    }
+
+    @Test
+    fun `every man gets advice, one tag at most, and the advice fits the cap`() {
+        val pause = OffseasonEngine.runToContracts(season)
+        val recs = pause.expiring.map { pause.recommend(it) }
+        recs.forEach { assertTrue(it.headline.isNotBlank() && it.why.isNotBlank(), "$it") }
+        val tags = recs.count {
+            it.decision.choice == ContractChoice.FRANCHISE || it.decision.choice == ContractChoice.TRANSITION
+        }
+        assertTrue(tags <= 1, "the CBA allows one tag: $tags recommended")
+        val cost = pause.cost(pause.expiring.associate { it.player.id.v to pause.recommend(it).decision })
+        assertTrue(cost <= pause.capSpace, "the advice spends $cost of ${pause.capSpace}")
+    }
+
+    @Test
+    fun `a young starter asking what he is worth is kept`() {
+        // The case a phone turned up: a 24-year-old starting corner at his
+        // market rate, with a hundred million of room, was advised to walk.
+        val user = season.userTeamId
+        val star = season.league.roster(user).filter { it.age(season.year) <= 27 }
+            .maxByOrNull { com.nflsim.engine.ratings.overall(it) }!!
+        val expiring = season.copy(league = season.league.copy(players = season.league.players.map {
+            if (it.id == star.id) it.copy(
+                contract = com.nflsim.engine.model.Contract(years = 1, baseSalary = listOf(5_000), signedYear = season.year),
+                traits = it.traits.copy(loyalty = 70),
+            ) else it
+        }))
+        val pause = OffseasonEngine.runToContracts(expiring)
+        val e = pause.expiring.first { it.player.id == star.id }
+        val rec = pause.recommend(e)
+        assertEquals(ContractChoice.RESIGN, rec.decision.choice, "${rec.headline}: ${rec.why}")
+        assertTrue(rec.why.contains("start"), rec.why)
+    }
+
+    @Test
+    fun `a re-signing is written the way it was chosen`() {
+        val pause = OffseasonEngine.runToContracts(season)
+        val e = pause.expiring.first()
+        val deals = pause.deals(e)
+        // His term and a year either side, three ways each.
+        assertTrue(deals.map { it.years }.distinct().size >= 2)
+        assertEquals(ContractOptions.Structure.entries.toSet(), deals.map { it.structure }.toSet())
+        val light = deals.first { it.structure == ContractOptions.Structure.CAP_LIGHT }
+        val payGo = deals.first { it.structure == ContractOptions.Structure.PAY_AS_YOU_GO && it.years == light.years }
+        assertTrue(light.capNow < payGo.capNow, "cap-light should cost less now")
+        if (light.years > 1) assertTrue(light.deadIfCutNextYear > payGo.deadIfCutNextYear,
+            "and leave more dead money")
+
+        val draft = pause.decide(mapOf(e.player.id.v to ContractDecision(ContractChoice.RESIGN, light.years, light.structure)))
+        val signed = draft.state.players.first { it.id == e.player.id }
+        assertEquals(pause.userTeam, signed.teamId)
+        assertEquals(light.contract, signed.contract)
+    }
+
+    @Test
+    fun `a shorter deal costs more a year and a longer one less`() {
+        val pause = OffseasonEngine.runToContracts(season)
+        val e = pause.expiring.first { it.years in 2..4 }
+        val standard = pause.deals(e).filter { it.structure == ContractOptions.Structure.STANDARD }
+            .associateBy { it.years }
+        assertTrue(standard.getValue(e.years - 1).annual > standard.getValue(e.years).annual)
+        assertTrue(standard.getValue(e.years + 1).annual < standard.getValue(e.years).annual)
     }
 }

@@ -1653,3 +1653,54 @@ and taking the front office's advice keeps exactly the same men. The
   the room; there is no "do you match?" for the user. If nobody bids he is
   a free agent - there is no tender, which the CBA has.
 - Free-agency bidding is still the AI's for the user's club.
+
+## ADR-0xx — Every way to write a deal, and which one to write
+
+**Context.** The user asked for the game to show the best option on every
+contract decision and to lay out all the signing and restructure options.
+Each decision offered one fixed deal, and the offseason's advice was the
+front office's own call.
+
+**Decision.** `ContractOptions` writes every deal a man will sign: his
+term and a year either side - a year shorter costs 5% more a year because
+he gives up security, a year longer 3% less because he gains it - each in
+three structures. Standard is the engine's usual deal. Cap-light puts the
+minimum in salary this year and a bonus spread over the deal: least cap
+now, most later, most dead money. Pay as you go is flat salary and no
+bonus: more cap now and no dead money beyond the guarantee. They are
+written out explicitly: this engine back-loads salary and spreads bonus
+evenly, so a bigger bonus alone makes year one dearer, which the first
+version of this did, labelled cap-light, until a test caught it. A
+one-year deal is offered one way, since the bonus lands this year however
+it is written. Restructures come in three sizes - a quarter, half, or all
+of what can move.
+
+The advice is a value judgement, not the front office's call. That call
+comes from one GM's habits, and on a phone it told a club with $120M of
+room to let a 24-year-old starting corner walk at his market rate. The
+advice asks whether he starts for this club, whether his ask is within 8%
+of his market, whether he is under the age a club pays through (31), and
+whether it fits - down the list most valuable first, so the one tag goes
+where it suits and the room runs out where it would. A veteran starter
+gets a franchise tag if it costs no more than 115% of his ask; an
+overpriced young starter gets the transition tag; cheap depth is kept up
+to three minimums; the rest go to market. The deal is then written for no
+longer than his prime and structured for the room: cap-light when tight,
+pay as you go for a man near the age line, standard otherwise. The front
+office's call is shown beside the advice where they differ.
+
+In season, a demand's advice is the same deal logic at his price, or how
+to make the room if nothing fits, with the haggling tip beside it. A
+restructure's advice is to leave it when there is room - the money moves
+into years he may not be worth it - and otherwise the smallest size that
+makes the room comfortable.
+
+**Measured.** Tested: the structures order as their labels say, cap now
+and dead money both; a shorter deal costs more a year and a longer less; a
+chosen deal is signed as chosen, in the offseason and in season; one tag
+at most is advised and the advice fits the cap; a young starter at his
+market rate is advised to re-sign; the demand advice pays when there is
+room and says to restructure when there is not; and the restructure
+advice says leave it with room to spare. On a phone, on copies of the
+user's save: the corner's advice read re-sign for five years at $21.8M,
+with "your front office would have let him go" beneath it.

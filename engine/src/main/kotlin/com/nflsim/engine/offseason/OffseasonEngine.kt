@@ -369,7 +369,7 @@ object OffseasonEngine {
     }
 
     /** Re-signing, tags and free agency, once the user's club has decided its own. */
-    internal fun continueToDraft(pause: ContractsPause, choices: Map<Int, ContractChoice>?): DraftPause {
+    internal fun continueToDraft(pause: ContractsPause, choices: Map<Int, ContractDecision>?): DraftPause {
         val ctx = pause.ctx
         val rng = pause.rng
         val user = ctx.dynasty.userTeamId
