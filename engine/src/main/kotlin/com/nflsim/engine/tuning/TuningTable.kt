@@ -499,6 +499,12 @@ data class TuningTable(
          */
         val returnLoyaltyOverEgo: Int = 0,
         /**
+         * Of the cap room a club leaves unused at the end of a league year,
+         * the share that is added to its cap for the next (SPEC 8.1). The
+         * NFL carries all of it.
+         */
+        val capCarryoverShare: Float = 1.0f,
+        /**
          * The advice on an expiring man: an ask within this share of his
          * market is fair; a backup is worth keeping up to this many times
          * the minimum; and past his prime a franchise tag is the answer if

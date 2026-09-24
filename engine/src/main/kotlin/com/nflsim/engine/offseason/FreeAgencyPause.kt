@@ -64,7 +64,8 @@ class FreeAgencyPause internal constructor(
     /** The user's roster as free agency opens. */
     val roster: List<Player> get() = state.players.filter { it.teamId == userTeam }
 
-    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0)
+    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0,
+        carryover = ctx.league.team(userTeam).finances.carryover)
 
     /** What to offer, if anything, and why. */
     data class Advice(val offer: FreeAgency.Offer?, val headline: String, val why: String)

@@ -46,7 +46,8 @@ class CutdownPause internal constructor(
     /** Dead money this year if he is released. */
     fun deadIfCut(p: Player): Int = p.contract?.deadCap(year)?.thisYear ?: 0
 
-    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0)
+    val capSpace: Int get() = CapManagement.spaceFor(roster, year, state.deadMoney[userTeam.v] ?: 0,
+        carryover = league.team(userTeam).finances.carryover)
 
     /** The cut the user makes: who goes, and who is signed off the street. */
     data class Cut(val release: Set<Int> = emptySet(), val sign: Set<Int> = emptySet())

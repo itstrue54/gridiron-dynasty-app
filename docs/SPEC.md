@@ -721,9 +721,18 @@ season and every offseason was an accidental redraft.
 
 Built since: the ten-day auction (§8.3, `FreeAgency`), franchise and
 transition tags (`FranchiseTag`), and the 5th-year option
-(`FifthYearOptions`). Still to do: cap carryover. `TeamFinances.carryover`
-is in the model and counts toward `available`, but nothing sets it, so
-unused room is lost at the new year.
+(`FifthYearOptions`), and cap carryover: as the offseason opens, the room
+each club left unused as the season closed (never less than zero) times
+`ai.capCarryoverShare` (1.0, the NFL's rule) is written to
+`TeamFinances.carryover` and added to that club's cap for the new year.
+Every cap check counts it - the auction, re-signings, tags, trades, the
+cut to legal, the fill, in-season signings and contract demands - and the
+user's cap sheet shows it as "carried over". Over 15 seasons on two seeds
+it left the spread of wins (2.89 to 2.83, 2.61 to 2.62) and the number of
+champions (9, 12) where they were, raised the room clubs finish a season
+with by about a fifth and free-agent spending by about a tenth, and lets
+a thrifty club bank room: the most any club held by year 15 went from
+$127M to $211M and $136M to $257M.
 
 ### 8.2 AI GM decision model
 

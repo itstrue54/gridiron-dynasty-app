@@ -61,7 +61,8 @@ object Extensions {
         league.teams.forEach { team ->
             if (team.id == skip) return@forEach
             val current = roster.getOrPut(team.id) { mutableListOf() }
-            val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0)
+            val space = CapManagement.spaceFor(current, year, deadMoney[team.id.v] ?: 0,
+                carryover = team.finances.carryover)
             if (space <= Contract.MIN_BASE_SALARY * 4) return@forEach
 
             // Only part of the space goes on your own players - the rest is

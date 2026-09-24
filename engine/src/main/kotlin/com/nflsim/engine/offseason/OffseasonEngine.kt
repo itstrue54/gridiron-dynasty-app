@@ -241,7 +241,10 @@ object OffseasonEngine {
         val carousel = CoachingCarousel.run(
             season.league, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
             previousWinPct, rng.split("carousel|$newYear"))
-        val dynasty = season.copy(league = carousel.league)
+        // Last year's unused room joins next year's cap (SPEC 8.1). It is
+        // read from the books as the season closed and written before any
+        // phase counts money, so every cap check this spring includes it.
+        val dynasty = season.copy(league = CapManagement.carryForward(season.league, carousel.league))
         val league = dynasty.league
 
         // The league's schemes, each carrying its scheme-fit tuning, built once.
@@ -554,7 +557,8 @@ object OffseasonEngine {
         val finalRosters = survivors.filter { it.teamId != null }.groupBy { it.teamId!! }
         val capSpace = league.teams.map { t ->
             CapManagement.spaceFor(
-                finalRosters[t.id] ?: emptyList(), newYear, (state.deadMoney[t.id.v] ?: 0) / 2)
+                finalRosters[t.id] ?: emptyList(), newYear, (state.deadMoney[t.id.v] ?: 0) / 2,
+                carryover = t.finances.carryover)
         }
 
         // Every contract big enough to be worth cutting, against what the
@@ -1126,7 +1130,7 @@ object OffseasonEngine {
         val leagueSpace = ctx.league.teams.sumOf { t ->
             CapManagement.spaceFor(
                 capRosters[t.id] ?: emptyList(), ctx.newYear,
-                state.deadMoney[t.id.v] ?: 0).toLong()
+                state.deadMoney[t.id.v] ?: 0, carryover = t.finances.carryover).toLong()
         }.coerceAtLeast(1L)
         val openSpots = (League.TEAM_COUNT * League.ROSTER_SIZE -
             rostered.size - DraftRunner.ROUNDS * League.TEAM_COUNT).coerceAtLeast(1)
@@ -1608,7 +1612,8 @@ object OffseasonEngine {
                     // is less. A capped-out team fills its roster with minimum
                     // deals, which is exactly how a good roster gets thin.
                     val worth = pricer.annual(pick, scheme(teamId, position), year)
-                    val space = CapManagement.spaceFor(current, year, deadMoney[teamId.v] ?: 0)
+                    val space = CapManagement.spaceFor(current, year, deadMoney[teamId.v] ?: 0,
+                        carryover = league.team(teamId).finances.carryover)
                     val value = when {
                         space <= Contract.MIN_BASE_SALARY * 2 -> Contract.MIN_BASE_SALARY
                         else -> worth.coerceAtMost((space / 3).coerceAtLeast(Contract.MIN_BASE_SALARY))

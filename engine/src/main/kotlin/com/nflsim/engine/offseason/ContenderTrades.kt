@@ -136,7 +136,8 @@ object ContenderTrades {
                                 pkg.sumOf { it.toSeller.toDouble() } >= sellerWants &&
                                     pkg.sumOf { it.toBuyer.toDouble() } <= buyerPays &&
                                     fits(mine, theirs, star, pkg.mapNotNull { it.player }, year,
-                                        dead[buyer.id.v] ?: 0, dead[seller.id.v] ?: 0)
+                                        dead[buyer.id.v] ?: 0, dead[seller.id.v] ?: 0,
+                                        buyer.finances.carryover, seller.finances.carryover)
                             }
                             .minByOrNull { pkg -> pkg.sumOf { it.toBuyer.toDouble() } }
                             ?: continue
@@ -192,11 +193,13 @@ object ContenderTrades {
         year: Int,
         buyerDead: Int,
         sellerDead: Int,
+        buyerCarryover: Int,
+        sellerCarryover: Int,
     ): Boolean {
         val buyerOwes = buyerDead + pkg.sumOf { it.contract?.deadCap(year)?.thisYear ?: 0 }
         val sellerOwes = sellerDead + (star.contract?.deadCap(year)?.thisYear ?: 0)
-        return CapManagement.spaceFor(buyerRoster - pkg.toSet() + star, year, buyerOwes) >= 0 &&
-            CapManagement.spaceFor(sellerRoster - star + pkg, year, sellerOwes) >= 0
+        return CapManagement.spaceFor(buyerRoster - pkg.toSet() + star, year, buyerOwes, buyerCarryover) >= 0 &&
+            CapManagement.spaceFor(sellerRoster - star + pkg, year, sellerOwes, sellerCarryover) >= 0
     }
 
 

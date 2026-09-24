@@ -52,7 +52,8 @@ class FreeAgencyPauseTest {
         val offers = fa.candidates.take(20).map { FreeAgency.Offer(it.player.id.v, fa.capSpace, it.years) }
         val draft = fa.decide(offers)
         val mine = draft.state.players.filter { it.teamId == fa.userTeam }
-        val space = CapManagement.spaceFor(mine, fa.year, draft.state.deadMoney[fa.userTeam.v] ?: 0)
+        val space = CapManagement.spaceFor(mine, fa.year, draft.state.deadMoney[fa.userTeam.v] ?: 0,
+            carryover = draft.ctx.league.team(fa.userTeam).finances.carryover)
         assertTrue(space >= 0, "the club went ${-space} over the cap")
         val signedHere = offers.count { o -> mine.any { it.id.v == o.player } }
         assertTrue(signedHere <= 1, "each offer was everything it had, so one at most can land: $signedHere")

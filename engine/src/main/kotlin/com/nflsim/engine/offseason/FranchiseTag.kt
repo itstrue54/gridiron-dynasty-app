@@ -98,7 +98,8 @@ object FranchiseTag {
             val expiring = players.filter { it.teamId == null && previousTeam[it.id.v] == team.id }
             if (expiring.isEmpty()) return@forEach
             val space = CapManagement.spaceFor(
-                players.filter { it.teamId == team.id }, year, deadMoney[team.id.v] ?: 0)
+                players.filter { it.teamId == team.id }, year, deadMoney[team.id.v] ?: 0,
+                carryover = team.finances.carryover)
             // The best player it could not keep, if he is worth near what the
             // tag costs and it fits - the franchise tag first, then the cheaper one.
             val (p, kind, cost) = expiring

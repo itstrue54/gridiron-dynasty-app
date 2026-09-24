@@ -202,7 +202,8 @@ class ContractsPause internal constructor(
 
     /** Cap room before any of it, against the dead money the club is carrying. */
     val capSpace: Int get() = CapManagement.spaceFor(
-        state.players.filter { it.teamId == userTeam }, year, state.deadMoney[userTeam.v] ?: 0)
+        state.players.filter { it.teamId == userTeam }, year, state.deadMoney[userTeam.v] ?: 0,
+        carryover = ctx.league.team(userTeam).finances.carryover)
 
     /**
      * What a set of choices costs this year's cap. A transition tag costs
