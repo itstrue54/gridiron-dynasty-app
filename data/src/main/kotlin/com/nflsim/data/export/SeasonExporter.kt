@@ -60,6 +60,7 @@ object SeasonExporter {
         return Season(
             year = dynasty.year,
             soFar = when {
+                dynasty.phase == DynastyPhase.REGULAR_SEASON && played == 0 -> "before week 1"
                 dynasty.phase == DynastyPhase.REGULAR_SEASON -> "through week $played"
                 dynasty.phase == DynastyPhase.PLAYOFFS -> "regular season complete"
                 else -> null

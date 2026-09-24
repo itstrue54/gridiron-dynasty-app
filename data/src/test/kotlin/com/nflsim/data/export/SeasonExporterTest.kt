@@ -36,6 +36,14 @@ class SeasonExporterTest {
     }
 
     @Test
+    fun `a season not yet started says so`() {
+        val d = start()
+        val md = SeasonExporter.markdown(SeasonExporter.current(d), d.league, d.userTeamId)
+        assertTrue(md.startsWith("# 2026 season, before week 1"), md.lines().first())
+        assertTrue("game by game" !in md, "no games to list yet")
+    }
+
+    @Test
     fun `a filed season has its champion, awards and leaders`() {
         var d = start()
         while (d.year == 2026) d = DynastyEngine.advance(d)
