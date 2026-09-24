@@ -1772,4 +1772,29 @@ still leaves a full roster, filled with camp bodies.
 
 ### Open
 - The cut to 53 at camp is still made for the user by the league's logic.
-- No haggling in free agency: an offer is what it is for ten days.
+- ~~No haggling in free agency~~ Built; see the next ADR.
+
+## ADR-0xx — Talking to a free agent's agent before the market opens
+
+**Context.** Free agency's offers stood for ten days, take it or leave
+it. The user asked for haggling.
+
+**Decision.** Before the ten days, the user may talk to any free agent's
+agent. An offer at or above what he will take signs him on the spot,
+before anyone else can bid; one under it is turned down, and his agent
+names his floor. He hears two offers and no more - after the second no
+he is done talking and goes to market, where a standing offer still
+counts - so learning a floor is worth something and is not free.
+
+His floor starts at 1.02 of his market, since the auction would pay him
+about that; an ego adds up to 0.10, a star worth 12% of the cap adds
+0.06 because stars test the market, loyalty takes up to 0.14 off but
+only for the club he played for, a club that won 60% takes 0.05 off,
+and a small quirk from his id keeps identical men apart. It never goes
+below 0.90 or above 1.25. A pre-market signing guarantees 45% and is
+recorded with the offseason's signings.
+
+**Measured.** Tested: an offer over his floor signs him before the
+market and he stays signed through the ten days; under it, his agent
+names the floor, and after two offers he stops talking, even at his
+floor; a loyal man coming home takes less than a proud stranger.

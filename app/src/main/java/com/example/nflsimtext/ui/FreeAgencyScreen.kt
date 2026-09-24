@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +52,12 @@ fun FreeAgencyScreen(
         }
         return
     }
-    val offers = remember(pause) { mutableStateMapOf<Int, FreeAgency.Offer>() }
+    // Keyed to the dynasty, not the pause: talking to an agent makes a new
+    // pause, and the offers on the table should survive it.
+    val offers = remember(dynasty) { mutableStateMapOf<Int, FreeAgency.Offer>() }
+    // A man signed before the market opens is no longer anyone to bid on.
+    val onMarket = pause.candidates.map { it.player.id.v }.toSet()
+    LaunchedEffect(onMarket) { offers.keys.filter { it !in onMarket }.forEach { offers.remove(it) } }
     var position by remember { mutableStateOf(ALL) }
     val committed = offers.values.sumOf { it.annual }
     val offence = SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)
@@ -92,7 +98,7 @@ fun FreeAgencyScreen(
                     style = NdTheme.type.data, color = c.chalk,
                 )
                 offers.values.forEach { o ->
-                    val man = pause.candidates.first { it.player.id.v == o.player }.player
+                    val man = pause.candidates.firstOrNull { it.player.id.v == o.player }?.player ?: return@forEach
                     Text(
                         "${man.position.label} ${man.name}: ${o.years} ${if (o.years == 1) "year" else "years"} " +
                             "at ${dealMoney(o.annual)}",
@@ -108,6 +114,15 @@ fun FreeAgencyScreen(
                         { go(offers.values.toList()) }, enabled = !store.busy,
                     )
                     SecondaryButton("Let the front office bid", { go(null) }, enabled = !store.busy)
+                }
+            }
+        }
+
+        store.message?.let { note ->
+            item {
+                SituationBlock("His agent", situation = Situation.THIRD_DOWN) {
+                    Text(note, style = NdTheme.type.body, color = c.chalk)
+                    SecondaryButton("Clear", { store.dismissMessage() }, Modifier.padding(top = NdTheme.spacing.s))
                 }
             }
         }
@@ -164,6 +179,34 @@ fun FreeAgencyScreen(
                             }
                         }
                     }
+
+                    // Haggling: an offer to his agent now, before anyone else can bid.
+                    val left = pause.talksLeft(id)
+                    Text(
+                        if (left == 0) "He is done talking: it is the market or nothing."
+                        else "Or talk to his agent now, before the market opens. He signs on the spot " +
+                            "if it clears what he will take; if not, you learn his floor. " +
+                            "$left ${if (left == 1) "offer" else "offers"} left.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s),
+                    )
+                    if (left > 0) {
+                        FlowRow(
+                            Modifier.padding(top = NdTheme.spacing.xs),
+                            horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        ) {
+                            val years = mine?.years
+                                ?: if (p.age(pause.year) > dynasty.league.tuning.ai.payThroughAge) 1 else cand.years
+                            TALK_SHARES.forEach { share ->
+                                val annual = (cand.market * share).toInt()
+                                SecondaryButton(
+                                    "Offer ${dealMoney(annual)} now",
+                                    { store.negotiate(id, annual, years) },
+                                    enabled = !store.busy,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -178,6 +221,9 @@ fun FreeAgencyScreen(
         item { SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth()) }
     }
 }
+
+/** Offers to an agent before the market, as shares of what the man is worth. */
+private val TALK_SHARES = listOf(0.95f, 1.0f, 1.1f)
 
 /** The offers a club puts on the table, as shares of what the man is worth. */
 private val OFFER_SHARES = listOf(0.9f to "Under", 1.0f to "Market", 1.15f to "Over")

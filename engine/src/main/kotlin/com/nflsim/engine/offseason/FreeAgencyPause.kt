@@ -33,6 +33,8 @@ class FreeAgencyPause internal constructor(
     internal val wishes: List<Wish>,
     internal val trades: List<TradeMove>,
     internal val valueCuts: List<Release>,
+    /** Offers each man has heard before the market, by player id. */
+    internal val talks: Map<Int, Int> = emptyMap(),
 ) {
     val year: Int get() = ctx.newYear
     val userTeam: TeamId get() = ctx.dynasty.userTeamId
@@ -93,6 +95,74 @@ class FreeAgencyPause internal constructor(
         }
     }
 
+    /**
+     * What a man will take to sign before the market opens, as a share of
+     * his market. His agent does not say until an offer falls short.
+     */
+    fun reservation(c: Candidate): Float {
+        val t = ctx.league.tuning.ai
+        val p = c.player
+        val ego = (p.traits.ego - 50) / 50f * t.faTalkEgoWeight
+        // Loyalty only counts toward the club he played for.
+        val home = if (c.from == userTeam) (p.traits.loyalty - 50) / 50f * t.faTalkLoyaltyWeight else 0f
+        val star = if (c.market >= CapManagement.capFor(year) * t.faTalkStarShare) t.faTalkStarPremium else 0f
+        val contender = if (ctx.winPct(userTeam) >= t.faTalkContenderWinPct) t.faTalkContenderDiscount else 0f
+        val quirk = ((p.id.v * 2654435761L) % 61) / 1000f - 0.03f
+        return (t.faTalkBase + ego - home + star - contender + quirk).coerceIn(t.faTalkFloor, t.faTalkCeiling)
+    }
+
+    /** Offers left before he stops talking and goes to market. */
+    fun talksLeft(playerId: Int): Int =
+        (ctx.league.tuning.ai.faTalkAttempts - (talks[playerId] ?: 0)).coerceAtLeast(0)
+
+    /** What came of an offer to his agent: the market as it now stands, and what was said. */
+    data class Talk(val pause: FreeAgencyPause, val signed: Boolean, val note: String)
+
+    /**
+     * An offer before the market opens. At or above what he will take he
+     * signs now, before anyone else can bid; under it he says no and his
+     * agent names his floor. Twice, and he stops talking.
+     */
+    fun negotiate(playerId: Int, annual: Int, years: Int): Talk {
+        val c = candidates.firstOrNull { it.player.id.v == playerId }
+            ?: return Talk(this, false, "He is not on the market.")
+        val p = c.player
+        if (talksLeft(playerId) == 0) {
+            return Talk(this, false, "${p.lastName} is done talking. He will take his chances on the market.")
+        }
+        val contract = Contract.of(years, annual * years, year, guaranteedShare = PRE_MARKET_GUARANTEE)
+        if (contract.capHit(year) > capSpace) {
+            return Talk(this, false, "No room: that deal costs ${money(contract.capHit(year))} this year " +
+                "and you have ${money(capSpace)}.")
+        }
+        val floor = (c.market * reservation(c)).toInt()
+        if (annual < floor) {
+            val used = talks + (playerId to (talks[playerId] ?: 0) + 1)
+            val next = copy(talks = used)
+            val left = next.talksLeft(playerId)
+            return Talk(next, false, "${p.lastName} turns down ${money(annual)} a year. His agent says he " +
+                "will not go below ${money(floor)} before the market opens" +
+                if (left == 0) ", and he is done talking." else ". One more offer and he is done talking.")
+        }
+        val signed = p.copy(
+            teamId = userTeam, status = PlayerStatus.ACTIVE, contract = contract,
+            yearsInSystem = 0, yearsWithClub = 0,
+        )
+        val next = copy(state = state.copy(
+            players = state.players.map { if (it.id == p.id) signed else it },
+            preMarketSignings = state.preMarketSignings + Signing(
+                p.id.v, p.name, p.position.label, userTeam.v, annual, years, c.market, suitors = 1),
+        ))
+        return Talk(next, true, "${p.position.label} ${p.name} signs before the market opens: " +
+            "$years ${if (years == 1) "year" else "years"} at ${money(annual)}.")
+    }
+
+    private fun copy(
+        state: OffseasonState = this.state,
+        talks: Map<Int, Int> = this.talks,
+    ) = FreeAgencyPause(ctx, state, rng, carousel, awards, previousTeam, deadMoney, releases,
+        pricer, wishes, trades, valueCuts, talks)
+
     /** Free agency, with these offers, or with null the front office bidding for the club. */
     fun decide(offers: List<FreeAgency.Offer>?): OffseasonEngine.DraftPause =
         OffseasonEngine.finishFreeAgency(this, offers)
@@ -103,5 +173,8 @@ class FreeAgencyPause internal constructor(
     companion object {
         /** The fewest dollars an offer can be: the league minimum. */
         const val MIN_OFFER = Contract.MIN_BASE_SALARY
+
+        /** What a deal signed before the market guarantees. */
+        private const val PRE_MARKET_GUARANTEE = 0.45f
     }
 }

@@ -233,6 +233,14 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** An offer to a free agent's agent before the market opens: he signs now, or names his floor. */
+    fun negotiate(playerId: Int, annual: Int, years: Int) {
+        val pause = freeAgency ?: return
+        val talk = pause.negotiate(playerId, annual, years)
+        freeAgency = talk.pause
+        message = talk.note
+    }
+
     /** Who the user's offers landed, and where the rest went. */
     private fun freeAgencyReport(
         current: Dynasty,

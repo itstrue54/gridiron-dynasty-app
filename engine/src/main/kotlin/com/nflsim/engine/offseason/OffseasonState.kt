@@ -56,6 +56,8 @@ data class OffseasonState(
     val wishes: List<Wish> = emptyList(),
     val trades: List<TradeMove> = emptyList(),
     val extensionSignings: List<Signing> = emptyList(),
+    /** Free agents the user signed by talking to their agents before the market opened. */
+    val preMarketSignings: List<Signing> = emptyList(),
     val gapSignings: List<Signing> = emptyList(),
     val draft: DraftRunner.Result? = null,
     val auction: FreeAgency.Result? = null,
