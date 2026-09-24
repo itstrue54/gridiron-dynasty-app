@@ -559,6 +559,38 @@ Then `PRESEASON → REGULAR_SEASON`.
 
 **Rule:** a phase can only be advanced when its blocking conditions are met (e.g. you cannot leave `CONTRACT_DECISIONS` while over the cap). The UI shows the blocking condition as a to-do list.
 
+**The user's club decides its own offseason.** Every decision below is the
+user's first, with the league's own logic available on request - "Let the
+front office decide", "bid", "fill and cut", "Let the scouts pick" -
+running his club exactly as it runs every other. The offseason stops at
+each decision (`ContractsPause`, `FreeAgencyPause`, the draft room's
+`DraftPause`, `CutdownPause`); the pauses live in memory and are not saved
+half-finished (§10.3).
+
+**Expiring contracts (phases 5-6, the user's club).** Each expiring man is
+shown with his market, what he asks his own club for and for how long,
+anything he has said he wants, and the franchise tender. Nothing is
+decided until the user decides it: re-sign, franchise tag, transition tag
+(one tag, as the CBA allows) or let him go. Each shows a recommendation
+and its reason, judged on what he is to this club - whether he starts,
+whether his ask is within 8% of his market, whether he is under the age a
+club pays through (31), whether it fits - taken down the list most
+valuable first, so the one tag goes where it suits and the room runs out
+where it would. The front office's own call is shown beside it where they
+differ. A re-signing can be written any of the ways §8.3 lists. The
+blocking condition is that every man is decided, or the undecided are let
+go to market.
+
+**Free agency (phase 7, the user's club).** Before the ten days the user
+may talk to any free agent's agent (§8.3) and puts standing offers on
+whoever he wants - under, at or over the market, for one to five years.
+An offer is bid every day the man is unsigned and the club can still pay
+it, each counting against the room for the others, and competes under the
+auction's own rules. Each man shows advice: his market if he would start
+for this club and it fits, one year if he is past the age a club pays
+through, pass on anyone who would sit. The draft room opens with who
+signed, who went where, and who is still waiting.
+
 **Camp and the cut to 53 (phases 10-11, the user's club).** The offseason
 stops after the draft (`CutdownPause`) and hands the user his camp roster
 and the street - undrafted men and veterans nobody signed. He releases
@@ -688,9 +720,34 @@ man below his reservation price turns it down and names his floor.
 Franchise and transition tags were already built (`FranchiseTag`, with the
 right to match), which an earlier version of this note got wrong.
 
-Still to do: the user's own offseason. Re-signing, tags and free-agency
-bidding are run for the user's club by the same logic as everyone else's;
-only the draft is the user's to make.
+**Every way to write a deal** (`ContractOptions`). A man names a figure for
+the length he wants; a year shorter costs the club 5% more a year and a
+year longer 3% less, because security is what a contract is for. Each
+length is offered in three structures, written out explicitly because
+this engine back-loads salary and spreads bonus evenly: *standard* (the
+usual deal), *cap-light* (the minimum in salary this year, a bonus spread
+over the deal - least cap now, most dead money) and *pay as you go* (flat
+salary, no bonus - more cap now, no dead money beyond the guarantee). A
+one-year deal is written one way only. The advice writes a kept man's
+deal for no longer than his prime, cap-light when the room is tight, pay
+as you go near the age line, standard otherwise. Restructures come in a
+quarter, half or all of what can move, with the advice to leave it when
+there is room.
+
+**The user bids and haggles in free agency.** Standing offers are
+described in §7. Before the market opens he may also make up to two
+offers to a man's agent: at or above his reservation price he signs on the
+spot, before anyone else can bid; under it his agent names his floor, and
+after the second no he goes to market. The floor starts at 1.02 of his
+market; an ego adds up to 0.10, a star worth 12% of the cap 0.06, loyalty
+takes up to 0.14 off for the club he played for, a club that won 60% of
+its games 0.05; never below 0.90 or above 1.25.
+
+Still to do: the league's own clubs do not haggle - they pay the market
+or refuse - and there are no incentives or guarantee terms to trade
+against, only the annual figure. Matching a transition-tagged man's offer
+is automatic when the club has the room, and he gets no tender if nobody
+bids.
 
 ### 8.4 Trades
 
