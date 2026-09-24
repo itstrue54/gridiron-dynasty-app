@@ -1056,6 +1056,10 @@ turnover by reading the line.
   sorted.
 - Respect system font scaling — a text game that breaks at 200% font size is broken.
 - Sim a full week in under 2 s on a mid-range phone; show a determinate progress indicator.
+  The week's progress is determinate: `DynastyEngine.advance` reports each
+  finished game to an `onGame` listener that cannot change the week, and
+  the busy overlay shows a bar and "Game 5 of 16". The playoffs and the
+  offseason, which the engine runs as single steps, still show a spinner.
 - Export a season as CSV/Markdown (people who play these games want to post about them).
   Built: the Standings screen shares the season so far and History any
   season on record (`data/export/SeasonExporter`). "Share this season" sends

@@ -31,6 +31,10 @@ class DynastyStore(private val saveDir: File) {
     var busy by mutableStateOf(false)
         private set
 
+    /** How far a week's sim has got, as (games done, games in the week); null when it cannot say (SPEC 11). */
+    var progress by mutableStateOf<Pair<Int, Int>?>(null)
+        private set
+
     var message by mutableStateOf<String?>(null)
         private set
 
@@ -149,7 +153,9 @@ class DynastyStore(private val saveDir: File) {
         val current = dynasty ?: return
         busy = true
         try {
-            val next = withContext(Dispatchers.Default) { DynastyEngine.advance(current) }
+            val next = withContext(Dispatchers.Default) {
+                DynastyEngine.advance(current, onGame = { done, total -> progress = done to total })
+            }
             dynasty = next
             persist(next)
             // SPEC 9.1: an autosave every time the phase turns over, so the
@@ -159,6 +165,7 @@ class DynastyStore(private val saveDir: File) {
             }
         } finally {
             busy = false
+            progress = null
         }
     }
 

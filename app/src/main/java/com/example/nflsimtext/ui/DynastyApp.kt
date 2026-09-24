@@ -172,7 +172,25 @@ fun DynastyApp(
                 Box(
                     Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)),
                     contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+                ) {
+                    // A week says how far along it is; anything else spins (SPEC 11).
+                    val shown = store.progress
+                    if (shown == null) CircularProgressIndicator()
+                    else Column(
+                        Modifier.fillMaxWidth(0.7f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { shown.first.toFloat() / shown.second },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            "Game ${shown.first} of ${shown.second}",
+                            style = NdTheme.type.caption, color = NdTheme.colors.chalk,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                    }
+                }
             }
         }
     }
