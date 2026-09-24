@@ -844,6 +844,14 @@ skew young because of decisions, not because players spontaneously retire.
 | Transactions ledger | Forever |
 | Draft results, awards, standings | Forever |
 
+**Implementation deviation - needs a decision.** Play-by-play is kept for
+the *user's* games this season, not every game: every club's would be about
+forty thousand plays re-encoded with each weekly save, for games nobody
+opens (ADR "A season of the user's play-by-play"). The policy above is
+LOCKED, so either it is amended to "the user's games, current season only"
+or every game's log is kept. The transactions ledger also leaves off the
+cut to 53 and practice-squad formation, about a thousand camp moves a year.
+
 ### 9.4 Roster import / export **[LOCKED]**
 
 The game ships a generated fictional league. It also reads a roster file the
@@ -935,6 +943,15 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 
 Each screen: `XxxScreen` (stateless composable) + `XxxViewModel` (exposes a `StateFlow<XxxUiState>`) + `XxxUiState` (immutable data class). The ViewModel calls into a `LeagueRepository` that owns the current `League` and applies engine functions. **No engine call happens on the main thread.**
 
+**Implementation deviation - needs a decision.** The app has no per-screen
+ViewModels or `LeagueRepository`: one `DynastyStore` holds the dynasty and
+the offseason's in-memory pauses, and screens read it directly. It is one
+store per process, on the application context, so a rotation or a theme
+change keeps the offseason in hand; process death still ends the pauses and
+the offseason runs again from the save. Engine calls do run off the main
+thread. Either the store becomes the pattern here, or the app is moved to
+the ViewModel pattern.
+
 ### 10.4 Narrative generation
 
 This is what makes a text game feel alive rather than like a spreadsheet dump. A template + slot-filling system, seeded from the same RNG:
@@ -959,6 +976,11 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
 - **Press conference / storyline beats:** a holdout, a rookie QB controversy, a coach on the hot seat.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
+
+**Implementation deviation - to fix.** Every news headline is written in
+Kotlin (`NewsDesk`, `ContractDisputes`, `Dynasty`), one variant each, and
+AGENTS.md rule 8 says the same as this section: narrative lives in JSON.
+They should move to `narrative/*.json` with variants.
 
 ---
 
