@@ -71,6 +71,20 @@ fun DraftRoomScreen(
         .take(BOARD_DEPTH)
 
     ScreenList {
+        // How the user's free-agency offers went, when he made them.
+        store.message?.let { note ->
+            item {
+                com.example.nflsimtext.ui.components.SituationBlock(
+                    "Free agency", situation = com.example.nflsimtext.ui.components.Situation.THIRD_DOWN,
+                ) {
+                    Text(note, style = NdTheme.type.body, color = c.chalk)
+                    SecondaryButton(
+                        "Clear", { store.dismissMessage() },
+                        Modifier.padding(top = NdTheme.spacing.s),
+                    )
+                }
+            }
+        }
         item {
             Column {
                 Text("Draft room", style = NdTheme.type.display, color = c.chalk)

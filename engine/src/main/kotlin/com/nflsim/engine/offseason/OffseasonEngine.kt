@@ -369,7 +369,14 @@ object OffseasonEngine {
     }
 
     /** Re-signing, tags and free agency, once the user's club has decided its own. */
-    internal fun continueToDraft(pause: ContractsPause, choices: Map<Int, ContractDecision>?): DraftPause {
+    internal fun continueToDraft(pause: ContractsPause, choices: Map<Int, ContractDecision>?): DraftPause =
+        continueToFreeAgency(pause, choices).decide(null)
+
+    /**
+     * Re-signing and tags, once the user's club has decided its own, and a
+     * stop before free agency so it can make its own offers.
+     */
+    internal fun continueToFreeAgency(pause: ContractsPause, choices: Map<Int, ContractDecision>?): FreeAgencyPause {
         val ctx = pause.ctx
         val rng = pause.rng
         val user = ctx.dynasty.userTeamId
@@ -380,8 +387,23 @@ object OffseasonEngine {
         val skip = if (choices == null) null else user
         state = stepReSigning(ctx, state, rng, skip)
         state = stepFranchiseTag(ctx, state, skip)
+        return FreeAgencyPause(
+            ctx = ctx, state = state, rng = rng, carousel = pause.carousel, awards = pause.awards,
+            previousTeam = pause.previousTeam, deadMoney = pause.deadMoney, releases = pause.releases,
+            pricer = pause.pricer, wishes = pause.wishes, trades = pause.trades, valueCuts = pause.valueCuts,
+        )
+    }
+
+    /** Free agency - with the user's own offers, or with null, the league's logic bidding for him. */
+    internal fun finishFreeAgency(pause: FreeAgencyPause, offers: List<FreeAgency.Offer>?): DraftPause {
+        val ctx = pause.ctx
+        val rng = pause.rng
         // ---- phase 7: free agency -----------------------------------
-        state = stepFreeAgency(ctx, state, rng)
+        val state = stepFreeAgency(
+            ctx, pause.state, rng,
+            manual = if (offers == null) null else ctx.dynasty.userTeamId,
+            offers = offers.orEmpty(),
+        )
         // ---- phase 9: draft -----------------------------------------
         return DraftPause(
             ctx = ctx,
@@ -963,6 +985,9 @@ object OffseasonEngine {
     ) {
         val year: Int get() = ctx.newYear
 
+        /** Everyone as free agency left them, by player id. */
+        val signedPlayers: Map<Int, Player> by lazy { state.players.associateBy { it.id.v } }
+
         /** The draft class, by player id, for naming a pick after it is made. */
         val prospectsById: Map<Int, Player> by lazy {
             SyntheticDraftClass.generate(
@@ -1029,6 +1054,8 @@ object OffseasonEngine {
         ctx: OffseasonContext,
         state: OffseasonState,
         rng: Rng,
+        manual: TeamId? = null,
+        offers: List<FreeAgency.Offer> = emptyList(),
     ): OffseasonState {
         val auction = FreeAgency.run(
             league = ctx.league,
@@ -1041,6 +1068,8 @@ object OffseasonEngine {
             rng = rng.split("auction|${ctx.newYear}"),
             previousTeam = state.previousTeam,
             rightToMatch = state.transitionTags,
+            manual = manual,
+            offers = offers,
         )
         // A transition-tagged player nobody signed plays on the tender.
         val tenders = state.tags.filter { it.kind == FranchiseTag.TRANSITION }.associateBy { it.player }

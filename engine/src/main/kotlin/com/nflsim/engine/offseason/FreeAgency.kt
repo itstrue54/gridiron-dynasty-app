@@ -41,6 +41,15 @@ object FreeAgency {
     /** How long the market runs before the leftovers go to camp bodies. */
     const val DAYS = 10
 
+    /** A standing offer: this much a year, for this long. */
+    data class Offer(val player: Int, val annual: Int, val years: Int)
+
+    /** What a free agent opens asking, against what he is worth. */
+    fun openingAsk(market: Int): Int = (market * OPENING_PREMIUM).roundToInt()
+
+    /** How far his ask falls each day he goes unsigned, as a share. */
+    val dailyCut: Float get() = 1f - DAILY_DECAY
+
     data class Result(
         val players: List<Player>,
         val signings: List<Signing>,
@@ -74,6 +83,10 @@ object FreeAgency {
         previousTeam: Map<Int, TeamId> = emptyMap(),
         /** Transition-tagged players, and the club that may match any offer for each. */
         rightToMatch: Map<Int, TeamId> = emptyMap(),
+        /** A club making its own offers - the user's - instead of bidding by the league's logic. */
+        manual: TeamId? = null,
+        /** Its standing offers, bid every day the man is unsigned and the club can pay. */
+        offers: List<Offer> = emptyList(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -98,6 +111,23 @@ object FreeAgency {
 
             league.teams.forEach { team ->
                 val current = roster.getOrPut(team.id) { mutableListOf() }
+                if (team.id == manual) {
+                    // The user's club bids what he told it to, and only what
+                    // it can pay: each offer on the table counts against the
+                    // room for the others, the way a real cap sheet does.
+                    var space = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0)
+                    offers.forEach { o ->
+                        val p = pool.firstOrNull { it.id.v == o.player } ?: return@forEach
+                        val worth = market[o.player] ?: return@forEach
+                        if (o.annual > space) return@forEach
+                        space -= o.annual
+                        bids.getOrPut(o.player) { mutableListOf() } += Bid(
+                            team = team.id, annual = o.annual, years = o.years,
+                            appeal = appealOf(p, team.id, o.annual, worth, scheme, winPct),
+                        )
+                    }
+                    return@forEach
+                }
                 // Front offices are not interchangeable (SPEC 8.2). An
                 // aggressive one puts a third of its cap on one player and
                 // goes past market to win a bidding war; a careful one does

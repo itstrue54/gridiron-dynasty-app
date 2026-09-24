@@ -190,25 +190,69 @@ class DynastyStore(private val saveDir: File) {
 
     /**
      * The user's decisions made - or, with null, his front office's, exactly
-     * as the league's logic would have run his club - and on through free
-     * agency to the draft room.
+     * as the league's logic would have run his club - and on to free agency.
      */
     suspend fun decideContracts(choices: Map<Int, com.nflsim.engine.offseason.ContractDecision>?) {
-        val current = dynasty ?: return
         val pause = contracts ?: return
         busy = true
         try {
+            freeAgency = withContext(Dispatchers.Default) { pause.toFreeAgency(choices) }
+            contracts = null
+        } catch (e: Exception) {
+            message = e.message ?: "Free agency would not open."
+        } finally {
+            busy = false
+        }
+    }
+
+    /** Free agency, stopped for the user's own offers (SPEC 7 phase 7). In memory, like the others. */
+    var freeAgency by mutableStateOf<com.nflsim.engine.offseason.FreeAgencyPause?>(null)
+        private set
+
+    /**
+     * The ten days, with the user's standing offers - or, with null, his
+     * front office bidding for him - and on to the draft room, with word of
+     * how each offer went.
+     */
+    suspend fun runFreeAgency(offers: List<com.nflsim.engine.offseason.FreeAgency.Offer>?) {
+        val current = dynasty ?: return
+        val pause = freeAgency ?: return
+        busy = true
+        try {
             val room = withContext(Dispatchers.Default) {
-                val draft = pause.decide(choices)
+                val draft = pause.decide(offers)
                 DraftRoom(draft, emptyMap(), draft.boardFor(current.userTeamId))
             }
             draftRoom = room
-            contracts = null
+            freeAgency = null
+            message = offers?.let { freeAgencyReport(current, pause, room.pause, it) }
         } catch (e: Exception) {
             message = e.message ?: "The draft would not open."
         } finally {
             busy = false
         }
+    }
+
+    /** Who the user's offers landed, and where the rest went. */
+    private fun freeAgencyReport(
+        current: Dynasty,
+        before: com.nflsim.engine.offseason.FreeAgencyPause,
+        after: com.nflsim.engine.offseason.OffseasonEngine.DraftPause,
+        offers: List<com.nflsim.engine.offseason.FreeAgency.Offer>,
+    ): String {
+        if (offers.isEmpty()) return "You made no offers in free agency."
+        val now = after.signedPlayers
+        val abbrev = current.league.teams.associate { it.id to it.abbrev }
+        val won = offers.mapNotNull { o -> now[o.player]?.takeIf { it.teamId == before.userTeam } }
+        val lost = offers.mapNotNull { o -> now[o.player]?.takeIf { it.teamId != null && it.teamId != before.userTeam } }
+        val parts = mutableListOf<String>()
+        if (won.isNotEmpty()) parts += "Signed " + won.joinToString { "${it.position.label} ${it.name}" } + "."
+        if (lost.isNotEmpty()) parts += "Lost " + lost.joinToString {
+            "${it.name} to ${abbrev[it.teamId] ?: "?"} (${com.example.nflsimtext.ui.dealMoney(it.contract?.averagePerYear ?: 0)} a year)"
+        } + "."
+        val unsigned = offers.size - won.size - lost.size
+        if (unsigned > 0) parts += "$unsigned still unsigned: nobody met what they asked."
+        return parts.joinToString(" ")
     }
 
     suspend fun openDraftRoom() {

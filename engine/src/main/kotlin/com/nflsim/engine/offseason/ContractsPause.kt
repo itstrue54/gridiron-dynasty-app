@@ -221,6 +221,10 @@ class ContractsPause internal constructor(
     fun decide(decisions: Map<Int, ContractDecision>?): OffseasonEngine.DraftPause =
         OffseasonEngine.continueToDraft(this, decisions)
 
+    /** On to free agency, where the user's club makes its own offers. Null leaves these calls to the AI. */
+    fun toFreeAgency(decisions: Map<Int, ContractDecision>?): FreeAgencyPause =
+        OffseasonEngine.continueToFreeAgency(this, decisions)
+
     /** The same, from bare choices: each re-signing on his own terms, written the standard way. */
     fun decideChoices(choices: Map<Int, ContractChoice>): OffseasonEngine.DraftPause {
         val decisions: Map<Int, ContractDecision> = choices.mapValues { ContractDecision(it.value) }
