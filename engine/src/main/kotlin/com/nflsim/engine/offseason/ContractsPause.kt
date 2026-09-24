@@ -277,8 +277,13 @@ class ContractsPause internal constructor(
                 ContractChoice.WALK, null -> {}
             }
         }
+        // Whoever is still unsigned was let go, by choice or by not choosing.
+        val letGo = expiring.map { it.player.id.v }
+            .filter { byId.getValue(it).teamId == null && it !in rightToMatch }
+            .associateWith { userTeam }
         return state.copy(
             players = state.players.map { byId.getValue(it.id.v) },
+            letGo = state.letGo + letGo,
             extensionSignings = state.extensionSignings + signings,
             tags = state.tags + tags,
             transitionTags = state.transitionTags + rightToMatch,

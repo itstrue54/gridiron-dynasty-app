@@ -493,6 +493,12 @@ data class TuningTable(
          */
         val tightCapShare: Float = 0.05f,
         /**
+         * A man the user's club let walk goes back to it that spring only if
+         * his loyalty beats his ego by at least this much (SPEC 7). A proud
+         * man does not return to the club that let him go.
+         */
+        val returnLoyaltyOverEgo: Int = 0,
+        /**
          * The advice on an expiring man: an ask within this share of his
          * market is fair; a backup is worth keeping up to this many times
          * the minimum; and past his prime a franchise tag is the answer if

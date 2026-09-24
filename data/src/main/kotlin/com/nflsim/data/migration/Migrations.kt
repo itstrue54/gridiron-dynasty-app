@@ -36,6 +36,7 @@ object Migrations {
         Step(10, "contract disputes arrived (SPEC 10.4); nothing to move") { it },
         Step(11, "the user's play-by-play is kept for the season (SPEC 9.2); nothing to move") { it },
         Step(12, "the user can hand his roster moves to the front office (SPEC 6.1); nothing to move") { it },
+        Step(13, "the tuning table learned who comes back after being let go (SPEC 7); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

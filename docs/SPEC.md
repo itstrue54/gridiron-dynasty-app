@@ -628,6 +628,16 @@ differ. A re-signing can be written any of the ways §8.3 lists. The
 blocking condition is that every man is decided, or the undecided are let
 go to market.
 
+A man the user's club lets go - by the user's choice, by not choosing, or
+by its front office deciding for it - may come back to it that spring
+only if he is still unsigned, is the best the club can find, and is
+willing: his loyalty at least matches his ego (`ai.returnLoyaltyOverEgo`,
+0). That holds in the auction, in the late roster fill and in the talks
+before the market opens, where an unwilling man's agent will not take the
+call and his advice reads "He will not come back". A willing one comes
+back on the usual terms, a loyal man's hometown discount included. The
+league's own clubs are not held to this.
+
 **Free agency (phase 7, the user's club).** Before the ten days the user
 may talk to any free agent's agent (§8.3) and puts standing offers on
 whoever he wants - under, at or over the market, for one to five years.

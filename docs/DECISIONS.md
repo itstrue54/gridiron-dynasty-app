@@ -1916,3 +1916,25 @@ moves into the tuning table then.
 
 **Consequences.** Recaps need only the play log, so no save change. They
 exist for games whose plays are kept (the user's, this season, SPEC 9.2).
+
+## ADR-0xx — A man the user's club lets go comes back only if he is willing
+
+**Context.** A test promised that whoever the user lets walk is gone. It
+held by luck: when the front office ran the user's free agency, nothing
+stopped the late roster fill signing a let-go man back, and a change in
+the market (cap carryover) made it happen. The user's rule: he can come
+back if there is nobody better, he is still available, and he is willing.
+
+**Decision.** The offseason records the men the user's club let go
+(`OffseasonState.letGo`), whether the user decided or its front office
+did - so taking the front office's suggestions is still the offseason it
+would have run, as another test pins. The auction drops that club's bids
+for an unwilling man, the fill passes over him, and before the market his
+agent will not talk. Willing is trait-only: loyalty at least matches ego.
+Price is left to the rules that already set it, so a loyal man still
+gives his old club the hometown discount SPEC 8.3 describes. The rule was
+put to Jev, which chose applying it to the user's club whoever decides
+(0.98) over user decisions only or every club.
+
+**Consequences.** The 31 league clubs are unchanged, so no calibration
+band moves. The rule lives in `Extensions.willingToReturn`.

@@ -27,6 +27,14 @@ import kotlin.math.roundToInt
  */
 object Extensions {
 
+    /**
+     * Whether a man the user's club let walk this spring will sign with it
+     * again (SPEC 7). He has to want to: his loyalty at least matches his
+     * ego. The price is whatever he would take anyway.
+     */
+    fun willingToReturn(player: Player, tuning: com.nflsim.engine.tuning.TuningTable): Boolean =
+        player.traits.loyalty - player.traits.ego >= tuning.ai.returnLoyaltyOverEgo
+
     data class Result(val players: List<Player>, val signings: List<Signing>)
 
     fun run(

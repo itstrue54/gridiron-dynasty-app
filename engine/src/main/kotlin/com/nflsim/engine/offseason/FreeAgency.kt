@@ -87,6 +87,8 @@ object FreeAgency {
         manual: TeamId? = null,
         /** Its standing offers, bid every day the man is unsigned and the club can pay. */
         offers: List<Offer> = emptyList(),
+        /** Men the user's club let walk this spring: they take its offer only if willing. */
+        letGo: Map<Int, TeamId> = emptyMap(),
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -207,6 +209,9 @@ object FreeAgency {
                 val live = offers.filter { b ->
                     b.replaces == null || ((upgrades[b.team.v] ?: 0) < league.tuning.ai.faMaxUpgrades &&
                         roster[b.team]?.any { it.id.v == b.replaces } == true)
+                }.filter { b ->
+                    // The club that let him go gets him back only if he is willing.
+                    letGo[id] != b.team || Extensions.willingToReturn(player, league.tuning)
                 }
                 // A loyal player gives his old club the benefit of the doubt.
                 val best = live.maxByOrNull { b ->
