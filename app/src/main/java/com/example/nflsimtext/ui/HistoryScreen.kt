@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.ColumnSpec
 import com.example.nflsimtext.ui.components.DataTable
@@ -102,6 +106,18 @@ fun HistoryScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                         modifier = Modifier.padding(top = NdTheme.spacing.s),
                     )
                 }
+            }
+        }
+
+        item {
+            // Any season on record, picked by year (SPEC 11).
+            var year by remember { mutableStateOf(seasons.first().year) }
+            val record = seasons.first { it.year == year }
+            val season = remember(record) { com.nflsim.data.export.SeasonExporter.of(record, dynasty.league) }
+            SeasonShareBlock(season, dynasty.league, dynasty.userTeamId) {
+                com.example.nflsimtext.ui.components.FilterChipRow(
+                    seasons.map { "${it.year}" }, "$year", { year = it.toInt() },
+                )
             }
         }
 

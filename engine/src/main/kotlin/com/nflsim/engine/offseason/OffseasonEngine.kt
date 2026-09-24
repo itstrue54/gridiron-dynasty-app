@@ -19,13 +19,11 @@ import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.rng.shuffled
 import com.nflsim.engine.rng.SplitMixRng
 import com.nflsim.engine.season.AwardVoting
-import com.nflsim.engine.model.LeaderEntry
 import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.RetiredCareer
 import com.nflsim.engine.model.SeasonRecord
 import com.nflsim.engine.season.Awards
 import com.nflsim.engine.season.HallOfFame
-import com.nflsim.engine.stats.StatLine
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.ScheduleGenerator
@@ -525,7 +523,7 @@ object OffseasonEngine {
                     champion = dynasty.champion,
                     standings = ctx.league.teams.map { ctx.standings.record(it.id) },
                     awards = awards,
-                    leaders = seasonLeaders(dynasty.playerStats, league),
+                    leaders = com.nflsim.engine.season.SeasonLeaders.of(dynasty.playerStats, league),
                 ),
                 retired = league.history.retired + state.retiredCareers,
             ).let { withRetirements ->
@@ -1054,24 +1052,6 @@ object OffseasonEngine {
      * Who led the league, kept by name: a leader who retires this spring is
      * gone from the league but not from the record of the year.
      */
-    private fun seasonLeaders(stats: Map<Int, StatLine>, league: League): List<LeaderEntry> {
-        fun leader(category: String, of: (StatLine) -> Int): LeaderEntry? {
-            val top = stats.entries.maxByOrNull { of(it.value) } ?: return null
-            val id = top.key
-            val line = top.value
-            if (of(line) <= 0) return null
-            val name = league.playersById[PlayerId(id)]?.name ?: return null
-            return LeaderEntry(category, id, name, of(line))
-        }
-        return listOfNotNull(
-            leader("Passing yards") { it.passYards },
-            leader("Rushing yards") { it.rushYards },
-            leader("Receiving yards") { it.receivingYards },
-            leader("Sacks") { it.sacks },
-            leader("Interceptions") { it.interceptions },
-        )
-    }
-
     /** SPEC 7 phase 5. One tag a club, on a player it could not keep (2020 CBA). */
     private fun stepFranchiseTag(ctx: OffseasonContext, state: OffseasonState, skip: TeamId? = null): OffseasonState {
         val result = FranchiseTag.run(ctx.league, state.players, state.previousTeam, state.deadMoney,
