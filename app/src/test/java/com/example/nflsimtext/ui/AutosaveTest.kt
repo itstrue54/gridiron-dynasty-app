@@ -48,7 +48,8 @@ class AutosaveTest {
         while (store.dynasty!!.phase != DynastyPhase.OFFSEASON) store.advance()
         val before = store.saves.cards().count { it.auto }
         store.openDraftRoom()
-        store.finishOffseason()
+        store.goToCamp()
+        store.finishCamp(null)
         assertEquals(DynastyPhase.REGULAR_SEASON, store.dynasty!!.phase)
         assertEquals("the new year should leave a save behind", before + 1, store.saves.cards().count { it.auto })
     }

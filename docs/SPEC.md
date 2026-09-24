@@ -559,6 +559,18 @@ Then `PRESEASON → REGULAR_SEASON`.
 
 **Rule:** a phase can only be advanced when its blocking conditions are met (e.g. you cannot leave `CONTRACT_DECISIONS` while over the cap). The UI shows the blocking condition as a to-do list.
 
+**Camp and the cut to 53 (phases 10-11, the user's club).** The offseason
+stops after the draft (`CutdownPause`) and hands the user his camp roster
+and the street - undrafted men and veterans nobody signed. He releases
+whoever he wants, each at the dead money his contract says, and signs off
+the street at a year of the minimum. The blocking condition is the roster
+size: he cannot leave camp with more than 53 or fewer than 46, the most a
+club dresses, and the screen says which he is short of. A position every
+club must field (QB, K, P, LS) left empty is filled off the street for him.
+Suggested cuts and signings are the league's own fill and cut run on his
+roster alone; "Let the front office fill and cut" hands camp to that logic
+exactly as it runs every other club.
+
 ### 7.1 Progression & regression
 
 Run once per player at `OTA_CAMP`:

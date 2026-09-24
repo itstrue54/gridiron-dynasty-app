@@ -75,6 +75,8 @@ enum class Tab(val label: String) {
     CONTRACTS("Contracts"),
     /** SPEC 7 phase 7: the club's own free-agency offers. */
     FREE_AGENCY("Free agency"),
+    /** SPEC 7 phases 10-11: the club's own camp and cut to 53. */
+    CUTDOWN("Camp"),
 }
 
 @Composable
@@ -141,9 +143,14 @@ fun DynastyApp(
                         onDraft = { tab = Tab.DRAFT },
                         onBack = { tab = Tab.HUB },
                     )
+                    Tab.CUTDOWN -> CutdownScreen(
+                        dynasty, store, scope,
+                        onDone = { tab = Tab.OFFSEASON },
+                        onBack = { tab = Tab.HUB },
+                    )
                     Tab.DRAFT -> DraftRoomScreen(
                         dynasty, store, scope,
-                        onFinished = { tab = Tab.OFFSEASON },
+                        onFinished = { tab = Tab.CUTDOWN },
                         onBack = { tab = Tab.HUB },
                     )
                     Tab.GAME -> GameDayScreen(
@@ -181,7 +188,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Tab.entries.filter {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME,
-                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY,
+                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {

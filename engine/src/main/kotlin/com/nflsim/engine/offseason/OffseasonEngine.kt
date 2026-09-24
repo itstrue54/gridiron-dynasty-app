@@ -425,9 +425,27 @@ object OffseasonEngine {
     internal fun finishFromDraft(
         pause: DraftPause,
         userPicks: Map<Int, Int>,
+    ): Pair<Dynasty, OffseasonReport> = runToCutdown(pause, userPicks).decide(null)
+
+    /** The draft, and a stop before camp so the user's club can make its own cut to 53. */
+    internal fun runToCutdown(pause: DraftPause, userPicks: Map<Int, Int>): CutdownPause {
+        val (afterDraft, _) = stepDraft(pause.ctx, pause.state, pause.rng, userPicks)
+        return CutdownPause(pause, afterDraft)
+    }
+
+    /**
+     * Camp and the turn of the year: with [cut], the user's own releases and
+     * signings go in and the league's fill and cut skip his club; with null,
+     * the front office fills and cuts for him as it does for every club.
+     */
+    internal fun finishFromCutdown(
+        cutdown: CutdownPause,
+        cut: CutdownPause.Cut?,
     ): Pair<Dynasty, OffseasonReport> {
+        val pause = cutdown.draft
         val ctx = pause.ctx
-        var state = pause.state
+        var state = if (cut == null) cutdown.state else cutdown.apply(cut)
+        val skip = if (cut == null) null else ctx.dynasty.userTeamId
         val rng = pause.rng
         val carousel = pause.carousel
         val awards = pause.awards
@@ -442,15 +460,14 @@ object OffseasonEngine {
         val league = ctx.league
         val newYear = ctx.newYear
         val winPct = ctx.winPct
-        val (afterDraft, draftResult) = stepDraft(ctx, state, rng, userPicks)
-        state = afterDraft
         val extendedSignings = state.extensionSignings
         val draft = state.draft!!
         val auction = state.auction!!
 
         // ---- phase 10: undrafted free agents ------------------------
-        state = stepFillRosters(ctx, state, rng)
+        state = stepFillRosters(ctx, state, rng, skip)
         // ---- phase 11: OTAs and camp --------------------------------
+        // A roster within 53 is left as it is, so the user's own cut stands.
         state = stepRosterLimit(ctx, state)
         state = stepCutdownCompliance(ctx, state, rng)
         state = stepPracticeSquads(ctx, state, rng)
@@ -696,6 +713,7 @@ object OffseasonEngine {
         ctx: OffseasonContext,
         state: OffseasonState,
         rng: Rng,
+        skip: TeamId? = null,
     ): OffseasonState {
         val (players, signings) = fillRosters(
             league = ctx.league,
@@ -705,6 +723,7 @@ object OffseasonEngine {
             scheme = ctx.scheme,
             pricer = state.requirePricer(),
             rng = rng.split("fa|${ctx.newYear}"),
+            skip = skip,
         )
         return state.copy(
             players = players,
@@ -1013,6 +1032,9 @@ object OffseasonEngine {
         /** The draft run to the end, and then the rest of the offseason. */
         fun finish(userPicks: Map<Int, Int> = emptyMap()): Pair<Dynasty, OffseasonReport> =
             finishFromDraft(this, userPicks)
+
+        /** The draft done, and a stop before camp for the user's own cut to 53. */
+        fun toCutdown(userPicks: Map<Int, Int> = emptyMap()): CutdownPause = runToCutdown(this, userPicks)
     }
 
     /**
@@ -1505,7 +1527,7 @@ object OffseasonEngine {
     private const val FREE_AGENT_POOL = 260
 
     /** Overall a street free agent is generated at. */
-    private const val CAMP_BODY = 55
+    internal const val CAMP_BODY = 55
 
     /**
      * Signs free agents until every roster is legal, best fit first.
@@ -1522,6 +1544,8 @@ object OffseasonEngine {
         scheme: (TeamId?, Position) -> Scheme,
         pricer: MarketValue.Pricer,
         rng: Rng,
+        /** A club that signed its own camp bodies - the user's - left out of the fill. */
+        skip: TeamId? = null,
     ): Pair<List<Player>, List<Signing>> {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -1537,6 +1561,7 @@ object OffseasonEngine {
 
         TeamNeeds.ROSTER_TEMPLATE.forEach { (position, required) ->
             order.forEach { teamId ->
+                if (teamId == skip) return@forEach
                 val current = roster.getOrPut(teamId) { mutableListOf() }
                 var have = current.count { it.position == position }
                 while (have < required) {
