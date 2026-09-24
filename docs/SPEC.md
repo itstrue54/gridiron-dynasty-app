@@ -919,9 +919,15 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **League leaders** | Sortable stat leaderboards, all positions |
 | **Finances** | Cap table, dead money, future years, restructure/cut tool with live cap impact |
 | **Free agency** | Board, offers, negotiation, day-by-day market |
+| **Expiring contracts** | Offseason: each expiring man's market and ask, a recommendation and why, every way to write a re-signing, the two tags, let him go (§7) |
 | **Draft room** | Big board, your board vs consensus, needs, live picks, trade offers |
+| **Camp** | Offseason: the camp roster with dead money if cut, the street to sign from, suggested cuts and why, the 46–53 bounds (§7) |
 | **Trades** | Block, proposal builder with AI valuation feedback |
 | **Staff** | Hire/fire, coach cards with scheme + dev ratings, coordinator tree |
+| **Free agents (in season)** | The street and other clubs' practice squads to sign from, the user's squad and IR, releases with their dead money, the front office roster toggle (§6.1) |
+| **Contract demands** | Demands from the user's own men: every way to pay, 90%/80% offers, refuse, or let the front office answer (§10.4) |
+| **Transactions** | The league's wire by season, the user's club or everyone, filtered by kind (§4.7, §9.2) |
+| **Saves** | Five slots and three autosaves: play, copy, overwrite, delete, restore, start a new dynasty in an empty slot (§9.1) |
 | **History** | Champions, awards, records, franchise timeline, hall of fame |
 | **Settings / Tuning** | Sliders (§12), sim speed, autosave, export |
 
