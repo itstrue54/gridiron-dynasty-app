@@ -480,6 +480,17 @@ class DynastyStore(private val saveDir: File) {
     companion object {
         const val YEAR = 2026
 
-        fun forContext(context: Context) = DynastyStore(File(context.filesDir, "saves"))
+        @Volatile private var instance: DynastyStore? = null
+
+        /**
+         * One store for the process, not one per Activity. The offseason's
+         * pauses live in memory, and Android rebuilds the Activity on a
+         * rotation, a dark-mode switch or a font change: a store made per
+         * Activity was thrown away with it, taking the user's contract
+         * calls, free-agency offers, draft picks and cut with it.
+         */
+        fun forContext(context: Context): DynastyStore = instance ?: synchronized(this) {
+            instance ?: DynastyStore(File(context.applicationContext.filesDir, "saves")).also { instance = it }
+        }
     }
 }
