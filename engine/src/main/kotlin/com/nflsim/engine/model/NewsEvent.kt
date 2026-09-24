@@ -3,7 +3,7 @@ package com.nflsim.engine.model
 import kotlinx.serialization.Serializable
 
 /** What kind of story it is, which decides how it reads on screen. */
-enum class NewsKind { INJURY, PERFORMANCE, MILESTONE, HOT_SEAT, BENCHING, DISPUTE }
+enum class NewsKind { INJURY, PERFORMANCE, MILESTONE, HOT_SEAT, BENCHING, DISPUTE, POACHED }
 
 /**
  * One line of the week's news (SPEC 10.1). Written from the week that was

@@ -258,7 +258,9 @@ fun HubScreen(
         val expiring = roster.count { p ->
             p.contract?.let { it.signedYear + it.years - 1 <= dynasty.year } ?: false
         }
-        if (hurt.isNotEmpty() || expiring > 0) {
+        // A squad another club raided stays short until the user fills it.
+        val squadShort = com.nflsim.engine.season.PracticeSquads.SIZE - team.practiceSquad.size
+        if (hurt.isNotEmpty() || expiring > 0 || squadShort > 0) {
             item {
                 SituationBlock(
                     "Needs attention",
@@ -292,6 +294,13 @@ fun HubScreen(
                         Text(
                             if (expiring == 1) "1 contract expires after the season."
                             else "$expiring contracts expire after the season.",
+                            style = NdTheme.type.body, color = c.chalkDim,
+                        )
+                    }
+                    if (squadShort > 0) {
+                        Text(
+                            "The practice squad is ${team.practiceSquad.size} of " +
+                                "${com.nflsim.engine.season.PracticeSquads.SIZE}. Fill it in Free agents.",
                             style = NdTheme.type.body, color = c.chalkDim,
                         )
                     }
@@ -419,6 +428,7 @@ private fun label(kind: NewsKind) = when (kind) {
     NewsKind.HOT_SEAT -> "Seat"
     NewsKind.BENCHING -> "Bench"
     NewsKind.DISPUTE -> "Deal"
+    NewsKind.POACHED -> "Squad"
 }
 
 private fun tone(kind: NewsKind) = when (kind) {
@@ -429,6 +439,7 @@ private fun tone(kind: NewsKind) = when (kind) {
     NewsKind.PERFORMANCE -> TagTone.NEUTRAL
     NewsKind.BENCHING -> TagTone.INFO
     NewsKind.DISPUTE -> TagTone.INFO
+    NewsKind.POACHED -> TagTone.URGENT
 }
 
 @Composable
