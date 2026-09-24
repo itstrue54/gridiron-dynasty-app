@@ -801,6 +801,12 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
                     ?: "Final",
             )
         }
+        if (plays.isNotEmpty()) {
+            item {
+                RecapBlock(dynasty.seed, plays, home, away,
+                    game?.homeScore ?: last!!.homeScore, game?.awayScore ?: last!!.awayScore)
+            }
+        }
         item {
             SituationBlock("Team stats", meta = "Final") {
                 DataTable(

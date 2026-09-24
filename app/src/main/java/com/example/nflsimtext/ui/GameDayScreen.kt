@@ -160,6 +160,12 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
             }
         }
 
+        if (done) {
+            item {
+                RecapBlock(dynasty.seed, plays, home, away, game.homeScore, game.awayScore)
+            }
+        }
+
         item {
             SituationBlock("Play log", meta = "$shown of ${plays.size}") {
                 // Newest first, and only what has been shown.
