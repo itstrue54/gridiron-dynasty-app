@@ -812,11 +812,20 @@ market; an ego adds up to 0.10, a star worth 12% of the cap 0.06, loyalty
 takes up to 0.14 off for the club he played for, a club that won 60% of
 its games 0.05; never below 0.90 or above 1.25.
 
+**Transition tags, the user's club.** A transition tag lets his club match
+any offer sheet another club makes. The auction runs in one go, so the
+user answers before it opens: for each tagged man, match offers up to his
+market, 10% over, 25% over, or never, with a recommendation (never for a
+man who would be a backup, his market past the age a club pays through,
+10% over for a starter). An offer sheet above the ceiling takes him; at or
+under it, and with the room, the club keeps him. A tagged man nobody bids
+for plays on the tender. Handed to the front office, the club matches
+whatever fits, as the league's clubs do. The free-agency report says who
+was kept and who was lost.
+
 Still to do: the league's own clubs do not haggle - they pay the market
 or refuse - and there are no incentives or guarantee terms to trade
-against, only the annual figure. Matching a transition-tagged man's offer
-is automatic when the club has the room, and he gets no tender if nobody
-bids.
+against, only the annual figure.
 
 ### 8.4 Trades
 
@@ -923,6 +932,15 @@ seed, so the same file always produces the same players.
 ### 9.3 v2 — Room **[OPEN]**
 
 If save/load exceeds ~1.5 s or the file exceeds ~25 MB, move career/history tables to Room and keep only live state in the serialized blob. Don't do this speculatively. Revisit at milestone M7.
+
+**Measured after M7 (Sept 2026): not needed for v1.** A dynasty played 30
+seasons on seed 91 and saved mid-season - the biggest a save gets, with
+the season's play-by-play still in it - is 2.8 MB, growing about 55 KB a
+season as results and history accumulate. On a desktop JVM it encodes in
+0.31 s and decodes in 0.09 s. That is a ninth of the size line and a
+sixteenth of the time line, so the blob stays. Revisit if a phone load
+passes 1.5 s, or if something starts keeping per-play data past the
+current season.
 
 ---
 
@@ -1190,7 +1208,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 
 ## 16. Open questions
 
-- **[OPEN]** Room in v1 or defer to v2? — Deferred. Revisit at M7 with real save-size numbers.
+- ~~**[OPEN]** Room in v1 or defer to v2?~~ **Resolved Sept 2026: not in v1.** A 30-season save is 2.8 MB and loads in 0.09 s on a desktop JVM (§9.3).
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - **[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.
 - ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. Gameday inactives are still open: every healthy man on the 53 dresses.

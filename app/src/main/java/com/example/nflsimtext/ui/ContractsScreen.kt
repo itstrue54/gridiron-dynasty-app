@@ -204,9 +204,9 @@ fun ContractsScreen(
             SituationBlock("The tags", divider = false) {
                 Text(
                     "The franchise tag keeps him for a year on a fully guaranteed tender. The transition " +
-                        "tag lets him test the market and keeps you the right to match what he signs for, " +
-                        "which the club does if it has the room; if nobody bids, he is a free agent like " +
-                        "anyone else. One tag a year.",
+                        "tag lets him test the market and keeps you the right to match an offer sheet: in " +
+                        "free agency you say how far you would go. If nobody bids, he plays the year on " +
+                        "the tender. One tag a year.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )
             }

@@ -79,9 +79,7 @@ class FreeAgencyPause internal constructor(
     fun advice(c: Candidate): Advice {
         val p = c.player
         val age = p.age(year)
-        val scheme = ctx.scheme(userTeam, p.position)
-        val rank = roster.count { it.position == p.position && overall(it, scheme) > overall(p, scheme) }
-        val starter = rank < (TeamNeeds.STARTERS[p.position] ?: 1)
+        val starter = startsHere(p)
         val yours = state.letGo[p.id.v] == userTeam
         return when {
             yours && !Extensions.willingToReturn(p, ctx.league.tuning) -> Advice(null, "He will not come back",
@@ -98,6 +96,55 @@ class FreeAgencyPause internal constructor(
                     "pay; he opens asking ${money(c.opening)} and comes down each day he waits.")
         }
     }
+
+    /** Whether he would start for this club as its roster stands. */
+    private fun startsHere(p: Player): Boolean {
+        val scheme = ctx.scheme(userTeam, p.position)
+        val rank = roster.count { it.position == p.position && overall(it, scheme) > overall(p, scheme) }
+        return rank < (TeamNeeds.STARTERS[p.position] ?: 1)
+    }
+
+    /** One way to answer an offer sheet: match anything up to [upTo] a year (0: never). */
+    data class MatchOption(val label: String, val upTo: Int)
+
+    /** A man this club transition-tagged, on the market: how far it will go to keep him (SPEC 8.3). */
+    data class Tagged(
+        val candidate: Candidate,
+        val options: List<MatchOption>,
+        val advice: MatchOption,
+        val why: String,
+    )
+
+    /**
+     * The user's transition-tagged men. The auction runs in one go, so the
+     * answer to an offer sheet is set before it opens: match up to a figure,
+     * or never.
+     */
+    val tagged: List<Tagged> by lazy {
+        val mine = state.transitionTags.filterValues { it == userTeam }.keys
+        candidates.filter { it.player.id.v in mine }.map { c ->
+            val m = c.market
+            val options = listOf(
+                MatchOption("Never", 0),
+                MatchOption("Up to his market, ${money(m)}", m),
+                MatchOption("Up to 10% over, ${money((m * 1.10f).toInt())}", (m * 1.10f).toInt()),
+                MatchOption("Up to 25% over, ${money((m * 1.25f).toInt())}", (m * 1.25f).toInt()),
+            )
+            val p = c.player
+            val age = p.age(year)
+            val (pick, why) = when {
+                !startsHere(p) -> options[0] to "He would be a backup for you: let the other club pay him."
+                age > ctx.league.tuning.ai.payThroughAge -> options[1] to
+                    "He starts for you, but at $age match what he is worth and no more."
+                else -> options[2] to
+                    "He starts for you: match a fair offer, and a little over to keep him, not a bidding war."
+            }
+            Tagged(c, options, pick, why)
+        }
+    }
+
+    /** The recommended ceiling for each tagged man. */
+    val suggestedMatches: Map<Int, Int> get() = tagged.associate { it.candidate.player.id.v to it.advice.upTo }
 
     /**
      * What a man will take to sign before the market opens, as a share of
@@ -170,9 +217,14 @@ class FreeAgencyPause internal constructor(
     ) = FreeAgencyPause(ctx, state, rng, carousel, awards, previousTeam, deadMoney, releases,
         pricer, wishes, trades, valueCuts, talks)
 
-    /** Free agency, with these offers, or with null the front office bidding for the club. */
-    fun decide(offers: List<FreeAgency.Offer>?): OffseasonEngine.DraftPause =
-        OffseasonEngine.finishFreeAgency(this, offers)
+    /**
+     * Free agency, with these offers, or with null the front office bidding
+     * for the club - and matching for it, as every club does. [matchUpTo]
+     * is how far the user's club matches for each transition-tagged man;
+     * a man it leaves out gets the suggestion.
+     */
+    fun decide(offers: List<FreeAgency.Offer>?, matchUpTo: Map<Int, Int> = emptyMap()): OffseasonEngine.DraftPause =
+        OffseasonEngine.finishFreeAgency(this, offers, suggestedMatches + matchUpTo)
 
     private fun money(thousands: Int): String =
         if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)
