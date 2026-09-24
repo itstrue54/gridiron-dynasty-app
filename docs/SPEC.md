@@ -709,8 +709,11 @@ Generated rosters are signed at creation with staggered terms (see
 players had no contracts at all, so the whole league hit free agency after one
 season and every offseason was an accidental redraft.
 
-Still to do: the day-based auction in §8.3, franchise/transition tags, the
-5th-year option, and cap carryover.
+Built since: the ten-day auction (§8.3, `FreeAgency`), franchise and
+transition tags (`FranchiseTag`), and the 5th-year option
+(`FifthYearOptions`). Still to do: cap carryover. `TeamFinances.carryover`
+is in the model and counts toward `available`, but nothing sets it, so
+unused room is lost at the new year.
 
 ### 8.2 AI GM decision model
 
