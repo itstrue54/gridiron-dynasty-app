@@ -105,6 +105,7 @@ fun DemandsScreen(
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
                     ) {
                         val deal = picked
                         PrimaryButton(

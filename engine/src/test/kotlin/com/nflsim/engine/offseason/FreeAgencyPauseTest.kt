@@ -74,4 +74,45 @@ class FreeAgencyPauseTest {
             "camp bodies fill what the market did not")
         assertTrue(roster.none { it.contract == null })
     }
+
+    @Test
+    fun `an offer he will take signs him before the market opens`() {
+        val fa = pause()
+        val c = fa.candidates.first { it.market * 2 <= fa.capSpace }
+        val floor = (c.market * fa.reservation(c)).toInt()
+        val talk = fa.negotiate(c.player.id.v, floor + 1, c.years)
+        assertTrue(talk.signed, talk.note)
+        assertTrue(talk.pause.candidates.none { it.player.id == c.player.id }, "he is off the market")
+        // And he stays signed through the ten days, whatever anyone else bids.
+        val after = talk.pause.decide(emptyList()).state.players.first { it.id == c.player.id }
+        assertEquals(fa.userTeam, after.teamId)
+    }
+
+    @Test
+    fun `under his floor his agent names it, and twice is all he will hear`() {
+        val fa = pause()
+        val c = fa.candidates.first { it.market * 2 <= fa.capSpace }
+        val floor = (c.market * fa.reservation(c)).toInt()
+        val first = fa.negotiate(c.player.id.v, floor * 8 / 10, c.years)
+        assertTrue(!first.signed && first.note.contains("will not go below"), first.note)
+        assertEquals(1, first.pause.talksLeft(c.player.id.v))
+        val second = first.pause.negotiate(c.player.id.v, floor * 9 / 10, c.years)
+        assertTrue(!second.signed && second.note.contains("done talking"), second.note)
+        // Even at his floor now: he has gone to market.
+        val third = second.pause.negotiate(c.player.id.v, floor + 1, c.years)
+        assertTrue(!third.signed, third.note)
+        assertTrue(third.pause.candidates.any { it.player.id == c.player.id }, "still on the market")
+    }
+
+    @Test
+    fun `a loyal man coming home takes less than a proud stranger`() {
+        val fa = pause()
+        val c = fa.candidates.first()
+        val coming = c.copy(player = c.player.copy(traits = c.player.traits.copy(loyalty = 95, ego = 20)),
+            from = fa.userTeam)
+        val proud = c.copy(player = c.player.copy(traits = c.player.traits.copy(loyalty = 20, ego = 95)),
+            from = null)
+        assertTrue(fa.reservation(coming) < fa.reservation(proud),
+            "coming home ${fa.reservation(coming)} vs proud ${fa.reservation(proud)}")
+    }
 }

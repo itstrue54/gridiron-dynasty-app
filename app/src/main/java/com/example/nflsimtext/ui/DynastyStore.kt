@@ -233,6 +233,21 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** An offer to a free agent's agent before the market opens: he signs now, or names his floor. */
+    fun negotiate(playerId: Int, annual: Int, years: Int) {
+        val pause = freeAgency ?: return
+        val talk = pause.negotiate(playerId, annual, years)
+        freeAgency = talk.pause
+        // A signing is news for the top of the screen, since he leaves the
+        // list; a refusal belongs beside the offer that drew it.
+        if (talk.signed) { message = talk.note; agentReply = null }
+        else agentReply = playerId to talk.note
+    }
+
+    /** The last thing an agent said, and whose: shown in that man's own block. */
+    var agentReply by mutableStateOf<Pair<Int, String>?>(null)
+        private set
+
     /** Who the user's offers landed, and where the rest went. */
     private fun freeAgencyReport(
         current: Dynasty,
@@ -300,6 +315,10 @@ class DynastyStore(private val saveDir: File) {
             draftRoom = null
             dynasty = next
             persist(next)
+            // The year turning over is a phase advance like any other (SPEC
+            // 9.1), and it happens here rather than in advance(): without
+            // this, the one autosave most worth having was never written.
+            withContext(Dispatchers.IO) { runCatching { saves.autosave(next) } }
         } catch (e: Exception) {
             message = e.message ?: "The offseason would not finish."
         } finally {

@@ -463,7 +463,7 @@ object OffseasonEngine {
         val ageCount = state.ageCount
         val retirements = state.retirements
         val gapSignings = state.gapSignings
-        val signings = extendedSignings + auction.signings + gapSignings
+        val signings = extendedSignings + state.preMarketSignings + auction.signings + gapSignings
         val survivors = state.players
 
         // ---- 14. rebuild --------------------------------------------

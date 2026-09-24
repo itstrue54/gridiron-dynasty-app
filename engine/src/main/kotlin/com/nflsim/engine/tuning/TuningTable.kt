@@ -501,6 +501,23 @@ data class TuningTable(
         val fairAskShare: Float = 1.08f,
         val cheapDepthMinimums: Float = 3f,
         val veteranTagShare: Float = 1.15f,
+        /**
+         * Talking to a free agent's agent before the market opens. He starts
+         * from about his market, since the auction would pay him that; an ego
+         * or a star (worth this share of the cap) wants more to skip the
+         * market, and a loyal man coming home or a contender's call less.
+         */
+        val faTalkBase: Float = 1.02f,
+        val faTalkEgoWeight: Float = 0.10f,
+        val faTalkLoyaltyWeight: Float = 0.14f,
+        val faTalkStarShare: Float = 0.12f,
+        val faTalkStarPremium: Float = 0.06f,
+        val faTalkContenderWinPct: Float = 0.6f,
+        val faTalkContenderDiscount: Float = 0.05f,
+        val faTalkFloor: Float = 0.90f,
+        val faTalkCeiling: Float = 1.25f,
+        /** Offers a man will hear before he stops talking and goes to market. */
+        val faTalkAttempts: Int = 2,
         /** Rating points a star must add over the contender's best at his position. */
         val tradeClearUpgrade: Float = 6f,
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */

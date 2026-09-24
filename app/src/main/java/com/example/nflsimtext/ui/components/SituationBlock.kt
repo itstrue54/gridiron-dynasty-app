@@ -17,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,17 +51,20 @@ fun SituationBlock(
         Situation.RED_ZONE -> c.sitRedZone
         Situation.TWO_MINUTE -> c.sitTwoMinute
     }
-    Row(
+    Box(
         modifier
             .fillMaxWidth()
-            // The edge stretches to the block's height, which a Row only
-            // offers once it measures its own minimum intrinsic height.
-            .height(IntrinsicSize.Min)
             .clip(NdTheme.shapes.block)
             .background(c.turfRaised)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+            // The edge is drawn, not laid out. It used to be a Box in a Row
+            // sized to its own minimum intrinsic height, and a FlowRow reports
+            // that as a single line: a block ending in buttons that wrapped
+            // was cut off after the first row, taking "Let the front office
+            // decide" off the contracts screen with it.
+            .drawBehind { drawRect(edge, size = Size(EDGE.toPx(), size.height)) }
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(start = EDGE),
     ) {
-        Box(Modifier.width(4.dp).fillMaxHeight().background(edge))
         Column(Modifier.padding(NdTheme.spacing.l)) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -82,6 +87,9 @@ fun SituationBlock(
         }
     }
 }
+
+/** The situation edge's width. */
+private val EDGE = 4.dp
 
 @Preview(name = "Night")
 @Composable
