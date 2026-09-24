@@ -985,10 +985,19 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
 
-**Implementation deviation - to fix.** Every news headline is written in
-Kotlin (`NewsDesk`, `ContractDisputes`, `Dynasty`), one variant each, and
-AGENTS.md rule 8 says the same as this section: narrative lives in JSON.
-They should move to `narrative/*.json` with variants.
+Weekly news is written from `narrative/news.json`: one list of ten
+templates per story (`injury.season`, `injury.weeks`, `big.passing`,
+`big.rushing`, `big.receiving`, `big.sacks`, `milestone`, `hot_seat`,
+`benching`, `dispute.raised`, `dispute.settled`, `dispute.refused`,
+`poached`), each with `{slot}`s such as `{player}`, `{pos}`, `{club}`. The
+template is picked from a split of the dynasty seed kept for wording alone
+(`headlines|year|week`, and `headlines` under the disputes stream), so a
+save replays with the same headlines and the wording never moves what the
+sim does. A slot a template uses that its story does not fill is an error,
+not braces on screen.
+
+**Implementation deviation - to fix.** Play-by-play lines are still written
+in Kotlin (`Resolution`, `PassResolution`), one way per outcome.
 
 ---
 

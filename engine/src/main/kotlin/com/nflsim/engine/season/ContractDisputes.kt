@@ -94,6 +94,9 @@ object ContractDisputes {
         val pricer = pricer(league, Production.index(league.players, stats))
         val news = mutableListOf<NewsEvent>()
         var out = league
+        // The wording has its own stream, so how a story is told never moves
+        // who speaks up.
+        val words = rng.split("headlines")
 
         league.teams.forEach { club ->
             out.roster(club.id).forEach { man ->
@@ -119,8 +122,9 @@ object ContractDisputes {
                 })
                 news += NewsEvent(
                     week, NewsKind.DISPUTE,
-                    "${man.name} (${man.position.label}, ${club.abbrev}) wants his contract " +
-                        "addressed: ${money(paid)} against a market of ${money(market)} a year.",
+                    Headlines.write("dispute.raised", words, "player" to man.name,
+                        "pos" to man.position.label, "club" to club.abbrev,
+                        "paid" to money(paid), "market" to money(market)),
                     man.id.v, club.id.v,
                 )
 
@@ -132,9 +136,15 @@ object ContractDisputes {
                         refuse(out, club.id, man.id, week)
                     }
                     if (answered is Transactions.Outcome.Done) {
+                        // Settling logs his new deal; telling him no logs nothing.
+                        val signed = answered.league.transactions.drop(out.transactions.size).lastOrNull()
                         out = answered.league
+                        val about = arrayOf("player" to man.name, "pos" to man.position.label, "club" to club.abbrev)
                         news += NewsEvent(
-                            week, NewsKind.DISPUTE, "${club.abbrev}: ${answered.note}",
+                            week, NewsKind.DISPUTE,
+                            if (signed != null) Headlines.write("dispute.settled", words, *about,
+                                "years" to signed.years, "annual" to money(signed.amount))
+                            else Headlines.write("dispute.refused", words, *about),
                             man.id.v, club.id.v,
                         )
                     }
