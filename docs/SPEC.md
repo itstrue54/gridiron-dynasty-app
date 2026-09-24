@@ -802,6 +802,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 
 | Screen | Contents |
 |---|---|
+| **New dynasty** | The league generated first, then every club by division to choose from: the preseason outlook (a tier - contender, playoff hopeful, middle of the pack, rebuilding - never a rating), schemes, head coach, market size, cap room. "Surprise me" takes a random club |
 | **Hub** | Week/phase, next action button, top news, standings snippet, cap space, injury alerts |
 | **Advance** | The single most-used control. Advance week / to next event / to end of phase |
 | **Roster** | Sortable table, scouted ratings with error bars, contract, age, scheme fit badge |

@@ -109,6 +109,8 @@ fun DynastyApp(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
+                dynasty == null && store.pendingLeague != null ->
+                    TeamPickerScreen(store.pendingLeague!!, store, scope)
                 dynasty == null -> StartScreen(store, scope)
                 else -> when (tab) {
                     Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
@@ -235,7 +237,8 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             {
                 scope.launch {
                     val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
-                    store.newDynasty(into = free ?: 1)
+                    // The league first, so the user can choose which club to take over.
+                    store.previewLeague(into = free ?: 1)
                 }
             },
         )
