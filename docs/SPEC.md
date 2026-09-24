@@ -671,8 +671,14 @@ if he is ever released. Proactive cap cuts exist in season: a club below
 the 46 it has to dress with no room tears up the contract that saves the
 most per point of what the man gives.
 
-Still to do: transition tags, and haggling over an extension - the club
-can only offer the market rate, take it or leave it.
+Haggling followed: a demand can be met at 90% or 80% of the market, and a
+man below his reservation price turns it down and names his floor.
+Franchise and transition tags were already built (`FranchiseTag`, with the
+right to match), which an earlier version of this note got wrong.
+
+Still to do: the user's own offseason. Re-signing, tags and free-agency
+bidding are run for the user's club by the same logic as everyone else's;
+only the draft is the user's to make.
 
 ### 8.4 Trades
 
