@@ -361,6 +361,37 @@ private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             }
             if (store.dynasty == null) PrimaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
             else SecondaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
+
+            // His own rosters (SPEC 9.4): a JSON or CSV file he brings, never
+            // one the game ships. The phone's own picker finds it.
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val pick = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+            ) { uri ->
+                if (uri != null) scope.launch {
+                    val text = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching {
+                            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        }.getOrNull()
+                    }
+                    val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
+                    if (text != null) store.previewImport(text, into = free ?: 1)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            SecondaryButton("Start with my own rosters", {
+                pick.launch(arrayOf("application/json", "text/*", "application/octet-stream"))
+            }, Modifier.fillMaxWidth())
+            var saved by remember { mutableStateOf<String?>(null) }
+            androidx.compose.material3.TextButton({
+                saved = try {
+                    "Template saved to " + Downloads.write(context, "gridiron-dynasty-rosters.json", "application/json",
+                        com.nflsim.data.roster.RosterJson.template())
+                } catch (e: Exception) {
+                    e.message ?: "The template would not save."
+                }
+            }) { Text("Save a roster template", style = NdTheme.type.label, color = c.pylonText) }
+            saved?.let { Text(it, style = NdTheme.type.caption, color = c.chalkDim) }
             if (cards.none { !it.auto } && store.hasSave) {
                 Spacer(Modifier.height(12.dp))
                 SecondaryButton("Load the saved dynasty", { scope.launch { if (store.load()) onStarted() } },
