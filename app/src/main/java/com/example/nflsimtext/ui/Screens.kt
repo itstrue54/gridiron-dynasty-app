@@ -119,6 +119,8 @@ fun HubScreen(
     haptics: Boolean,
     onHaptics: (Boolean) -> Unit,
     onNavigate: (Tab) -> Unit = {},
+    /** Back to the title screen; the dynasty stays in hand for Continue. */
+    onTitle: () -> Unit = {},
 ) {
     val c = NdTheme.colors
     val team = dynasty.team
@@ -272,6 +274,7 @@ fun HubScreen(
                     HubLink("Transactions") { onNavigate(Tab.WIRE) }
                     HubLink("Demands") { onNavigate(Tab.DEMANDS) }
                     HubLink("Saves") { onNavigate(Tab.SAVES) }
+                    HubLink("Title screen") { onTitle() }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                     HubLink("Tuning") { onNavigate(Tab.TUNING) }

@@ -965,7 +965,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 
 | Screen | Contents |
 |---|---|
-| **Start** | Every fresh launch opens here, not on the last save: "Continue" for a dynasty still in memory (an offseason half done included), each save slot to load, and "Start a new dynasty". A rotation or a trip to another app keeps the screen the player was on |
+| **Start** | Every fresh launch opens here, not on the last save: "Continue" for a dynasty still in memory (an offseason half done included), each save slot to load, and "Start a new dynasty". A rotation or a trip to another app keeps the screen the player was on. The hub's "Title screen" link, or back from the hub, returns here with the dynasty kept for Continue; back from here leaves the app |
 | **New dynasty** | From the start screen or any empty save slot. The league generated first, then every club by division to choose from: the preseason outlook (a tier - contender, playoff hopeful, middle of the pack, rebuilding - never a rating), schemes, head coach, market size, cap room. "Surprise me" takes a random club |
 | **Hub** | Week/phase, next action button, top news, standings snippet, cap space, injury alerts |
 | **Advance** | The single most-used control. Advance week / to next event / to end of phase |

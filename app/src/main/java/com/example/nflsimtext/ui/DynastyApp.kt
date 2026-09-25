@@ -109,6 +109,11 @@ fun DynastyApp(
     // screen behind the hub it goes back, not out of the dynasty.
     // Back from choosing a club returns to where he chose to start one.
     BackHandler(enabled = store.pendingLeague != null) { store.cancelPreview() }
+    // Back from the hub goes to the title screen, where Continue picks the
+    // dynasty up again; back from the title screen leaves the app.
+    BackHandler(enabled = dynasty != null && started && store.pendingLeague == null && tab == Tab.HUB) {
+        started = false
+    }
     BackHandler(enabled = dynasty != null && started && store.pendingLeague == null && tab != Tab.HUB) {
         tab = when (tab) {
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
@@ -134,7 +139,8 @@ fun DynastyApp(
                     TeamPickerScreen(store.pendingLeague!!, store, scope) { begin() }
                 dynasty == null || !started -> StartScreen(store, scope) { begin() }
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
+                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics,
+                        onNavigate = { tab = it }, onTitle = { started = false })
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(
                         dynasty,
