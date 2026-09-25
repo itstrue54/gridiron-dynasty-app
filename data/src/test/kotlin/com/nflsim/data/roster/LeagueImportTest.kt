@@ -112,6 +112,9 @@ class LeagueImportTest {
         assertTrue(r.report!!.unknownColumns.isEmpty(), "every field the template uses is one the importer knows: ${r.report!!.unknownColumns}")
         assertEquals("Example City Examples", league.teams.single { it.abbrev == "EXA" }.name)
         assertEquals(5, r.report!!.imported)
+        // Only a sheet he wrote can be unclear; a player given just an overall is not warned about.
+        assertTrue(r.report!!.warnings.filter { "clearly favour" in it.message }.all { it.player == "Jordan Model" },
+            "${r.report!!.warnings}")
     }
 
     @Test

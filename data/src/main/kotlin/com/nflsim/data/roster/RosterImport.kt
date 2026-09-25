@@ -155,7 +155,7 @@ object RosterImporter {
             }
             fidelity[level] = (fidelity[level] ?: 0) + 1
 
-            val archetype = resolveArchetype(get, position, ratings, rowNumber, nameForReport, warnings, rng)
+            val archetype = resolveArchetype(get, position, ratings, supplied.isNotEmpty(), rowNumber, nameForReport, warnings, rng)
 
             val (first, last) = splitName(get) ?: run {
                 warnings += RowIssue(rowNumber, "(row $rowNumber)", "no name, generated one")
@@ -257,6 +257,8 @@ object RosterImporter {
         get: (Set<String>) -> String?,
         position: Position,
         ratings: Ratings,
+        /** Whether the ratings are the file's; a sheet the game generated is not his to be warned about. */
+        fromFile: Boolean,
         row: Int,
         name: String,
         warnings: MutableList<RowIssue>,
@@ -271,7 +273,7 @@ object RosterImporter {
                 "unknown archetype '$raw' at ${position.label}, inferred from ratings")
         }
         val inference = ArchetypeInference.infer(position, ratings)
-        if (inference.confidence < 0.15f) {
+        if (fromFile && inference.confidence < 0.15f) {
             warnings += RowIssue(row, name,
                 "rating sheet does not clearly favour an archetype, guessed ${inference.archetype.label}")
         }
