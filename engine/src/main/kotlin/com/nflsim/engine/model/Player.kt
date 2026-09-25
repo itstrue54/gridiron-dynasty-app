@@ -49,6 +49,14 @@ data class Player(
     val form: Int = 0,
     /** Where his club stands on the deal he has asked it to fix (SPEC 10.1). */
     val demand: DemandState = DemandState.NONE,
+    /**
+     * The least his agent has said he will take while the demand stands, a
+     * year in thousands; 0 until an offer falls short. It never comes down
+     * while he waits: the snub that named it cost him morale, and a market
+     * priced off that morale would otherwise let him sign for less than the
+     * figure he was just quoted (SPEC 8.3).
+     */
+    val demandFloor: Int = 0,
     /** Everything he has done, season by season (SPEC 4, 9.2). */
     val careerStats: CareerStats = CareerStats(),
 ) {

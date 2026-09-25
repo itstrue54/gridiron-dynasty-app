@@ -143,6 +143,28 @@ class SaveMigrationTest {
     }
 
     @Test
+    fun `a save from before named figures loads with nothing named`() {
+        val d = dynasty()
+        val raw = cbor.encodeToByteArray(Envelope.serializer(), Envelope(16, d))
+        val out = ByteArrayOutputStream()
+        GZIPOutputStream(out).use { it.write(raw) }
+        val loaded = SaveFile.decode(out.toByteArray())
+        assertTrue(loaded.league.players.all { it.demandFloor == 0 })
+    }
+
+    @Test
+    fun `a figure his agent named survives a save`() {
+        val d = dynasty()
+        val man = d.league.players.first { it.teamId != null }
+        val named = d.copy(league = d.league.copy(players = d.league.players.map {
+            if (it.id == man.id) it.copy(demand = com.nflsim.engine.model.DemandState.PENDING, demandFloor = 24_096) else it
+        }))
+        val loaded = SaveFile.decode(SaveFile.encode(named)).league.playersById.getValue(man.id)
+        assertEquals(24_096, loaded.demandFloor)
+        assertEquals(com.nflsim.engine.model.DemandState.PENDING, loaded.demand)
+    }
+
+    @Test
     fun `a current save round trips untouched`() {
         val original = dynasty()
         val loaded = SaveFile.decode(SaveFile.encode(original))
