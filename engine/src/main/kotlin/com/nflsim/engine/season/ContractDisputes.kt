@@ -69,10 +69,11 @@ object ContractDisputes {
         return ask(league, player, pricer(league, Production.index(league.players, stats)))
     }
 
+    /** A named figure is his market from then on, at least: he was told it, and so was the club. */
     private fun ask(league: League, player: Player, pricer: MarketValue.Pricer): Ask = Ask(
         player,
         player.capHit(league.year),
-        pricer.annual(player, scheme(league, player), league.year),
+        maxOf(pricer.annual(player, scheme(league, player), league.year), player.demandFloor),
         years(player, league.year),
     )
 
@@ -166,19 +167,14 @@ object ContractDisputes {
         pricer: MarketValue.Pricer,
     ): Transactions.Outcome {
         val t = league.tuning.ai
-        val before = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
-        // The figure his agent will name if the opening falls short.
-        val named = (ask(league, before, pricer).market * reservation(before, league.tuning)).toInt()
         val open = (t.disputeAiOpenBase + club.gm.aggression * t.disputeAiOpenAggression).coerceAtMost(1f)
         val first = offer(league, club.id, playerId, open, week, pricer)
         if (first !is Transactions.Outcome.Done) return first
         val man = first.league.playersById[playerId] ?: return first
         if (man.demand == DemandState.SETTLED) return first
-        // The snub costs him morale, and morale is in the rating a market is
-        // priced from, so pay the figure that was named, not a share of a
-        // market that has since dipped.
-        val market = ask(first.league, man, pricer).market.coerceAtLeast(1)
-        return offer(first.league, club.id, playerId, named.toFloat() / market, week, pricer)
+        // He said no and his agent named a figure, which is now his floor and
+        // so his market: an offer at the full market is exactly that figure.
+        return offer(first.league, club.id, playerId, 1f, week, pricer)
     }
 
     /** A demand nobody has answered wears on a man. */
@@ -247,13 +243,16 @@ object ContractDisputes {
             return Transactions.Outcome.Refused(
                 "No room: that deal costs ${money(cost)} more against the cap this year.")
         }
-        val floor = reservation(man, league.tuning)
-        if (share + 0.001f < floor) {
-            val wants = (asking.market * floor).toInt()
+        // The least he will take: his share of the market, and never under a
+        // figure his agent has already named.
+        val wants = maxOf((asking.market * reservation(man, league.tuning)).toInt(), man.demandFloor)
+        if (annual < wants) {
             return Transactions.Outcome.Done(
                 league.copy(players = league.players.map {
                     if (it.id == playerId) it.copy(
-                        morale = (it.morale - league.tuning.ai.disputeSnubMorale).coerceAtLeast(0)) else it
+                        morale = (it.morale - league.tuning.ai.disputeSnubMorale).coerceAtLeast(0),
+                        demandFloor = wants,
+                    ) else it
                 }),
                 "${man.lastName} turns down ${money(annual)} a year. His agent says " +
                     "he will not go below ${money(wants)}.",
@@ -262,6 +261,7 @@ object ContractDisputes {
         val settled = man.copy(
             contract = contract,
             demand = DemandState.SETTLED,
+            demandFloor = 0,
             // A man who took a discount is a little less delighted about it.
             morale = (man.morale + (league.tuning.ai.disputeSettledMorale * share).toInt()).coerceAtMost(100),
         )
@@ -365,6 +365,7 @@ object ContractDisputes {
         val settled = man.copy(
             contract = contract,
             demand = DemandState.SETTLED,
+            demandFloor = 0,
             morale = (man.morale + league.tuning.ai.disputeSettledMorale).coerceAtMost(100),
         )
         val note = "${man.position.label} ${man.name} signs a new deal: " +
@@ -384,6 +385,7 @@ object ContractDisputes {
         if (man.teamId != team) return Transactions.Outcome.Refused("${man.name} does not play for this club.")
         val refused = man.copy(
             demand = DemandState.REFUSED,
+            demandFloor = 0,
             morale = (man.morale - league.tuning.ai.disputeRefusedMorale).coerceAtLeast(0),
         )
         return Transactions.Outcome.Done(

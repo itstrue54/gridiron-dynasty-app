@@ -834,6 +834,16 @@ user who hands a demand to the front office gets the same. Over four
 seasons on two seeds it cut what a league club pays to settle a demand
 from $14.9M to $12.9M and $15.4M to $13.2M a year.
 
+**A named figure stands.** When an offer falls short, the figure his agent
+names is kept on the demand (`Player.demandFloor`) until it is settled or
+refused, or the year turns. The snub costs him morale, and morale is in the
+rating a market is priced from, so his market dips - about 9% in a measured
+case - and a later offer priced as a share of it could otherwise sign him
+below the figure he was just quoted. While it stands the figure is his
+market at least: "Pay him", the 90% and 80% offers and the league clubs'
+second offer all price from it, and any offer under it is turned down again
+naming the same figure.
+
 Still to do: the league's clubs do not talk to a free agent's agent
 before the market opens, and there are no incentives or guarantee terms
 to trade against, only the annual figure.
