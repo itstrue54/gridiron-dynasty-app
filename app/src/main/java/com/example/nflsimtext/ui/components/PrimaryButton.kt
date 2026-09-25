@@ -19,7 +19,7 @@ fun PrimaryButton(
 ) = Button(
     onClick = onClick,
     enabled = enabled,
-    shape = NdTheme.shapes.block,
+    shape = NdTheme.shapes.button,
     colors = ButtonDefaults.buttonColors(
         containerColor = NdTheme.colors.pylon,
         contentColor = NdTheme.colors.onPylon,

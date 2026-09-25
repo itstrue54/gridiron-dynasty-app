@@ -1,127 +1,134 @@
 """
-Draws the app's mark and the store assets.
+Builds the app's icon, title art and store assets from the Broadcast source
+art (docs/DESIGN.md 11), generated with Nano Banana and kept in source/:
 
-The wordmark is type, and the launcher icon's foreground is therefore drawn
-here as pixels rather than written as vector paths: the font is a variable
-TrueType and nothing in the toolchain converts glyphs to paths. The adaptive
-background stays vector - it is three flat colours - so only the lettering is
-a bitmap.
+    source/gd-monogram.png       the GD score-bug mark on navy, in a frame
+    source/title-background.png  the title screen's night stadium
 
-Colours are docs/DESIGN.md's: turf ground, quiet yard lines, chalk and pylon
-type, the stripe underneath.
+The mark is cut out of its navy square with a soft edge and placed in the
+adaptive icon's safe zone; the navy becomes the vector background layer.
 
-    python3 draw-assets.py <output dir>
+    python3 draw-assets.py            # from docs/play-store/assets
 """
 import os
-import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-TURF = (15, 42, 32)
-TURF_LINE = (42, 77, 60)
-CHALK = (238, 241, 234)
-PYLON = (255, 107, 26)
-STRIPE = (242, 213, 48)
+HERE = os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(HERE, "../../../app/src/main/res")
+FONT = os.path.join(RES, "font/big_shoulders_display.ttf")
 
-FONT = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "../../../app/src/main/res/font/big_shoulders_display.ttf",
-)
-SS = 4  # draw big, shrink down, so no edge is ragged
+NAVY = (10, 18, 36)      # turf, #0A1224
+CHALK = (238, 243, 250)
+CYAN = (34, 211, 238)
+ORANGE = (255, 107, 26)
 
-# A launcher may mask the icon to a circle of 66 of the 108dp canvas, so the
-# lettering has to fit inside that circle, not merely inside the square.
-SAFE_WIDTH = 0.44
+# A launcher may mask the 108dp canvas to a 66dp circle. The mark is a wide
+# parallelogram with cut corners, so 56dp across keeps it inside.
+MARK_WIDTH = 56 / 108
+DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
 
 
-def _font(px, weight=800):
-    font = ImageFont.truetype(FONT, px)
+def mark():
+    """The GD mark alone, on transparency, cropped tight."""
+    im = Image.open(os.path.join(HERE, "source/gd-monogram.png")).convert("RGB")
+    w, h = im.size
+
+    def frame(p):
+        return p[2] > 150 and p[0] > 60
+
+    row = [im.getpixel((x, h // 2)) for x in range(w)]
+    col = [im.getpixel((w // 2, y)) for y in range(h)]
+    x0 = next(x for x in range(w) if not frame(row[x]))
+    x1 = w - 1 - next(x for x in range(w) if not frame(row[w - 1 - x]))
+    y0 = next(y for y in range(h) if not frame(col[y]))
+    y1 = h - 1 - next(y for y in range(h) if not frame(col[h - 1 - y]))
+    inner = im.crop((x0 + 4, y0 + 4, x1 - 4, y1 - 4))
+    bg = inner.getpixel((6, 6))
+    px = inner.load()
+    iw, ih = inner.size
+    out = Image.new("RGBA", inner.size)
+    q = out.load()
+    for y in range(ih):
+        for x in range(iw):
+            d = sum(abs(a - b) for a, b in zip(px[x, y], bg))
+            q[x, y] = px[x, y] + (max(0, min(255, (d - 18) * 255 // 60)),)
+    return out.crop(out.getbbox())
+
+
+def placed(m, size, width_share):
+    """The mark centred on a transparent square."""
+    canvas = Image.new("RGBA", (size, size))
+    w = round(size * width_share)
+    h = round(m.height * w / m.width)
+    canvas.alpha_composite(m.resize((w, h), Image.LANCZOS), ((size - w) // 2, (size - h) // 2))
+    return canvas
+
+
+def on_navy(img):
+    base = Image.new("RGBA", img.size, NAVY + (255,))
+    base.alpha_composite(img)
+    return base
+
+
+def round_mask(img):
+    mask = Image.new("L", img.size)
+    ImageDraw.Draw(mask).ellipse((0, 0, img.width - 1, img.height - 1), fill=255)
+    out = Image.new("RGBA", img.size)
+    out.paste(img, mask=mask)
+    return out
+
+
+def font(px, weight=800):
+    f = ImageFont.truetype(FONT, px)
     try:
-        font.set_variation_by_axes([weight])
+        f.set_variation_by_axes([weight])
     except Exception:
-        pass  # a static build of the face is fine too
-    return font
+        pass
+    return f
 
 
-def _fit(d, text, target_width, weight=800):
-    """The font size at which [text] is exactly target_width wide."""
-    size = int(target_width)
-    for _ in range(40):
-        font = _font(size, weight)
-        left, _, right, _ = d.textbbox((0, 0), text, font=font)
-        width = right - left
-        if abs(width - target_width) <= 1 or size <= 4:
-            return font
-        size = max(4, int(size * target_width / max(width, 1)))
-    return _font(size, weight)
+def main():
+    m = mark()
+    for name, scale in DENSITIES.items():
+        fg = placed(m, round(108 * scale), MARK_WIDTH)
+        d = os.path.join(RES, f"drawable-{name}")
+        os.makedirs(d, exist_ok=True)
+        fg.save(os.path.join(d, "ic_launcher_foreground.png"))
+        # Legacy launchers (below API 26 none are supported, but the files
+        # are kept current): the full icon at 48dp, square and round.
+        legacy = on_navy(placed(m, round(48 * scale), 0.62))
+        md = os.path.join(RES, f"mipmap-{name}")
+        legacy.convert("RGB").save(os.path.join(md, "ic_launcher.webp"), quality=95)
+        round_mask(legacy).save(os.path.join(md, "ic_launcher_round.webp"), quality=95)
 
+    # Play Store icon: the mark on navy, full square (the store masks it).
+    on_navy(placed(m, 512, 0.62)).convert("RGB").save(os.path.join(HERE, "icon-512.png"))
 
-def _centred(d, centre, text, font, fill):
-    left, top, right, bottom = d.textbbox((0, 0), text, font=font)
-    d.text((centre[0] - (right + left) / 2, centre[1] - (bottom + top) / 2),
-           text, font=font, fill=fill)
+    # Title screen art for the app, as WebP so it stays small.
+    bg = Image.open(os.path.join(HERE, "source/title-background.png")).convert("RGB")
+    nodpi = os.path.join(RES, "drawable-nodpi")
+    os.makedirs(nodpi, exist_ok=True)
+    bg.save(os.path.join(nodpi, "title_background.webp"), quality=86)
+    # The mark alone, for the title screen's wordmark.
+    m.resize((480, round(m.height * 480 / m.width)), Image.LANCZOS).save(
+        os.path.join(nodpi, "title_mark.webp"), lossless=True)
 
-
-def wordmark(size, transparent=False, safe=True):
-    """GRID over IRON, with the line to gain under it."""
-    big = size * SS
-    img = Image.new("RGBA", (big, big), (0, 0, 0, 0) if transparent else TURF + (255,))
-    d = ImageDraw.Draw(img)
-    if not transparent:
-        for frac in (0.24, 0.76):
-            x = big * frac
-            d.line([(x, 0), (x, big)], fill=TURF_LINE, width=max(1, int(big * 0.014)))
-    width = big * (SAFE_WIDTH if safe else 0.68)
-    font = _fit(d, "GRID", width)
-    _centred(d, (big / 2, big * 0.345), "GRID", font, CHALK)
-    _centred(d, (big / 2, big * 0.545), "IRON", font, PYLON)
-    rule = width * 0.92
-    d.line([(big / 2 - rule / 2, big * 0.675), (big / 2 + rule / 2, big * 0.675)],
-           fill=STRIPE, width=int(big * 0.026))
-    return img.resize((size, size), Image.LANCZOS)
-
-
-def feature(out):
-    """The 1024 x 500 graphic: the name on the sheet, ruled like a call sheet."""
-    W, H = 1024, 500
-    img = Image.new("RGB", (W, H), TURF)
-    d = ImageDraw.Draw(img)
-    for i in range(1, 12):
-        x = W * i / 12
-        d.line([(x, 0), (x, H)], fill=TURF_LINE, width=2)
-    title = _fit(d, "GRIDIRON", W * 0.52)
-    _centred(d, (W * 0.40, H * 0.40), "GRIDIRON", title, CHALK)
-    _centred(d, (W * 0.40, H * 0.63), "DYNASTY", title, PYLON)
-    d.line([(W * 0.14, H * 0.80), (W * 0.66, H * 0.80)], fill=STRIPE, width=8)
-    sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
-    d.text((W * 0.71, H * 0.46), "You are the", font=sub, fill=(157, 179, 167))
-    d.text((W * 0.71, H * 0.53), "general manager.", font=sub, fill=(157, 179, 167))
-    img.save(f"{out}/feature-graphic-1024x500.png")
-
-
-def launcher(res):
-    """The icon Android draws: a bitmap foreground, and the legacy densities."""
-    for folder, px in [("drawable-mdpi", 108), ("drawable-hdpi", 162),
-                       ("drawable-xhdpi", 216), ("drawable-xxhdpi", 324),
-                       ("drawable-xxxhdpi", 432)]:
-        os.makedirs(f"{res}/{folder}", exist_ok=True)
-        wordmark(px, transparent=True).save(f"{res}/{folder}/ic_launcher_foreground.png")
-    for folder, px in [("mipmap-mdpi", 48), ("mipmap-hdpi", 72), ("mipmap-xhdpi", 96),
-                       ("mipmap-xxhdpi", 144), ("mipmap-xxxhdpi", 192)]:
-        full = wordmark(px, safe=False)
-        full.convert("RGB").save(f"{res}/{folder}/ic_launcher.webp", "WEBP", quality=95)
-        mask = Image.new("L", (px * 4, px * 4), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, px * 4 - 1, px * 4 - 1), fill=255)
-        round_icon = wordmark(px * 4, safe=False)
-        round_icon.putalpha(mask)
-        round_icon.resize((px, px), Image.LANCZOS).save(
-            f"{res}/{folder}/ic_launcher_round.webp", "WEBP", quality=95)
+    # Feature graphic, 1024x500: the stadium band, the mark, the name.
+    fw, fh = 1024, 500
+    crop = bg.resize((fw, round(bg.height * fw / bg.width)), Image.LANCZOS)
+    top = round(crop.height * 0.18)
+    feature = crop.crop((0, top, fw, top + fh)).convert("RGBA")
+    shade = Image.new("RGBA", (fw, fh), NAVY + (120,))
+    feature.alpha_composite(shade)
+    mk = m.resize((260, round(m.height * 260 / m.width)), Image.LANCZOS)
+    feature.alpha_composite(mk, (70, (fh - mk.height) // 2))
+    d = ImageDraw.Draw(feature)
+    d.text((370, 150), "GRIDIRON", font=font(120), fill=CHALK)
+    d.text((370, 260), "DYNASTY", font=font(120), fill=ORANGE)
+    d.rectangle((372, 392, 700, 398), fill=CYAN)
+    feature.convert("RGB").save(os.path.join(HERE, "feature-graphic-1024x500.png"))
 
 
 if __name__ == "__main__":
-    out = sys.argv[1]
-    wordmark(512, safe=False).convert("RGB").save(f"{out}/icon-512.png")
-    feature(out)
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../app/src/main/res")
-    launcher(os.path.normpath(res))
-    print("drawn")
+    main()

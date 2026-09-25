@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.CollectionInfo
@@ -139,7 +140,12 @@ fun DataTable(
             val rowModifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = if (stacked) NdTheme.spacing.twoLineHeight else NdTheme.spacing.rowHeight)
-                .background(if (row.highlight) c.stripe else c.turfRaised)
+                .background(if (row.highlight) c.rowHighlight else c.turfRaised)
+                // A highlighted row is a tint and an accent edge, not a flood of
+                // colour: it stands out without shouting (docs/DESIGN.md 5).
+                .then(if (row.highlight) Modifier.drawBehind {
+                    drawRect(c.accent, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height))
+                } else Modifier)
                 .then(if (row.onClick != null) Modifier.clickable { row.onClick.invoke() } else Modifier)
                 // One thing to hear per row, with every number named, rather
                 // than a string of bare cells (SPEC 11).
@@ -153,7 +159,6 @@ fun DataTable(
                 }
                 .padding(horizontal = NdTheme.spacing.xs)
             fun ink(col: ColumnSpec, cell: String): Color = when {
-                row.highlight -> c.onStripe
                 col.tier -> cell.takeWhile { it.isDigit() }.toIntOrNull()
                     ?.let { ratingColor(it, c) } ?: c.chalk
                 else -> c.chalk
@@ -169,7 +174,7 @@ fun DataTable(
                             .filter { it.isNotBlank() }
                             .joinToString("  "),
                         style = NdTheme.type.data,
-                        color = if (row.highlight) c.onStripe else c.chalk,
+                        color = c.chalk,
                     )
                     // Wrap rather than run off the edge: at 2.0 the numbers of a
                     // roster row do not fit one line.
@@ -180,7 +185,7 @@ fun DataTable(
                                 Text(
                                     columns[i].label,
                                     style = NdTheme.type.caption,
-                                    color = if (row.highlight) c.onStripe else c.chalkDim,
+                                    color = c.chalkDim,
                                 )
                                 Text(cell, style = NdTheme.type.data, color = ink(columns[i], cell))
                             }

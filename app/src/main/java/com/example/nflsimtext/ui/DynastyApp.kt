@@ -31,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.SecondaryButton
 import com.example.nflsimtext.ui.theme.NdTheme
@@ -90,6 +93,10 @@ fun DynastyApp(
 ) {
     // Which screen he was on survives the Activity being rebuilt.
     var tab by rememberSaveable { mutableStateOf(Tab.HUB) }
+    // A fresh launch opens on the start screen, even with a dynasty still in
+    // memory; a rotation or a trip to another app does not.
+    var started by rememberSaveable { mutableStateOf(false) }
+    val begin = { started = true; tab = Tab.HUB }
     var player by remember { mutableStateOf<Int?>(null) }
     // A game opened from the schedule; null is the one just played.
     var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }
@@ -98,7 +105,9 @@ fun DynastyApp(
 
     // The system back button belongs to the app's own navigation: from a
     // screen behind the hub it goes back, not out of the dynasty.
-    BackHandler(enabled = dynasty != null && tab != Tab.HUB) {
+    // Back from choosing a club returns to where he chose to start one.
+    BackHandler(enabled = store.pendingLeague != null) { store.cancelPreview() }
+    BackHandler(enabled = dynasty != null && started && store.pendingLeague == null && tab != Tab.HUB) {
         tab = when (tab) {
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
@@ -106,17 +115,21 @@ fun DynastyApp(
         }
     }
 
+    // The title screen is a night game in either theme, and so is the frame
+    // around it, under the status and navigation bars.
+    val onTitle = store.pendingLeague == null && (dynasty == null || !started)
     Scaffold(
+        containerColor = if (onTitle) com.example.nflsimtext.ui.theme.NightColors.turf else NdTheme.colors.turf,
         // No tabs while choosing a club: they lead to the dynasty being left behind.
-        bottomBar = { if (dynasty != null && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
+        bottomBar = { if (dynasty != null && started && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 // Choosing a club takes the whole screen, whether or not a
                 // dynasty is already in hand.
                 store.pendingLeague != null ->
-                    TeamPickerScreen(store.pendingLeague!!, store, scope) { tab = Tab.HUB }
-                dynasty == null -> StartScreen(store, scope)
+                    TeamPickerScreen(store.pendingLeague!!, store, scope) { begin() }
+                dynasty == null || !started -> StartScreen(store, scope) { begin() }
                 else -> when (tab) {
                     Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
@@ -233,49 +246,123 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
 }
 
 @Composable
-private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope) {
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Gridiron Dynasty", style = NdTheme.type.display, color = NdTheme.colors.chalk)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "32 teams. 1,696 players. Nobody you have heard of.",
-            style = NdTheme.type.body,
-            color = NdTheme.colors.chalkDim,
-        )
-        Spacer(Modifier.height(32.dp))
+private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) =
+    // The art is a night game, so the title screen is too, whatever the
+    // theme: a day-theme fade washed the stadium out.
+    com.example.nflsimtext.ui.theme.NdTheme(dark = true) { TitleScreen(store, scope, onStarted) }
 
-        // What is already on the phone, in the slots it is in (SPEC 9.1).
-        var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
-        LaunchedEffect(Unit) { cards = store.cards() }
-        cards.filterNot { it.auto }.forEach { card ->
-            SecondaryButton(
-                "Slot ${card.slot}: ${card.summary}",
-                { scope.launch { store.load(card.slot) } },
-                Modifier.fillMaxWidth(),
+@Composable
+private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) {
+    val c = NdTheme.colors
+    val darkBars = com.example.nflsimtext.ui.theme.LocalDarkBars.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        darkBars(true)
+        onDispose { darkBars(false) }
+    }
+    Box(Modifier.fillMaxSize().background(c.turf)) {
+        // The night stadium (docs/DESIGN.md 11), fading to plain navy under the
+        // buttons so they read on the ground and not on the art.
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(com.example.nflsimtext.R.drawable.title_background),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0.0f to c.turf.copy(alpha = 0.15f),
+                    0.45f to c.turf.copy(alpha = 0.35f),
+                    0.72f to c.turf.copy(alpha = 0.92f),
+                    1.0f to c.turf,
+                ),
+            ),
+        )
+        // At least a screen tall, so the title sits up top and the actions at
+        // the foot; taller at big font sizes, and then it scrolls.
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val screen = maxHeight
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = screen)
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(72.dp))
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.example.nflsimtext.R.drawable.title_mark),
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth(0.42f),
             )
-            Spacer(Modifier.height(8.dp))
-        }
-        PrimaryButton(
-            "Start a new dynasty",
-            {
+            Spacer(Modifier.height(20.dp))
+            // The wordmark is type, so it reads to a screen reader as the name.
+            Text("GRIDIRON", style = NdTheme.type.scoreboard.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 64.sp, lineHeight = 60.sp),
+                color = c.chalk)
+            Text("DYNASTY", style = NdTheme.type.scoreboard.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 64.sp, lineHeight = 60.sp),
+                color = c.pylonText)
+            Box(Modifier.padding(top = 10.dp).fillMaxWidth(0.5f).height(3.dp).background(c.accent))
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "32 teams. 1,696 players. Nobody you have heard of.",
+                style = NdTheme.type.body,
+                color = c.chalkDim,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+          }
+          Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // A dynasty still in memory - an offseason half done included - is
+            // picked up where it was, not reloaded from its save.
+            store.dynasty?.let { d ->
+                PrimaryButton(
+                    "Continue: ${d.team.name}, ${d.year}" +
+                        if (d.phase == com.nflsim.engine.season.DynastyPhase.REGULAR_SEASON) " week ${d.week}" else "",
+                    onStarted,
+                    Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // What is already on the phone, in the slots it is in (SPEC 9.1).
+            var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
+            LaunchedEffect(Unit) { cards = store.cards() }
+            cards.filterNot { it.auto }.forEach { card ->
+                SecondaryButton(
+                    "Slot ${card.slot}: ${card.summary}",
+                    { scope.launch { if (store.load(card.slot)) onStarted() } },
+                    Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            val fresh = {
                 scope.launch {
                     val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
                     // The league first, so the user can choose which club to take over.
                     store.previewLeague(into = free ?: 1)
                 }
-            },
-        )
-        if (cards.none { !it.auto } && store.hasSave) {
-            Spacer(Modifier.height(12.dp))
-            SecondaryButton("Load the saved dynasty", { scope.launch { store.load() } })
+                Unit
+            }
+            if (store.dynasty == null) PrimaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
+            else SecondaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
+            if (cards.none { !it.auto } && store.hasSave) {
+                Spacer(Modifier.height(12.dp))
+                SecondaryButton("Load the saved dynasty", { scope.launch { if (store.load()) onStarted() } },
+                    Modifier.fillMaxWidth())
+            }
+            store.message?.let {
+                Spacer(Modifier.height(20.dp))
+                Text(it, style = NdTheme.type.body, color = c.sitRedZone)
+            }
+            Spacer(Modifier.height(28.dp))
+          }
         }
-        store.message?.let {
-            Spacer(Modifier.height(20.dp))
-            Text(it, style = NdTheme.type.body, color = MaterialTheme.colorScheme.error)
         }
     }
 }
