@@ -362,7 +362,9 @@ private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             }
             store.message?.let {
                 Spacer(Modifier.height(20.dp))
-                Text(it, style = NdTheme.type.body, color = c.sitRedZone)
+                // Notices and failures alike; the words say which.
+                Text(it, style = NdTheme.type.body, color = c.chalk,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
             Spacer(Modifier.height(28.dp))
           }

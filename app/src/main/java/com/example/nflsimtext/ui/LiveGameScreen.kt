@@ -136,7 +136,7 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
         val plays = snap?.plays.orEmpty()
         if (plays.isNotEmpty()) {
             item {
-                SituationBlock("Play log", meta = "${plays.size} plays") {
+                SituationBlock("Play log", meta = if (plays.size == 1) "1 play" else "${plays.size} plays") {
                     (plays.size - 1 downTo maxOf(0, plays.size - 12)).forEach { i ->
                         PlayLogEntry(downDistance = downAndDistance(plays[i]), text = plays[i].text, event = eventOf(plays, i))
                     }
