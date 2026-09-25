@@ -22,7 +22,7 @@ fun SecondaryButton(
 ) = OutlinedButton(
     onClick = onClick,
     enabled = enabled,
-    shape = NdTheme.shapes.block,
+    shape = NdTheme.shapes.button,
     border = BorderStroke(1.dp, NdTheme.colors.chalkDim),
     colors = ButtonDefaults.outlinedButtonColors(
         containerColor = Color.Transparent,

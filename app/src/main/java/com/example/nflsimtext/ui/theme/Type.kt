@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -48,14 +49,21 @@ data class NdTypography(
         fontSize = 56.sp, lineHeight = 56.sp, letterSpacing = (-0.5).sp,
         fontFeatureSettings = TNUM,
     ),
+    // Headlines lean like a broadcast graphic (docs/DESIGN.md 3); the
+    // scoreboard's numbers stay upright, because they have to be read.
     val display: TextStyle = TextStyle(
-        fontFamily = DisplayFamily, fontWeight = FontWeight.W700,
+        fontFamily = DisplayFamily, fontWeight = FontWeight.W800, fontStyle = FontStyle.Italic,
         fontSize = 36.sp, lineHeight = 40.sp, letterSpacing = 0.sp,
         fontFeatureSettings = TNUM,
     ),
     val headline: TextStyle = TextStyle(
-        fontFamily = DisplayFamily, fontWeight = FontWeight.W700,
+        fontFamily = DisplayFamily, fontWeight = FontWeight.W800, fontStyle = FontStyle.Italic,
         fontSize = 26.sp, lineHeight = 30.sp, letterSpacing = 0.sp,
+    ),
+    /** A block's title: condensed, leaning, in capitals, like a lower third. */
+    val blockTitle: TextStyle = TextStyle(
+        fontFamily = DisplayFamily, fontWeight = FontWeight.W800, fontStyle = FontStyle.Italic,
+        fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.6.sp,
     ),
     val title: TextStyle = TextStyle(
         fontFamily = TextFamily, fontWeight = FontWeight.W600,

@@ -71,17 +71,20 @@ fun SituationBlock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(title, style = NdTheme.type.title, color = c.chalk)
+                Text(title.uppercase(), style = NdTheme.type.blockTitle, color = c.chalk)
                 if (meta != null) Text(meta, style = NdTheme.type.label, color = c.chalkDim)
             }
             if (divider) {
+                // The lower-third rule: a short cyan bar over the hairline.
                 Box(
                     Modifier
                         .padding(vertical = NdTheme.spacing.s)
                         .fillMaxWidth()
                         .height(1.dp)
                         .background(c.turfLine),
-                )
+                ) {
+                    Box(Modifier.fillMaxWidth(0.18f).height(2.dp).background(c.stripe))
+                }
             }
             content()
         }
