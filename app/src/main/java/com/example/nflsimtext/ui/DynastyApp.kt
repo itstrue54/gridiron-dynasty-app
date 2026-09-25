@@ -102,7 +102,9 @@ fun DynastyApp(
 
     // The system back button belongs to the app's own navigation: from a
     // screen behind the hub it goes back, not out of the dynasty.
-    BackHandler(enabled = dynasty != null && tab != Tab.HUB) {
+    // Back from choosing a club returns to where he chose to start one.
+    BackHandler(enabled = store.pendingLeague != null) { store.cancelPreview() }
+    BackHandler(enabled = dynasty != null && started && store.pendingLeague == null && tab != Tab.HUB) {
         tab = when (tab) {
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
