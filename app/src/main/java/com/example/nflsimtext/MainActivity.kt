@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,10 +31,9 @@ class MainActivity : ComponentActivity() {
             var haptics by remember { mutableStateOf(HapticPrefs.load(applicationContext)) }
             NdTheme(theme) {
                 CompositionLocalProvider(LocalHaptics provides haptics) {
+                    // Nothing loads by itself: the app opens on the start screen,
+                    // where the player picks a save or starts a new dynasty.
                     val store = remember { DynastyStore.forContext(applicationContext) }
-                    // A rebuilt Activity finds the dynasty already in hand, and
-                    // reloading it from the save would drop what is in memory.
-                    LaunchedEffect(Unit) { if (store.dynasty == null && store.hasSave) store.load() }
                     DynastyApp(
                         store = store,
                         theme = theme,

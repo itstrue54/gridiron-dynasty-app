@@ -90,6 +90,10 @@ fun DynastyApp(
 ) {
     // Which screen he was on survives the Activity being rebuilt.
     var tab by rememberSaveable { mutableStateOf(Tab.HUB) }
+    // A fresh launch opens on the start screen, even with a dynasty still in
+    // memory; a rotation or a trip to another app does not.
+    var started by rememberSaveable { mutableStateOf(false) }
+    val begin = { started = true; tab = Tab.HUB }
     var player by remember { mutableStateOf<Int?>(null) }
     // A game opened from the schedule; null is the one just played.
     var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }
@@ -108,15 +112,15 @@ fun DynastyApp(
 
     Scaffold(
         // No tabs while choosing a club: they lead to the dynasty being left behind.
-        bottomBar = { if (dynasty != null && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
+        bottomBar = { if (dynasty != null && started && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 // Choosing a club takes the whole screen, whether or not a
                 // dynasty is already in hand.
                 store.pendingLeague != null ->
-                    TeamPickerScreen(store.pendingLeague!!, store, scope) { tab = Tab.HUB }
-                dynasty == null -> StartScreen(store, scope)
+                    TeamPickerScreen(store.pendingLeague!!, store, scope) { begin() }
+                dynasty == null || !started -> StartScreen(store, scope) { begin() }
                 else -> when (tab) {
                     Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics) { tab = it }
                     Tab.STANDINGS -> StandingsScreen(dynasty)
@@ -233,7 +237,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
 }
 
 @Composable
-private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope) {
+private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -248,13 +252,25 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
         )
         Spacer(Modifier.height(32.dp))
 
+        // A dynasty still in memory - an offseason half done included - is
+        // picked up where it was, not reloaded from its save.
+        store.dynasty?.let { d ->
+            PrimaryButton(
+                "Continue: ${d.team.name}, ${d.year}" +
+                    if (d.phase == com.nflsim.engine.season.DynastyPhase.REGULAR_SEASON) " week ${d.week}" else "",
+                onStarted,
+                Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
         // What is already on the phone, in the slots it is in (SPEC 9.1).
         var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
         LaunchedEffect(Unit) { cards = store.cards() }
         cards.filterNot { it.auto }.forEach { card ->
             SecondaryButton(
                 "Slot ${card.slot}: ${card.summary}",
-                { scope.launch { store.load(card.slot) } },
+                { scope.launch { if (store.load(card.slot)) onStarted() } },
                 Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
@@ -271,7 +287,7 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
         )
         if (cards.none { !it.auto } && store.hasSave) {
             Spacer(Modifier.height(12.dp))
-            SecondaryButton("Load the saved dynasty", { scope.launch { store.load() } })
+            SecondaryButton("Load the saved dynasty", { scope.launch { if (store.load()) onStarted() } })
         }
         store.message?.let {
             Spacer(Modifier.height(20.dp))
