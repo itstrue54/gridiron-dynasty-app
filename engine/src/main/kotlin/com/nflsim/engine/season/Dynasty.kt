@@ -120,10 +120,16 @@ object DynastyEngine {
         dynasty: Dynasty,
         tuning: TuningTable = dynasty.league.tuning,
         onGame: (done: Int, total: Int) -> Unit = { _, _ -> },
+        /**
+         * Calls the user's club's snaps in its regular-season game (SPEC
+         * 5.4); null leaves them to its coordinators. It may block while the
+         * user decides.
+         */
+        caller: com.nflsim.engine.sim.SnapCaller? = null,
     ): Dynasty =
         when (dynasty.phase) {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
-            DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning, onGame)
+            DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning, onGame, caller)
             DynastyPhase.PLAYOFFS -> runPlayoffs(dynasty, tuning)
             DynastyPhase.OFFSEASON -> rollOver(dynasty)
         }
@@ -153,7 +159,12 @@ object DynastyEngine {
     /** How much of the season's news a save carries. */
     const val NEWS_KEPT = 240
 
-    private fun advanceWeek(dynasty: Dynasty, tuning: TuningTable, onGame: (Int, Int) -> Unit): Dynasty {
+    private fun advanceWeek(
+        dynasty: Dynasty,
+        tuning: TuningTable,
+        onGame: (Int, Int) -> Unit,
+        caller: com.nflsim.engine.sim.SnapCaller?,
+    ): Dynasty {
         val teams = WeekRunner.teams(dynasty.league, tuning)
         val played = mutableListOf<GameResult>()
         val root = SplitMixRng(dynasty.seed)
@@ -167,8 +178,11 @@ object DynastyEngine {
         games.forEachIndexed { done, matchup ->
             val rng = root.split(
                 "y=${dynasty.year}|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
+            val mine = matchup.involves(dynasty.userTeamId)
+            val side = if (matchup.home == dynasty.userTeamId) com.nflsim.engine.sim.Side.HOME else com.nflsim.engine.sim.Side.AWAY
             val g = GameSimulator(
-                teams.getValue(matchup.home), teams.getValue(matchup.away), tuning).simulate(rng)
+                teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
+                caller = if (mine) caller else null, callerSide = if (mine) side else null).simulate(rng)
             outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
             stats = merge(stats, g.boxScore.players)
             if (matchup.involves(dynasty.userTeamId)) userGame = g

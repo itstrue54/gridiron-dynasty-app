@@ -438,7 +438,9 @@ data class Tendencies(
 
 **Adaptation.** Each game, both coordinators track the opponent's realized tendencies and shift within a bounded window (±0.12) based on the HC's `adjustments` rating. A predictable coordinator gets punished. This is where your CFB slider-tuning instincts translate directly.
 
-**User control.** You do not call plays; you set your coordinators' `Tendencies` sliders in the game plan screen, plus a per-opponent weekly game plan (§10.4). That is the strategic layer.
+**User control.** You set your coordinators' `Tendencies` sliders in the game plan screen, plus a per-opponent weekly game plan (§10.4). That is the strategic layer. And you may call your own game: "Call the plays" on the hub plays the week with the user's regular-season game stopping at each of his snaps (`SnapCaller`). On offence he takes the coordinator's call or makes his own - a formation, then a play from it - and on fourth down chooses go, punt or kick first; on defence a front, then a coverage or pressure. Either side can go back to its coordinator at any snap, and "Let the coordinators finish the game" hands over the rest. The coordinators always call first, from the game's own stream, so a game whose every suggestion is taken plays exactly as a simmed one; a call of the user's own changes his game and nobody else's. The playoffs are simmed for now: they replay a tied game from scratch, which a called game cannot.
+
+**Playbooks.** Every scheme has a book in `playbooks/<scheme id>.json` (§8 data rule): an offence's by formation - a personnel group - and a defence's by front, 58 to 103 plays each. Every play is an exact engine call: a run or pass concept with play-action, protection and target, or a coverage with extra rushers, box and bracket. The books have their scheme's shape (Air Raid in shotgun and empty sets, Gap/Power and Run-Heavy Pro in I and jumbo sets, Spread Option with the read keeper, each defence with its own pressures), and every call a coordinator can make is in his book, so a suggestion always has a name ("Singleback Bunch - Mesh").
 
 ### 5.5 Personnel & depth chart
 

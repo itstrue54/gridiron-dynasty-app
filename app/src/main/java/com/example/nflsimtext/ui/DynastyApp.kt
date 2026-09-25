@@ -81,6 +81,8 @@ enum class Tab(val label: String) {
     FREE_AGENCY("Free agency"),
     /** SPEC 7 phases 10-11: the club's own camp and cut to 53. */
     CUTDOWN("Camp"),
+    /** SPEC 5.4: the user's game, with the user calling it. */
+    LIVE("Live"),
 }
 
 @Composable
@@ -121,7 +123,8 @@ fun DynastyApp(
     Scaffold(
         containerColor = if (onTitle) com.example.nflsimtext.ui.theme.NightColors.turf else NdTheme.colors.turf,
         // No tabs while choosing a club: they lead to the dynasty being left behind.
-        bottomBar = { if (dynasty != null && started && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
+        // Nor while a called game is waiting on him: it would be left mid-snap.
+        bottomBar = { if (dynasty != null && started && store.pendingLeague == null && tab != Tab.LIVE) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -173,6 +176,7 @@ fun DynastyApp(
                         onFinished = { tab = Tab.CUTDOWN },
                         onBack = { tab = Tab.HUB },
                     )
+                    Tab.LIVE -> LiveGameScreen(dynasty, store) { boxGame = null; tab = Tab.BOX }
                     Tab.GAME -> GameDayScreen(
                         dynasty,
                         onBoxScore = { boxGame = null; tab = Tab.BOX },
@@ -229,7 +233,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
         ) {
             Tab.entries.filter {
                 it !in setOf(
-                    Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME,
+                    Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
                 )
             }.forEach { t ->
@@ -358,7 +362,9 @@ private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             }
             store.message?.let {
                 Spacer(Modifier.height(20.dp))
-                Text(it, style = NdTheme.type.body, color = c.sitRedZone)
+                // Notices and failures alike; the words say which.
+                Text(it, style = NdTheme.type.body, color = c.chalk,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
             Spacer(Modifier.height(28.dp))
           }

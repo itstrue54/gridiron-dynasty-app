@@ -65,7 +65,9 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
     val home = dynasty.league.team(game.home)
     val away = dynasty.league.team(game.away)
     val plays = game.playByPlay
-    var shown by remember(plays) { mutableStateOf(1) }
+    // A game that has been played opens at the final whistle, every play in
+    // the log; watching it from the kickoff is a choice, not the only view.
+    var shown by remember(plays) { mutableStateOf(plays.size) }
     // A play that was watched animates; a state that was jumped to does not
     // (docs/DESIGN.md 7).
     var animate by remember(plays) { mutableStateOf(false) }
@@ -155,6 +157,10 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
                     }
                 } else {
                     PrimaryButton("See the box score", onBoxScore, Modifier.fillMaxWidth())
+                    SecondaryButton("Watch it play by play", {
+                        animate = false
+                        shown = 1
+                    }, Modifier.fillMaxWidth())
                     SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth())
                 }
             }
@@ -168,8 +174,9 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
 
         item {
             SituationBlock("Play log", meta = "$shown of ${plays.size}") {
-                // Newest first, and only what has been shown.
-                (shown - 1 downTo maxOf(0, shown - 25)).forEach { i ->
+                // Newest first, and everything shown so far - the whole game
+                // once it is over.
+                (shown - 1 downTo 0).forEach { i ->
                     val entry = @Composable {
                         PlayLogEntry(
                             downDistance = downAndDistance(plays[i]),

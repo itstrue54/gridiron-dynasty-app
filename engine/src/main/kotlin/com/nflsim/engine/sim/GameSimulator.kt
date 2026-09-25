@@ -77,6 +77,9 @@ class GameSimulator(
     private val home: GameTeam,
     private val away: GameTeam,
     private val tuning: TuningTable = TuningTable.REALISTIC,
+    /** Who calls [callerSide]'s snaps; null leaves both clubs to their coordinators. */
+    private val caller: SnapCaller? = null,
+    private val callerSide: Side? = null,
 ) {
 
     private val stats = StatBuilder()
@@ -320,8 +323,13 @@ class GameSimulator(
             carries = stats::carries,
             narration = words,
         )
-        val offCall = PlayCaller.offense(probe, rng)
-        val defCall = PlayCaller.defense(probe, rng)
+        // The coordinators call both sides first, from the game's stream, so
+        // the suggestion a caller sees is exactly what would have been played.
+        val suggestedOff = PlayCaller.offense(probe, rng)
+        val suggestedDef = PlayCaller.defense(probe, rng)
+        val snap = if (caller != null && callerSide != null) Snap(state, callerSide, playByPlay.toList()) else null
+        val offCall = if (snap != null && offense == callerSide) caller!!.offense(snap, suggestedOff) else suggestedOff
+        val defCall = if (snap != null && offense != callerSide) caller!!.defense(snap, suggestedDef) else suggestedDef
 
         val ctx = probe.copy(
             offense = OffenseUnit.from(offDepth, offCall.personnel, offTeam.offScheme),
@@ -607,9 +615,12 @@ class GameSimulator(
 
     private fun fourthDown(state: GameState, offense: Side, rng: Rng): FourthDownChoice {
         val t = teamFor(offense)
-        return FourthDown.decide(
+        val suggested = FourthDown.decide(
             state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
             home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng)
+        return if (caller != null && offense == callerSide) {
+            caller.fourthDown(Snap(state, offense, playByPlay.toList()), suggested)
+        } else suggested
     }
 
     private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) home else away

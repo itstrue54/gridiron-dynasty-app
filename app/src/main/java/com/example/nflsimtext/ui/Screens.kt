@@ -247,6 +247,20 @@ fun HubScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !store.busy,
                 )
+                // Calling the plays himself (SPEC 5.4): the same week, with his
+                // game waiting on him at each snap. Only with a game to play.
+                if (dynasty.phase == DynastyPhase.REGULAR_SEASON &&
+                    dynasty.schedule.week(dynasty.week).any { it.involves(dynasty.userTeamId) }
+                ) {
+                    SecondaryButton(
+                        "Call the plays",
+                        {
+                            scope.launch { launch { store.playLive() }; onNavigate(Tab.LIVE) }
+                        },
+                        Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
+                        enabled = !store.busy && store.live == null,
+                    )
+                }
                 // Wrapped, not scrolled: half of these used to sit off the right
                 // edge of the phone with nothing to say they were there, and the
                 // row scrolled back to the start every time the hub was reopened.

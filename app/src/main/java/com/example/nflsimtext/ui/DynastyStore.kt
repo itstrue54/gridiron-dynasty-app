@@ -169,6 +169,35 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** The user's game in progress, when he is calling it (SPEC 5.4). */
+    var live by mutableStateOf<LiveGame?>(null)
+        private set
+
+    /**
+     * The week with the user calling his own game. It runs on a worker that
+     * waits at each of his snaps, so the screen stays his; the rest of the
+     * league plays as ever. Saved like any week once his game is over.
+     */
+    suspend fun playLive() {
+        val current = dynasty ?: return
+        if (live != null) return
+        val game = LiveGame(
+            com.nflsim.engine.playbook.Playbooks.forScheme(current.team.offenseScheme),
+            com.nflsim.engine.playbook.Playbooks.forScheme(current.team.defenseScheme),
+        )
+        live = game
+        try {
+            val next = withContext(Dispatchers.IO) { DynastyEngine.advance(current, caller = game) }
+            dynasty = next
+            persist(next)
+            if (next.phase != current.phase) {
+                withContext(Dispatchers.IO) { runCatching { saves.autosave(next) } }
+            }
+        } finally {
+            live = null
+        }
+    }
+
     /** SPEC 12: the league's tuning table, changed on the tuning screen and saved with it. */
     suspend fun setTuning(tuning: TuningTable) {
         val current = dynasty ?: return
