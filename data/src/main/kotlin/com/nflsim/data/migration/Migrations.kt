@@ -40,6 +40,7 @@ object Migrations {
         // The carryover field was always in the save, at zero; a club starts
         // carrying room at its next offseason, the first year-end it sees.
         Step(14, "cap carryover arrived (SPEC 8.1); nothing to move") { it },
+        Step(15, "the league's clubs haggle over contract demands (SPEC 8.3); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
