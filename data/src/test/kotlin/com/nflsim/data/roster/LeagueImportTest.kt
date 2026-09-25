@@ -4,6 +4,7 @@ import com.nflsim.engine.gen.LeagueGenerator
 import com.nflsim.engine.model.Conference
 import com.nflsim.engine.model.Division
 import com.nflsim.engine.model.PlayerStatus
+import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.DynastyEngine
 import com.nflsim.engine.season.Transactions
 import kotlin.test.Test
@@ -65,6 +66,47 @@ class LeagueImportTest {
         assertTrue(phiRoster.size >= 46, "enough to dress: ${phiRoster.size}")
         // No roster points at a player who is not in the league.
         assertTrue(league.teams.all { t -> (t.roster + t.practiceSquad).all { it in byId } })
+    }
+
+    /** A full club as a real file gives it: a generated team's 53 and squad, renamed, less [without]. */
+    private fun fullClub(abbrev: String, seed: Long, without: Set<String>): String {
+        val donor = LeagueGenerator.generate(2026, seed)
+        val team = donor.teams.first()
+        val men = (team.roster + team.practiceSquad).map { donor.playersById.getValue(it) }
+            .filter { it.position.label !in without }
+        val players = men.mapIndexed { i, p ->
+            """{"name":"Real $abbrev$i","position":"${p.position.label}","overall":${overall(p)},"age":27}"""
+        }.joinToString(",")
+        return """{"abbrev":"$abbrev","conference":"AFC","division":"North","players":[$players]}"""
+    }
+
+    @Test
+    fun `a club listed in full gets no invented players - no fullback if it carries none`() {
+        val r = LeagueImport.build("""{"teams":[${fullClub("BAL", 41L, setOf("FB"))}]}""", 2026, 7L)
+        val league = assertNotNull(r.league, "${r.errors}")
+        val byId = league.playersById
+        val bal = league.teams.single { it.abbrev == "BAL" }
+        val roster = bal.roster.map { byId.getValue(it) }
+        val squad = bal.practiceSquad.map { byId.getValue(it) }
+        assertEquals(Transactions.ROSTER_LIMIT, roster.size)
+        assertTrue((roster + squad).all { it.name.startsWith("Real BAL") }, "every man is from the file: ${(roster + squad).filterNot { it.name.startsWith("Real") }.map { it.position.label }}")
+        assertTrue(roster.none { it.position == com.nflsim.engine.model.Position.FB }, "no fullback was listed, none was made up")
+        // No generated man is left claiming the club off its roster.
+        assertTrue(league.players.filter { it.teamId == bal.id }.all { it.id in bal.roster })
+        // It plays without one: the offence lines up two backs from the running backs.
+        var d = DynastyEngine.start(league, 2026, 7L, bal.id)
+        repeat(2) { d = DynastyEngine.advance(d) }
+        assertEquals(3, d.week)
+    }
+
+    @Test
+    fun `a full club with nobody at a position the game needs keeps one, and says so`() {
+        val r = LeagueImport.build("""{"teams":[${fullClub("CIN", 42L, setOf("FB", "K"))}]}""", 2026, 7L)
+        val league = assertNotNull(r.league, "${r.errors}")
+        val cin = league.teams.single { it.abbrev == "CIN" }
+        val invented = cin.roster.map { league.playersById.getValue(it) }.filterNot { it.name.startsWith("Real") }
+        assertEquals(listOf(com.nflsim.engine.model.Position.K), invented.map { it.position })
+        assertTrue(r.notes.any { "no K in the file" in it }, "${r.notes}")
     }
 
     @Test

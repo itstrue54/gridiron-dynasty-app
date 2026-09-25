@@ -20,9 +20,12 @@ import com.nflsim.engine.season.Transactions
  *
  * Contracts come from the players they replace: his best quarterback takes
  * the generated starter's deal, his second the backup's, so a club's payroll
- * and the cap stay what the league was built around. Positions he leaves
- * short keep generated players, so every club can take the field; past 53,
- * his extras go to the practice squad.
+ * and the cap stay what the league was built around. A club he gives at
+ * least 53 players is his real roster and gets no invented ones - no
+ * fullback if he lists none - unless it has nobody at all at a position the
+ * game cannot play without, which keeps one generated man and says so. A
+ * shorter club keeps generated players where he left it short, so it can
+ * take the field. Past 53, his extras go to the practice squad.
  */
 object LeagueImport {
 
@@ -99,6 +102,8 @@ object LeagueImport {
             if (mine.isEmpty()) { notes += "${team.abbrev}: no players in the file, kept the generated roster"; return@map team }
             val generated = team.roster.mapNotNull { byId[it] }
             val onRoster = mutableListOf<Player>()
+            // A club he lists in full is his real roster: nobody is invented for it.
+            val complete = mine.size >= Transactions.ROSTER_LIMIT
             // Position by position: his men take the generated men's deals in order.
             (mine.map { it.position } + generated.map { it.position }).distinct().forEach { pos ->
                 val his = mine.filter { it.position == pos }.sortedByDescending { overall(it) }
@@ -108,8 +113,18 @@ object LeagueImport {
                     theirs.getOrNull(k)?.let { dropped += it.id.v }
                     onRoster += p.copy(teamId = team.id, status = PlayerStatus.ACTIVE, contract = deal)
                 }
-                // Short at a position: the generated men he did not replace stay.
-                onRoster += theirs.drop(his.size)
+                val unreplaced = theirs.drop(his.size)
+                val kept = when {
+                    // A partial club: the generated men he did not replace stay, so it can dress.
+                    !complete -> unreplaced
+                    // A full club with nobody at a position the game cannot play without keeps one.
+                    his.isEmpty() && pos !in OPTIONAL_POSITIONS -> unreplaced.take(1).onEach {
+                        notes += "${team.abbrev}: no ${pos.label} in the file, kept a generated one"
+                    }
+                    else -> emptyList()
+                }
+                onRoster += kept
+                unreplaced.filterNot { it in kept }.forEach { dropped += it.id.v }
             }
             // Past 53, the least of his extras go to the practice squad, then to the street.
             val ranked = onRoster.sortedByDescending { overall(it) }
@@ -118,8 +133,11 @@ object LeagueImport {
             val squad = over.take(PracticeSquads.SIZE).map { it.copy(teamId = null, status = PlayerStatus.PRACTICE_SQUAD, contract = null) }
             free += over.drop(PracticeSquads.SIZE).map { it.copy(teamId = null, contract = null) }
             // The generated squad makes way for his.
-            val squadIds = if (squad.isEmpty()) team.practiceSquad
-                else (squad.map { it.id } + team.practiceSquad.filterNot { it.v in dropped }).take(PracticeSquads.SIZE)
+            val squadIds = when {
+                complete -> squad.map { it.id }
+                squad.isEmpty() -> team.practiceSquad
+                else -> (squad.map { it.id } + team.practiceSquad.filterNot { it.v in dropped }).take(PracticeSquads.SIZE)
+            }
             team.practiceSquad.filterNot { it in squadIds }.forEach { dropped += it.v }
             (keep + squad).forEach { byId[it.id] = it }
             notes += "${team.abbrev}: ${mine.size} players from the file" +
@@ -131,9 +149,16 @@ object LeagueImport {
         free.forEach { byId[it.id] = it }
         dropped.forEach { byId.remove(com.nflsim.engine.model.PlayerId(it)) }
 
-        val league = base.copy(teams = teams, players = byId.values.sortedBy { it.id.v })
+        // Front offices, staffs and schemes, for the clubs the file gives them.
+        val league = StaffImport.apply(base.copy(teams = teams, players = byId.values.sortedBy { it.id.v }), slots, seed, notes)
         return Result(league, result.report, notes, errors)
     }
+
+    /**
+     * Positions a club can go without: the offence lines up two running backs
+     * when a formation calls for a fullback it does not have (Lineup).
+     */
+    private val OPTIONAL_POSITIONS = setOf(com.nflsim.engine.model.Position.FB)
 
     /** Which generated slot each of his clubs takes. */
     private fun placeClubs(base: League, clubs: List<RosterJson.Club>, notes: MutableList<String>): Map<TeamId, RosterJson.Club> {

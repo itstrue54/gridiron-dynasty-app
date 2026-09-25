@@ -43,6 +43,7 @@ object Migrations {
         Step(15, "the league's clubs haggle over contract demands (SPEC 8.3); nothing to move") { it },
         // An old save's pending demands have named nothing yet; 0 is right for them.
         Step(16, "a demand remembers the figure his agent named (SPEC 8.3); nothing to move") { it },
+        Step(17, "general managers have names (SPEC 8.2)", ::nameGms),
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
@@ -129,6 +130,22 @@ object Migrations {
      */
     private fun formSquads(dynasty: Dynasty): Dynasty =
         dynasty.copy(league = com.nflsim.engine.season.PracticeSquads.fill(dynasty.league, dynasty.seed))
+
+    /**
+     * 17 -> 18: general managers have names. A save from before them has a
+     * blank in every chair; each club's GM is named the way a new league names
+     * him, off the dynasty's seed and the club, so the same save always gets
+     * the same names. A name the save already carries is kept.
+     */
+    private fun nameGms(dynasty: Dynasty): Dynasty {
+        val league = dynasty.league
+        val rng = SplitMixRng(dynasty.seed)
+        val teams = league.teams.map { team ->
+            if (team.gm.name.isNotBlank()) team
+            else team.copy(gm = team.gm.copy(name = com.nflsim.engine.gen.LeagueGenerator.gmName(rng.split("team=${team.abbrev}"))))
+        }
+        return dynasty.copy(league = league.copy(teams = teams))
+    }
 
     /*
      * 6 -> 7 onward carry nothing to move, each for its own reason:

@@ -85,7 +85,7 @@ object LeagueGenerator {
                 defenseScheme = defense.id,
                 roster = roster.map { it.id },
                 staff = staff,
-                gm = GmProfile.generate(teamRng.split("gm")),
+                gm = GmProfile.generate(teamRng.split("gm")).copy(name = gmName(teamRng)),
             )
         }
 
@@ -97,6 +97,13 @@ object LeagueGenerator {
             seed,
         )
     }
+
+    /**
+     * A club's general manager's name, from a stream of its own: split does not
+     * advance the team's stream, so naming GMs changed no other draw.
+     */
+    fun gmName(teamRng: Rng): String =
+        NameGenerator.fullName(teamRng.split("gm|name")).let { (first, last) -> "$first $last" }
 
     /** Regenerates one team's roster in isolation - same seed, same players. */
     fun rosterFor(abbrev: String, year: Int, seed: Long, teamId: TeamId): List<Player> {

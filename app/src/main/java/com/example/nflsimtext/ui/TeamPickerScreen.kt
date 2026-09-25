@@ -74,7 +74,8 @@ fun TeamPickerScreen(
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
                     Text(
-                        (league.coaches[team.staff.headCoach]?.name?.let { "$it, head coach. " } ?: "") +
+                        (team.gm.name.takeIf { it.isNotBlank() }?.let { "$it, general manager. " } ?: "") +
+                            (league.coaches[team.staff.headCoach]?.name?.let { "$it, head coach. " } ?: "") +
                             "${market(team.marketSize)} market. " +
                             "${dealMoney(com.nflsim.engine.season.Transactions.spaceFor(league, team.id))} of cap room.",
                         style = NdTheme.type.body, color = c.chalkDim,

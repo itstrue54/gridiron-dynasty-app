@@ -752,6 +752,13 @@ data class GmProfile(
 )
 ```
 
+**Implemented.** `GmProfile` carries `aggression`, `winNowVsFuture`,
+`loyaltyToOwnPlayers`, `riskTolerance` and the GM's `name` - generated in a
+generated league (from a stream of its own, so naming GMs moved no other
+draw), the real one from a roster file (9.4). The user is his own club's GM;
+the name shows in the club picker and, for his club, as the man whose chair
+he took (save version 18).
+
 `teamNeed(team, position)` = f(starter quality, depth quality, contracts expiring, age, scheme fit). Needs drive FA targets and the draft board. **The AI evaluates prospects through its own `ScoutingLens`** — AI teams miss on players too, and differently from you. That is what makes the draft feel alive.
 
 ### 8.3 Free agency auction
@@ -966,9 +973,31 @@ when a division is full; a club he leaves out stays fictional, and a
 fictional club whose abbreviation he has taken gets an X. His players
 become the club's roster position by position, each taking the contract
 of the generated man he replaces in the depth order, so payroll and the
-cap stay as the league was built. Positions he leaves short keep generated
-men, so every club can dress; past 53 his extras go to the practice
-squad, and past that to the street. Players on no club are free agents.
+cap stay as the league was built. A club he lists with at least 53
+players is his real roster and nobody is invented for it - a club that
+carries no fullback has none, and the offence lines up two running backs
+where a formation calls for one. Only a position the game cannot play
+without, left with nobody at all, keeps one generated man, and the import
+says so. A club he lists short of 53 keeps generated men where he left it
+short, so it can dress. Past 53 his extras go to the practice squad, and
+past that to the street. Players on no club are free agents.
+
+**Front offices and staffs** (`StaffJson`, `StaffImport`). A club in the
+file may also give its `gm` (a name, and any of the four `GmProfile`
+tendencies 0-1), its `offenseScheme` and `defenseScheme` (scheme id or
+name), and its `staff`: `headCoach`, `offensiveCoordinator`,
+`defensiveCoordinator`, `specialTeamsCoordinator` and `positionCoaches` by
+group (QB RB WR TE OL EDGE DT LB CB S ST). A coach is a name, or an object
+with `age`, `scheme`, `ratings` (development, gameplan, adjustments,
+discipline, motivation, evaluation, 0-100), `contractYears`, `hotSeat`
+(0-100) and `tendencies` (the GamePlan levers of 5.4). Each takes his slot from the
+generated coach, who leaves the league; what the file leaves out of a coach
+he takes from that man, and his tendencies are drawn from his scheme under
+the file's. One person named in several slots is one coach with every job's
+levers. A slot the file leaves empty keeps its generated coach, and the
+import says so. The club runs the file's schemes, else its coordinators',
+else its head coach's. An unknown scheme, a scheme on the wrong side of the
+ball, or a rating out of range is an import error, never a guess.
 
 **In the app.** The title screen's "Start with my own rosters" opens the
 phone's file picker (JSON or CSV); the club picker then shows what the

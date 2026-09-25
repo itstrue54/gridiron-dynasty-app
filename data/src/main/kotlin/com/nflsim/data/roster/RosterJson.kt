@@ -2,6 +2,7 @@ package com.nflsim.data.roster
 
 import com.nflsim.engine.model.Conference
 import com.nflsim.engine.model.Division
+import com.nflsim.engine.ratings.SchemeSide
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -28,13 +29,21 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 object RosterJson {
 
-    /** A club as the file describes it. Null conference or division: place it anywhere. */
+    /**
+     * A club as the file describes it. Null conference or division: place it
+     * anywhere. Its front office, staff and schemes are optional (StaffJson);
+     * null keeps what the game generated.
+     */
     data class Club(
         val abbrev: String,
         val city: String?,
         val nickname: String?,
         val conference: Conference?,
         val division: Division?,
+        val offenseScheme: String? = null,
+        val defenseScheme: String? = null,
+        val staff: StaffJson.StaffSpec? = null,
+        val gm: StaffJson.GmSpec? = null,
     )
 
     data class Parsed(val clubs: List<Club>, val table: List<List<String>>, val problems: List<String>)
@@ -83,7 +92,12 @@ object RosterJson {
                         problems += "$abbrev: division '${team.text("division", "div")}' is not East/North/South/West"
                     }
                     clubs += Club(abbrev, team.text("city", "location", "market"),
-                        team.text("nickname", "name", "mascot"), conference, division)
+                        team.text("nickname", "name", "mascot"), conference, division,
+                        offenseScheme = StaffJson.scheme(team.text("offenseScheme"), SchemeSide.OFFENSE, abbrev, problems),
+                        defenseScheme = StaffJson.scheme(team.text("defenseScheme"), SchemeSide.DEFENSE, abbrev, problems),
+                        staff = StaffJson.staff(team.entries.firstOrNull { it.key.equals("staff", true) || it.key.equals("coaches", true) }?.value, abbrev, problems),
+                        gm = StaffJson.gm(team.entries.firstOrNull { it.key.equals("gm", true) || it.key.equals("generalManager", true) }?.value, abbrev, problems),
+                    )
                     (team["players"] as? JsonArray ?: team["roster"] as? JsonArray)
                         ?.forEachIndexed { j, p -> player(p, abbrev, "$abbrev player ${j + 1}") }
                 }
@@ -113,7 +127,8 @@ object RosterJson {
     "A player needs a name and a position. Everything else is optional: overall (40-99) generates him to that level, or give ratings for exact numbers.",
     "Positions: QB RB FB WR TE LT LG C RG RT EDGE DT LB CB S K P (DE, OLB, HB, FS, SS and others are understood).",
     "Rating codes (0-99), any subset: spd acc str agi awr prc thp tas tam tad cth srr mrr drr rls rbk pbk tak pow mcv zcv kpw kac, and more - any the game does not know are listed after import.",
-    "Up to 53 players per team go on the roster; more go to the practice squad. Short positions are filled for you.",
+    "Up to 53 players per team go on the roster; more go to the practice squad. List 53 or more and nobody is added; list fewer and short positions are filled for you.",
+    "Optional per team: gm (a name, and aggression/winNow/loyalty/risk 0-1), offenseScheme and defenseScheme, and staff - headCoach, offensiveCoordinator, defensiveCoordinator, specialTeamsCoordinator, and positionCoaches for QB RB WR TE OL EDGE DT LB CB S ST. A coach can be just a name, or give age, scheme, ratings (development gameplan adjustments discipline motivation evaluation, 0-100), contractYears and tendencies.",
     "In the app: title screen -> Start with my own rosters -> pick this file."
   ],
   "teams": [
@@ -123,6 +138,15 @@ object RosterJson {
       "nickname": "Examples",
       "conference": "AFC",
       "division": "West",
+      "gm": { "name": "Pat Example", "aggression": 0.6, "winNow": 0.7 },
+      "offenseScheme": "OFF_WEST_COAST",
+      "defenseScheme": "DEF_43_OVER",
+      "staff": {
+        "headCoach": { "name": "Chris Sample", "age": 55, "ratings": { "development": 80, "motivation": 85 } },
+        "offensiveCoordinator": "Dana Model",
+        "defensiveCoordinator": { "name": "Lee Instance", "tendencies": { "blitzRate": 0.3 } },
+        "positionCoaches": { "QB": "Robin Test", "DT": "Kai Demo", "EDGE": "Kai Demo" }
+      },
       "players": [
         { "name": "Sam Example", "position": "QB", "number": 12, "age": 27, "overall": 84, "college": "State" },
         { "name": "Riley Sample", "position": "RB", "number": 28, "age": 24, "overall": 78 },

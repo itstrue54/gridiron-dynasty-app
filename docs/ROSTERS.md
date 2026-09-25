@@ -47,7 +47,45 @@ ratings.
 - **Optional:** `number`, `age`, `college`, `height` ("6-2"), `weight`,
   `archetype`, `dev`.
 - **Roster size:** up to 53 per club go on the roster, the next 16 on the
-  practice squad. Positions you leave short are filled for you.
+  practice squad. List 53 or more and that is the club's real roster: the
+  game adds nobody (no fullback if you list none). List fewer and the
+  positions you leave short are filled with made-up players so the club
+  can take the field.
+
+## Coaches and front office
+
+Any club can also carry its general manager, coaching staff and schemes:
+
+```json
+"gm": { "name": "First Last", "aggression": 0.6, "winNow": 0.8, "loyalty": 0.5, "risk": 0.4 },
+"offenseScheme": "OFF_WEST_COAST",
+"defenseScheme": "DEF_43_OVER",
+"staff": {
+  "headCoach": { "name": "First Last", "age": 58, "contractYears": 3,
+                 "ratings": { "development": 80, "gameplan": 85, "adjustments": 75,
+                              "discipline": 70, "motivation": 90, "evaluation": 65 } },
+  "offensiveCoordinator": "First Last",
+  "defensiveCoordinator": { "name": "First Last", "tendencies": { "blitzRate": 0.35 } },
+  "specialTeamsCoordinator": "First Last",
+  "positionCoaches": { "QB": "First Last", "DT": "First Last", "EDGE": "First Last" }
+}
+```
+
+- **Slots:** head coach, three coordinators, and a coach for each of QB RB WR
+  TE OL EDGE DT LB CB S ST. The same person can fill more than one (a
+  defensive line coach who also coaches the edge). A slot you leave out keeps
+  a made-up coach, and the import tells you which.
+- **A coach** can be just a name. Ratings (0-100) you leave out, and age,
+  contract and `hotSeat` (0-100, how close he is to being fired), come from
+  the made-up coach he replaces.
+- **Schemes:** OFF_WIDE_ZONE, OFF_GAP_POWER, OFF_AIR_RAID, OFF_WEST_COAST,
+  OFF_SPREAD_OPTION, OFF_VERTICAL, OFF_RUN_HEAVY_PRO; DEF_43_OVER,
+  DEF_43_UNDER, DEF_34_TWO_GAP, DEF_34_ONE_GAP, DEF_425_NICKEL, DEF_TAMPA_2,
+  DEF_COVER3_MATCH, DEF_MAN_BLITZ, DEF_335_MULTIPLE. Leave them out and the
+  club runs its coordinators' schemes.
+- **GM tendencies** (0-1): how much he spends on one player, how all-in he
+  is, how hard he keeps his own, and how much risk he takes. You are the GM
+  of the club you pick; the others' tendencies drive their moves.
 
 A flat list also works - `{ "players": [ ... ] }` or just `[ ... ]` - with a
 `"team": "KC"` on each player. So does a CSV with the same column names.

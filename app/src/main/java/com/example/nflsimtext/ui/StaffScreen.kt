@@ -55,6 +55,13 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                         "tendencies, and keep or lose their jobs by the results.",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
+                // The user is the general manager; the club's own is the man he replaced.
+                if (team.gm.name.isNotBlank()) {
+                    Text(
+                        "You run the front office in ${team.gm.name}'s place.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                    )
+                }
             }
         }
 
