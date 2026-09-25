@@ -31,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import com.example.nflsimtext.ui.components.PrimaryButton
 import com.example.nflsimtext.ui.components.SecondaryButton
 import com.example.nflsimtext.ui.theme.NdTheme
@@ -240,60 +243,110 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
 
 @Composable
 private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Gridiron Dynasty", style = NdTheme.type.display, color = NdTheme.colors.chalk)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "32 teams. 1,696 players. Nobody you have heard of.",
-            style = NdTheme.type.body,
-            color = NdTheme.colors.chalkDim,
+    val c = NdTheme.colors
+    Box(Modifier.fillMaxSize().background(c.turf)) {
+        // The night stadium (docs/DESIGN.md 11), fading to plain navy under the
+        // buttons so they read on the ground and not on the art.
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(com.example.nflsimtext.R.drawable.title_background),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
         )
-        Spacer(Modifier.height(32.dp))
-
-        // A dynasty still in memory - an offseason half done included - is
-        // picked up where it was, not reloaded from its save.
-        store.dynasty?.let { d ->
-            PrimaryButton(
-                "Continue: ${d.team.name}, ${d.year}" +
-                    if (d.phase == com.nflsim.engine.season.DynastyPhase.REGULAR_SEASON) " week ${d.week}" else "",
-                onStarted,
-                Modifier.fillMaxWidth(),
+        Box(
+            Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0.0f to c.turf.copy(alpha = 0.15f),
+                    0.45f to c.turf.copy(alpha = 0.35f),
+                    0.72f to c.turf.copy(alpha = 0.92f),
+                    1.0f to c.turf,
+                ),
+            ),
+        )
+        // At least a screen tall, so the title sits up top and the actions at
+        // the foot; taller at big font sizes, and then it scrolls.
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val screen = maxHeight
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = screen)
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(72.dp))
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.example.nflsimtext.R.drawable.title_mark),
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth(0.42f),
             )
-            Spacer(Modifier.height(16.dp))
-        }
-
-        // What is already on the phone, in the slots it is in (SPEC 9.1).
-        var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
-        LaunchedEffect(Unit) { cards = store.cards() }
-        cards.filterNot { it.auto }.forEach { card ->
-            SecondaryButton(
-                "Slot ${card.slot}: ${card.summary}",
-                { scope.launch { if (store.load(card.slot)) onStarted() } },
-                Modifier.fillMaxWidth(),
+            Spacer(Modifier.height(20.dp))
+            // The wordmark is type, so it reads to a screen reader as the name.
+            Text("GRIDIRON", style = NdTheme.type.scoreboard.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 64.sp, lineHeight = 60.sp),
+                color = c.chalk)
+            Text("DYNASTY", style = NdTheme.type.scoreboard.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 64.sp, lineHeight = 60.sp),
+                color = c.pylonText)
+            Box(Modifier.padding(top = 10.dp).fillMaxWidth(0.5f).height(3.dp).background(c.stripe))
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "32 teams. 1,696 players. Nobody you have heard of.",
+                style = NdTheme.type.body,
+                color = c.chalkDim,
             )
-            Spacer(Modifier.height(8.dp))
-        }
-        PrimaryButton(
-            "Start a new dynasty",
-            {
+          }
+          Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // A dynasty still in memory - an offseason half done included - is
+            // picked up where it was, not reloaded from its save.
+            store.dynasty?.let { d ->
+                PrimaryButton(
+                    "Continue: ${d.team.name}, ${d.year}" +
+                        if (d.phase == com.nflsim.engine.season.DynastyPhase.REGULAR_SEASON) " week ${d.week}" else "",
+                    onStarted,
+                    Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // What is already on the phone, in the slots it is in (SPEC 9.1).
+            var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
+            LaunchedEffect(Unit) { cards = store.cards() }
+            cards.filterNot { it.auto }.forEach { card ->
+                SecondaryButton(
+                    "Slot ${card.slot}: ${card.summary}",
+                    { scope.launch { if (store.load(card.slot)) onStarted() } },
+                    Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            val fresh = {
                 scope.launch {
                     val free = (1..Saves.SLOTS).firstOrNull { n -> cards.none { !it.auto && it.slot == n } }
                     // The league first, so the user can choose which club to take over.
                     store.previewLeague(into = free ?: 1)
                 }
-            },
-        )
-        if (cards.none { !it.auto } && store.hasSave) {
-            Spacer(Modifier.height(12.dp))
-            SecondaryButton("Load the saved dynasty", { scope.launch { if (store.load()) onStarted() } })
+                Unit
+            }
+            if (store.dynasty == null) PrimaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
+            else SecondaryButton("Start a new dynasty", fresh, Modifier.fillMaxWidth())
+            if (cards.none { !it.auto } && store.hasSave) {
+                Spacer(Modifier.height(12.dp))
+                SecondaryButton("Load the saved dynasty", { scope.launch { if (store.load()) onStarted() } },
+                    Modifier.fillMaxWidth())
+            }
+            store.message?.let {
+                Spacer(Modifier.height(20.dp))
+                Text(it, style = NdTheme.type.body, color = c.sitRedZone)
+            }
+            Spacer(Modifier.height(28.dp))
+          }
         }
-        store.message?.let {
-            Spacer(Modifier.height(20.dp))
-            Text(it, style = NdTheme.type.body, color = MaterialTheme.colorScheme.error)
         }
     }
 }
