@@ -916,7 +916,15 @@ posture text sims have used for decades and it keeps the legal footprint at
 zero.
 
 **Format:** CSV, because the people who maintain roster files live in
-spreadsheets. `RosterExporter.template()` is the documented starting point,
+spreadsheets - and, since v1.1 of this document, JSON, because that is the
+shape a roster scraped or exported from anywhere else comes in
+(`RosterJson`). A JSON file lists `teams` (abbrev, city, nickname,
+conference as AFC/NFC or American/Continental, division, `players`) or a
+flat `players` list with a `team` on each; a player takes the CSV's fields
+under the same names, ratings as fields or in a `ratings` object. It
+becomes rows for the same importer, so both formats share every alias,
+fidelity level and report below. `RosterJson.template()` is a
+self-describing starter file. `RosterExporter.template()` is the documented starting point,
 and whatever the exporter writes, the importer reads — round-tripping a
 generated roster through a spreadsheet and back is a supported workflow and a
 test asserts it is lossless.
@@ -949,6 +957,24 @@ show it.
 
 **Determinism holds.** Everything invented during an import comes from the
 seed, so the same file always produces the same players.
+
+**A league from the file** (`LeagueImport`). The league is generated as
+usual, then the user's clubs are laid over it: each takes a slot by its
+abbreviation if the generated league has one, else by conference and
+division, falling back to a free place in its conference (and saying so)
+when a division is full; a club he leaves out stays fictional, and a
+fictional club whose abbreviation he has taken gets an X. His players
+become the club's roster position by position, each taking the contract
+of the generated man he replaces in the depth order, so payroll and the
+cap stay as the league was built. Positions he leaves short keep generated
+men, so every club can dress; past 53 his extras go to the practice
+squad, and past that to the street. Players on no club are free agents.
+
+**In the app.** The title screen's "Start with my own rosters" opens the
+phone's file picker (JSON or CSV); the club picker then shows what the
+import did - players read, where each club went, what was skipped or not
+understood - before the user chooses his club. "Save a roster template"
+writes the starter file to Downloads. `docs/ROSTERS.md` is the guide.
 
 ### 9.3 v2 — Room **[OPEN]**
 
@@ -1238,4 +1264,4 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 
 ---
 
-*End of specification v1.0. Change this file in the same commit as the code it describes.*
+*End of specification v1.1 (v1.1: §9.4 reads JSON as well as CSV). Change this file in the same commit as the code it describes.*

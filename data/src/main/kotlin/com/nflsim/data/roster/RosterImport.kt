@@ -84,8 +84,23 @@ object RosterImporter {
         seed: Long = 0L,
         firstPlayerId: Int = 1,
         teamIdFor: (String) -> TeamId? = { null },
+    ): ImportResult = importTable(Csv.parse(csvText), year, seed, firstPlayerId, teamIdFor)
+
+    /**
+     * The same, from rows already split into cells: a header row, then one
+     * row a player. The JSON reader (RosterJson) arrives here too, so every
+     * format gets the same aliases, fidelity levels and report. [rowOffset]
+     * is what a row's index is reported as, past the header: 2 for a CSV
+     * line number, 1 for the n-th player of a JSON file.
+     */
+    fun importTable(
+        rows: List<List<String>>,
+        year: Int,
+        seed: Long = 0L,
+        firstPlayerId: Int = 1,
+        teamIdFor: (String) -> TeamId? = { null },
+        rowOffset: Int = 2,
     ): ImportResult {
-        val rows = Csv.parse(csvText)
         if (rows.isEmpty()) {
             return ImportResult(
                 emptyList(),
@@ -106,7 +121,7 @@ object RosterImporter {
         var skipped = 0
 
         body.forEachIndexed { i, cells ->
-            val rowNumber = i + 2 // 1-based, plus the header
+            val rowNumber = i + rowOffset
             val get = { keys: Set<String> -> index.value(keys, cells) }
             val nameForReport = displayName(get) ?: "(row $rowNumber)"
 
