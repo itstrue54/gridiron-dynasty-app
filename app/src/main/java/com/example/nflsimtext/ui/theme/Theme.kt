@@ -59,7 +59,7 @@ object NdTheme {
 }
 
 /**
- * The Call Sheet theme (docs/DESIGN.md). Depth comes from the surface step
+ * The Broadcast theme (docs/DESIGN.md). Depth comes from the surface step
  * turf -> turfRaised and a 1dp rule, never from a shadow, so Material's tonal
  * elevation is turned off by making its tint transparent.
  */

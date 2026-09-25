@@ -115,7 +115,11 @@ fun DynastyApp(
         }
     }
 
+    // The title screen is a night game in either theme, and so is the frame
+    // around it, under the status and navigation bars.
+    val onTitle = store.pendingLeague == null && (dynasty == null || !started)
     Scaffold(
+        containerColor = if (onTitle) com.example.nflsimtext.ui.theme.NightColors.turf else NdTheme.colors.turf,
         // No tabs while choosing a club: they lead to the dynasty being left behind.
         bottomBar = { if (dynasty != null && started && store.pendingLeague == null) BottomBar(tab) { boxGame = null; tab = it } },
     ) { padding ->
@@ -242,8 +246,19 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
 }
 
 @Composable
-private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) {
+private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) =
+    // The art is a night game, so the title screen is too, whatever the
+    // theme: a day-theme fade washed the stadium out.
+    com.example.nflsimtext.ui.theme.NdTheme(dark = true) { TitleScreen(store, scope, onStarted) }
+
+@Composable
+private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.CoroutineScope, onStarted: () -> Unit) {
     val c = NdTheme.colors
+    val darkBars = com.example.nflsimtext.ui.theme.LocalDarkBars.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        darkBars(true)
+        onDispose { darkBars(false) }
+    }
     Box(Modifier.fillMaxSize().background(c.turf)) {
         // The night stadium (docs/DESIGN.md 11), fading to plain navy under the
         // buttons so they read on the ground and not on the art.
@@ -292,12 +307,13 @@ private fun StartScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             Text("DYNASTY", style = NdTheme.type.scoreboard.copy(
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 64.sp, lineHeight = 60.sp),
                 color = c.pylonText)
-            Box(Modifier.padding(top = 10.dp).fillMaxWidth(0.5f).height(3.dp).background(c.stripe))
+            Box(Modifier.padding(top = 10.dp).fillMaxWidth(0.5f).height(3.dp).background(c.accent))
             Spacer(Modifier.height(12.dp))
             Text(
                 "32 teams. 1,696 players. Nobody you have heard of.",
                 style = NdTheme.type.body,
                 color = c.chalkDim,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
           }
           Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {

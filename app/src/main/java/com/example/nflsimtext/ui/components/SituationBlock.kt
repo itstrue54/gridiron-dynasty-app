@@ -83,7 +83,7 @@ fun SituationBlock(
                         .height(1.dp)
                         .background(c.turfLine),
                 ) {
-                    Box(Modifier.fillMaxWidth(0.18f).height(2.dp).background(c.stripe))
+                    Box(Modifier.fillMaxWidth(0.18f).height(2.dp).background(c.accent))
                 }
             }
             content()

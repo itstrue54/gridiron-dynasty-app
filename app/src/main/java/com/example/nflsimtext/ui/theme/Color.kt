@@ -35,6 +35,10 @@ data class NdColors(
     val tierGood: Color,
     val tierAverage: Color,
     val tierLow: Color,
+    /** The broadcast accent: the lower-third bar and a highlighted row's edge. Not for text. */
+    val accent: Color,
+    /** A highlighted table row's ground: a tint, so the row stands out without shouting. */
+    val rowHighlight: Color,
 ) {
     /** Touchdowns, field goals and safeties read as an action. */
     val eventScore: Color get() = pylon
@@ -61,6 +65,8 @@ val NightColors = NdColors(
     tierGood = Color(0xFFEEF3FA),
     tierAverage = Color(0xFF9AABC8),
     tierLow = Color(0xFFC9967A),
+    accent = Color(0xFF22D3EE),
+    rowHighlight = Color(0xFF15304A),
 )
 
 /** Every text colour here clears 4.5:1 on turf and turfRaised (lowest: third down, 4.60). */
@@ -83,6 +89,8 @@ val DayColors = NdColors(
     tierGood = Color(0xFF0A1224),
     tierAverage = Color(0xFF4A5A78),
     tierLow = Color(0xFF8A5F44),
+    accent = Color(0xFF0B8FA8),
+    rowHighlight = Color(0xFFDDF4FA),
 )
 
 /** A rating's tier colour. Always shown beside the number, never instead of it. */
