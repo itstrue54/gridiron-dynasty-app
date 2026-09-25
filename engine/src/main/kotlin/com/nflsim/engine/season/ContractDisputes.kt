@@ -116,7 +116,6 @@ object ContractDisputes {
                 if (rng.nextFloat() >= nerve) return@forEach
 
                 val asking = Ask(man, paid, market, years(man, out.year))
-                val settle = { l: League -> extend(l, club.id, man.id, week, pricer) }
                 out = out.copy(players = out.players.map {
                     if (it.id == man.id) it.copy(demand = DemandState.PENDING) else it
                 })
@@ -131,7 +130,7 @@ object ContractDisputes {
                 // The league's own clubs answer the same week.
                 if (club.id != userTeam) {
                     val answered = if (canAfford(out, club.id, asking)) {
-                        settle(out)
+                        haggle(out, club, man.id, week, pricer)
                     } else {
                         refuse(out, club.id, man.id, week)
                     }
@@ -152,6 +151,34 @@ object ContractDisputes {
             }
         }
         return Result(pressure(out, userTeam), news)
+    }
+
+    /**
+     * How a league club pays a man who asked (SPEC 8.3): it opens under his
+     * market - a careful GM further under - and if he says no, it pays the
+     * floor his agent names. He takes the same snub the user's lowball costs.
+     */
+    private fun haggle(
+        league: League,
+        club: com.nflsim.engine.model.Team,
+        playerId: PlayerId,
+        week: Int,
+        pricer: MarketValue.Pricer,
+    ): Transactions.Outcome {
+        val t = league.tuning.ai
+        val before = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
+        // The figure his agent will name if the opening falls short.
+        val named = (ask(league, before, pricer).market * reservation(before, league.tuning)).toInt()
+        val open = (t.disputeAiOpenBase + club.gm.aggression * t.disputeAiOpenAggression).coerceAtMost(1f)
+        val first = offer(league, club.id, playerId, open, week, pricer)
+        if (first !is Transactions.Outcome.Done) return first
+        val man = first.league.playersById[playerId] ?: return first
+        if (man.demand == DemandState.SETTLED) return first
+        // The snub costs him morale, and morale is in the rating a market is
+        // priced from, so pay the figure that was named, not a share of a
+        // market that has since dipped.
+        val market = ask(first.league, man, pricer).market.coerceAtLeast(1)
+        return offer(first.league, club.id, playerId, named.toFloat() / market, week, pricer)
     }
 
     /** A demand nobody has answered wears on a man. */
@@ -200,10 +227,18 @@ object ContractDisputes {
         share: Float,
         week: Int = 0,
         stats: Map<Int, StatLine> = emptyMap(),
+    ): Transactions.Outcome = offer(league, team, playerId, share, week, pricer(league, Production.index(league.players, stats)))
+
+    private fun offer(
+        league: League,
+        team: TeamId,
+        playerId: PlayerId,
+        share: Float,
+        week: Int,
+        pricer: MarketValue.Pricer,
     ): Transactions.Outcome {
         val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
         if (man.teamId != team) return Transactions.Outcome.Refused("${man.name} does not play for this club.")
-        val pricer = pricer(league, Production.index(league.players, stats))
         val asking = ask(league, man, pricer)
         val annual = (asking.market * share).toInt().coerceAtLeast(Contract.MIN_BASE_SALARY)
         val contract = Contract.of(asking.years, annual * asking.years, league.year)
@@ -274,7 +309,7 @@ object ContractDisputes {
 
     /**
      * The answer the league's own clubs give, for a user who would rather
-     * not: pay the market rate if there is room, tell him no if there is not.
+     * not: haggle as they do if there is room, tell him no if there is not.
      */
     fun frontOfficeAnswer(
         league: League,
@@ -285,8 +320,9 @@ object ContractDisputes {
     ): Transactions.Outcome {
         val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
         val asking = ask(league, man, stats) ?: return Transactions.Outcome.Refused("${man.name} has no contract to fix.")
-        return if (canAfford(league, team, asking)) extend(league, team, playerId, week, stats)
-        else refuse(league, team, playerId, week)
+        return if (canAfford(league, team, asking)) {
+            haggle(league, league.team(team), playerId, week, pricer(league, Production.index(league.players, stats)))
+        } else refuse(league, team, playerId, week)
     }
 
     /** Pay him the market rate: as he asked, or as one of [deals] writes it. */

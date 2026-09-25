@@ -823,9 +823,18 @@ for plays on the tender. Handed to the front office, the club matches
 whatever fits, as the league's clubs do. The free-agency report says who
 was kept and who was lost.
 
-Still to do: the league's own clubs do not haggle - they pay the market
-or refuse - and there are no incentives or guarantee terms to trade
-against, only the annual figure.
+**The league's clubs haggle over demands.** A club that can afford a man
+who asks opens at 85% of his market, up to 100% for the boldest GM
+(`ai.disputeAiOpenBase`, `ai.disputeAiOpenAggression`); at or above his
+reservation price he signs, and under it he says no, takes the snub the
+user's lowball would cost him, and is paid the figure his agent named. A
+user who hands a demand to the front office gets the same. Over four
+seasons on two seeds it cut what a league club pays to settle a demand
+from $14.9M to $12.9M and $15.4M to $13.2M a year.
+
+Still to do: the league's clubs do not talk to a free agent's agent
+before the market opens, and there are no incentives or guarantee terms
+to trade against, only the annual figure.
 
 ### 8.4 Trades
 

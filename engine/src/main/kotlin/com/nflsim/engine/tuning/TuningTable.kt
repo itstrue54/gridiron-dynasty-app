@@ -479,6 +479,13 @@ data class TuningTable(
         /** What a rejected offer costs him, against 18 for being told no outright. */
         val disputeSnubMorale: Int = 5,
         /**
+         * A league club haggles too (SPEC 8.3): it opens at this share of his
+         * market, a bold GM up to this much higher, and pays the floor his
+         * agent names if the opening falls short.
+         */
+        val disputeAiOpenBase: Float = 0.85f,
+        val disputeAiOpenAggression: Float = 0.15f,
+        /**
          * A deal's length against what he wants: a year shorter costs the
          * club this much more a year, because he gives up security; a year
          * longer buys this much off, because he gains it.
