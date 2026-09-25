@@ -1,0 +1,413 @@
+{
+ "scheme": "OFF_SPREAD_OPTION",
+ "formations": [
+  {
+   "name": "Shotgun Trips",
+   "personnel": "P_11",
+   "plays": [
+    {
+     "name": "Zone Read Keep",
+     "run": "QB_KEEP"
+    },
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "HB Outside Zone",
+     "run": "OUTSIDE_ZONE"
+    },
+    {
+     "name": "HB Draw",
+     "run": "DRAW"
+    },
+    {
+     "name": "Toss Sweep",
+     "run": "TOSS"
+    },
+    {
+     "name": "WR Bubble Screen",
+     "pass": "SCREEN"
+    },
+    {
+     "name": "Spacing",
+     "pass": "FLAT",
+     "target": 4
+    },
+    {
+     "name": "Slant-Flat",
+     "pass": "SLANT"
+    },
+    {
+     "name": "Stick",
+     "pass": "STICK",
+     "target": 3
+    },
+    {
+     "name": "Mesh",
+     "pass": "CROSSER",
+     "target": 2
+    },
+    {
+     "name": "Curl-Flat",
+     "pass": "CURL"
+    },
+    {
+     "name": "Levels",
+     "pass": "DIG"
+    },
+    {
+     "name": "Speed Out",
+     "pass": "OUT",
+     "target": 1
+    },
+    {
+     "name": "Smash",
+     "pass": "CORNER",
+     "target": 1
+    },
+    {
+     "name": "Mills",
+     "pass": "POST"
+    },
+    {
+     "name": "Four Verticals",
+     "pass": "GO"
+    },
+    {
+     "name": "Seam Read",
+     "pass": "SEAM",
+     "target": 3
+    },
+    {
+     "name": "PA Crossers",
+     "pass": "CROSSER",
+     "playAction": true
+    },
+    {
+     "name": "PA Curl",
+     "pass": "CURL",
+     "playAction": true
+    },
+    {
+     "name": "PA Dig",
+     "pass": "DIG",
+     "playAction": true
+    },
+    {
+     "name": "PA Boot Flood",
+     "pass": "OUT",
+     "playAction": true
+    },
+    {
+     "name": "PA Corner",
+     "pass": "CORNER",
+     "playAction": true
+    },
+    {
+     "name": "PA Deep Post",
+     "pass": "POST",
+     "playAction": true,
+     "protect": 1
+    },
+    {
+     "name": "PA Shot Go",
+     "pass": "GO",
+     "playAction": true,
+     "protect": 1
+    },
+    {
+     "name": "PA Seam",
+     "pass": "SEAM",
+     "playAction": true
+    }
+   ]
+  },
+  {
+   "name": "Pistol Doubles",
+   "personnel": "P_11",
+   "plays": [
+    {
+     "name": "Zone Read Keep",
+     "run": "QB_KEEP"
+    },
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "HB Outside Zone",
+     "run": "OUTSIDE_ZONE"
+    },
+    {
+     "name": "HB Draw",
+     "run": "DRAW"
+    },
+    {
+     "name": "Toss Sweep",
+     "run": "TOSS"
+    },
+    {
+     "name": "HB Slip Screen",
+     "pass": "SCREEN",
+     "target": 4
+    },
+    {
+     "name": "Snag",
+     "pass": "FLAT",
+     "target": 2
+    },
+    {
+     "name": "Double Slants",
+     "pass": "SLANT",
+     "target": 1
+    },
+    {
+     "name": "Hitch",
+     "pass": "STICK"
+    },
+    {
+     "name": "Shallow Cross",
+     "pass": "CROSSER",
+     "target": 1
+    },
+    {
+     "name": "Hank",
+     "pass": "CURL",
+     "target": 1
+    },
+    {
+     "name": "Dagger",
+     "pass": "DIG",
+     "target": 1
+    },
+    {
+     "name": "Deep Out",
+     "pass": "OUT"
+    },
+    {
+     "name": "Skinny Post",
+     "pass": "POST",
+     "target": 1
+    }
+   ]
+  },
+  {
+   "name": "Shotgun Spread",
+   "personnel": "P_10",
+   "plays": [
+    {
+     "name": "Zone Read Keep",
+     "run": "QB_KEEP"
+    },
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "Tunnel Screen",
+     "pass": "SCREEN",
+     "target": 1
+    },
+    {
+     "name": "Flat-Curl",
+     "pass": "FLAT",
+     "target": 3
+    },
+    {
+     "name": "Quick Slants",
+     "pass": "SLANT",
+     "target": 2
+    },
+    {
+     "name": "Stick-Nod",
+     "pass": "STICK",
+     "target": 2
+    },
+    {
+     "name": "Drive",
+     "pass": "CROSSER"
+    },
+    {
+     "name": "Curl-Wheel",
+     "pass": "CURL",
+     "target": 2
+    },
+    {
+     "name": "Drive-Dig",
+     "pass": "DIG"
+    },
+    {
+     "name": "Sail",
+     "pass": "OUT",
+     "target": 2
+    },
+    {
+     "name": "Flag",
+     "pass": "CORNER",
+     "target": 3
+    },
+    {
+     "name": "Deep Post",
+     "pass": "POST",
+     "protect": 1
+    },
+    {
+     "name": "X Fade",
+     "pass": "GO",
+     "protect": 1
+    },
+    {
+     "name": "Hoss",
+     "pass": "SEAM",
+     "target": 2
+    }
+   ]
+  },
+  {
+   "name": "Shotgun Y-Off",
+   "personnel": "P_12",
+   "plays": [
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "HB Outside Zone",
+     "run": "OUTSIDE_ZONE"
+    },
+    {
+     "name": "HB Draw",
+     "run": "DRAW"
+    },
+    {
+     "name": "Toss Sweep",
+     "run": "TOSS"
+    },
+    {
+     "name": "PA Crossers",
+     "pass": "CROSSER",
+     "playAction": true
+    },
+    {
+     "name": "PA Corner",
+     "pass": "CORNER",
+     "playAction": true
+    },
+    {
+     "name": "PA Deep Post",
+     "pass": "POST",
+     "playAction": true,
+     "protect": 1
+    },
+    {
+     "name": "PA Seam",
+     "pass": "SEAM",
+     "playAction": true
+    },
+    {
+     "name": "Spacing",
+     "pass": "FLAT",
+     "target": 4
+    },
+    {
+     "name": "Stick",
+     "pass": "STICK",
+     "target": 3
+    }
+   ]
+  },
+  {
+   "name": "Pistol Heavy",
+   "personnel": "P_13",
+   "plays": [
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "HB Outside Zone",
+     "run": "OUTSIDE_ZONE"
+    },
+    {
+     "name": "HB Draw",
+     "run": "DRAW"
+    },
+    {
+     "name": "Toss Sweep",
+     "run": "TOSS"
+    },
+    {
+     "name": "PA Crossers",
+     "pass": "CROSSER",
+     "playAction": true
+    },
+    {
+     "name": "PA Corner",
+     "pass": "CORNER",
+     "playAction": true
+    },
+    {
+     "name": "PA Deep Post",
+     "pass": "POST",
+     "playAction": true,
+     "protect": 1
+    },
+    {
+     "name": "PA Seam",
+     "pass": "SEAM",
+     "playAction": true
+    },
+    {
+     "name": "Snag",
+     "pass": "FLAT",
+     "target": 2
+    },
+    {
+     "name": "Hitch",
+     "pass": "STICK"
+    }
+   ]
+  },
+  {
+   "name": "Goal Line",
+   "personnel": "GOAL_LINE",
+   "plays": [
+    {
+     "name": "HB Inside Zone",
+     "run": "INSIDE_ZONE"
+    },
+    {
+     "name": "HB Outside Zone",
+     "run": "OUTSIDE_ZONE"
+    },
+    {
+     "name": "HB Draw",
+     "run": "DRAW"
+    },
+    {
+     "name": "Toss Sweep",
+     "run": "TOSS"
+    },
+    {
+     "name": "QB Sneak",
+     "run": "QB_SNEAK"
+    },
+    {
+     "name": "PA Boot",
+     "pass": "OUT",
+     "playAction": true
+    },
+    {
+     "name": "Fade",
+     "pass": "GO"
+    },
+    {
+     "name": "TE Flat",
+     "pass": "FLAT",
+     "target": 3
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,370 @@
+{
+ "scheme": "DEF_43_UNDER",
+ "formations": [
+  {
+   "name": "4-3 Under",
+   "front": "FOUR_THREE_UNDER",
+   "plays": [
+    {
+     "name": "Cover 0 Blitz",
+     "coverage": "COVER_0",
+     "rushers": 2
+    },
+    {
+     "name": "Cover 1 Man",
+     "coverage": "COVER_1"
+    },
+    {
+     "name": "Cover 1 Robber",
+     "coverage": "COVER_1",
+     "box": 1
+    },
+    {
+     "name": "Mike Fire",
+     "coverage": "COVER_1",
+     "rushers": 1
+    },
+    {
+     "name": "2-Man Under",
+     "coverage": "COVER_2_MAN"
+    },
+    {
+     "name": "2-Man Bracket",
+     "coverage": "COVER_2_MAN",
+     "bracket": 0
+    },
+    {
+     "name": "Cover 2",
+     "coverage": "COVER_2_ZONE"
+    },
+    {
+     "name": "Tampa 2",
+     "coverage": "TAMPA_2"
+    },
+    {
+     "name": "Cover 3 Sky",
+     "coverage": "COVER_3"
+    },
+    {
+     "name": "Cover 3 Buzz",
+     "coverage": "COVER_3",
+     "box": 1
+    },
+    {
+     "name": "Fire Zone",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Quarters",
+     "coverage": "COVER_4"
+    },
+    {
+     "name": "Quarters Match",
+     "coverage": "COVER_4",
+     "box": -1
+    },
+    {
+     "name": "Cover 6",
+     "coverage": "COVER_6"
+    },
+    {
+     "name": "Under Will Blitz",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Under Cover 1 Hole",
+     "coverage": "COVER_1",
+     "box": 1
+    }
+   ]
+  },
+  {
+   "name": "4-3 Over",
+   "front": "FOUR_THREE_OVER",
+   "plays": [
+    {
+     "name": "Cover 0 Blitz",
+     "coverage": "COVER_0",
+     "rushers": 2
+    },
+    {
+     "name": "Cover 1 Man",
+     "coverage": "COVER_1"
+    },
+    {
+     "name": "Cover 1 Robber",
+     "coverage": "COVER_1",
+     "box": 1
+    },
+    {
+     "name": "Mike Fire",
+     "coverage": "COVER_1",
+     "rushers": 1
+    },
+    {
+     "name": "2-Man Under",
+     "coverage": "COVER_2_MAN"
+    },
+    {
+     "name": "2-Man Bracket",
+     "coverage": "COVER_2_MAN",
+     "bracket": 0
+    },
+    {
+     "name": "Cover 2",
+     "coverage": "COVER_2_ZONE"
+    },
+    {
+     "name": "Tampa 2",
+     "coverage": "TAMPA_2"
+    },
+    {
+     "name": "Cover 3 Sky",
+     "coverage": "COVER_3"
+    },
+    {
+     "name": "Cover 3 Buzz",
+     "coverage": "COVER_3",
+     "box": 1
+    },
+    {
+     "name": "Fire Zone",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Quarters",
+     "coverage": "COVER_4"
+    },
+    {
+     "name": "Quarters Match",
+     "coverage": "COVER_4",
+     "box": -1
+    },
+    {
+     "name": "Cover 6",
+     "coverage": "COVER_6"
+    }
+   ]
+  },
+  {
+   "name": "Nickel 4-2-5",
+   "front": "NICKEL_FOUR_TWO",
+   "plays": [
+    {
+     "name": "Cover 0 Blitz",
+     "coverage": "COVER_0",
+     "rushers": 2
+    },
+    {
+     "name": "Cover 1 Man",
+     "coverage": "COVER_1"
+    },
+    {
+     "name": "Cover 1 Robber",
+     "coverage": "COVER_1",
+     "box": 1
+    },
+    {
+     "name": "Mike Fire",
+     "coverage": "COVER_1",
+     "rushers": 1
+    },
+    {
+     "name": "2-Man Under",
+     "coverage": "COVER_2_MAN"
+    },
+    {
+     "name": "2-Man Bracket",
+     "coverage": "COVER_2_MAN",
+     "bracket": 0
+    },
+    {
+     "name": "Cover 2",
+     "coverage": "COVER_2_ZONE"
+    },
+    {
+     "name": "Tampa 2",
+     "coverage": "TAMPA_2"
+    },
+    {
+     "name": "Cover 3 Sky",
+     "coverage": "COVER_3"
+    },
+    {
+     "name": "Cover 3 Buzz",
+     "coverage": "COVER_3",
+     "box": 1
+    },
+    {
+     "name": "Fire Zone",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Quarters",
+     "coverage": "COVER_4"
+    },
+    {
+     "name": "Quarters Match",
+     "coverage": "COVER_4",
+     "box": -1
+    },
+    {
+     "name": "Cover 6",
+     "coverage": "COVER_6"
+    },
+    {
+     "name": "Under Will Blitz",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Under Cover 1 Hole",
+     "coverage": "COVER_1",
+     "box": 1
+    }
+   ]
+  },
+  {
+   "name": "Dime 4-1-6",
+   "front": "DIME_FOUR_ONE",
+   "plays": [
+    {
+     "name": "Cover 0 Blitz",
+     "coverage": "COVER_0",
+     "rushers": 2
+    },
+    {
+     "name": "Cover 1 Man",
+     "coverage": "COVER_1"
+    },
+    {
+     "name": "Cover 1 Robber",
+     "coverage": "COVER_1",
+     "box": 1
+    },
+    {
+     "name": "Mike Fire",
+     "coverage": "COVER_1",
+     "rushers": 1
+    },
+    {
+     "name": "2-Man Under",
+     "coverage": "COVER_2_MAN"
+    },
+    {
+     "name": "2-Man Bracket",
+     "coverage": "COVER_2_MAN",
+     "bracket": 0
+    },
+    {
+     "name": "Cover 2",
+     "coverage": "COVER_2_ZONE"
+    },
+    {
+     "name": "Tampa 2",
+     "coverage": "TAMPA_2"
+    },
+    {
+     "name": "Cover 3 Sky",
+     "coverage": "COVER_3"
+    },
+    {
+     "name": "Cover 3 Buzz",
+     "coverage": "COVER_3",
+     "box": 1
+    },
+    {
+     "name": "Fire Zone",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "Quarters",
+     "coverage": "COVER_4"
+    },
+    {
+     "name": "Quarters Match",
+     "coverage": "COVER_4",
+     "box": -1
+    },
+    {
+     "name": "Cover 6",
+     "coverage": "COVER_6"
+    }
+   ]
+  },
+  {
+   "name": "Goal Line 6-2",
+   "front": "GOAL_LINE",
+   "plays": [
+    {
+     "name": "GL Cover 0 Blitz",
+     "coverage": "COVER_0",
+     "rushers": 2
+    },
+    {
+     "name": "GL Cover 1 Man",
+     "coverage": "COVER_1"
+    },
+    {
+     "name": "GL Cover 1 Robber",
+     "coverage": "COVER_1",
+     "box": 1
+    },
+    {
+     "name": "GL Mike Fire",
+     "coverage": "COVER_1",
+     "rushers": 1
+    },
+    {
+     "name": "GL 2-Man Under",
+     "coverage": "COVER_2_MAN"
+    },
+    {
+     "name": "GL 2-Man Bracket",
+     "coverage": "COVER_2_MAN",
+     "bracket": 0
+    },
+    {
+     "name": "GL Cover 2",
+     "coverage": "COVER_2_ZONE"
+    },
+    {
+     "name": "GL Tampa 2",
+     "coverage": "TAMPA_2"
+    },
+    {
+     "name": "GL Cover 3 Sky",
+     "coverage": "COVER_3"
+    },
+    {
+     "name": "GL Cover 3 Buzz",
+     "coverage": "COVER_3",
+     "box": 1
+    },
+    {
+     "name": "GL Fire Zone",
+     "coverage": "COVER_3",
+     "rushers": 1
+    },
+    {
+     "name": "GL Quarters",
+     "coverage": "COVER_4"
+    },
+    {
+     "name": "GL Quarters Match",
+     "coverage": "COVER_4",
+     "box": -1
+    },
+    {
+     "name": "GL Cover 6",
+     "coverage": "COVER_6"
+    }
+   ]
+  }
+ ]
+}
