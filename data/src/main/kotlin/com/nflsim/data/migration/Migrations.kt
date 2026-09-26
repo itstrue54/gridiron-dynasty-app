@@ -44,6 +44,10 @@ object Migrations {
         // An old save's pending demands have named nothing yet; 0 is right for them.
         Step(16, "a demand remembers the figure his agent named (SPEC 8.3); nothing to move") { it },
         Step(17, "general managers have names (SPEC 8.2)", ::nameGms),
+        // An old save decodes with the default names - the game's own, unnamed
+        // league and its American and Continental conferences - which is what
+        // it always showed.
+        Step(18, "the league and its conferences can be named (SPEC 9.4); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

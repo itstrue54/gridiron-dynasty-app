@@ -93,6 +93,31 @@ class StaffImportTest {
     }
 
     @Test
+    fun `the file names the league, its conferences and its title game`() {
+        val named = """{"league":{"name":"Example Football League","short":"EFL","championship":"Example Bowl",
+            "conferences":{"AFC":{"name":"Eastern Football Conference","short":"EFC"},"Continental":"WFC"}},
+            "teams":[{"abbrev":"KC","conference":"AFC","division":"West","players":$players}]}"""
+        val r = LeagueImport.build(named, 2026, 7L)
+        val league = assertNotNull(r.league, "${r.errors}")
+        assertTrue(r.errors.isEmpty(), "${r.errors}")
+        assertEquals("EFL", league.names.leagueShort)
+        assertEquals("Example Bowl champions", league.names.championsTitle)
+        assertEquals("EFC West", league.divisionName(league.teams.single { it.abbrev == "KC" }))
+        assertEquals("WFC", league.names.conference(com.nflsim.engine.model.Conference.CONTINENTAL))
+        // Saved and loaded, the names stay.
+        val d = DynastyEngine.start(league, 2026, 7L, league.teams.single { it.abbrev == "KC" }.id)
+        assertEquals(league.names, SaveFile.decode(SaveFile.encode(d)).league.names)
+        // A file with no league block keeps the game's names.
+        assertEquals("American West", LeagueImport.build(staffed, 2026, 7L).league!!.let { l -> l.divisionName(l.teams.single { it.abbrev == "KC" }) })
+    }
+
+    @Test
+    fun `an unknown conference in the league block is said`() {
+        val bad = """{"league":{"conferences":{"Big Ten":"B1G"}},"teams":[{"abbrev":"KC","players":$players}]}"""
+        assertTrue(LeagueImport.build(bad, 2026, 7L).errors.any { "conference 'Big Ten'" in it })
+    }
+
+    @Test
     fun `a league with his staffs plays, and saves with its GMs`() {
         val league = LeagueImport.build(staffed, 2026, 7L).league!!
         var d = DynastyEngine.start(league, 2026, 7L, league.teams.single { it.abbrev == "KC" }.id)

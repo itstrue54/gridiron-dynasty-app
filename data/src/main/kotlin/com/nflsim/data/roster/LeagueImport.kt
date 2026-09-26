@@ -44,9 +44,11 @@ object LeagueImport {
         val errors = mutableListOf<String>()
         val notes = mutableListOf<String>()
 
+        var names: com.nflsim.engine.model.LeagueNames? = null
         val (clubsInFile, table) = if (RosterJson.looksLikeJson(text)) {
             val parsed = RosterJson.parse(text)
             errors += parsed.problems
+            names = parsed.names
             parsed.clubs to parsed.table
         } else {
             emptyList<RosterJson.Club>() to Csv.parse(text)
@@ -69,7 +71,8 @@ object LeagueImport {
         if (clubs.size > 32) return Result(null, null, notes, errors + "${clubs.size} clubs; a league has 32")
         clubs.groupBy { it.abbrev }.filter { it.value.size > 1 }.keys.forEach { errors += "$it is in the file twice" }
 
-        val base = LeagueGenerator.generate(year, seed)
+        // The league under the file's names, if it gives them, from the first note on.
+        val base = LeagueGenerator.generate(year, seed).let { l -> names?.let { l.copy(names = it) } ?: l }
         val slots = placeClubs(base, clubs, notes)
 
         val result = RosterImporter.importTable(
@@ -172,9 +175,9 @@ object LeagueImport {
             val slot = base.teams.firstOrNull { free(it) && it.abbrev == club.abbrev && fits(it) }
                 ?: base.teams.firstOrNull { free(it) && fits(it) }
                 ?: base.teams.firstOrNull { free(it) && (club.conference == null || it.conference == club.conference) }
-                    ?.also { notes += "${club.abbrev}: its division was full, placed in the ${it.divisionName}" }
+                    ?.also { notes += "${club.abbrev}: its division was full, placed in the ${base.divisionName(it)}" }
                 ?: base.teams.first(::free)
-                    .also { notes += "${club.abbrev}: its conference was full, placed in the ${it.divisionName}" }
+                    .also { notes += "${club.abbrev}: its conference was full, placed in the ${base.divisionName(it)}" }
             out[slot.id] = club
         }
         return out

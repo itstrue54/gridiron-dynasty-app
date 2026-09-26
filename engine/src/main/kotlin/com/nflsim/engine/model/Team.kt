@@ -53,7 +53,6 @@ data class Team(
     val scoutingFocus: Set<Position> = emptySet(),
 ) {
     val name: String get() = "$city $nickname"
-    val divisionName: String get() = "${conference.label} ${division.name.lowercase().replaceFirstChar { it.uppercase() }}"
 
     override fun toString(): String = name
 }

@@ -138,7 +138,9 @@ fun HubScreen(
                 Column(Modifier.padding(start = NdTheme.spacing.m).weight(1f)) {
                     Text(team.name, style = NdTheme.type.display, color = c.chalk)
                     Text(
-                        "${team.divisionName}, ${dynasty.year}",
+                        // The league's own name first, when the roster file gave it one.
+                        listOf(dynasty.league.names.leagueShort, "${dynasty.league.divisionName(team)}, ${dynasty.year}")
+                            .filter { it.isNotBlank() }.joinToString(" · "),
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
                     // Who is in charge, which the hub never used to say.
@@ -392,7 +394,7 @@ fun HubScreen(
         }
 
         item {
-            SituationBlock(team.divisionName, meta = "Week ${dynasty.week}") {
+            SituationBlock(dynasty.league.divisionName(team), meta = "Week ${dynasty.week}") {
                 DataTable(
                     columns = listOf(
                         ColumnSpec("Team", 2.2f),
@@ -513,7 +515,7 @@ fun StandingsScreen(dynasty: Dynasty) {
             Division.entries.forEach { division ->
                 item {
                     SituationBlock(
-                        "${conference.label} ${division.name.lowercase()}",
+                        dynasty.league.names.division(conference, division),
                         meta = "Week ${dynasty.week}",
                     ) {
                         DataTable(

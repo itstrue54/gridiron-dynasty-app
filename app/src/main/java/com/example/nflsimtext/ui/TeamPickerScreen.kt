@@ -93,7 +93,7 @@ fun TeamPickerScreen(
         league.divisions().toSortedMap(compareBy({ it.first.ordinal }, { it.second.ordinal }))
             .forEach { (key, teams) ->
                 item {
-                    SituationBlock(teams.first().divisionName) {
+                    SituationBlock(league.divisionName(teams.first())) {
                         DataTable(
                             columns = listOf(
                                 ColumnSpec("Club", 2.2f),

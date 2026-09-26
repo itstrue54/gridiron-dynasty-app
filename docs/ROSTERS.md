@@ -52,6 +52,27 @@ ratings.
   positions you leave short are filled with made-up players so the club
   can take the field.
 
+## The league's names
+
+Name the league, its conferences and its title game with a `league` block at
+the top of the file. They replace the game's own names everywhere: division
+names, standings, the hub, league history and the season export.
+
+```json
+"league": {
+  "name": "Example Football League",
+  "short": "EFL",
+  "championship": "Example Bowl",
+  "conferences": {
+    "AFC": { "name": "Eastern Football Conference", "short": "EFC" },
+    "NFC": { "name": "Western Football Conference", "short": "WFC" }
+  }
+}
+```
+
+Conferences are keyed AFC/NFC (or American/Continental), the same as a team's
+`conference`. Leave the block out and the league keeps the game's names.
+
 ## Coaches and front office
 
 Any club can also carry its general manager, coaching staff and schemes:

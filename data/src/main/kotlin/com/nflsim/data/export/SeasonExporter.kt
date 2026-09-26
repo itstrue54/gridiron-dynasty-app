@@ -79,7 +79,7 @@ object SeasonExporter {
     private fun divisions(league: League, order: (List<TeamId>) -> List<TeamRecord>): List<Pair<String, List<TeamRecord>>> =
         Conference.entries.flatMap { c -> Division.entries.map { c to it } }.mapNotNull { (c, d) ->
             val ids = league.teams.filter { it.conference == c && it.division == d }.map { it.id }
-            if (ids.isEmpty()) null else league.team(ids.first()).divisionName to order(ids)
+            if (ids.isEmpty()) null else league.divisionName(league.team(ids.first())) to order(ids)
         }
 
     private fun pct(r: TeamRecord): Double =
@@ -89,9 +89,11 @@ object SeasonExporter {
         fun name(id: Int) = league.teams.firstOrNull { it.id.v == id }?.name ?: "#$id"
         val mine = user?.let { u -> league.teams.firstOrNull { it.id == u } }
 
-        appendLine("# ${season.year} season" + (season.soFar?.let { ", $it" } ?: ""))
+        appendLine("# ${season.year} " + league.names.leagueShort.let { if (it.isBlank()) "" else "$it " } + "season" +
+            (season.soFar?.let { ", $it" } ?: ""))
         appendLine()
-        season.champion?.let { appendLine("**Champion:** ${name(it)}") }
+        val title = league.names.championship.let { if (it.isBlank()) "Champion" else "$it champion" }
+        season.champion?.let { appendLine("**$title:** ${name(it)}") }
         if (mine != null) {
             val division = season.divisions.firstOrNull { (_, rows) -> rows.any { it.team == mine.id } }
             val row = division?.second?.firstOrNull { it.team == mine.id }

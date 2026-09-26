@@ -1,6 +1,8 @@
 package com.nflsim.data.roster
 
 import com.nflsim.engine.model.Conference
+import com.nflsim.engine.model.ConferenceName
+import com.nflsim.engine.model.LeagueNames
 import com.nflsim.engine.model.Division
 import com.nflsim.engine.ratings.SchemeSide
 import kotlinx.serialization.json.Json
@@ -46,7 +48,13 @@ object RosterJson {
         val gm: StaffJson.GmSpec? = null,
     )
 
-    data class Parsed(val clubs: List<Club>, val table: List<List<String>>, val problems: List<String>)
+    data class Parsed(
+        val clubs: List<Club>,
+        val table: List<List<String>>,
+        val problems: List<String>,
+        /** The league's and conferences' names, from a top-level "league" block; null keeps the game's. */
+        val names: LeagueNames? = null,
+    )
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -59,6 +67,7 @@ object RosterJson {
         }
         val clubs = mutableListOf<Club>()
         val players = mutableListOf<Map<String, String>>()
+        var names: LeagueNames? = null
 
         fun player(e: JsonElement, team: String?, where: String) {
             val obj = e as? JsonObject ?: run { problems += "$where is not an object"; return }
@@ -102,6 +111,7 @@ object RosterJson {
                         ?.forEachIndexed { j, p -> player(p, abbrev, "$abbrev player ${j + 1}") }
                 }
                 (root["players"] as? JsonArray)?.forEachIndexed { i, e -> player(e, null, "player ${i + 1}") }
+                names = leagueNames(root["league"], problems)
                 if (root["teams"] == null && root["players"] == null) problems += "no \"teams\" or \"players\" in the file"
             }
             else -> problems += "the file is not a JSON object or array"
@@ -111,7 +121,7 @@ object RosterJson {
         val header = players.flatMap { it.keys }.distinct()
         val table = if (players.isEmpty()) emptyList()
             else listOf(header) + players.map { p -> header.map { p[it] ?: "" } }
-        return Parsed(clubs, table, problems)
+        return Parsed(clubs, table, problems, names)
     }
 
     /**
@@ -129,8 +139,18 @@ object RosterJson {
     "Rating codes (0-99), any subset: spd acc str agi awr prc thp tas tam tad cth srr mrr drr rls rbk pbk tak pow mcv zcv kpw kac, and more - any the game does not know are listed after import.",
     "Up to 53 players per team go on the roster; more go to the practice squad. List 53 or more and nobody is added; list fewer and short positions are filled for you.",
     "Optional per team: gm (a name, and aggression/winNow/loyalty/risk 0-1), offenseScheme and defenseScheme, and staff - headCoach, offensiveCoordinator, defensiveCoordinator, specialTeamsCoordinator, and positionCoaches for QB RB WR TE OL EDGE DT LB CB S ST. A coach can be just a name, or give age, scheme, ratings (development gameplan adjustments discipline motivation evaluation, 0-100), contractYears and tendencies.",
+    "Optional: a league block names the league, its title game and its conferences (keyed AFC/NFC); leave it out to keep the game's names.",
     "In the app: title screen -> Start with my own rosters -> pick this file."
   ],
+  "league": {
+    "name": "Example Football League",
+    "short": "EFL",
+    "championship": "Example Bowl",
+    "conferences": {
+      "AFC": { "name": "Eastern Football Conference", "short": "EFC" },
+      "NFC": { "name": "Western Football Conference", "short": "WFC" }
+    }
+  },
   "teams": [
     {
       "abbrev": "EXA",
@@ -159,6 +179,41 @@ object RosterJson {
   ]
 }
 """.trimStart()
+
+    /**
+     * The "league" block: the league's name and short name, its title game,
+     * and each conference's name and short name, keyed AFC/NFC or
+     * American/Continental.
+     *
+     *     "league": { "name": "...", "short": "...", "championship": "...",
+     *                 "conferences": { "AFC": { "name": "...", "short": "AFC" }, "NFC": { ... } } }
+     */
+    private fun leagueNames(e: JsonElement?, problems: MutableList<String>): LeagueNames? {
+        if (e == null || e is JsonNull) return null
+        val obj = e as? JsonObject ?: return null.also { problems += "league is not an object" }
+        val conferences = mutableMapOf<Conference, ConferenceName>()
+        (obj.entries.firstOrNull { it.key.equals("conferences", true) }?.value as? JsonObject)?.forEach { (key, v) ->
+            val conference = conferenceOf(key)
+            if (conference == null) { problems += "league: conference '$key' is not AFC/NFC or American/Continental"; return@forEach }
+            val c = when (v) {
+                is JsonPrimitive -> v.content.trim().let { ConferenceName(it, it) }
+                is JsonObject -> {
+                    val name = v.text("name", "full")
+                    val short = v.text("short", "abbrev", "abbreviation")
+                    if (name == null && short == null) null else ConferenceName(name ?: short!!, short ?: name!!)
+                }
+                else -> null
+            }
+            if (c == null || c.name.isBlank()) problems += "league: conference '$key' has no name"
+            else conferences[conference] = c
+        }
+        return LeagueNames(
+            league = obj.text("name") ?: "",
+            short = obj.text("short", "abbrev", "abbreviation") ?: "",
+            conferences = conferences,
+            championship = obj.text("championship", "championshipGame", "final") ?: "",
+        )
+    }
 
     private fun scalar(v: JsonElement): String? = when (v) {
         is JsonNull -> null

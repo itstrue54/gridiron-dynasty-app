@@ -999,6 +999,16 @@ import says so. The club runs the file's schemes, else its coordinators',
 else its head coach's. An unknown scheme, a scheme on the wrong side of the
 ball, or a rating out of range is an import error, never a guess.
 
+**The league's names** (`LeagueNames`, save version 19). A generated league
+is unnamed, and its conferences are the American and the Continental. A
+roster file's top-level `league` block names them: the league (`name`,
+`short`), its title game (`championship`), and each conference (`name`,
+`short`) keyed AFC/NFC or American/Continental. Division names ("AFC West"),
+the hub, standings, club picker, league history ("Super Bowl champions") and
+the season export read them from the league; a conference the block leaves
+out keeps the game's name. As with players, the names are the user's to
+bring - the template shipped with the app uses invented ones.
+
 **In the app.** The title screen's "Start with my own rosters" opens the
 phone's file picker (JSON or CSV); the club picker then shows what the
 import did - players read, where each club went, what was skipped or not
