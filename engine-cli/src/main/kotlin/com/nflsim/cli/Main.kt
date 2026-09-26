@@ -150,7 +150,7 @@ private fun roster(abbrev: String?, seed: Long) {
 
     val offense = SchemeCatalog[team.offenseScheme]
     val defense = SchemeCatalog[team.defenseScheme]
-    println("${team.name}  (${team.divisionName})")
+    println("${team.name}  (${league.divisionName(team)})")
     println("${team.stadium.name}${if (team.stadium.domed) " (dome)" else ""}, " +
             "cap ${team.stadium.capacity}, noise ${team.stadium.crowdNoise}")
     println("Offense: ${offense.name}    Defense: ${defense.name}")
