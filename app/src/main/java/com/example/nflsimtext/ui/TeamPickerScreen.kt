@@ -41,11 +41,22 @@ fun TeamPickerScreen(
     var picked by remember(league) { mutableStateOf<String?>(null) }
 
     ScreenList {
+        // What his roster file did, before he picks a club from it.
+        store.importSummary?.let { lines ->
+            item {
+                com.example.nflsimtext.ui.components.SituationBlock("Your roster file", meta = "Imported") {
+                    lines.forEach { Text(it, style = NdTheme.type.caption, color = c.chalkDim) }
+                }
+            }
+        }
         item {
             Column {
                 Text("Choose your club", style = NdTheme.type.display, color = c.chalk)
                 Text(
-                    "Thirty-two clubs, nobody you have heard of. Take over a contender, or a rebuild " +
+                    if (store.importSummary != null)
+                        "Your clubs from the file, and the league's own in the places you left. " +
+                            "Tap a club to see it, then start."
+                    else "Thirty-two clubs, nobody you have heard of. Take over a contender, or a rebuild " +
                         "with a high pick coming. Tap a club to see it, then start.",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
@@ -63,7 +74,8 @@ fun TeamPickerScreen(
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
                     Text(
-                        (league.coaches[team.staff.headCoach]?.name?.let { "$it, head coach. " } ?: "") +
+                        (team.gm.name.takeIf { it.isNotBlank() }?.let { "$it, general manager. " } ?: "") +
+                            (league.coaches[team.staff.headCoach]?.name?.let { "$it, head coach. " } ?: "") +
                             "${market(team.marketSize)} market. " +
                             "${dealMoney(com.nflsim.engine.season.Transactions.spaceFor(league, team.id))} of cap room.",
                         style = NdTheme.type.body, color = c.chalkDim,
@@ -81,7 +93,7 @@ fun TeamPickerScreen(
         league.divisions().toSortedMap(compareBy({ it.first.ordinal }, { it.second.ordinal }))
             .forEach { (key, teams) ->
                 item {
-                    SituationBlock(teams.first().divisionName) {
+                    SituationBlock(league.divisionName(teams.first())) {
                         DataTable(
                             columns = listOf(
                                 ColumnSpec("Club", 2.2f),

@@ -1989,3 +1989,26 @@ auction into resumable days.
 **Consequences.** The league's clubs are unchanged, so no calibration
 band moves. The presets are advice, so they are constants in
 `FreeAgencyPause`, not tuning fields.
+
+## ADR-0xx — A roster file's coaches replace the generated men, who leave the league
+
+**Context.** A roster file can now name a club's staff (SPEC 9.4). The
+generated coach a real one replaces could stay in the league out of work -
+where the carousel would hire him the first time a club fires its coach -
+or leave it. Real staffs also do not match the game's slots one to one: one
+defensive line coach often coaches the edge and the interior, and a head
+coach may call his own plays.
+
+**Decision.** A replaced generated coach is removed from the league. A
+person the file names in several slots is one coach, holding every job's
+tendency levers. What the file leaves out of a coach - ratings, age,
+contract - comes from the generated man he replaced, so a staff given only
+names rates on the curve the sim was calibrated on (mean 65). A slot the
+file leaves empty keeps its generated coach, with a note, as a short
+position keeps generated players.
+
+**Consequences.** A league from a file with full staffs has no invented
+coaches until the carousel hires its first. Development reads a position
+coach per group, so a coach in two groups develops both at his rating; no
+calibration band moves from the import itself.
+

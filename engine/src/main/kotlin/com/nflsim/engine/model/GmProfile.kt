@@ -14,10 +14,12 @@ import kotlinx.serialization.Serializable
  * decision somebody made in March, and somebody makes it every March.
  *
  * All values run 0..1 and are drawn once when the league is built, so a club's
- * reputation is consistent across a career.
+ * reputation is consistent across a career. [name] is who sits in the chair:
+ * a generated one in a generated league, the real one from a roster file.
  */
 @Serializable
 data class GmProfile(
+    val name: String = "",
     /** How much of the cap he will put on one player. */
     val aggression: Float = 0.5f,
     /** 0 is a full rebuild, 1 is all-in. Drives restructuring and old players. */

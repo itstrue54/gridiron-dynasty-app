@@ -122,7 +122,7 @@ fun HistoryScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
         }
 
         item {
-            SituationBlock("Champions", meta = "Newest first") {
+            SituationBlock(dynasty.league.names.championsTitle, meta = "Newest first") {
                 DataTable(
                     columns = listOf(
                         ColumnSpec("Year", 0.9f),

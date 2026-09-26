@@ -24,6 +24,8 @@ data class League(
     val history: LeagueHistory = LeagueHistory(),
     /** The transactions wire, append-only and kept forever (SPEC 4.7, 9.2). */
     val transactions: List<Transaction> = emptyList(),
+    /** What the league and its conferences are called (SPEC 9.4). */
+    val names: LeagueNames = LeagueNames(),
 ) {
     /** The league with a move on the wire. */
     fun logged(vararg moves: Transaction): League = copy(transactions = transactions + moves)
@@ -36,6 +38,9 @@ data class League(
     fun coach(id: CoachId): Coach = coaches[id] ?: error("no coach $id")
 
     fun roster(teamId: TeamId): List<Player> = team(teamId).roster.map { player(it) }
+
+    /** A club's division as this league names it: "AFC West", or the game's "American West". */
+    fun divisionName(team: Team): String = names.division(team.conference, team.division)
 
     fun divisions(): Map<Pair<Conference, Division>, List<Team>> =
         teams.groupBy { it.conference to it.division }

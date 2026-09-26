@@ -752,6 +752,13 @@ data class GmProfile(
 )
 ```
 
+**Implemented.** `GmProfile` carries `aggression`, `winNowVsFuture`,
+`loyaltyToOwnPlayers`, `riskTolerance` and the GM's `name` - generated in a
+generated league (from a stream of its own, so naming GMs moved no other
+draw), the real one from a roster file (9.4). The user is his own club's GM;
+the name shows in the club picker and, for his club, as the man whose chair
+he took (save version 18).
+
 `teamNeed(team, position)` = f(starter quality, depth quality, contracts expiring, age, scheme fit). Needs drive FA targets and the draft board. **The AI evaluates prospects through its own `ScoutingLens`** — AI teams miss on players too, and differently from you. That is what makes the draft feel alive.
 
 ### 8.3 Free agency auction
@@ -916,7 +923,15 @@ posture text sims have used for decades and it keeps the legal footprint at
 zero.
 
 **Format:** CSV, because the people who maintain roster files live in
-spreadsheets. `RosterExporter.template()` is the documented starting point,
+spreadsheets - and, since v1.1 of this document, JSON, because that is the
+shape a roster scraped or exported from anywhere else comes in
+(`RosterJson`). A JSON file lists `teams` (abbrev, city, nickname,
+conference as AFC/NFC or American/Continental, division, `players`) or a
+flat `players` list with a `team` on each; a player takes the CSV's fields
+under the same names, ratings as fields or in a `ratings` object. It
+becomes rows for the same importer, so both formats share every alias,
+fidelity level and report below. `RosterJson.template()` is a
+self-describing starter file. `RosterExporter.template()` is the documented starting point,
 and whatever the exporter writes, the importer reads — round-tripping a
 generated roster through a spreadsheet and back is a supported workflow and a
 test asserts it is lossless.
@@ -949,6 +964,56 @@ show it.
 
 **Determinism holds.** Everything invented during an import comes from the
 seed, so the same file always produces the same players.
+
+**A league from the file** (`LeagueImport`). The league is generated as
+usual, then the user's clubs are laid over it: each takes a slot by its
+abbreviation if the generated league has one, else by conference and
+division, falling back to a free place in its conference (and saying so)
+when a division is full; a club he leaves out stays fictional, and a
+fictional club whose abbreviation he has taken gets an X. His players
+become the club's roster position by position, each taking the contract
+of the generated man he replaces in the depth order, so payroll and the
+cap stay as the league was built. A club he lists with at least 53
+players is his real roster and nobody is invented for it - a club that
+carries no fullback has none, and the offence lines up two running backs
+where a formation calls for one. Only a position the game cannot play
+without, left with nobody at all, keeps one generated man, and the import
+says so. A club he lists short of 53 keeps generated men where he left it
+short, so it can dress. Past 53 his extras go to the practice squad, and
+past that to the street. Players on no club are free agents.
+
+**Front offices and staffs** (`StaffJson`, `StaffImport`). A club in the
+file may also give its `gm` (a name, and any of the four `GmProfile`
+tendencies 0-1), its `offenseScheme` and `defenseScheme` (scheme id or
+name), and its `staff`: `headCoach`, `offensiveCoordinator`,
+`defensiveCoordinator`, `specialTeamsCoordinator` and `positionCoaches` by
+group (QB RB WR TE OL EDGE DT LB CB S ST). A coach is a name, or an object
+with `age`, `scheme`, `ratings` (development, gameplan, adjustments,
+discipline, motivation, evaluation, 0-100), `contractYears`, `hotSeat`
+(0-100) and `tendencies` (the GamePlan levers of 5.4). Each takes his slot from the
+generated coach, who leaves the league; what the file leaves out of a coach
+he takes from that man, and his tendencies are drawn from his scheme under
+the file's. One person named in several slots is one coach with every job's
+levers. A slot the file leaves empty keeps its generated coach, and the
+import says so. The club runs the file's schemes, else its coordinators',
+else its head coach's. An unknown scheme, a scheme on the wrong side of the
+ball, or a rating out of range is an import error, never a guess.
+
+**The league's names** (`LeagueNames`, save version 19). A generated league
+is unnamed, and its conferences are the American and the Continental. A
+roster file's top-level `league` block names them: the league (`name`,
+`short`), its title game (`championship`), and each conference (`name`,
+`short`) keyed AFC/NFC or American/Continental. Division names ("AFC West"),
+the hub, standings, club picker, league history ("Super Bowl champions") and
+the season export read them from the league; a conference the block leaves
+out keeps the game's name. As with players, the names are the user's to
+bring - the template shipped with the app uses invented ones.
+
+**In the app.** The title screen's "Start with my own rosters" opens the
+phone's file picker (JSON or CSV); the club picker then shows what the
+import did - players read, where each club went, what was skipped or not
+understood - before the user chooses his club. "Save a roster template"
+writes the starter file to Downloads. `docs/ROSTERS.md` is the guide.
 
 ### 9.3 v2 — Room **[OPEN]**
 
@@ -1238,4 +1303,4 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 
 ---
 
-*End of specification v1.0. Change this file in the same commit as the code it describes.*
+*End of specification v1.1 (v1.1: §9.4 reads JSON as well as CSV). Change this file in the same commit as the code it describes.*

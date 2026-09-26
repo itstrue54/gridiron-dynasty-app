@@ -101,6 +101,7 @@ class DynastyStore(private val saveDir: File) {
 
     /** Generates the league a new dynasty will be played in, for the user to pick his club from. */
     suspend fun previewLeague(seed: Long = System.nanoTime(), into: Int = slot) {
+        importSummary = null
         busy = true
         try {
             pendingLeague = withContext(Dispatchers.Default) { LeagueGenerator.generate(YEAR, seed) }
@@ -111,14 +112,54 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** What the user's roster file did, shown while he chooses a club from it (SPEC 9.4). */
+    var importSummary by mutableStateOf<List<String>?>(null)
+        private set
+
+    /**
+     * A league built from the user's own roster file - JSON or CSV - for him
+     * to choose his club from. Nothing is saved until he has chosen.
+     */
+    suspend fun previewImport(text: String, seed: Long = System.nanoTime(), into: Int = slot) {
+        busy = true
+        try {
+            val result = withContext(Dispatchers.Default) {
+                com.nflsim.data.roster.LeagueImport.build(text, YEAR, seed)
+            }
+            val league = result.league
+            if (league == null) {
+                message = "That roster file would not load: " + result.errors.joinToString("; ")
+                return
+            }
+            val report = result.report
+            importSummary = buildList {
+                if (report != null) {
+                    add("${report.imported} players read" + if (report.skipped > 0) ", ${report.skipped} skipped." else ".")
+                }
+                addAll(result.notes)
+                addAll(result.errors.take(12))
+                if (result.errors.size > 12) add("... and ${result.errors.size - 12} more.")
+                if (report != null && report.warnings.isNotEmpty()) add("${report.warnings.size} warnings, e.g. " +
+                    report.warnings.take(3).joinToString("; ") { "${it.player}: ${it.message}" })
+                if (report != null && report.unknownColumns.isNotEmpty()) add("Not understood: " + report.unknownColumns.joinToString())
+            }
+            pendingLeague = league
+            pendingSeed = seed
+            pendingSlot = into
+        } finally {
+            busy = false
+        }
+    }
+
     /** Back out of choosing a club; the generated league is thrown away. */
-    fun cancelPreview() { pendingLeague = null }
+    fun cancelPreview() { pendingLeague = null; importSummary = null }
 
     /** Starts the dynasty with the club the user chose, or a random one with null. */
     suspend fun startWith(teamAbbrev: String?) {
         val league = pendingLeague ?: return
         start(league, pendingSeed, teamAbbrev, pendingSlot)
         pendingLeague = null
+        importSummary = null
     }
 
     suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime(), into: Int = slot) {

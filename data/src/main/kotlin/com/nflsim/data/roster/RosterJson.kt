@@ -1,0 +1,238 @@
+package com.nflsim.data.roster
+
+import com.nflsim.engine.model.Conference
+import com.nflsim.engine.model.ConferenceName
+import com.nflsim.engine.model.LeagueNames
+import com.nflsim.engine.model.Division
+import com.nflsim.engine.ratings.SchemeSide
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
+
+/**
+ * A roster file as JSON (SPEC 9.4) - the user's own, never shipped. Either
+ * shape reads:
+ *
+ *     { "teams": [ { "abbrev": "KC", "city": "...", "nickname": "...",
+ *                    "conference": "AFC", "division": "West",
+ *                    "players": [ { "name": "...", "position": "QB", "overall": 90 } ] } ] }
+ *
+ *     { "players": [ { "name": "...", "position": "QB", "team": "KC" } ] }   (or a bare array)
+ *
+ * A player takes the CSV importer's fields under the same names and aliases
+ * (name or first/last, position, overall, age, number, college, height,
+ * weight, archetype, dev) and ratings either as fields or in a "ratings"
+ * object. It becomes a row for RosterImporter.importTable, so JSON and CSV
+ * are one importer with two doors.
+ */
+object RosterJson {
+
+    /**
+     * A club as the file describes it. Null conference or division: place it
+     * anywhere. Its front office, staff and schemes are optional (StaffJson);
+     * null keeps what the game generated.
+     */
+    data class Club(
+        val abbrev: String,
+        val city: String?,
+        val nickname: String?,
+        val conference: Conference?,
+        val division: Division?,
+        val offenseScheme: String? = null,
+        val defenseScheme: String? = null,
+        val staff: StaffJson.StaffSpec? = null,
+        val gm: StaffJson.GmSpec? = null,
+    )
+
+    data class Parsed(
+        val clubs: List<Club>,
+        val table: List<List<String>>,
+        val problems: List<String>,
+        /** The league's and conferences' names, from a top-level "league" block; null keeps the game's. */
+        val names: LeagueNames? = null,
+    )
+
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    fun looksLikeJson(text: String): Boolean = text.trimStart().let { it.startsWith("{") || it.startsWith("[") }
+
+    fun parse(text: String): Parsed {
+        val problems = mutableListOf<String>()
+        val root = runCatching { json.parseToJsonElement(text) }.getOrElse {
+            return Parsed(emptyList(), emptyList(), listOf("not valid JSON: ${it.message?.lineSequence()?.first()}"))
+        }
+        val clubs = mutableListOf<Club>()
+        val players = mutableListOf<Map<String, String>>()
+        var names: LeagueNames? = null
+
+        fun player(e: JsonElement, team: String?, where: String) {
+            val obj = e as? JsonObject ?: run { problems += "$where is not an object"; return }
+            val row = mutableMapOf<String, String>()
+            obj.forEach { (k, v) ->
+                when {
+                    k.equals("ratings", ignoreCase = true) && v is JsonObject ->
+                        v.forEach { (code, n) -> scalar(n)?.let { row[code] = it } }
+                    else -> scalar(v)?.let { row[k] = it }
+                }
+            }
+            if (team != null && row.keys.none { RosterFormat.normalise(it) in RosterFormat.Columns.TEAM }) {
+                row["team"] = team
+            }
+            players += row
+        }
+
+        when (root) {
+            is JsonArray -> root.forEachIndexed { i, e -> player(e, null, "player ${i + 1}") }
+            is JsonObject -> {
+                (root["teams"] as? JsonArray)?.forEachIndexed { i, t ->
+                    val team = t as? JsonObject ?: run { problems += "team ${i + 1} is not an object"; return@forEachIndexed }
+                    val abbrev = team.text("abbrev", "abbreviation", "abbr", "code")?.uppercase()
+                    if (abbrev.isNullOrBlank()) { problems += "team ${i + 1} has no abbrev"; return@forEachIndexed }
+                    val conference = team.text("conference", "conf")?.let(::conferenceOf)
+                    val division = team.text("division", "div")?.let(::divisionOf)
+                    if (team.text("conference", "conf") != null && conference == null) {
+                        problems += "$abbrev: conference '${team.text("conference", "conf")}' is not AFC/NFC or American/Continental"
+                    }
+                    if (team.text("division", "div") != null && division == null) {
+                        problems += "$abbrev: division '${team.text("division", "div")}' is not East/North/South/West"
+                    }
+                    clubs += Club(abbrev, team.text("city", "location", "market"),
+                        team.text("nickname", "name", "mascot"), conference, division,
+                        offenseScheme = StaffJson.scheme(team.text("offenseScheme"), SchemeSide.OFFENSE, abbrev, problems),
+                        defenseScheme = StaffJson.scheme(team.text("defenseScheme"), SchemeSide.DEFENSE, abbrev, problems),
+                        staff = StaffJson.staff(team.entries.firstOrNull { it.key.equals("staff", true) || it.key.equals("coaches", true) }?.value, abbrev, problems),
+                        gm = StaffJson.gm(team.entries.firstOrNull { it.key.equals("gm", true) || it.key.equals("generalManager", true) }?.value, abbrev, problems),
+                    )
+                    (team["players"] as? JsonArray ?: team["roster"] as? JsonArray)
+                        ?.forEachIndexed { j, p -> player(p, abbrev, "$abbrev player ${j + 1}") }
+                }
+                (root["players"] as? JsonArray)?.forEachIndexed { i, e -> player(e, null, "player ${i + 1}") }
+                names = leagueNames(root["league"], problems)
+                if (root["teams"] == null && root["players"] == null) problems += "no \"teams\" or \"players\" in the file"
+            }
+            else -> problems += "the file is not a JSON object or array"
+        }
+
+        // One header across everyone, in first-seen order, then a row each.
+        val header = players.flatMap { it.keys }.distinct()
+        val table = if (players.isEmpty()) emptyList()
+            else listOf(header) + players.map { p -> header.map { p[it] ?: "" } }
+        return Parsed(clubs, table, problems, names)
+    }
+
+    /**
+     * A file to start from: what every field means, and one example club.
+     * Replace the example with your own clubs - any number up to 32 - and
+     * leave out whatever you do not know; the game fills the rest.
+     */
+    fun template(): String = """
+{
+  "_readme": [
+    "Gridiron Dynasty roster file. Your own data: nothing like it ships with the game.",
+    "List up to 32 teams. Each takes a place in the league by conference (AFC/NFC) and division (East/North/South/West); clubs you leave out stay fictional.",
+    "A player needs a name and a position. Everything else is optional: overall (40-99) generates him to that level, or give ratings for exact numbers.",
+    "Positions: QB RB FB WR TE LT LG C RG RT EDGE DT LB CB S K P (DE, OLB, HB, FS, SS and others are understood).",
+    "Rating codes (0-99), any subset: spd acc str agi awr prc thp tas tam tad cth srr mrr drr rls rbk pbk tak pow mcv zcv kpw kac, and more - any the game does not know are listed after import.",
+    "Up to 53 players per team go on the roster; more go to the practice squad. List 53 or more and nobody is added; list fewer and short positions are filled for you.",
+    "Optional per team: gm (a name, and aggression/winNow/loyalty/risk 0-1), offenseScheme and defenseScheme, and staff - headCoach, offensiveCoordinator, defensiveCoordinator, specialTeamsCoordinator, and positionCoaches for QB RB WR TE OL EDGE DT LB CB S ST. A coach can be just a name, or give age, scheme, ratings (development gameplan adjustments discipline motivation evaluation, 0-100), contractYears and tendencies.",
+    "Optional: a league block names the league, its title game and its conferences (keyed AFC/NFC); leave it out to keep the game's names.",
+    "In the app: title screen -> Start with my own rosters -> pick this file."
+  ],
+  "league": {
+    "name": "Example Football League",
+    "short": "EFL",
+    "championship": "Example Bowl",
+    "conferences": {
+      "AFC": { "name": "Eastern Football Conference", "short": "EFC" },
+      "NFC": { "name": "Western Football Conference", "short": "WFC" }
+    }
+  },
+  "teams": [
+    {
+      "abbrev": "EXA",
+      "city": "Example City",
+      "nickname": "Examples",
+      "conference": "AFC",
+      "division": "West",
+      "gm": { "name": "Pat Example", "aggression": 0.6, "winNow": 0.7 },
+      "offenseScheme": "OFF_WEST_COAST",
+      "defenseScheme": "DEF_43_OVER",
+      "staff": {
+        "headCoach": { "name": "Chris Sample", "age": 55, "ratings": { "development": 80, "motivation": 85 } },
+        "offensiveCoordinator": "Dana Model",
+        "defensiveCoordinator": { "name": "Lee Instance", "tendencies": { "blitzRate": 0.3 } },
+        "positionCoaches": { "QB": "Robin Test", "DT": "Kai Demo", "EDGE": "Kai Demo" }
+      },
+      "players": [
+        { "name": "Sam Example", "position": "QB", "number": 12, "age": 27, "overall": 84, "college": "State" },
+        { "name": "Riley Sample", "position": "RB", "number": 28, "age": 24, "overall": 78 },
+        { "name": "Jordan Model", "position": "WR", "number": 11, "age": 26, "height": "6-1", "weight": 195,
+          "ratings": { "spd": 93, "acc": 91, "cth": 86, "srr": 84 } },
+        { "name": "Casey Instance", "position": "EDGE", "age": 29, "overall": 88 },
+        { "name": "Morgan Test", "position": "CB", "age": 25 }
+      ]
+    }
+  ]
+}
+""".trimStart()
+
+    /**
+     * The "league" block: the league's name and short name, its title game,
+     * and each conference's name and short name, keyed AFC/NFC or
+     * American/Continental.
+     *
+     *     "league": { "name": "...", "short": "...", "championship": "...",
+     *                 "conferences": { "AFC": { "name": "...", "short": "AFC" }, "NFC": { ... } } }
+     */
+    private fun leagueNames(e: JsonElement?, problems: MutableList<String>): LeagueNames? {
+        if (e == null || e is JsonNull) return null
+        val obj = e as? JsonObject ?: return null.also { problems += "league is not an object" }
+        val conferences = mutableMapOf<Conference, ConferenceName>()
+        (obj.entries.firstOrNull { it.key.equals("conferences", true) }?.value as? JsonObject)?.forEach { (key, v) ->
+            val conference = conferenceOf(key)
+            if (conference == null) { problems += "league: conference '$key' is not AFC/NFC or American/Continental"; return@forEach }
+            val c = when (v) {
+                is JsonPrimitive -> v.content.trim().let { ConferenceName(it, it) }
+                is JsonObject -> {
+                    val name = v.text("name", "full")
+                    val short = v.text("short", "abbrev", "abbreviation")
+                    if (name == null && short == null) null else ConferenceName(name ?: short!!, short ?: name!!)
+                }
+                else -> null
+            }
+            if (c == null || c.name.isBlank()) problems += "league: conference '$key' has no name"
+            else conferences[conference] = c
+        }
+        return LeagueNames(
+            league = obj.text("name") ?: "",
+            short = obj.text("short", "abbrev", "abbreviation") ?: "",
+            conferences = conferences,
+            championship = obj.text("championship", "championshipGame", "final") ?: "",
+        )
+    }
+
+    private fun scalar(v: JsonElement): String? = when (v) {
+        is JsonNull -> null
+        is JsonPrimitive -> v.content
+        else -> null
+    }
+
+    private fun JsonObject.text(vararg keys: String): String? =
+        keys.firstNotNullOfOrNull { k -> entries.firstOrNull { it.key.equals(k, ignoreCase = true) }?.value }
+            ?.let { (it as? JsonPrimitive)?.jsonPrimitive?.content }?.trim()?.takeIf { it.isNotEmpty() }
+
+    fun conferenceOf(s: String): Conference? = when (RosterFormat.normalise(s)) {
+        "afc", "american", "americanfootballconference" -> Conference.AMERICAN
+        "nfc", "continental", "nationalfootballconference" -> Conference.CONTINENTAL
+        else -> null
+    }
+
+    fun divisionOf(s: String): Division? {
+        val n = RosterFormat.normalise(s).removePrefix("afc").removePrefix("nfc")
+        return Division.entries.firstOrNull { it.name.lowercase() == n }
+    }
+}

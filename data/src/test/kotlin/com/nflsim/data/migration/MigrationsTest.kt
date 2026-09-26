@@ -27,6 +27,20 @@ class MigrationsTest {
     }
 
     @Test
+    fun `a save from before GMs had names gets the names its league would have had`() {
+        val blank = dynasty.copy(league = dynasty.league.copy(
+            teams = dynasty.league.teams.map { it.copy(gm = it.gm.copy(name = "")) }))
+        val named = Migrations.migrate(blank, 17, 18)
+        assertTrue(named.league.teams.all { it.gm.name.isNotBlank() })
+        assertEquals(dynasty.league.teams.map { it.gm.name }, named.league.teams.map { it.gm.name },
+            "same seed, same names as a league generated today")
+        // A club whose GM was already named keeps him.
+        val kept = blank.copy(league = blank.league.copy(teams = blank.league.teams.mapIndexed { i, t ->
+            if (i == 0) t.copy(gm = t.gm.copy(name = "Real Person")) else t }))
+        assertEquals("Real Person", Migrations.migrate(kept, 17, 18).league.teams.first().gm.name)
+    }
+
+    @Test
     fun `a save from this build passes through untouched`() {
         assertSame(dynasty, Migrations.migrate(dynasty, CURRENT_SAVE_VERSION, CURRENT_SAVE_VERSION))
     }
