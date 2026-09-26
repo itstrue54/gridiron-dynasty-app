@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -343,13 +344,46 @@ private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             // What is already on the phone, in the slots it is in (SPEC 9.1).
             var cards by remember { mutableStateOf<List<Saves.Card>>(emptyList()) }
             LaunchedEffect(Unit) { cards = store.cards() }
+            // Each slot loads with a tap, and can be deleted from here too - no need
+            // to open a dynasty just to reach the Saves screen.
+            var deleting by remember { mutableStateOf<Saves.Card?>(null) }
             cards.filterNot { it.auto }.forEach { card ->
-                SecondaryButton(
-                    "Slot ${card.slot}: ${card.summary}",
-                    { scope.launch { if (store.load(card.slot)) onStarted() } },
-                    Modifier.fillMaxWidth(),
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SecondaryButton(
+                        "Slot ${card.slot}: ${card.summary}",
+                        { scope.launch { if (store.load(card.slot)) onStarted() } },
+                        Modifier.weight(1f),
+                        enabled = !store.busy,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    SecondaryButton("Delete", { deleting = card }, enabled = !store.busy)
+                }
                 Spacer(Modifier.height(8.dp))
+            }
+            deleting?.let { card ->
+                com.example.nflsimtext.ui.components.ActionDialog(
+                    "Delete ${card.label}?",
+                    onDismiss = { deleting = null },
+                    situation = com.example.nflsimtext.ui.components.Situation.RED_ZONE,
+                ) {
+                    Text(
+                        "${card.summary} is in there. Nothing brings it back.",
+                        style = NdTheme.type.body, color = c.chalk,
+                    )
+                    PrimaryButton(
+                        "Delete it",
+                        {
+                            scope.launch {
+                                // Deleting the dynasty in hand closes it too (DynastyStore.deleteSave).
+                                store.deleteSave(card)
+                                cards = store.cards()
+                            }
+                            deleting = null
+                        },
+                        Modifier.padding(top = 8.dp),
+                    )
+                    SecondaryButton("Keep it", { deleting = null })
+                }
             }
             val fresh = {
                 scope.launch {
