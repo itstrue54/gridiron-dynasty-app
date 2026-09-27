@@ -34,7 +34,9 @@ class FreeAgencyPauseTest {
     fun `a generous offer lands him, and a lowball never does`() {
         val fa = pause()
         val room = fa.capSpace
-        val target = fa.candidates.first { it.market * 3 / 2 <= room / 2 }
+        // Not a man another club transition-tagged: his club may match any
+        // offer (SPEC 8.3), which is a rule of its own with its own tests.
+        val target = fa.candidates.first { it.market * 3 / 2 <= room / 2 && it.player.id.v !in fa.state.transitionTags }
         val lowball = fa.candidates.first { it.player.id != target.player.id && it.market * 2 <= room / 2 }
         val offers = listOf(
             FreeAgency.Offer(target.player.id.v, (target.market * 3 / 2), target.years),
