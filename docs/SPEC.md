@@ -1005,7 +1005,9 @@ roster file's top-level `league` block names them: the league (`name`,
 `short`), its title game (`championship`), and each conference (`name`,
 `short`) keyed AFC/NFC or American/Continental. Division names ("AFC West"),
 the hub, standings, club picker, league history ("Super Bowl champions") and
-the season export read them from the league; a conference the block leaves
+the season export (whose game-by-game table lists the title game by its
+name) read them from the league; the app's schedule and scoreboard keep the
+short "Final", which their columns have room for. A conference the block leaves
 out keeps the game's name. As with players, the names are the user's to
 bring - the template shipped with the app uses invented ones.
 
