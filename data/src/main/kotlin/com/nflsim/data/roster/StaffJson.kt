@@ -148,11 +148,11 @@ object StaffJson {
         fun lever(k: String) = t?.unit(k, "$where ($name)", problems)
         return CoachSpec(
             name = name,
-            age = obj.text("age")?.toDoubleOrNull()?.toInt()?.takeIf { it in 20..95 },
+            age = obj.whole("age", 20..95, "$where ($name)", problems, clamp = false),
             scheme = scheme(obj.text("scheme"), side, "$where ($name)", problems),
             ratings = ratings,
-            contractYears = obj.text("contractYears")?.toDoubleOrNull()?.toInt()?.coerceIn(0, 10),
-            hotSeat = obj.text("hotSeat")?.toDoubleOrNull()?.toInt()?.coerceIn(0, 100),
+            contractYears = obj.whole("contractYears", 0..10, "$where ($name)", problems, clamp = true),
+            hotSeat = obj.whole("hotSeat", 0..100, "$where ($name)", problems, clamp = true),
             tendencies = GamePlan(
                 passRate = lever("passRate"), playActionRate = lever("playActionRate"),
                 deepShotRate = lever("deepShotRate"), trailingPassScale = t?.text("trailingPassScale")?.toFloatOrNull(),
@@ -168,6 +168,24 @@ object StaffJson {
 
     private fun JsonObject.text(key: String): String? =
         (entry(key) as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.trim()?.takeIf { it.isNotEmpty() }
+
+    /**
+     * A whole number in [range]. Out of range it is clamped, or with [clamp]
+     * false left to the game (an age of 200 is a typo, not a very old coach);
+     * either way it is said.
+     */
+    private fun JsonObject.whole(key: String, range: IntRange, where: String, problems: MutableList<String>, clamp: Boolean): Int? {
+        val raw = text(key) ?: return null
+        val v = raw.toDoubleOrNull()?.toInt() ?: return null.also { problems += "$where: $key '$raw' is not a number" }
+        if (v in range) return v
+        return if (clamp) {
+            problems += "$where: $key $v is outside ${range.first}-${range.last}, clamped"
+            v.coerceIn(range)
+        } else {
+            problems += "$where: $key $v is outside ${range.first}-${range.last}, left to the game"
+            null
+        }
+    }
 
     /** A 0..1 value; out of range is clamped and said. */
     private fun JsonObject.unit(key: String, where: String, problems: MutableList<String>): Float? {

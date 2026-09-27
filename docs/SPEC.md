@@ -997,7 +997,8 @@ the file's. One person named in several slots is one coach with every job's
 levers. A slot the file leaves empty keeps its generated coach, and the
 import says so. The club runs the file's schemes, else its coordinators',
 else its head coach's. An unknown scheme, a scheme on the wrong side of the
-ball, or a rating out of range is an import error, never a guess.
+ball, or a rating, age, contract length or hot seat out of range is an
+import error, never a guess.
 
 **The league's names** (`LeagueNames`, save version 19). A generated league
 is unnamed, and its conferences are the American and the Continental. A
