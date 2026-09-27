@@ -2012,6 +2012,14 @@ coaches until the carousel hires its first. Development reads a position
 coach per group, so a coach in two groups develops both at his rating; no
 calibration band moves from the import itself.
 
+A head coach the file gives a defensive scheme hands it to the club's
+defense and takes the club's offense himself, rather than getting a side
+of his own. The coach model has one scheme and the carousel reads a head
+coach's as an offense. If he were fired and rehired elsewhere with a
+defensive scheme, his new club's offense would be a defense. Giving head
+coaches a side is an engine and save-format change, left for when it's
+wanted.
+
 ## ADR-0xx — Tied games go to overtime: the playoffs' rules and the regular season's
 
 **Context.** The engine had no overtime. A playoff game that ended level
@@ -2019,7 +2027,7 @@ was replayed from kickoff, up to three times, and then went to the home
 club by three. A simmed game could live with that, but a game the user had
 just called could not: its result would be a different game.
 
-**Decision.** Playoff games (`GameSimulator(overtime = true)`) play
+**Decision.** Playoff games (`GameSimulator(overtime = Overtime.PLAYOFFS)`) play
 overtime under the NFL's postseason rules: fifteen-minute periods, both
 clubs get the ball once, then sudden death. Overtime runs only after
 regulation and only then draws from the game's stream, so no game decided

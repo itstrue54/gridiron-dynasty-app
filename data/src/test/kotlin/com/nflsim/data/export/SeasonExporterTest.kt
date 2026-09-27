@@ -1,6 +1,8 @@
 package com.nflsim.data.export
 
 import com.nflsim.engine.gen.LeagueGenerator
+import com.nflsim.engine.model.LeagueNames
+import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyEngine
 import com.nflsim.engine.season.DynastyPhase
@@ -59,6 +61,21 @@ class SeasonExporterTest {
         season.divisions.forEach { (_, rows) ->
             rows.zipWithNext().forEach { (a, b) -> assertTrue(a.wins + a.ties / 2.0 >= b.wins + b.ties / 2.0, "$a above $b") }
         }
+    }
+
+    @Test
+    fun `the title game goes by the name the roster file gave it`() {
+        var d = start()
+        while (d.year == 2026) d = DynastyEngine.advance(d)
+        val record = d.league.history.seasons.single { it.year == 2026 }
+        val named = d.league.copy(names = LeagueNames(championship = "Example Bowl"))
+        val champion = TeamId(record.champion!!)
+        val md = SeasonExporter.markdown(SeasonExporter.of(record, named), named, champion)
+        assertTrue(md.lines().any { it.startsWith("| Example Bowl | ") }, md)
+        assertTrue(md.lines().none { it.startsWith("| Final | ") }, md)
+        // Unnamed, it is the final it always was.
+        val plain = SeasonExporter.markdown(SeasonExporter.of(record, d.league), d.league, champion)
+        assertTrue(plain.lines().any { it.startsWith("| Final | ") }, plain)
     }
 
     @Test

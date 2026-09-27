@@ -28,7 +28,9 @@ import com.nflsim.engine.rng.SplitMixRng
  * generated coach, and the import says so.
  *
  * The club's schemes are the file's if it gives them, else its coordinators',
- * else its head coach's, as the carousel sets them on a hire.
+ * else its head coach's, as the carousel sets them on a hire. A head coach
+ * the file gives a defensive scheme passes it to the defense, and carries the
+ * offense like every head coach in the game.
  */
 object StaffImport {
 
@@ -41,7 +43,12 @@ object StaffImport {
             if (staff == null && club.gm == null && club.offenseScheme == null && club.defenseScheme == null) return@map team
 
             val offense = club.offenseScheme ?: staff?.offCoordinator?.scheme ?: staff?.headCoach?.scheme ?: team.offenseScheme
-            val defense = club.defenseScheme ?: staff?.defCoordinator?.scheme ?: team.defenseScheme
+            val defense = club.defenseScheme ?: staff?.defCoordinator?.scheme ?: staff?.headCoachDefense ?: team.defenseScheme
+            staff?.headCoachDefense?.let { his ->
+                val who = staff.headCoach?.name ?: "the head coach"
+                notes += if (his == defense) "${club.abbrev}: $who's $his is the club's defense; he carries its offense ($offense), as the game's head coaches do"
+                    else "${club.abbrev}: $who's $his gives way to the club's $defense; he carries its offense ($offense), as the game's head coaches do"
+            }
             val rng = SplitMixRng(seed).split("import|staff|${club.abbrev}")
             val byName = mutableMapOf<String, CoachId>()
             val replaced = mutableSetOf<CoachId>()

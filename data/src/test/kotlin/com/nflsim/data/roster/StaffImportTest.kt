@@ -93,6 +93,45 @@ class StaffImportTest {
     }
 
     @Test
+    fun `a head coach from the defense hands it his scheme and carries the offense`() {
+        val file = """{"teams":[{"abbrev":"KC","players":$players,"staff":{
+            "headCoach":{"name":"Defense Person","scheme":"Tampa 2"},
+            "offensiveCoordinator":{"name":"Oc Person","scheme":"OFF_AIR_RAID"}}}]}"""
+        val r = LeagueImport.build(file, 2026, 7L)
+        assertTrue(r.errors.isEmpty(), "a defensive head coach is not an error: ${r.errors}")
+        val league = assertNotNull(r.league)
+        val kc = league.teams.single { it.abbrev == "KC" }
+        assertEquals("DEF_TAMPA_2", kc.defenseScheme)
+        assertEquals("OFF_AIR_RAID", kc.offenseScheme)
+        assertEquals("OFF_AIR_RAID", league.coaches.getValue(kc.staff.headCoach).scheme,
+            "the carousel reads a head coach's scheme as an offense")
+        assertTrue(r.notes.any { "Defense Person's DEF_TAMPA_2 is the club's defense" in it }, "${r.notes}")
+
+        // The file's own defense wins, and the import says his gave way.
+        val set = file.replace("\"players\"", "\"defenseScheme\":\"DEF_MAN_BLITZ\",\"players\"")
+        val s = LeagueImport.build(set, 2026, 7L)
+        assertEquals("DEF_MAN_BLITZ", s.league!!.teams.single { it.abbrev == "KC" }.defenseScheme)
+        assertTrue(s.notes.any { "DEF_TAMPA_2 gives way to the club's DEF_MAN_BLITZ" in it }, "${s.notes}")
+    }
+
+    @Test
+    fun `an age, contract or hot seat out of range is said, not dropped quietly`() {
+        val odd = """{"teams":[{"abbrev":"KC","players":$players,"staff":{
+            "headCoach":{"name":"Old Typo","age":250,"contractYears":14,"hotSeat":"lukewarm"}}}]}"""
+        val r = LeagueImport.build(odd, 2026, 7L)
+        assertTrue(r.errors.any { "age 250 is outside 20-95, left to the game" in it }, "${r.errors}")
+        assertTrue(r.errors.any { "contractYears 14 is outside 0-10, clamped" in it }, "${r.errors}")
+        assertTrue(r.errors.any { "hotSeat 'lukewarm' is not a number" in it }, "${r.errors}")
+        val league = assertNotNull(r.league)
+        val head = league.coaches.getValue(league.teams.single { it.abbrev == "KC" }.staff.headCoach)
+        val generated = LeagueGenerator.generate(2026, 7L)
+        val was = generated.coaches.getValue(generated.teams.single { it.abbrev == "KC" }.staff.headCoach)
+        assertEquals(was.age, head.age, "an age the game cannot use is the replaced man's")
+        assertEquals(10, head.contractYearsLeft)
+        assertEquals(was.hotSeat, head.hotSeat)
+    }
+
+    @Test
     fun `the file names the league, its conferences and its title game`() {
         val named = """{"league":{"name":"Example Football League","short":"EFL","championship":"Example Bowl",
             "conferences":{"AFC":{"name":"Eastern Football Conference","short":"EFC"},"Continental":"WFC"}},

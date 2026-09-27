@@ -42,6 +42,12 @@ object StaffJson {
 
     data class StaffSpec(
         val headCoach: CoachSpec? = null,
+        /**
+         * A defensive scheme the file gave the head coach. The game's head
+         * coaches carry the offense (the carousel builds a hire's offense on
+         * his scheme), so this one goes to the club's defense instead.
+         */
+        val headCoachDefense: String? = null,
         val offCoordinator: CoachSpec? = null,
         val defCoordinator: CoachSpec? = null,
         val stCoordinator: CoachSpec? = null,
@@ -93,7 +99,7 @@ object StaffJson {
 
     fun staff(e: JsonElement?, where: String, problems: MutableList<String>): StaffSpec? {
         val obj = e as? JsonObject ?: return null.also { if (e != null && e !is JsonNull) problems += "$where: staff is not an object" }
-        fun one(vararg keys: String, side: SchemeSide) = keys.firstNotNullOfOrNull { k -> obj.entry(k) }
+        fun one(vararg keys: String, side: SchemeSide?) = keys.firstNotNullOfOrNull { k -> obj.entry(k) }
             ?.let { coach(it, "$where ${keys.first()}", side, problems) }
         val positions = (obj.entry("positionCoaches") ?: obj.entry("positions")) as? JsonObject
         val byGroup = mutableMapOf<PositionGroup, CoachSpec>()
@@ -103,8 +109,12 @@ object StaffJson {
             val side = if (group in OFFENSIVE_GROUPS) SchemeSide.OFFENSE else SchemeSide.DEFENSE
             coach(v, "$where $k coach", side, problems)?.let { byGroup[group] = it }
         }
+        // A head coach may come from either side of the ball.
+        val head = one("headCoach", "head", "hc", side = null)
+        val headDefense = head?.scheme?.takeIf { SchemeCatalog[it].side == SchemeSide.DEFENSE }
         return StaffSpec(
-            headCoach = one("headCoach", "head", "hc", side = SchemeSide.OFFENSE),
+            headCoach = if (headDefense == null) head else head.copy(scheme = null),
+            headCoachDefense = headDefense,
             offCoordinator = one("offensiveCoordinator", "oc", side = SchemeSide.OFFENSE),
             defCoordinator = one("defensiveCoordinator", "dc", side = SchemeSide.DEFENSE),
             stCoordinator = one("specialTeamsCoordinator", "stc", side = SchemeSide.OFFENSE),
@@ -112,8 +122,8 @@ object StaffJson {
         )
     }
 
-    /** A scheme by id or by name, on the side it has to be; null (and a problem) otherwise. */
-    fun scheme(raw: String?, side: SchemeSide, where: String, problems: MutableList<String>): String? {
+    /** A scheme by id or by name, on the side it has to be (either, for a null [side]); null (and a problem) otherwise. */
+    fun scheme(raw: String?, side: SchemeSide?, where: String, problems: MutableList<String>): String? {
         if (raw.isNullOrBlank()) return null
         val key = RosterFormat.normalise(raw)
         val found: Scheme? = SchemeCatalog.all.firstOrNull {
@@ -121,7 +131,7 @@ object StaffJson {
         }
         return when {
             found == null -> null.also { problems += "$where: unknown scheme '$raw'; known are ${SchemeCatalog.all.joinToString(", ") { it.id }}" }
-            found.side != side -> null.also { problems += "$where: ${found.id} is not a${if (side == SchemeSide.OFFENSE) "n offensive" else " defensive"} scheme" }
+            side != null && found.side != side -> null.also { problems += "$where: ${found.id} is not a${if (side == SchemeSide.OFFENSE) "n offensive" else " defensive"} scheme" }
             else -> found.id
         }
     }
@@ -129,7 +139,7 @@ object StaffJson {
     /** Head coach and special teams take the offensive scheme, as a generated staff does. */
     private val OFFENSIVE_GROUPS = setOf(PositionGroup.QB, PositionGroup.RB, PositionGroup.WR, PositionGroup.TE, PositionGroup.OL)
 
-    private fun coach(e: JsonElement, where: String, side: SchemeSide, problems: MutableList<String>): CoachSpec? {
+    private fun coach(e: JsonElement, where: String, side: SchemeSide?, problems: MutableList<String>): CoachSpec? {
         if (e is JsonPrimitive) return e.content.trim().takeIf { it.isNotEmpty() }?.let { CoachSpec(it) }
         val obj = e as? JsonObject ?: run { problems += "$where is not a name or an object"; return null }
         val name = obj.text("name") ?: run { problems += "$where has no name"; return null }
@@ -148,11 +158,11 @@ object StaffJson {
         fun lever(k: String) = t?.unit(k, "$where ($name)", problems)
         return CoachSpec(
             name = name,
-            age = obj.text("age")?.toDoubleOrNull()?.toInt()?.takeIf { it in 20..95 },
+            age = obj.whole("age", 20..95, "$where ($name)", problems, clamp = false),
             scheme = scheme(obj.text("scheme"), side, "$where ($name)", problems),
             ratings = ratings,
-            contractYears = obj.text("contractYears")?.toDoubleOrNull()?.toInt()?.coerceIn(0, 10),
-            hotSeat = obj.text("hotSeat")?.toDoubleOrNull()?.toInt()?.coerceIn(0, 100),
+            contractYears = obj.whole("contractYears", 0..10, "$where ($name)", problems, clamp = true),
+            hotSeat = obj.whole("hotSeat", 0..100, "$where ($name)", problems, clamp = true),
             tendencies = GamePlan(
                 passRate = lever("passRate"), playActionRate = lever("playActionRate"),
                 deepShotRate = lever("deepShotRate"), trailingPassScale = t?.text("trailingPassScale")?.toFloatOrNull(),
@@ -168,6 +178,24 @@ object StaffJson {
 
     private fun JsonObject.text(key: String): String? =
         (entry(key) as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.trim()?.takeIf { it.isNotEmpty() }
+
+    /**
+     * A whole number in [range]. Out of range it is clamped, or with [clamp]
+     * false left to the game (an age of 200 is a typo, not a very old coach);
+     * either way it is said.
+     */
+    private fun JsonObject.whole(key: String, range: IntRange, where: String, problems: MutableList<String>, clamp: Boolean): Int? {
+        val raw = text(key) ?: return null
+        val v = raw.toDoubleOrNull()?.toInt() ?: return null.also { problems += "$where: $key '$raw' is not a number" }
+        if (v in range) return v
+        return if (clamp) {
+            problems += "$where: $key $v is outside ${range.first}-${range.last}, clamped"
+            v.coerceIn(range)
+        } else {
+            problems += "$where: $key $v is outside ${range.first}-${range.last}, left to the game"
+            null
+        }
+    }
 
     /** A 0..1 value; out of range is clamped and said. */
     private fun JsonObject.unit(key: String, where: String, problems: MutableList<String>): Float? {

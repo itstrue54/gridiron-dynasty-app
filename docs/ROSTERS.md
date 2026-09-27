@@ -96,14 +96,19 @@ Any club can also carry its general manager, coaching staff and schemes:
   TE OL EDGE DT LB CB S ST. The same person can fill more than one (a
   defensive line coach who also coaches the edge). A slot you leave out keeps
   a made-up coach, and the import tells you which.
-- **A coach** can be just a name. Ratings (0-100) you leave out, and age,
-  contract and `hotSeat` (0-100, how close he is to being fired), come from
-  the made-up coach he replaces.
+- **A coach** can be just a name. Ratings (0-100) you leave out, and age
+  (20-95), `contractYears` (0-10) and `hotSeat` (0-100, how close he is to
+  being fired), come from the made-up coach he replaces. A rating, contract
+  or hot seat out of range is pulled into range, and an age out of range is
+  ignored. The import lists either one.
 - **Schemes:** OFF_WIDE_ZONE, OFF_GAP_POWER, OFF_AIR_RAID, OFF_WEST_COAST,
   OFF_SPREAD_OPTION, OFF_VERTICAL, OFF_RUN_HEAVY_PRO; DEF_43_OVER,
   DEF_43_UNDER, DEF_34_TWO_GAP, DEF_34_ONE_GAP, DEF_425_NICKEL, DEF_TAMPA_2,
   DEF_COVER3_MATCH, DEF_MAN_BLITZ, DEF_335_MULTIPLE. Leave them out and the
-  club runs its coordinators' schemes.
+  club runs its coordinators' schemes. A head coach from the defense can
+  have a defensive scheme: the club's defense runs it, unless the club or
+  its defensive coordinator names another, and he carries the offense, as
+  every head coach in the game does.
 - **GM tendencies** (0-1): how much he spends on one player, how all-in he
   is, how hard he keeps his own, and how much risk he takes. You are the GM
   of the club you pick; the others' tendencies drive their moves.

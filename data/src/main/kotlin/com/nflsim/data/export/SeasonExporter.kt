@@ -129,7 +129,7 @@ object SeasonExporter {
                         us < them -> "L"
                         else -> "T"
                     }
-                    appendLine("| ${weekLabel(g.week)} | ${if (home) "" else "at "}${name(if (home) g.away else g.home)} " +
+                    appendLine("| ${weekLabel(g.week, league)} | ${if (home) "" else "at "}${name(if (home) g.away else g.home)} " +
                         "| $result $us-$them |")
                 }
                 appendLine()
@@ -203,12 +203,13 @@ object SeasonExporter {
     private fun recordText(r: TeamRecord): String =
         if (r.ties > 0) "${r.wins}-${r.losses}-${r.ties}" else "${r.wins}-${r.losses}"
 
-    private fun weekLabel(week: Int): String = when (week - Schedule.WEEKS) {
+    /** The title game goes by the league's name for it, if a roster file gave one (SPEC 9.4). */
+    private fun weekLabel(week: Int, league: League): String = when (week - Schedule.WEEKS) {
         in Int.MIN_VALUE..0 -> "$week"
         1 -> "Wild card"
         2 -> "Divisional"
         3 -> "Conference"
-        else -> "Final"
+        else -> league.names.championship.ifBlank { "Final" }
     }
 
     private fun ordinal(n: Int): String = n.toString() + when {
