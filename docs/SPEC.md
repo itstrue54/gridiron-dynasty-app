@@ -996,8 +996,12 @@ he takes from that man, and his tendencies are drawn from his scheme under
 the file's. One person named in several slots is one coach with every job's
 levers. A slot the file leaves empty keeps its generated coach, and the
 import says so. The club runs the file's schemes, else its coordinators',
-else its head coach's. An unknown scheme, a scheme on the wrong side of the
-ball, or a rating, age, contract length or hot seat out of range is an
+else its head coach's. The game's head coaches carry the offense (the
+carousel builds a hire's offense on his scheme), so a head coach the file
+gives a defensive scheme passes it to the club's defense, when neither the
+club nor its defensive coordinator names one, and takes the club's offense
+himself; the import says which. Any other unknown scheme, a scheme on the
+wrong side of the ball, or a rating, age, contract length or hot seat out of range is an
 import error, never a guess.
 
 **The league's names** (`LeagueNames`, save version 19). A generated league
