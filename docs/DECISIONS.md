@@ -2012,3 +2012,26 @@ coaches until the carousel hires its first. Development reads a position
 coach per group, so a coach in two groups develops both at his rating; no
 calibration band moves from the import itself.
 
+## ADR-0xx — Playoff games go to overtime instead of being replayed
+
+**Context.** The engine had no overtime. A playoff game that ended level
+was replayed from kickoff, up to three times, and then went to the home
+club by three. A simmed game could live with that, but a game the user had
+just called could not: its result would be a different game.
+
+**Decision.** Playoff games (`GameSimulator(overtime = true)`) play
+overtime under the NFL's postseason rules: fifteen-minute periods, both
+clubs get the ball once, then sudden death. Overtime runs only after
+regulation and only then draws from the game's stream, so no game decided
+in four quarters changes. The period length and timeouts are the rules,
+not tuning, so they are constants rather than `TuningTable` fields. Each
+overtime period opens with its own toss and kickoff. The NFL carries play
+over from the first period to the second, but tracking that would need a
+change of ends that nothing else in the sim models. Regular-season ties
+stay, as they do in the NFL's regular season, apart from its ten-minute
+overtime, which is left for when it's wanted.
+
+**Consequences.** A tied playoff game's result now comes from overtime
+instead of a replay. Every other game, and every regular-season statistic
+and calibration band, is unchanged. The old replay rule is kept only as a
+safety valve past ten overtime periods.

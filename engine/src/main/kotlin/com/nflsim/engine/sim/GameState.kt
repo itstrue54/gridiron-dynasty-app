@@ -87,6 +87,8 @@ data class GameState(
     val distance: Int = 10,
     val homeTimeouts: Int = 3,
     val awayTimeouts: Int = 3,
+    /** Periods the game is scheduled for: the four quarters, and each overtime period it goes to (SPEC 5.10). */
+    val periods: Int = 4,
 ) {
     fun scoreFor(side: Side): Int = if (side == Side.HOME) homeScore else awayScore
     fun timeoutsFor(side: Side): Int = if (side == Side.HOME) homeTimeouts else awayTimeouts
@@ -94,7 +96,10 @@ data class GameState(
     /** Offense score minus defense score. */
     val scoreDiff: Int get() = scoreFor(possession) - scoreFor(possession.other())
 
-    val isOver: Boolean get() = quarter > 4 && secondsLeft <= 0
+    val isOver: Boolean get() = quarter > periods && secondsLeft <= 0
+
+    /** In overtime: past the fourth quarter. */
+    val inOvertime: Boolean get() = quarter > 4
 
     fun toPlayState(): PlayState = PlayState(
         down = down,

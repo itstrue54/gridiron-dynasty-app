@@ -189,7 +189,10 @@ class SeasonSimulator(
         return championship.winner
     }
 
-    /** Playoff games cannot end level, so a tie replays until it does not. */
+    /**
+     * Playoff games cannot end level: a tie goes to overtime (SPEC 5.10), and
+     * the rare one overtime cannot settle replays until it does not.
+     */
     private fun playGame(
         round: PlayoffRound,
         conference: Conference?,
@@ -202,7 +205,7 @@ class SeasonSimulator(
     ): PlayoffGame {
         var attempt = 0
         while (true) {
-            val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning)
+            val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning, overtime = true)
                 .simulate(rng.split("ot=$attempt"))
             collect(g.boxScore.players)
             if (g.homeScore != g.awayScore || attempt >= MAX_OVERTIME) {

@@ -531,6 +531,12 @@ show - are the two together.
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
+- Overtime, in the playoffs only (a regular-season tie stands), follows the NFL's postseason rules:
+  - Each period is fifteen minutes and opens with a toss, a kickoff and two timeouts a side.
+  - Both clubs get the ball once. After that, the next score wins, and a sudden-death touchdown has no try after it.
+  - A period that ends level brings another. Unlike the NFL, the next period opens with its own toss and kickoff rather than carrying on from the spot.
+  - `GameState.periods` counts the four quarters and each overtime period. Overtime is played only after regulation and draws from the game's stream only then, so a game decided in four quarters plays exactly as it did before overtime existed.
+  - Past ten overtime periods, a safety valve, the bracket's old rule settles the game: the coordinators replay it, up to three times, and then the home club wins by three.
 - Weather generated per game from stadium + month + a regional climate table. Dome = neutral. Affects deep passing, kicking, and fumble rate.
 
 ### 5.11 Determinism **[LOCKED]**
