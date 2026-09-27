@@ -252,8 +252,11 @@ fun HubScreen(
                     enabled = !store.busy,
                 )
                 // Calling the plays himself (SPEC 5.4): the same week, with his
-                // game waiting on him at each snap. Only with a game to play.
-                if (dynasty.phase == DynastyPhase.REGULAR_SEASON &&
+                // game waiting on him at each snap - or in the postseason, each
+                // of his playoff games in turn. Only with a game to play.
+                val inThePlayoffs = dynasty.phase == DynastyPhase.PLAYOFFS &&
+                    com.nflsim.engine.model.Conference.entries.any { dynasty.userTeamId in com.nflsim.engine.season.DynastyEngine.seeds(dynasty, it) }
+                if (inThePlayoffs || dynasty.phase == DynastyPhase.REGULAR_SEASON &&
                     dynasty.schedule.week(dynasty.week).any { it.involves(dynasty.userTeamId) }
                 ) {
                     SecondaryButton(

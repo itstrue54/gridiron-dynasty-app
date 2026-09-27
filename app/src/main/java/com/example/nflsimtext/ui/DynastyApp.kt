@@ -183,7 +183,17 @@ fun DynastyApp(
                         onFinished = { tab = Tab.CUTDOWN },
                         onBack = { tab = Tab.HUB },
                     )
-                    Tab.LIVE -> LiveGameScreen(dynasty, store) { boxGame = null; tab = Tab.BOX }
+                    Tab.LIVE -> LiveGameScreen(dynasty, store) {
+                        // A week ends on the game just played; a postseason on his last playoff game.
+                        boxGame = store.dynasty?.let { d ->
+                            if (d.phase != com.nflsim.engine.season.DynastyPhase.OFFSEASON) null
+                            else d.league.history.games.lastOrNull { g ->
+                                g.year == d.year && g.week > com.nflsim.engine.season.Schedule.WEEKS &&
+                                    (g.home == d.userTeam || g.away == d.userTeam)
+                            }
+                        }
+                        tab = Tab.BOX
+                    }
                     Tab.GAME -> GameDayScreen(
                         dynasty,
                         onBoxScore = { boxGame = null; tab = Tab.BOX },

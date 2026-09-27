@@ -69,7 +69,7 @@ fun Scoreboard(
             if (status != null) {
                 Text(status, style = NdTheme.type.headline, color = c.chalkDim)
             } else {
-                Text("Q$quarter", style = NdTheme.type.label, color = c.chalkDim)
+                Text(if (quarter > 4) (if (quarter == 5) "OT" else "${quarter - 4}OT") else "Q$quarter", style = NdTheme.type.label, color = c.chalkDim)
                 Text(clock, style = NdTheme.type.headline, color = c.chalk)
             }
         }

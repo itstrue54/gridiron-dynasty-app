@@ -78,4 +78,53 @@ class SnapCallerTest {
         val side = if (userGame(after).home == d.userTeamId) Side.HOME else Side.AWAY
         assertEquals(setOf(side), sides)
     }
+
+    /** The season to its playoffs, with the user in charge of the club that ends it at [seed] in the first conference. */
+    private fun postseason(seed: Int): Dynasty {
+        var d = start()
+        while (d.phase != com.nflsim.engine.season.DynastyPhase.PLAYOFFS) d = DynastyEngine.advance(d)
+        val conference = com.nflsim.engine.model.Conference.entries.first()
+        return d.copy(userTeam = DynastyEngine.seeds(d, conference)[seed - 1].v)
+    }
+
+    @Test
+    fun `he can call every playoff game his club plays, and the rest is untouched`() {
+        val d = postseason(seed = 1)
+        val kickoffs = mutableListOf<String>()
+        val finals = mutableListOf<Pair<Int, Int>>()
+        var snaps = 0
+        val echo = object : SnapCaller {
+            override fun offense(snap: Snap, suggested: OffensivePlayCall) = suggested.also { snaps++ }
+            override fun defense(snap: Snap, suggested: DefensivePlayCall) = suggested.also { snaps++ }
+            override fun kickoff(title: String, home: com.nflsim.engine.model.TeamId, away: com.nflsim.engine.model.TeamId) {
+                assertTrue(d.userTeamId == home || d.userTeamId == away, "told only of his own games")
+                kickoffs += title
+            }
+            override fun final(homeScore: Int, awayScore: Int) { finals += homeScore to awayScore }
+        }
+        val quiet = DynastyEngine.advance(d)
+        val called = DynastyEngine.advance(d, caller = echo)
+        assertEquals(quiet, called, "taking every suggestion plays the postseason as the coordinators would")
+        val his = called.playoffs.filter { it.home == d.userTeamId || it.away == d.userTeamId }
+        assertTrue(his.isNotEmpty() && snaps > 0)
+        assertEquals(his.size, kickoffs.size, "one kickoff for each of his games")
+        assertEquals(his.map { it.homeScore to it.awayScore }, finals)
+        // The top seed rests on wild card weekend.
+        assertEquals("Divisional round", kickoffs.first())
+    }
+
+    @Test
+    fun `a club out of the playoffs is never asked`() {
+        var d = start()
+        while (d.phase != com.nflsim.engine.season.DynastyPhase.PLAYOFFS) d = DynastyEngine.advance(d)
+        val seeded = com.nflsim.engine.model.Conference.entries.flatMap { DynastyEngine.seeds(d, it) }.toSet()
+        val out = d.copy(userTeam = d.league.teams.first { it.id !in seeded }.id.v)
+        var asked = false
+        val spy = object : SnapCaller {
+            override fun offense(snap: Snap, suggested: OffensivePlayCall) = suggested.also { asked = true }
+            override fun kickoff(title: String, home: com.nflsim.engine.model.TeamId, away: com.nflsim.engine.model.TeamId) { asked = true }
+        }
+        DynastyEngine.advance(out, caller = spy)
+        assertTrue(!asked)
+    }
 }
