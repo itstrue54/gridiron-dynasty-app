@@ -182,7 +182,8 @@ object DynastyEngine {
             val side = if (matchup.home == dynasty.userTeamId) com.nflsim.engine.sim.Side.HOME else com.nflsim.engine.sim.Side.AWAY
             val g = GameSimulator(
                 teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
-                caller = if (mine) caller else null, callerSide = if (mine) side else null).simulate(rng)
+                caller = if (mine) caller else null, callerSide = if (mine) side else null,
+                overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON).simulate(rng)
             outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
             stats = merge(stats, g.boxScore.players)
             if (matchup.involves(dynasty.userTeamId)) userGame = g

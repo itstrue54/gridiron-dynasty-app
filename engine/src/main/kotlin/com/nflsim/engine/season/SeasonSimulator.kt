@@ -94,7 +94,8 @@ class SeasonSimulator(
             val played = mutableListOf<com.nflsim.engine.sim.GameResult>()
             schedule.week(week).forEach { matchup ->
                 val rng = root.split("y=$year|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
-                val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning)
+                val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
+                    overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON)
                     .simulate(rng)
                 outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
                 stats = merge(stats, g.boxScore.players)
@@ -233,7 +234,7 @@ class SeasonSimulator(
         while (true) {
             val live = calling?.takeIf { attempt == 0 }
             val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning,
-                caller = live, callerSide = live?.let { side }, overtime = true)
+                caller = live, callerSide = live?.let { side }, overtime = com.nflsim.engine.sim.Overtime.PLAYOFFS)
                 .simulate(rng.split("ot=$attempt"))
             collect(g.boxScore.players)
             if (g.homeScore != g.awayScore || attempt >= MAX_OVERTIME) {

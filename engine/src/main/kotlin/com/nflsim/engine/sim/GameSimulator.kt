@@ -81,10 +81,10 @@ class GameSimulator(
     private val caller: SnapCaller? = null,
     private val callerSide: Side? = null,
     /**
-     * A game that cannot end level, as in the playoffs: tied after the fourth
-     * quarter, it goes to overtime (SPEC 5.10). Off, a tie stands.
+     * The overtime a game level after four quarters goes to (SPEC 5.10): the
+     * regular season's, or the playoffs'. Null, a tie after regulation stands.
      */
-    private val overtime: Boolean = false,
+    private val overtime: Overtime? = null,
 ) {
 
     private val stats = StatBuilder()
@@ -145,7 +145,7 @@ class GameSimulator(
             if (state == before) break
         }
 
-        if (overtime) state = playOvertime(state, rng)
+        if (overtime != null) state = playOvertime(state, overtime, rng)
 
         return GameResult(
             home = home.id, away = away.id,
@@ -161,19 +161,20 @@ class GameSimulator(
     }
 
     /**
-     * Overtime as the NFL plays it in the playoffs (SPEC 5.10): fifteen-minute
-     * periods, each with a toss, a kickoff and two timeouts a side. Both clubs
-     * get the ball once; after that the next score wins. A period that ends
-     * level brings another, up to [MAX_OVERTIME_PERIODS] - past that the game
-     * ends level, and the playoff bracket settles it.
+     * Overtime under [rules] (SPEC 5.10): each period with a toss, a kickoff
+     * and two timeouts a side. Both clubs get the ball once; after that the
+     * next score wins. A period that runs out with the game decided - one
+     * club ahead, the other's answer cut short by the clock - ends it; one
+     * that runs out level brings another, up to the rules' limit, and past
+     * that the game ends level.
      */
-    private fun playOvertime(regulation: GameState, rng: Rng): GameState {
+    private fun playOvertime(regulation: GameState, rules: Overtime, rng: Rng): GameState {
         var state = regulation
         val hadTheBall = mutableSetOf<Side>()
-        while (state.isOver && state.homeScore == state.awayScore && state.periods < 4 + MAX_OVERTIME_PERIODS) {
+        while (state.isOver && state.homeScore == state.awayScore && state.periods < 4 + rules.maxPeriods) {
             val period = state.periods + 1
             val receiver = if (rng.nextBoolean()) Side.AWAY else Side.HOME
-            state = state.copy(periods = period, quarter = period, secondsLeft = GameState.QUARTER_SECONDS,
+            state = state.copy(periods = period, quarter = period, secondsLeft = rules.periodSeconds,
                 homeTimeouts = OVERTIME_TIMEOUTS, awayTimeouts = OVERTIME_TIMEOUTS)
             state = openWithKickoff(state, receiver, rng)
             while (!state.isOver) {
@@ -686,8 +687,5 @@ class GameSimulator(
     companion object {
         /** The rules, not a tuning: two timeouts a side in each overtime period. */
         const val OVERTIME_TIMEOUTS = 2
-
-        /** A safety valve, not a rule - the NFL plays on - so a stalemate cannot run forever. */
-        const val MAX_OVERTIME_PERIODS = 10
     }
 }
