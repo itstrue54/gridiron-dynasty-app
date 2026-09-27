@@ -16,6 +16,7 @@ object PlayCaller {
 
     fun offense(ctx: PlayContext, rng: Rng): OffensivePlayCall {
         val s = ctx.state
+        if (canKneelItOut(s, ctx.tuning.gameFlow.runPlayClockRunoff)) return OffensivePlayCall.Kneel()
         val plan = ctx.offPlan
         var passRate = (plan.passRate ?: ctx.offense.scheme.basePassRate) + ctx.tuning.gameFlow.passRateShift
 
@@ -38,6 +39,15 @@ object PlayCaller {
 
         return if (rng.nextFloat() < passRate) pass(ctx, rng) else run(ctx, rng)
     }
+
+    /**
+     * Victory formation: ahead in the fourth quarter, with no more clock left
+     * than the kneels before fourth down can run off. The defence has no way
+     * to stop it, so the game is over - and nothing a snap could do (a
+     * fumble, a score that runs the margin up) is worth the risk.
+     */
+    fun canKneelItOut(s: PlayState, kneelRunoff: Int): Boolean =
+        s.quarter == 4 && s.scoreDiff > 0 && s.secondsLeftInQuarter <= (4 - s.down) * kneelRunoff
 
     private fun run(ctx: PlayContext, rng: Rng): OffensivePlayCall.Run {
         val s = ctx.state
@@ -166,12 +176,20 @@ object PlayCaller {
         }
         if (s.yardsToGoal <= 12) boxAdd += 1
 
+        // Prevent: two scores up in the fourth quarter, a defence sits back.
+        // Deep zones, nobody sent, an extra back on anything but short
+        // yardage - it gives up the underneath yards and the late points
+        // rather than the big play. That trade is why leads shrink at the
+        // end of games (SPEC 5.4).
+        val prevent = s.quarter >= 4 && -s.scoreDiff >= ctx.tuning.gameFlow.preventLead
         return DefensivePlayCall(
-            front = front,
-            coverage = coverage,
-            extraRushers = extraRushers,
-            boxAdd = boxAdd,
+            front = if (prevent && s.distance >= 4 && s.yardsToGoal > 12) DefensiveFront.DIME_FOUR_ONE else front,
+            coverage = if (prevent) PREVENT_COVERAGES[rng.nextInt(PREVENT_COVERAGES.size)] else coverage,
+            extraRushers = if (prevent) 0 else extraRushers,
+            boxAdd = if (prevent) minOf(boxAdd, 0) else boxAdd,
             doubledTarget = if (rng.nextFloat() < (ctx.defPlan.doubleTeamRate ?: GamePlan.DOUBLE_TEAM_RATE)) 0 else null,
         )
     }
+
+    private val PREVENT_COVERAGES = listOf(Coverage.COVER_4, Coverage.COVER_3, Coverage.COVER_2_ZONE)
 }

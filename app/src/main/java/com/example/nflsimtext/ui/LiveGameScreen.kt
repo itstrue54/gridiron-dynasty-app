@@ -165,10 +165,15 @@ private fun FourthDownCall(ask: LiveGame.Ask.FourthDown, game: LiveGame) {
         FourthDownChoice.PUNT to "Punt",
         FourthDownChoice.FIELD_GOAL to "Kick the field goal",
     )
-    SituationBlock("Fourth down", meta = "Your call", situation = Situation.RED_ZONE) {
-        Text("Coordinator: ${label.getValue(ask.suggested).lowercase()}.", style = NdTheme.type.body, color = c.chalk)
+    // Before fourth down this is the last-second kick: the clock is nearly
+    // out and a field goal ties or wins it. Kick now, or play the down.
+    val early = ask.snap.state.down < 4
+    val choices = if (early) mapOf(FourthDownChoice.FIELD_GOAL to "Kick the field goal now",
+        FourthDownChoice.GO_FOR_IT to "Run a play") else label
+    SituationBlock(if (early) "Clock running out" else "Fourth down", meta = "Your call", situation = Situation.RED_ZONE) {
+        Text("Coordinator: ${choices.getValue(ask.suggested).lowercase()}.", style = NdTheme.type.body, color = c.chalk)
         Column(Modifier.padding(top = NdTheme.spacing.s), verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
-            label.forEach { (choice, text) ->
+            choices.forEach { (choice, text) ->
                 if (choice == ask.suggested) PrimaryButton(text, { game.answer(choice) }, Modifier.fillMaxWidth())
                 else SecondaryButton(text, { game.answer(choice) }, Modifier.fillMaxWidth())
             }
@@ -218,7 +223,8 @@ private fun Kickoff(ask: LiveGame.Ask.Kickoff, game: LiveGame, dynasty: Dynasty)
 private fun OffenseCall(ask: LiveGame.Ask.Offense, game: LiveGame, book: Playbook) {
     val c = NdTheme.colors
     val named = Playbooks.nameOf(book, ask.suggested)
-    var formation by remember(ask) { mutableStateOf(named?.first ?: book.formations.first()) }
+    // A clock call (kneel, spike) has its own row, not a formation of the book's.
+    var formation by remember(ask) { mutableStateOf(named?.first?.takeIf { it != Playbooks.CLOCK } ?: book.formations.first()) }
     val late = ask.snap.state.let { it.quarter >= 4 || (it.quarter == 2 && it.secondsLeft <= 120) }
     SituationBlock("Your call", meta = "Offense") {
         Text("Coordinator: " + (named?.let { "${it.first.name} - ${it.second.name}" } ?: "his own call"),

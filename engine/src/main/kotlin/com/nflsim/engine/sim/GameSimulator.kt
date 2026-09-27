@@ -230,9 +230,11 @@ class GameSimulator(
                 addTeam(offense) { it.copy(redZoneTrips = it.redZoneTrips + 1) }
             }
 
-            // Fourth down is a decision, not a play.
-            if (state.down == 4) {
-                val decision = fourthDown(state, offense, rng)
+            // Fourth down is a decision, not a play - and so is any down with
+            // the clock out and a kick that ties or wins (FourthDown.lastKick).
+            val kickNow = state.down < 4 && lastKick(state, offense)
+            if (state.down == 4 || kickNow) {
+                val decision = if (kickNow) lastKickCall(state, offense) else fourthDown(state, offense, rng)
                 when (decision) {
                     FourthDownChoice.PUNT -> {
                         val punting = teamFor(offense)
@@ -277,7 +279,7 @@ class GameSimulator(
                         break
                     }
                     FourthDownChoice.GO_FOR_IT -> {
-                        addTeam(offense) { it.copy(fourthDownAttempts = it.fourthDownAttempts + 1) }
+                        if (state.down == 4) addTeam(offense) { it.copy(fourthDownAttempts = it.fourthDownAttempts + 1) }
                     }
                 }
             }
@@ -667,6 +669,25 @@ class GameSimulator(
         return if (caller != null && offense == callerSide) {
             caller.fourthDown(Snap(state, offense, playByPlay.toList()), suggested)
         } else suggested
+    }
+
+    private fun lastKick(state: GameState, offense: Side): Boolean {
+        val t = teamFor(offense)
+        return FourthDown.lastKick(state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
+            home.team.stadium.altitudeFt, tuning.gameFlow.runPlayClockRunoff)
+    }
+
+    /**
+     * The coordinators kick; a user calling his offense is asked, as on
+     * fourth down. Before fourth down a punt is not on the table: anything
+     * but the kick plays the down.
+     */
+    private fun lastKickCall(state: GameState, offense: Side): FourthDownChoice {
+        if (caller == null || offense != callerSide) return FourthDownChoice.FIELD_GOAL
+        return when (caller.fourthDown(Snap(state, offense, playByPlay.toList()), FourthDownChoice.FIELD_GOAL)) {
+            FourthDownChoice.FIELD_GOAL -> FourthDownChoice.FIELD_GOAL
+            else -> FourthDownChoice.GO_FOR_IT
+        }
     }
 
     private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) home else away

@@ -2042,3 +2042,32 @@ a tie. Regular-season points, plays and close-game shares move slightly
 with it; the commit adding regular-season overtime lists the bands that
 moved. The old replay rule is kept only as a safety valve past ten playoff
 overtime periods.
+
+## ADR-0xx — Close games come from how coordinators finish them, not from the clock
+
+**Context.** Regular-season overtime moved "games decided by 3 or less" out
+of its band (0.17 against 0.18-0.26), because ties had been counting as
+close games. Measured over 8,000 games, the gap sat almost entirely at
+exactly three points: 8.5% of games against about 15% in the NFL. The
+margin with five minutes left was almost the same as the final margin, so
+the end of the game hardly moved results.
+
+**Decision.** Coordinators now finish games the way NFL coaches do: a
+leading offence kneels when it can run out the clock, a kick that ties or
+wins goes up on any down when the clock is out, a club within a field goal
+late kicks instead of going for it, and a defence two scores up in the
+fourth quarter plays prevent. Only the prevent threshold is a new tuning
+field (`gameFlow.preventLead`). The rest are rules, and take their timing
+from the existing clock tuning.
+
+Late-game clock management (the two-minute warning, a trailing offence's
+hurry-up, the trailing club's timeouts) was tried first and set aside. It
+added about three plays per team per game, pushing plays and yards out of
+their bands, and over 8,000 games moved the close-game share by nothing
+measurable (0.174 to 0.173). SPEC 5.10 still describes it as the target.
+
+**Consequences.** Close games are 0.21 over 2,000 games, and all 18 bands
+pass. Points per team rise from 21.3 to 21.8 and yards per attempt from
+7.31 to 7.37, both well inside their bands. The tuning table gained a
+field, so saves go to version 20 with nothing to migrate.
+

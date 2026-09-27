@@ -296,6 +296,8 @@ data class TuningTable(
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */
         val passRateShift: Float = -0.04f,
+        /** A defence this many points ahead in the fourth quarter plays prevent (PlayCaller.defense). */
+        val preventLead: Int = 9,
     )
 
     /** Kicking, punting and returns - SPEC 12's FG distance curve and return rates. */

@@ -48,6 +48,7 @@ object Migrations {
         // league and its American and Continental conferences - which is what
         // it always showed.
         Step(18, "the league and its conferences can be named (SPEC 9.4); nothing to move") { it },
+        Step(19, "the tuning table learned when a defence plays prevent (SPEC 5.4); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
