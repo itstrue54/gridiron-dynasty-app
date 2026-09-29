@@ -80,6 +80,11 @@ class GameSimulator(
     /** Who calls [callerSide]'s snaps; null leaves both clubs to their coordinators. */
     private val caller: SnapCaller? = null,
     private val callerSide: Side? = null,
+    /**
+     * The overtime a game level after four quarters goes to (SPEC 5.10): the
+     * regular season's, or the playoffs'. Null, a tie after regulation stands.
+     */
+    private val overtime: Overtime? = null,
 ) {
 
     private val stats = StatBuilder()
@@ -140,6 +145,8 @@ class GameSimulator(
             if (state == before) break
         }
 
+        if (overtime != null) state = playOvertime(state, overtime, rng)
+
         return GameResult(
             home = home.id, away = away.id,
             homeScore = state.homeScore, awayScore = state.awayScore,
@@ -152,6 +159,45 @@ class GameSimulator(
             snaps = snaps.toMap(),
         )
     }
+
+    /**
+     * Overtime under [rules] (SPEC 5.10): each period with a toss, a kickoff
+     * and two timeouts a side. Both clubs get the ball once; after that the
+     * next score wins. A period that runs out with the game decided - one
+     * club ahead, the other's answer cut short by the clock - ends it; one
+     * that runs out level brings another, up to the rules' limit, and past
+     * that the game ends level.
+     */
+    private fun playOvertime(regulation: GameState, rules: Overtime, rng: Rng): GameState {
+        var state = regulation
+        val hadTheBall = mutableSetOf<Side>()
+        while (state.isOver && state.homeScore == state.awayScore && state.periods < 4 + rules.maxPeriods) {
+            val period = state.periods + 1
+            val receiver = if (rng.nextBoolean()) Side.AWAY else Side.HOME
+            state = state.copy(periods = period, quarter = period, secondsLeft = rules.periodSeconds,
+                homeTimeouts = OVERTIME_TIMEOUTS, awayTimeouts = OVERTIME_TIMEOUTS)
+            state = openWithKickoff(state, receiver, rng)
+            while (!state.isOver) {
+                val before = state
+                val offense = state.possession
+                suddenDeath = hadTheBall.size == 2
+                state = simulateDrive(state, rng)
+                recover(tuning.fatigue.driveRecovery)
+                hadTheBall += offense
+                if (hadTheBall.size == 2 && state.homeScore != state.awayScore) {
+                    // Decided: the whistle goes now, whatever is left on the clock.
+                    state = state.copy(quarter = period + 1, secondsLeft = 0)
+                    break
+                }
+                if (state == before) break
+            }
+        }
+        suddenDeath = false
+        return state
+    }
+
+    /** Overtime once both clubs have had the ball: a touchdown ends it, with no try after. */
+    private var suddenDeath = false
 
     // ---------------------------------------------------------------
 
@@ -177,7 +223,7 @@ class GameSimulator(
         var reachedRedZone = false
 
         while (true) {
-            if (state.quarter > 4) { ending = DriveEnding.END_OF_GAME; break }
+            if (state.quarter > state.periods) { ending = DriveEnding.END_OF_GAME; break }
 
             if (!reachedRedZone && state.yardLine >= 80) {
                 reachedRedZone = true
@@ -251,7 +297,7 @@ class GameSimulator(
                 points += 6
                 state = addPoints(state, offense, 6)
                 val kicking = teamFor(offense)
-                if (SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
+                if (!suddenDeath && SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
                         kicking.offScheme, rng, st = tuning.specialTeams)) {
                     points += 1
                     state = addPoints(state, offense, 1)
@@ -280,7 +326,7 @@ class GameSimulator(
                 ending = DriveEnding.DOWNS
                 break
             }
-            if (state.quarter > 4) { ending = DriveEnding.END_OF_GAME; break }
+            if (state.quarter > state.periods) { ending = DriveEnding.END_OF_GAME; break }
             if (state.quarter == 3 && driveStartQuarter <= 2) { ending = DriveEnding.END_OF_HALF; break }
         }
 
@@ -602,9 +648,9 @@ class GameSimulator(
     private fun advanceClock(state: GameState, seconds: Int): GameState {
         var left = state.secondsLeft - seconds
         var quarter = state.quarter
-        while (left <= 0 && quarter <= 4) {
+        while (left <= 0 && quarter <= state.periods) {
             quarter++
-            if (quarter <= 4) left += GameState.QUARTER_SECONDS else left = 0
+            if (quarter <= state.periods) left += GameState.QUARTER_SECONDS else left = 0
         }
         return state.copy(quarter = quarter, secondsLeft = left.coerceAtLeast(0))
     }
@@ -636,5 +682,10 @@ class GameSimulator(
             down = state.down, distance = state.distance, yardLine = state.yardLine,
             homeScore = state.homeScore, awayScore = state.awayScore, text = text,
         )
+    }
+
+    companion object {
+        /** The rules, not a tuning: two timeouts a side in each overtime period. */
+        const val OVERTIME_TIMEOUTS = 2
     }
 }

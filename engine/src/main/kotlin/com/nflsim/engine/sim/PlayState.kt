@@ -20,7 +20,8 @@ data class PlayState(
     val yardsToGoal: Int get() = 100 - yardLine
     val inRedZone: Boolean get() = yardsToGoal <= 20
     val goalToGo: Boolean get() = distance >= yardsToGoal
-    val twoMinuteDrill: Boolean get() = quarter in setOf(2, 4) && secondsLeftInQuarter <= 120
+    /** The end of a half, or of the game - overtime included. */
+    val twoMinuteDrill: Boolean get() = (quarter == 2 || quarter >= 4) && secondsLeftInQuarter <= 120
 
     init {
         require(down in 1..4) { "down was $down" }

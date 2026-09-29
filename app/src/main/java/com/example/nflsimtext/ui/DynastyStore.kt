@@ -215,9 +215,10 @@ class DynastyStore(private val saveDir: File) {
         private set
 
     /**
-     * The week with the user calling his own game. It runs on a worker that
-     * waits at each of his snaps, so the screen stays his; the rest of the
-     * league plays as ever. Saved like any week once his game is over.
+     * The week with the user calling his own game, or the postseason with
+     * him calling each of his playoff games. It runs on a worker that waits
+     * at each of his snaps, so the screen stays his; the rest of the league
+     * plays as ever. Saved like any week once his games are over.
      */
     suspend fun playLive() {
         val current = dynasty ?: return

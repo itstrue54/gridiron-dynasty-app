@@ -438,7 +438,10 @@ data class Tendencies(
 
 **Adaptation.** Each game, both coordinators track the opponent's realized tendencies and shift within a bounded window (±0.12) based on the HC's `adjustments` rating. A predictable coordinator gets punished. This is where your CFB slider-tuning instincts translate directly.
 
-**User control.** You set your coordinators' `Tendencies` sliders in the game plan screen, plus a per-opponent weekly game plan (§10.4). That is the strategic layer. And you may call your own game: "Call the plays" on the hub plays the week with the user's regular-season game stopping at each of his snaps (`SnapCaller`). On offence he takes the coordinator's call or makes his own - a formation, then a play from it - and on fourth down chooses go, punt or kick first; on defence a front, then a coverage or pressure. Either side can go back to its coordinator at any snap, and "Let the coordinators finish the game" hands over the rest. The coordinators always call first, from the game's own stream, so a game whose every suggestion is taken plays exactly as a simmed one; a call of the user's own changes his game and nobody else's. The playoffs are simmed for now: they replay a tied game from scratch, which a called game cannot.
+**User control.** You set your coordinators' `Tendencies` sliders in the game plan screen, plus a per-opponent weekly game plan (§10.4). That is the strategic layer. And you may call your own game: "Call the plays" on the hub plays the week with the user's regular-season game stopping at each of his snaps (`SnapCaller`). On offence he takes the coordinator's call or makes his own - a formation, then a play from it - and on fourth down chooses go, punt or kick first; on defence a front, then a coverage or pressure. Either side can go back to its coordinator at any snap, and "Let the coordinators finish the game" hands over the rest. The coordinators always call first, from the game's own stream, so a game whose every suggestion is taken plays exactly as a simmed one; a call of the user's own changes his game and nobody else's. In the postseason the same button calls each of the club's playoff games in turn:
+- Each game opens on a kickoff card showing the game just finished and the one about to start. The user can kick it off, let the coordinators play that one, or let them play the rest of the postseason.
+- A tied game goes to overtime (§5.10), and the user keeps calling it.
+- When the postseason is over, it opens the box score of the club's last game.
 
 **Playbooks.** Every scheme has a book in `playbooks/<scheme id>.json` (§8 data rule): an offence's by formation - a personnel group - and a defence's by front, 58 to 103 plays each. Every play is an exact engine call: a run or pass concept with play-action, protection and target, or a coverage with extra rushers, box and bracket. The books have their scheme's shape (Air Raid in shotgun and empty sets, Gap/Power and Run-Heavy Pro in I and jumbo sets, Spread Option with the read keeper, each defence with its own pressures), and every call a coordinator can make is in his book, so a suggestion always has a name ("Singleback Bunch - Mesh").
 
@@ -531,6 +534,16 @@ show - are the two together.
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
+- Overtime follows the NFL's rules from 2025 on (`Overtime`, passed to each game):
+  - Every overtime period opens with a toss, a kickoff and two timeouts a side.
+  - Both clubs get the ball once. After that, the next score wins, and a sudden-death touchdown has no try after it.
+  - A period that runs out with one club ahead ends the game, even if the other club's answering drive is cut short.
+  - The two-minute drill runs at the end of an overtime period as it does at the end of the fourth quarter.
+  - `GameState.periods` counts the four quarters and each overtime period. Overtime is played only after regulation and draws from the game's stream only then, so a game decided in four quarters plays exactly as it did before overtime existed.
+- The regular season plays one ten-minute period. A game still level when it runs out is a tie.
+- The playoffs play fifteen-minute periods until somebody wins:
+  - Unlike the NFL, each period opens with its own toss and kickoff rather than carrying on from the spot.
+  - Past ten periods, a safety valve, the bracket's old rule settles the game: the coordinators replay it, up to three times, and then the home club wins by three.
 - Weather generated per game from stadium + month + a regional climate table. Dome = neutral. Affects deep passing, kicking, and fumble rate.
 
 ### 5.11 Determinism **[LOCKED]**
@@ -1172,7 +1185,8 @@ turnover by reading the line.
   finished game to an `onGame` listener that cannot change the week, and
   the busy overlay shows a bar and "Game 5 of 16", then "Finishing the
   week" while the news and the save are written. The playoffs and the
-  offseason, which the engine runs as single steps, still show a spinner.
+  offseason, which the engine runs as single steps, still show a spinner,
+  unless the user is calling his playoff games.
   On the test phone a week takes about 1.8 s from the tap.
 - Export a season as CSV/Markdown (people who play these games want to post about them).
   Built: the Standings screen shares the season so far and History any

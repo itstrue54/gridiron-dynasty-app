@@ -1,0 +1,94 @@
+package com.nflsim.engine.sim
+
+import com.nflsim.engine.gen.LeagueGenerator
+import com.nflsim.engine.rng.SplitMixRng
+import com.nflsim.engine.season.WeekRunner
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/** SPEC 5.10: a game level after four quarters goes to overtime - the regular season's, or the playoffs'. */
+class OvertimeTest {
+
+    @Test
+    fun `a game decided in four quarters plays exactly as it would without overtime`() {
+        games.filterNot { it.none.isTie }.forEach { g ->
+            assertEquals(g.none, g.regular)
+            assertEquals(g.none, g.playoffs)
+        }
+    }
+
+    @Test
+    fun `overtime comes after regulation, and regulation is the same game`() {
+        assertTrue(level.size >= 3, "only ${level.size} ties in $GAMES games: play more")
+        level.forEach { g ->
+            listOf(g.regular, g.playoffs).forEach { ot ->
+                assertEquals(g.none.playByPlay, ot.playByPlay.takeWhile { it.quarter <= 4 })
+                assertEquals(g.none.drives, ot.drives.takeWhile { it.startQuarter <= 4 })
+                assertTrue(ot.playByPlay.any { it.quarter >= 5 }, "it went to overtime")
+            }
+        }
+    }
+
+    @Test
+    fun `a playoff game is decided in overtime`() {
+        level.forEach { g -> assertTrue(!g.playoffs.isTie, "still level: ${g.playoffs.homeScore}-${g.playoffs.awayScore}") }
+    }
+
+    @Test
+    fun `the regular season plays one ten-minute period, and a game still level after it is a tie`() {
+        level.forEach { g ->
+            val ot = g.regular.playByPlay.filter { it.quarter >= 5 }
+            assertTrue(ot.all { it.quarter == 5 }, "one period only")
+            assertTrue(ot.all { it.clock <= Overtime.REGULAR_SEASON.periodSeconds }, "ten minutes, not fifteen")
+            // A tie only once the period has run out - the last drive took the
+            // clock to zero, if it tied the game with the last snap.
+            if (g.regular.isTie) g.regular.drives.last().let { d ->
+                assertTrue(d.startQuarter == 5 && d.seconds >= d.startClock, "the period had time left: $d")
+            }
+        }
+    }
+
+    @Test
+    fun `both clubs get the ball, then the next score wins`() {
+        level.flatMap { listOf(it.regular, it.playoffs) }.forEach { game ->
+            val ot = game.drives.filter { it.startQuarter >= 5 }
+            // A first-possession touchdown does not end it: the other club answers.
+            if (ot.first().ending == DriveEnding.TOUCHDOWN) {
+                assertTrue(ot.size >= 2 && ot[1].offense != ot[0].offense, "$ot")
+            }
+            // Once both have had it, the game ends on the first score - and a
+            // touchdown then is the end, with no try after it.
+            val firstBoth = ot.indexOfFirst { d -> d.offense != ot.first().offense }
+            if (firstBoth < 0) return@forEach
+            val after = ot.drop(firstBoth + 1)
+            after.dropLast(1).forEach { assertTrue(!it.isScore, "the game went on after a sudden-death score: $ot") }
+            val last = ot.last()
+            if (last in after && last.ending == DriveEnding.TOUCHDOWN) assertEquals(6, last.points, "$ot")
+        }
+    }
+
+    /** One game played three ways, from the same stream. */
+    private data class Three(val none: GameResult, val regular: GameResult, val playoffs: GameResult)
+
+    private companion object {
+        const val GAMES = 800
+
+        // Played once for the class, not once a test.
+        private val league = LeagueGenerator.generate(2026, 12L)
+        private val teams = WeekRunner.teams(league, league.tuning).values.toList()
+
+        private val games: List<Three> by lazy {
+            (0 until GAMES).map { i ->
+                val home = teams[i % teams.size]
+                val away = teams[(i * 7 + 3) % teams.size].takeIf { it != home } ?: teams[(i + 1) % teams.size]
+                fun play(overtime: Overtime?) =
+                    GameSimulator(home, away, league.tuning, overtime = overtime).simulate(SplitMixRng(i.toLong()).split("ot-test"))
+                Three(play(null), play(Overtime.REGULAR_SEASON), play(Overtime.PLAYOFFS))
+            }
+        }
+
+        /** The games level after four quarters. */
+        private val level by lazy { games.filter { it.none.isTie } }
+    }
+}

@@ -109,7 +109,8 @@ object GameCalibration {
             var a = rng.nextInt(teams.size)
             if (a == h) a = (a + 1) % teams.size
 
-            val result = GameSimulator(teams[h], teams[a], tuning)
+            // Measured as the regular season plays: a tie goes to its overtime.
+            val result = GameSimulator(teams[h], teams[a], tuning, overtime = Overtime.REGULAR_SEASON)
                 .simulate(rng.split("game=$it"))
 
             played++

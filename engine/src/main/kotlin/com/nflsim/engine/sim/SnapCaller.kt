@@ -20,6 +20,17 @@ interface SnapCaller {
 
     /** Fourth down: go for it, punt or kick. */
     fun fourthDown(snap: Snap, suggested: FourthDownChoice): FourthDownChoice = suggested
+
+    /**
+     * A playoff game this caller speaks in is about to kick off (SPEC 5.4):
+     * [title] names it ("AFC championship"). It may wait here while the user
+     * gets ready. A regular-season game, the only one of its week, does not
+     * call it.
+     */
+    fun kickoff(title: String, home: com.nflsim.engine.model.TeamId, away: com.nflsim.engine.model.TeamId) {}
+
+    /** That playoff game is over. */
+    fun final(homeScore: Int, awayScore: Int) {}
 }
 
 /** A snap as the caller sees it: the game as it stands, and every play so far. */

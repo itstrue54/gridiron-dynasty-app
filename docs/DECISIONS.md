@@ -2020,3 +2020,33 @@ defensive scheme, his new club's offense would be a defense. Giving head
 coaches a side is an engine and save-format change, left for when it's
 wanted.
 
+## ADR-0xx — Tied games go to overtime: the playoffs' rules and the regular season's
+
+**Context.** The engine had no overtime. A playoff game that ended level
+was replayed from kickoff, up to three times, and then went to the home
+club by three. A simmed game could live with that, but a game the user had
+just called could not: its result would be a different game.
+
+**Decision.** Playoff games (`GameSimulator(overtime = Overtime.PLAYOFFS)`) play
+overtime under the NFL's postseason rules: fifteen-minute periods, both
+clubs get the ball once, then sudden death. Overtime runs only after
+regulation and only then draws from the game's stream, so no game decided
+in four quarters changes. The period length and timeouts are the rules,
+not tuning, so they are constants rather than `TuningTable` fields. Each
+overtime period opens with its own toss and kickoff. The NFL carries play
+over from the first period to the second, but tracking that would need a
+change of ends that nothing else in the sim models.
+
+The regular season plays the NFL's overtime too: one ten-minute period
+under the same possession rules (the NFL adopted them for the regular
+season in 2025), and a tie if it is still level. The two rule sets are the
+`Overtime` enum rather than a flag, and the calibration harness plays
+regular-season overtime so the bands measure the games the league plays.
+
+**Consequences.** A game decided in four quarters is unchanged. A game
+level after four quarters is now settled in overtime: in the playoffs
+instead of by a replay, and in the regular season it is usually no longer
+a tie. Regular-season points, plays and close-game shares move slightly
+with it; the commit adding regular-season overtime lists the bands that
+moved. The old replay rule is kept only as a safety valve past ten playoff
+overtime periods.

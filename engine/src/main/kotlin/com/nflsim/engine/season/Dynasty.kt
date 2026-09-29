@@ -121,16 +121,16 @@ object DynastyEngine {
         tuning: TuningTable = dynasty.league.tuning,
         onGame: (done: Int, total: Int) -> Unit = { _, _ -> },
         /**
-         * Calls the user's club's snaps in its regular-season game (SPEC
-         * 5.4); null leaves them to its coordinators. It may block while the
-         * user decides.
+         * Calls the user's club's snaps in its regular-season game, or in
+         * each of its playoff games (SPEC 5.4); null leaves them to its
+         * coordinators. It may block while the user decides.
          */
         caller: com.nflsim.engine.sim.SnapCaller? = null,
     ): Dynasty =
         when (dynasty.phase) {
             DynastyPhase.PRESEASON -> dynasty.copy(phase = DynastyPhase.REGULAR_SEASON)
             DynastyPhase.REGULAR_SEASON -> advanceWeek(dynasty, tuning, onGame, caller)
-            DynastyPhase.PLAYOFFS -> runPlayoffs(dynasty, tuning)
+            DynastyPhase.PLAYOFFS -> runPlayoffs(dynasty, tuning, caller)
             DynastyPhase.OFFSEASON -> rollOver(dynasty)
         }
 
@@ -182,7 +182,8 @@ object DynastyEngine {
             val side = if (matchup.home == dynasty.userTeamId) com.nflsim.engine.sim.Side.HOME else com.nflsim.engine.sim.Side.AWAY
             val g = GameSimulator(
                 teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
-                caller = if (mine) caller else null, callerSide = if (mine) side else null).simulate(rng)
+                caller = if (mine) caller else null, callerSide = if (mine) side else null,
+                overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON).simulate(rng)
             outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
             stats = merge(stats, g.boxScore.players)
             if (matchup.involves(dynasty.userTeamId)) userGame = g
@@ -260,11 +261,11 @@ object DynastyEngine {
         )
     }
 
-    private fun runPlayoffs(dynasty: Dynasty, tuning: TuningTable): Dynasty {
+    private fun runPlayoffs(dynasty: Dynasty, tuning: TuningTable, caller: com.nflsim.engine.sim.SnapCaller?): Dynasty {
         // The bracket from the season actually played, with the league as it
         // stands after it: injuries, wear and anything changed mid-season.
         val full = SeasonSimulator(dynasty.league, dynasty.year, dynasty.seed, tuning)
-            .postseason(dynasty.results, dynasty.playerStats, dynasty.league)
+            .postseason(dynasty.results, dynasty.playerStats, dynasty.league, caller, dynasty.userTeamId)
         val archive = full.playoffs.mapNotNull { p ->
             p.box?.let { box ->
                 com.nflsim.engine.model.ArchivedGame.of(

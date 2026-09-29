@@ -94,7 +94,8 @@ class SeasonSimulator(
             val played = mutableListOf<com.nflsim.engine.sim.GameResult>()
             schedule.week(week).forEach { matchup ->
                 val rng = root.split("y=$year|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
-                val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning)
+                val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
+                    overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON)
                     .simulate(rng)
                 outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
                 stats = merge(stats, g.boxScore.players)
@@ -106,9 +107,30 @@ class SeasonSimulator(
         return finish(outcomes, stats, current, root).copy(injuries = injuries)
     }
 
-    /** The postseason from a regular season already played, with the league as it stands after it. */
-    fun postseason(outcomes: List<GameOutcome>, stats: Map<Int, StatLine>, current: League): SeasonResult =
-        finish(outcomes, stats, current, SplitMixRng(seed))
+    /**
+     * The postseason from a regular season already played, with the league as
+     * it stands after it. [caller] calls [callerTeam]'s snaps in each of its
+     * playoff games (SPEC 5.4); null leaves them to its coordinators.
+     */
+    fun postseason(
+        outcomes: List<GameOutcome>,
+        stats: Map<Int, StatLine>,
+        current: League,
+        caller: com.nflsim.engine.sim.SnapCaller? = null,
+        callerTeam: TeamId? = null,
+    ): SeasonResult {
+        this.caller = caller
+        this.callerTeam = callerTeam
+        try {
+            return finish(outcomes, stats, current, SplitMixRng(seed))
+        } finally {
+            this.caller = null
+            this.callerTeam = null
+        }
+    }
+
+    private var caller: com.nflsim.engine.sim.SnapCaller? = null
+    private var callerTeam: TeamId? = null
 
     private fun finish(outcomes: List<GameOutcome>, stats: Map<Int, StatLine>, current: League, root: Rng): SeasonResult {
         gameTeams = WeekRunner.teams(current, tuning)
@@ -189,7 +211,10 @@ class SeasonSimulator(
         return championship.winner
     }
 
-    /** Playoff games cannot end level, so a tie replays until it does not. */
+    /**
+     * Playoff games cannot end level: a tie goes to overtime (SPEC 5.10), and
+     * the rare one overtime cannot settle replays until it does not.
+     */
     private fun playGame(
         round: PlayoffRound,
         conference: Conference?,
@@ -200,13 +225,21 @@ class SeasonSimulator(
         rng: Rng,
         collect: (Map<Int, StatLine>) -> Unit,
     ): PlayoffGame {
+        // The user's game, if he is calling it. Overtime all but settles a
+        // game; the rare one it cannot, the coordinators replay.
+        val calling = caller?.takeIf { callerTeam == home || callerTeam == away }
+        val side = if (callerTeam == home) com.nflsim.engine.sim.Side.HOME else com.nflsim.engine.sim.Side.AWAY
+        calling?.kickoff(title(round, conference), home, away)
         var attempt = 0
         while (true) {
-            val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning)
+            val live = calling?.takeIf { attempt == 0 }
+            val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning,
+                caller = live, callerSide = live?.let { side }, overtime = com.nflsim.engine.sim.Overtime.PLAYOFFS)
                 .simulate(rng.split("ot=$attempt"))
             collect(g.boxScore.players)
             if (g.homeScore != g.awayScore || attempt >= MAX_OVERTIME) {
                 val homeScore = if (g.homeScore == g.awayScore) g.homeScore + 3 else g.homeScore
+                calling?.final(homeScore, g.awayScore)
                 return PlayoffGame(round, conference, home, away, homeSeed, awaySeed,
                     homeScore, g.awayScore, box = g.boxScore, plays = g.playByPlay)
             }
@@ -219,6 +252,14 @@ class SeasonSimulator(
         val out = a.toMutableMap()
         b.forEach { (id, line) -> out[id] = (out[id] ?: StatLine()) + line }
         return out
+    }
+
+    /** "Wild card round", "AFC championship", or the league's name for its title game. */
+    private fun title(round: PlayoffRound, conference: Conference?): String = when (round) {
+        PlayoffRound.WILD_CARD -> "Wild card round"
+        PlayoffRound.DIVISIONAL -> "Divisional round"
+        PlayoffRound.CONFERENCE -> "${league.names.conference(conference ?: Conference.entries.first())} championship"
+        PlayoffRound.FINAL -> league.names.championship.ifBlank { "The championship" }
     }
 
     private companion object {

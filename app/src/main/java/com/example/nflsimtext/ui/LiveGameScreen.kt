@@ -64,10 +64,16 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
     val ask = game.ask
     val snap = ask?.snap ?: game.last
     val state = snap?.state
-    val home = dynasty.league.team(dynasty.schedule.week(dynasty.week)
-        .first { it.involves(dynasty.userTeamId) }.home)
-    val away = dynasty.league.team(dynasty.schedule.week(dynasty.week)
-        .first { it.involves(dynasty.userTeamId) }.away)
+    // A playoff game says who is in it; a regular-season one is the week's.
+    val (homeId, awayId) = game.matchup ?: dynasty.schedule.week(dynasty.week)
+        .first { it.involves(dynasty.userTeamId) }.let { it.home to it.away }
+    val home = dynasty.league.team(homeId)
+    val away = dynasty.league.team(awayId)
+
+    if (ask is LiveGame.Ask.Kickoff) {
+        Kickoff(ask, game, dynasty)
+        return
+    }
 
     ScreenList {
         item {
@@ -78,6 +84,9 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
                 clock = state?.let { "%d:%02d".format(it.secondsLeft / 60, it.secondsLeft % 60) } ?: "15:00",
                 possession = state?.let { if (it.possession == EngineSide.HOME) BoardSide.HOME else BoardSide.AWAY },
             )
+        }
+        game.title?.let { title ->
+            item { Text(title, style = NdTheme.type.label, color = c.chalkDim) }
         }
         if (state != null) {
             val offense = if (state.possession == EngineSide.HOME) home else away
@@ -112,6 +121,7 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
                 is LiveGame.Ask.FourthDown -> FourthDownCall(ask, game)
                 is LiveGame.Ask.Offense -> OffenseCall(ask, game, game.offense)
                 is LiveGame.Ask.Defense -> DefenseCall(ask, game, game.defense)
+                is LiveGame.Ask.Kickoff -> Unit
             }
         }
 
@@ -161,6 +171,43 @@ private fun FourthDownCall(ask: LiveGame.Ask.FourthDown, game: LiveGame) {
             label.forEach { (choice, text) ->
                 if (choice == ask.suggested) PrimaryButton(text, { game.answer(choice) }, Modifier.fillMaxWidth())
                 else SecondaryButton(text, { game.answer(choice) }, Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+/**
+ * Before each of his playoff games: the one just finished, if there was one,
+ * and the one about to start - his to call, or the coordinators'.
+ */
+@Composable
+private fun Kickoff(ask: LiveGame.Ask.Kickoff, game: LiveGame, dynasty: Dynasty) {
+    val c = NdTheme.colors
+    val home = dynasty.league.team(ask.home)
+    val away = dynasty.league.team(ask.away)
+    ScreenList {
+        game.previous?.let { f ->
+            item {
+                val us = dynasty.userTeamId
+                val mine = if (f.home == us) f.homeScore else f.awayScore
+                val theirs = if (f.home == us) f.awayScore else f.homeScore
+                val them = dynasty.league.team(if (f.home == us) f.away else f.home)
+                SituationBlock(f.title, meta = "Final") {
+                    Text(
+                        "${if (mine > theirs) "Beat" else "Lost to"} ${them.name}, $mine–$theirs.",
+                        style = NdTheme.type.body, color = c.chalk,
+                    )
+                }
+            }
+        }
+        item {
+            SituationBlock(ask.title, meta = "Up next", situation = Situation.TWO_MINUTE) {
+                Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
+                    Text("${away.name} at ${home.name}", style = NdTheme.type.title, color = c.chalk)
+                    PrimaryButton("Kick off", { game.kickOff(true) }, Modifier.fillMaxWidth())
+                    SecondaryButton("Let the coordinators play this one", { game.kickOff(false) }, Modifier.fillMaxWidth())
+                    SecondaryButton("Let them play the rest of the postseason", { game.finishPostseason() }, Modifier.fillMaxWidth())
+                }
             }
         }
     }
