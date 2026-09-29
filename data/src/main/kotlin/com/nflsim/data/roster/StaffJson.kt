@@ -41,13 +41,8 @@ object StaffJson {
     )
 
     data class StaffSpec(
+        /** His scheme may be from either side of the ball. */
         val headCoach: CoachSpec? = null,
-        /**
-         * A defensive scheme the file gave the head coach. The game's head
-         * coaches carry the offense (the carousel builds a hire's offense on
-         * his scheme), so this one goes to the club's defense instead.
-         */
-        val headCoachDefense: String? = null,
         val offCoordinator: CoachSpec? = null,
         val defCoordinator: CoachSpec? = null,
         val stCoordinator: CoachSpec? = null,
@@ -109,12 +104,9 @@ object StaffJson {
             val side = if (group in OFFENSIVE_GROUPS) SchemeSide.OFFENSE else SchemeSide.DEFENSE
             coach(v, "$where $k coach", side, problems)?.let { byGroup[group] = it }
         }
-        // A head coach may come from either side of the ball.
-        val head = one("headCoach", "head", "hc", side = null)
-        val headDefense = head?.scheme?.takeIf { SchemeCatalog[it].side == SchemeSide.DEFENSE }
         return StaffSpec(
-            headCoach = if (headDefense == null) head else head.copy(scheme = null),
-            headCoachDefense = headDefense,
+            // A head coach may come from either side of the ball.
+            headCoach = one("headCoach", "head", "hc", side = null),
             offCoordinator = one("offensiveCoordinator", "oc", side = SchemeSide.OFFENSE),
             defCoordinator = one("defensiveCoordinator", "dc", side = SchemeSide.DEFENSE),
             stCoordinator = one("specialTeamsCoordinator", "stc", side = SchemeSide.OFFENSE),
