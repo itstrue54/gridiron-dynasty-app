@@ -64,9 +64,17 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
     val ask = game.ask
     val snap = ask?.snap ?: game.last
     val state = snap?.state
-    // A playoff game says who is in it; a regular-season one is the week's.
+    // A playoff game says who is in it when it kicks off; a regular-season
+    // one is the week's. Before the first playoff kickoff - the rest of the
+    // bracket playing ahead of his game - there is nothing to show yet.
     val (homeId, awayId) = game.matchup ?: dynasty.schedule.week(dynasty.week)
-        .first { it.involves(dynasty.userTeamId) }.let { it.home to it.away }
+        .firstOrNull { it.involves(dynasty.userTeamId) }?.let { it.home to it.away }
+        ?: run {
+            Column(Modifier.padding(NdTheme.spacing.xl)) {
+                Text("The rest of the bracket is playing. Your game is next.", style = NdTheme.type.body, color = c.chalkDim)
+            }
+            return
+        }
     val home = dynasty.league.team(homeId)
     val away = dynasty.league.team(awayId)
 
