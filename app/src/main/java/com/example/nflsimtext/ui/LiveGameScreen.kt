@@ -146,6 +146,17 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
                         Chip("Defense: you", game.callDefense, role = Role.RadioButton) { game.callDefense = true }
                         Chip("Defense: coordinator", !game.callDefense, role = Role.RadioButton) { game.handOff(false) }
                     }
+                    // His own timeouts: armed ahead, taken when the next snap
+                    // leaves the clock running (SPEC 5.10).
+                    val left = snap?.let { it.state.timeoutsFor(it.side) } ?: 0
+                    if (left > 0 || game.timeoutArmed) {
+                        Chip(
+                            if (game.timeoutArmed) "Timeout after this play: called"
+                            else "Timeout after this play ($left left)",
+                            game.timeoutArmed,
+                            role = Role.Checkbox,
+                        ) { game.timeoutArmed = !game.timeoutArmed }
+                    }
                     SecondaryButton("Let the coordinators finish the game", { game.finish() }, Modifier.fillMaxWidth())
                 }
             }

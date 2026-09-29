@@ -18,20 +18,25 @@ object ClockManagement {
     /** The two-minute warning: a rule, not a tuning. */
     const val TWO_MINUTE_WARNING = 120
 
-    fun after(before: GameState, offense: Side, result: PlayResult, flow: TuningTable.GameFlow): Decision {
-        var runoff = result.clockRunoff
+    /**
+     * What a snap takes off the clock, and whose timeout stops it. [choice],
+     * a side and whether it calls one, overrides the coordinators' call for
+     * that side: the user calling his own game (SnapCaller.timeout).
+     */
+    fun after(
+        before: GameState,
+        offense: Side,
+        result: PlayResult,
+        flow: TuningTable.GameFlow,
+        choice: Pair<Side, Boolean>? = null,
+    ): Decision {
+        var runoff = running(before, offense, result, flow)
         var timeout: Side? = null
         // A kneel runs the clock like any snap; a spike and an incompletion stop it.
         val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
-        val endOfHalf = before.quarter == 2 && before.secondsLeft <= TWO_MINUTE_WARNING
         val lateInGame = before.quarter >= 4
-        fun warningStops(r: Int) = (before.quarter == 2 || before.quarter == 4) &&
-            before.secondsLeft > TWO_MINUTE_WARNING && before.secondsLeft - r < TWO_MINUTE_WARNING
+        fun warningStops(r: Int) = warningStops(before, r)
 
-        if (clockRuns && endOfHalf && result.outcome != PlayOutcome.KNEEL) {
-            // The two-minute drill before the half: whoever has the ball hurries.
-            runoff = minOf(runoff, flow.hurryUpRunoff)
-        }
         if (clockRuns && lateInGame) {
             val lead = before.scoreFor(offense) - before.scoreFor(offense.other())
             // Who is chasing: the club behind, or with the game level and the
@@ -42,25 +47,55 @@ object ClockManagement {
                 before.secondsLeft <= TWO_MINUTE_WARNING -> offense
                 else -> null
             }
-            if (chasing == offense && before.secondsLeft <= flow.hurryUpSeconds) {
-                runoff = minOf(runoff, flow.hurryUpRunoff)
-            }
             if (chasing != null && kotlin.math.abs(lead) <= flow.timeoutMaxDeficit &&
-                before.secondsLeft <= flow.timeoutSeconds && before.timeoutsFor(chasing) > 0 &&
-                runoff > flow.playSeconds &&
-                // Nor on one that runs the clock out whatever anybody does.
-                before.secondsLeft > flow.playSeconds &&
-                // Nobody spends one on a snap the two-minute warning stops anyway.
-                !warningStops(runoff)
+                before.secondsLeft <= flow.timeoutSeconds && canStop(before, chasing, offense, result, flow)
             ) {
-                runoff = flow.playSeconds
                 timeout = chasing
             }
         }
+        // His own call, for his own side.
+        if (choice != null) {
+            val (side, call) = choice
+            if (call && canStop(before, side, offense, result, flow)) timeout = side
+            else if (!call && timeout == side) timeout = null
+        }
+        if (timeout != null) runoff = flow.playSeconds
         // The clock stops at the two-minute warning, whatever the play was.
         if (warningStops(runoff)) {
             runoff = maxOf(before.secondsLeft - TWO_MINUTE_WARNING, minOf(runoff, flow.playSeconds))
         }
         return Decision(runoff, timeout)
     }
+
+    /**
+     * Whether [side] can stop the clock after this snap to any purpose: the
+     * clock would run, it has a timeout, and stopping saves time - not on a
+     * snap that ends the half anyway, nor one the two-minute warning stops.
+     */
+    fun canStop(before: GameState, side: Side, offense: Side, result: PlayResult, flow: TuningTable.GameFlow): Boolean {
+        val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
+        val r = running(before, offense, result, flow)
+        return clockRuns && before.timeoutsFor(side) > 0 && r > flow.playSeconds &&
+            before.secondsLeft > flow.playSeconds && !warningStops(before, r)
+    }
+
+    /** What the snap takes with nobody calling time: the hurry-up applied, before any timeout. */
+    private fun running(before: GameState, offense: Side, result: PlayResult, flow: TuningTable.GameFlow): Int {
+        var runoff = result.clockRunoff
+        val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
+        if (!clockRuns) return runoff
+        if (before.quarter == 2 && before.secondsLeft <= TWO_MINUTE_WARNING && result.outcome != PlayOutcome.KNEEL) {
+            // The two-minute drill before the half: whoever has the ball hurries.
+            runoff = minOf(runoff, flow.hurryUpRunoff)
+        }
+        if (before.quarter >= 4) {
+            val lead = before.scoreFor(offense) - before.scoreFor(offense.other())
+            val chasingWithBall = lead < 0 || (lead == 0 && before.secondsLeft <= TWO_MINUTE_WARNING)
+            if (chasingWithBall && before.secondsLeft <= flow.hurryUpSeconds) runoff = minOf(runoff, flow.hurryUpRunoff)
+        }
+        return runoff
+    }
+
+    private fun warningStops(before: GameState, r: Int) = (before.quarter == 2 || before.quarter == 4) &&
+        before.secondsLeft > TWO_MINUTE_WARNING && before.secondsLeft - r < TWO_MINUTE_WARNING
 }

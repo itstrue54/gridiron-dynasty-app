@@ -22,6 +22,14 @@ interface SnapCaller {
     fun fourthDown(snap: Snap, suggested: FourthDownChoice): FourthDownChoice = suggested
 
     /**
+     * After a snap that leaves the clock running, with a timeout left that
+     * would save time: stop the clock? [suggested] is whether the
+     * coordinators would; [snap] is the game as the snap began, its play in
+     * the log (SPEC 5.10).
+     */
+    fun timeout(snap: Snap, suggested: Boolean): Boolean = suggested
+
+    /**
      * A playoff game this caller speaks in is about to kick off (SPEC 5.4):
      * [title] names it ("AFC championship"). It may wait here while the user
      * gets ready. A regular-season game, the only one of its week, does not

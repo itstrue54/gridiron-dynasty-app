@@ -41,6 +41,13 @@ class LiveGame(val offense: Playbook, val defense: Playbook) : SnapCaller {
     var ask by mutableStateOf<Ask?>(null)
         private set
 
+    /**
+     * A timeout called ahead: taken after the next snap that leaves the
+     * clock running, then cleared. Left alone, his timeouts are the
+     * coordinators' to spend, as they would.
+     */
+    var timeoutArmed by mutableStateOf(false)
+
     /** Whether the user calls this side; off, the coordinator does and nothing waits. */
     var callOffense by mutableStateOf(true)
     var callDefense by mutableStateOf(true)
@@ -81,6 +88,12 @@ class LiveGame(val offense: Playbook, val defense: Playbook) : SnapCaller {
         return if (!callDefense) suggested else wait(Ask.Defense(snap, suggested)) as DefensivePlayCall
     }
 
+    override fun timeout(snap: Snap, suggested: Boolean): Boolean {
+        if (!timeoutArmed) return suggested
+        timeoutArmed = false
+        return true
+    }
+
     override fun fourthDown(snap: Snap, suggested: FourthDownChoice): FourthDownChoice {
         last = snap
         return if (!callOffense) suggested else wait(Ask.FourthDown(snap, suggested)) as FourthDownChoice
@@ -91,6 +104,7 @@ class LiveGame(val offense: Playbook, val defense: Playbook) : SnapCaller {
         matchup = home to away
         this.title = title
         last = null
+        timeoutArmed = false
         callOffense = !restToCoordinators
         callDefense = !restToCoordinators
         if (restToCoordinators) return

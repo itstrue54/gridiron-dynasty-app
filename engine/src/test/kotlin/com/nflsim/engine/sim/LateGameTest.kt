@@ -78,6 +78,25 @@ class LateGameTest {
     }
 
     @Test
+    fun `a user calling his game calls his own timeouts`() {
+        val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
+        // The first quarter: no coordinator would, but he can.
+        val mine = ClockManagement.after(state(1, 600, lead = 0), Side.HOME, run, flow, choice = Side.HOME to true)
+        assertEquals(Side.HOME, mine.timeout)
+        assertEquals(flow.playSeconds, mine.runoff)
+        // Late and behind, the coordinators would stop it; he lets it run.
+        val lets = ClockManagement.after(state(4, 100, lead = -4), Side.HOME, run, flow, choice = Side.HOME to false)
+        assertEquals(null, lets.timeout)
+        assertEquals(flow.hurryUpRunoff, lets.runoff)
+        // His call is only ever for his own side: theirs stand.
+        assertEquals(Side.AWAY, ClockManagement.after(state(4, 100, lead = 4), Side.HOME, run, flow, choice = Side.HOME to false).timeout)
+        // Nothing to call with none left, or on a clock that has stopped.
+        assertFalse(ClockManagement.canStop(state(1, 600, lead = 0).copy(homeTimeouts = 0), Side.HOME, Side.HOME, run, flow))
+        assertFalse(ClockManagement.canStop(state(1, 600, lead = 0), Side.HOME, Side.HOME,
+            PlayResult(PlayOutcome.INCOMPLETE, 0, flow.incompleteClockRunoff), flow))
+    }
+
+    @Test
     fun `ahead late, the clock is left to run`() {
         val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
         val ahead = ClockManagement.after(state(4, 240, lead = 4).copy(awayTimeouts = 0), Side.HOME, run, flow)

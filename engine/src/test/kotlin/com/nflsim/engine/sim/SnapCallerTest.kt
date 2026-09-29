@@ -127,4 +127,17 @@ class SnapCallerTest {
         DynastyEngine.advance(out, caller = spy)
         assertTrue(!asked)
     }
+
+    @Test
+    fun `he can call his own timeouts, three a half`() {
+        val d = start()
+        val calls = object : SnapCaller {
+            override fun timeout(snap: Snap, suggested: Boolean) = true
+        }
+        val after = DynastyEngine.advance(d, caller = calls)
+        val mine = after.league.team(if (userGame(after).home == d.userTeamId) userGame(after).home else userGame(after).away)
+        val his = after.lastGame!!.playByPlay.filter { it.text.contains(mine.name) && it.text.contains("timeout", ignoreCase = true) }
+        assertTrue(his.isNotEmpty(), "he called some")
+        assertTrue(his.count { it.quarter <= 2 } <= 3 && his.count { it.quarter in 3..4 } <= 3, "three a half: $his")
+    }
 }
