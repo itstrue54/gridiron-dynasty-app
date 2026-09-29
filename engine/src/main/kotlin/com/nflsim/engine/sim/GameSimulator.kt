@@ -23,6 +23,8 @@ class GameTeam(
     val aggression: Float = 0.5f,
     /** The staff's tendencies (gen.Tendencies.of). The club's own game plan goes over them. */
     val staffPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    /** The head coach's in-game adjustments rating, 0..100: how far the staff adapts to what it sees (SPEC 5.4). */
+    val adjustments: Int = 50,
 ) {
     val offDepth: DepthChart = DepthChart.auto(roster, offScheme, team.depthPins)
     val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
@@ -391,6 +393,31 @@ class GameSimulator(
 
     // ---------------------------------------------------------------
 
+    /** What each side has shown this game: its offense's calls, and its defense's boxes and blitzes. */
+    private class Shown {
+        var runs = 0; var passes = 0
+        var defSnaps = 0; var boxSum = 0; var blitzes = 0
+    }
+    private val shown = mapOf(Side.HOME to Shown(), Side.AWAY to Shown())
+
+    private fun watch(offense: Side, off: OffensivePlayCall, def: DefensivePlayCall) {
+        val o = shown.getValue(offense)
+        when (off) {
+            is OffensivePlayCall.Run -> o.runs++
+            is OffensivePlayCall.Pass -> o.passes++
+            else -> Unit
+        }
+        val d = shown.getValue(offense.other())
+        d.defSnaps++; d.boxSum += def.boxAdd; if (def.extraRushers > 0) d.blitzes++
+    }
+
+    private fun adaptation(offense: Side, offTeam: GameTeam, defTeam: GameTeam): Adaptation.Shift {
+        val theirOffense = shown.getValue(offense)
+        val theirDefense = shown.getValue(offense.other())
+        return Adaptation.of(theirOffense.runs, theirOffense.passes, theirDefense.boxSum, theirDefense.defSnaps,
+            offTeam.adjustments, defTeam.adjustments, tuning.adaptation)
+    }
+
     private data class PlayOutcomeBundle(val result: PlayResult, val wasPass: Boolean, val call: OffensivePlayCall)
 
     /**
@@ -445,16 +472,20 @@ class GameSimulator(
         )
         // The coordinators call both sides first, from the game's stream, so
         // the suggestion a caller sees is exactly what would have been played.
-        val suggestedOff = PlayCaller.offense(probe, rng)
-        val suggestedDef = PlayCaller.defense(probe, rng)
+        // What each staff has seen of the other so far, and how far it moves (SPEC 5.4).
+        val seen = adaptation(offense, offTeam, defTeam)
+        val adapted = probe.copy(adaptPass = seen.pass, adaptBlitz = seen.blitz, adaptBox = seen.box)
+        val suggestedOff = PlayCaller.offense(adapted, rng)
+        val suggestedDef = PlayCaller.defense(adapted, rng)
         val snap = if (caller != null && callerSide != null) Snap(state, callerSide, playByPlay.toList()) else null
         val offCall = if (snap != null && offense == callerSide) caller!!.offense(snap, suggestedOff) else suggestedOff
         val defCall = if (snap != null && offense != callerSide) caller!!.defense(snap, suggestedDef) else suggestedDef
 
-        val ctx = probe.copy(
+        val ctx = adapted.copy(
             offense = OffenseUnit.from(offDepth, offCall.personnel, offTeam.offScheme),
             defense = DefenseUnit.from(defDepth, defCall.front, defTeam.defScheme),
         )
+        watch(offense, offCall, defCall)
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
         snap(ctx, offTeam, defTeam, state.quarter)
         log(state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""))

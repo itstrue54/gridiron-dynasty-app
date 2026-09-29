@@ -39,6 +39,14 @@ data class PlayContext(
     val crowdNoise: Int = 0,
     /** The game's weather (SPEC 5.10). */
     val weather: Weather = Weather.INDOORS,
+    /**
+     * How far each coordinator has adapted to the other this game (SPEC 5.4):
+     * added to the offence's pass rate and the defence's blitz rate, and the
+     * chance the defence adds a man to the box (or, negative, takes one out).
+     */
+    val adaptPass: Float = 0f,
+    val adaptBlitz: Float = 0f,
+    val adaptBox: Float = 0f,
     /** Each side's game plan: the tendencies its coordinator calls from. */
     val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),

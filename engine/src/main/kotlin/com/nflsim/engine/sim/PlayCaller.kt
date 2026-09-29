@@ -36,6 +36,7 @@ object PlayCaller {
         } ?: (-s.scoreDiff * t.passPerPointBehind).coerceIn(t.passScoreMin, t.passScoreMax)
         if (s.twoMinuteDrill && s.scoreDiff <= 0) passRate += plan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST
         if (s.goalToGo && s.yardsToGoal <= 2) passRate -= t.passGoalLineCut
+        passRate += ctx.adaptPass
 
         passRate = passRate.coerceIn(t.passRateFloor, t.passRateCeiling)
 
@@ -173,6 +174,7 @@ object PlayCaller {
         var blitzRate = ctx.defPlan.blitzRate ?: scheme.blitzRate
         if (s.down == 3 && s.distance >= 6) blitzRate += ctx.tuning.calling.blitzThirdLong
         if (s.goalToGo) blitzRate += ctx.tuning.calling.blitzGoalToGo
+        blitzRate += ctx.adaptBlitz
         val extraRushers = if (rng.nextFloat() < blitzRate) 1 + rng.nextInt(2) else 0
 
         // Selling out against the run when it is obviously coming.
@@ -182,6 +184,9 @@ object PlayCaller {
             else -> 0
         }
         if (s.yardsToGoal <= 12) boxAdd += 1
+        // Adapting to what the offence has shown: a man more in the box
+        // against the run, one fewer against the pass.
+        if (ctx.adaptBox != 0f && rng.nextFloat() < kotlin.math.abs(ctx.adaptBox)) boxAdd += if (ctx.adaptBox > 0f) 1 else -1
 
         // Prevent: two scores up in the fourth quarter, a defence sits back.
         // Deep zones, nobody sent, an extra back on anything but short

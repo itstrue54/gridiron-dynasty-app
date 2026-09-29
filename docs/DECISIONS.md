@@ -2135,3 +2135,25 @@ points 21.5, close games 0.23. Cold, windy and wet games now play
 differently from warm ones, and domes differ from open stadiums. Old
 saves get their stadiums' regions back by migration.
 
+## ADR-0xx — In-game adaptation shifts tendencies, not outcomes
+
+**Context.** SPEC 5.4 called for coordinators who adapt during a game, within
+±0.12 scaled by the head coach's adjustments rating, so that a predictable
+coordinator gets punished. Nothing did; the rating only mattered when the
+carousel judged a coach.
+
+**Decision.** Adaptation moves what a coordinator calls, never what a play
+does: the defence's blitz rate and the chance of a man more or fewer in the
+box, and the offence's pass rate, each from what the other side has shown.
+The punishment then comes from the play resolution already in the sim, a
+loaded box against the run and pressure against the pass, rather than from
+a bonus invented for it. The reads (a neutral pass share of 0.57, the gains)
+are tuning fields. The offence's read of the box was set at 1.0: at 1.5,
+third-down conversion read 0.417, near the top of its band.
+
+**Consequences.** Over 2,000 games, points per team are 21.5 -> 21.7,
+third-down conversion 0.411 -> 0.415, and close games 0.23 -> 0.24. All 18
+bands pass. A run-heavy offence gains fewer yards a carry against a staff
+rated 100 than against one rated 0 (AdaptationTest), and the adjustments
+rating now matters every Sunday.
+
