@@ -68,6 +68,25 @@ class OvertimeTest {
         }
     }
 
+    @Test
+    fun `a touchdown that wins it after the other club has had the ball has no try`() {
+        var checked = 0
+        level.flatMap { listOf(it.regular, it.playoffs) }.forEach { game ->
+            val ot = game.drives.filter { it.startQuarter >= 5 }
+            // Every overtime touchdown after the other club's possession that
+            // ends the game is worth six: the second club answering nothing
+            // with a touchdown included.
+            ot.forEachIndexed { i, d ->
+                val otherHad = ot.take(i).any { it.offense != d.offense }
+                if (d.ending == DriveEnding.TOUCHDOWN && otherHad && d == ot.last() && !game.isTie) {
+                    assertEquals(6, d.points, "a walk-off touchdown kicked a try: $ot")
+                    checked++
+                }
+            }
+        }
+        assertTrue(checked > 0, "the sample has a walk-off touchdown to look at")
+    }
+
     /** One game played three ways, from the same stream. */
     private data class Three(val none: GameResult, val regular: GameResult, val playoffs: GameResult)
 
