@@ -93,7 +93,7 @@ class StaffImportTest {
     }
 
     @Test
-    fun `a head coach from the defense hands it his scheme and carries the offense`() {
+    fun `a head coach from the defense keeps his scheme, and the club runs it`() {
         val file = """{"teams":[{"abbrev":"KC","players":$players,"staff":{
             "headCoach":{"name":"Defense Person","scheme":"Tampa 2"},
             "offensiveCoordinator":{"name":"Oc Person","scheme":"OFF_AIR_RAID"}}}]}"""
@@ -101,17 +101,16 @@ class StaffImportTest {
         assertTrue(r.errors.isEmpty(), "a defensive head coach is not an error: ${r.errors}")
         val league = assertNotNull(r.league)
         val kc = league.teams.single { it.abbrev == "KC" }
-        assertEquals("DEF_TAMPA_2", kc.defenseScheme)
-        assertEquals("OFF_AIR_RAID", kc.offenseScheme)
-        assertEquals("OFF_AIR_RAID", league.coaches.getValue(kc.staff.headCoach).scheme,
-            "the carousel reads a head coach's scheme as an offense")
-        assertTrue(r.notes.any { "Defense Person's DEF_TAMPA_2 is the club's defense" in it }, "${r.notes}")
+        assertEquals("DEF_TAMPA_2", league.coaches.getValue(kc.staff.headCoach).scheme, "his own scheme, his side of the ball")
+        assertEquals("DEF_TAMPA_2", kc.defenseScheme, "the club runs its head coach's defense")
+        assertEquals("OFF_AIR_RAID", kc.offenseScheme, "and its coordinator's offense")
 
-        // The file's own defense wins, and the import says his gave way.
+        // The file's own defense wins over his; he keeps his scheme all the same.
         val set = file.replace("\"players\"", "\"defenseScheme\":\"DEF_MAN_BLITZ\",\"players\"")
         val s = LeagueImport.build(set, 2026, 7L)
-        assertEquals("DEF_MAN_BLITZ", s.league!!.teams.single { it.abbrev == "KC" }.defenseScheme)
-        assertTrue(s.notes.any { "DEF_TAMPA_2 gives way to the club's DEF_MAN_BLITZ" in it }, "${s.notes}")
+        val kc2 = s.league!!.teams.single { it.abbrev == "KC" }
+        assertEquals("DEF_MAN_BLITZ", kc2.defenseScheme)
+        assertEquals("DEF_TAMPA_2", s.league!!.coaches.getValue(kc2.staff.headCoach).scheme)
     }
 
     @Test

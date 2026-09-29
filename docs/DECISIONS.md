@@ -2012,13 +2012,16 @@ coaches until the carousel hires its first. Development reads a position
 coach per group, so a coach in two groups develops both at his rating; no
 calibration band moves from the import itself.
 
-A head coach the file gives a defensive scheme hands it to the club's
-defense and takes the club's offense himself, rather than getting a side
-of his own. The coach model has one scheme and the carousel reads a head
-coach's as an offense. If he were fired and rehired elsewhere with a
-defensive scheme, his new club's offense would be a defense. Giving head
-coaches a side is an engine and save-format change, left for when it's
-wanted.
+A head coach's side of the ball is his scheme's: a defensive scheme makes
+him a defensive head coach. No new field is needed, because the coach model
+already has one scheme and the catalog knows each scheme's side, so there's
+no save-format change. The carousel reads a defensive head coach against
+the defense's fit, gives his scheme to the defense through a coordinator
+from his tree, and hires the best offensive coordinator it can find. A
+club always runs its coordinators' schemes. Generated head coaches stay on
+offense, so a generated league plays exactly as before. (First released
+with the head coach carrying the club's offense instead; changed once
+the carousel could hire around a defensive one.)
 
 ## ADR-0xx — Tied games go to overtime: the playoffs' rules and the regular season's
 

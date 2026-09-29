@@ -10,6 +10,7 @@ import com.nflsim.engine.model.Team
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.SchemeSide
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
 import kotlinx.serialization.Serializable
@@ -140,28 +141,44 @@ object CoachingCarousel {
             val outOfWork = coaches.values
                 .filter { it.id !in employed && it.role == CoachRole.HEAD_COACH }
                 .shuffled(hireRng).take(REHIRE_LOOK)
-            val chosen = (outside + outOfWork).maxBy { read(it, offFit) - if (it in outOfWork) STIGMA else 0f }
+            // A head coach from the defense - a roster file can bring one - is
+            // read against the defense his scheme would run.
+            fun defensive(c: Coach) = SchemeCatalog[c.scheme].side == SchemeSide.DEFENSE
+            val chosen = (outside + outOfWork).maxBy {
+                read(it, if (defensive(it)) defFit else offFit) - if (it in outOfWork) STIGMA else 0f
+            }
             val head = chosen.copy(contractYearsLeft = NEW_CONTRACT, hotSeat = 0)
-            val oc = candidate(CoachRole.OFFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id)
-            val dc = (1..DC_CANDIDATES).map { candidate(CoachRole.DEFENSIVE_COORDINATOR, draw(defFit, team.defenseScheme)) }
-                .maxBy { read(it, defFit) }
-                .copy(tree = head.id)
+            // He brings his scheme to his side of the ball through a
+            // coordinator from his tree, and the club finds the best it can
+            // for the other side.
+            val (oc, dc) = if (!defensive(head)) {
+                candidate(CoachRole.OFFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id) to
+                    (1..DC_CANDIDATES).map { candidate(CoachRole.DEFENSIVE_COORDINATOR, draw(defFit, team.defenseScheme)) }
+                        .maxBy { read(it, defFit) }
+                        .copy(tree = head.id)
+            } else {
+                (1..DC_CANDIDATES).map { candidate(CoachRole.OFFENSIVE_COORDINATOR, draw(offFit, team.offenseScheme)) }
+                    .maxBy { read(it, offFit) }
+                    .copy(tree = head.id) to
+                    candidate(CoachRole.DEFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id)
+            }
             listOf(head, oc, dc).forEach { coaches[it.id] = it }
             // Out of work, and a candidate for the next club that fires someone.
             coaches[hc.id] = hc.copy(hotSeat = 0, age = hc.age + 1, contractYearsLeft = 0)
             employed -= hc.id
             employed += listOf(head.id, oc.id, dc.id)
 
-            val offChanged = head.scheme != team.offenseScheme
+            val offChanged = oc.scheme != team.offenseScheme
             val defChanged = dc.scheme != team.defenseScheme
             relearn[team.id] = offChanged to defChanged
             changes += CoachingChange(
                 team.id.v, hc.name, head.name, (now * 1000).roundToInt(),
-                head.scheme, dc.scheme, offChanged || defChanged, rehired = chosen in outOfWork,
+                oc.scheme, dc.scheme, offChanged || defChanged, rehired = chosen in outOfWork,
                 keptOffense = !offChanged, keptDefense = !defChanged,
             )
+            // The club runs its coordinators' schemes: his own is one of them.
             team.copy(
-                offenseScheme = head.scheme,
+                offenseScheme = oc.scheme,
                 defenseScheme = dc.scheme,
                 staff = team.staff.copy(headCoach = head.id, offCoordinator = oc.id, defCoordinator = dc.id),
             )
