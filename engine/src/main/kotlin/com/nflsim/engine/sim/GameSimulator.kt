@@ -296,7 +296,15 @@ class GameSimulator(
             val outcome = runPlay(state, offense, rng)
             val result = outcome.result
             plays++
-            val clock = ClockManagement.after(state, offense, result, tuning.gameFlow)
+            // His timeouts are his to call, when he is calling the game: the
+            // coordinators' call is the suggestion (SnapCaller.timeout).
+            val choice = if (caller != null && callerSide != null &&
+                ClockManagement.canStop(state, callerSide, offense, result, tuning.gameFlow)
+            ) {
+                val suggested = ClockManagement.after(state, offense, result, tuning.gameFlow).timeout == callerSide
+                callerSide to caller.timeout(Snap(state, callerSide, playByPlay.toList()), suggested)
+            } else null
+            val clock = ClockManagement.after(state, offense, result, tuning.gameFlow, choice)
             state = advanceClock(state, clock.runoff)
             seconds += clock.runoff
             clock.timeout?.let { side ->

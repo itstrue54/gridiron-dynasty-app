@@ -548,7 +548,8 @@ show - are the two together.
   - Timeouts: three a side each half and two in each overtime period. The club chasing the game (behind, or level with the ball under two minutes) spends them to stop a running clock in the last `timeoutSeconds`, if it is within `timeoutMaxDeficit`. It doesn't spend one on a snap the warning stops anyway. The play-by-play says so.
   - A leader kneels only when the kneels before fourth down can outlast the defence's timeouts.
   - The base pace is slower than before (runs 34 s, completions 31 s, up from 31 and 28) so that plays per game stay in band with the time the clock now gives back.
-  - Not built: out-of-bounds rules. The user's own game uses the same clock logic; he doesn't call timeouts himself.
+  - A user calling his own game can call his own timeouts (`SnapCaller.timeout`). He arms one ahead with "Timeout after this play", and it's taken after the next snap that leaves the clock running and would save time. Left alone, the coordinators spend his timeouts as they would, so a game whose every suggestion is taken still plays exactly as a simmed one.
+  - Not built: out-of-bounds rules.
 - Overtime follows the NFL's rules from 2025 on (`Overtime`, passed to each game):
   - Every overtime period opens with a toss, a kickoff and two timeouts a side.
   - Both clubs get the ball once. After that, the next score wins. A touchdown that ends the game has no try after it, including the second club's first possession when the first came away with nothing. A touchdown that only draws level, or leaves the club short, still has its try.
