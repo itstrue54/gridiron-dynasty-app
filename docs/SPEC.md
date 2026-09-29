@@ -544,7 +544,7 @@ show - are the two together.
   Built so far: runoff by play type and outcome. The two-minute warning, out-of-bounds rules, a trailing offence's hurry-up and the timeouts a trailing club spends are not built yet. They were tried while tuning close games and set aside (DECISIONS): they added about three plays a team to every game and did nothing for close finishes.
 - Overtime follows the NFL's rules from 2025 on (`Overtime`, passed to each game):
   - Every overtime period opens with a toss, a kickoff and two timeouts a side.
-  - Both clubs get the ball once. After that, the next score wins, and a sudden-death touchdown has no try after it.
+  - Both clubs get the ball once. After that, the next score wins. A touchdown that ends the game has no try after it, including the second club's first possession when the first came away with nothing. A touchdown that only draws level, or leaves the club short, still has its try.
   - A period that runs out with one club ahead ends the game, even if the other club's answering drive is cut short.
   - The two-minute drill runs at the end of an overtime period as it does at the end of the fourth quarter.
   - `GameState.periods` counts the four quarters and each overtime period. Overtime is played only after regulation and draws from the game's stream only then, so a game decided in four quarters plays exactly as it did before overtime existed.

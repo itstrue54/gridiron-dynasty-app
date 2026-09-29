@@ -180,7 +180,7 @@ class GameSimulator(
             while (!state.isOver) {
                 val before = state
                 val offense = state.possession
-                suddenDeath = hadTheBall.size == 2
+                otherHadTheBall = offense.other() in hadTheBall
                 state = simulateDrive(state, rng)
                 recover(tuning.fatigue.driveRecovery)
                 hadTheBall += offense
@@ -192,12 +192,18 @@ class GameSimulator(
                 if (state == before) break
             }
         }
-        suddenDeath = false
+        otherHadTheBall = false
         return state
     }
 
-    /** Overtime once both clubs have had the ball: a touchdown ends it, with no try after. */
-    private var suddenDeath = false
+    /**
+     * Overtime, and the other club has had its possession: a score that puts
+     * this one ahead ends the game, so a touchdown that does has no try after
+     * it. That includes the second club's first possession when the first
+     * one came away with nothing. A touchdown that only draws level, or
+     * leaves it short, still has its try.
+     */
+    private var otherHadTheBall = false
 
     // ---------------------------------------------------------------
 
@@ -299,7 +305,8 @@ class GameSimulator(
                 points += 6
                 state = addPoints(state, offense, 6)
                 val kicking = teamFor(offense)
-                if (!suddenDeath && SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
+                val walkOff = otherHadTheBall && state.scoreFor(offense) > state.scoreFor(offense.other())
+                if (!walkOff && SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
                         kicking.offScheme, rng, st = tuning.specialTeams)) {
                     points += 1
                     state = addPoints(state, offense, 1)
