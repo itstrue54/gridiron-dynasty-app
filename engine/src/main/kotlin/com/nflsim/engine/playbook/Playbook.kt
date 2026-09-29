@@ -68,6 +68,12 @@ object Playbooks {
         }
     }
 
+    /**
+     * The clock calls every book shares, as the live game offers them beside
+     * its formations. Named, so a coordinator's kneel reads as one.
+     */
+    val CLOCK = Formation("Clock", plays = listOf(Play("Kneel"), Play("Spike")))
+
     /** The engine call a play on the sheet makes. */
     fun offense(formation: Formation, play: Play): OffensivePlayCall {
         val personnel = formation.personnel ?: error("${formation.name} is not an offensive formation")
@@ -90,6 +96,12 @@ object Playbooks {
      * like it.
      */
     fun nameOf(book: Playbook, call: OffensivePlayCall): Pair<Formation, Play>? {
+        // The clock calls are every club's, not a scheme's: kneel and spike.
+        when (call) {
+            is OffensivePlayCall.Kneel -> return CLOCK to CLOCK.plays[0]
+            is OffensivePlayCall.Spike -> return CLOCK to CLOCK.plays[1]
+            else -> Unit
+        }
         val same = book.plays.filter { (f, p) ->
             f.personnel == call.personnel && when (call) {
                 is OffensivePlayCall.Run -> p.run == call.concept

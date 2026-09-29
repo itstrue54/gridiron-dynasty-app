@@ -30,7 +30,10 @@ object FourthDown {
         val range = kickerRange(kicker, kickScheme, altitudeFt)
         val kickable = kickDistance <= range
 
-        val trailing = state.scoreDiff < 0
+        // Late and behind by more than a kick can make up, a coach goes for it.
+        // Within a field goal and in range, he kicks it: down three it ties,
+        // down one or two it wins (SPEC 5.4).
+        val trailing = state.scoreDiff < 0 && (state.scoreDiff < -FIELD_GOAL_POINTS || !kickable)
         val lateAndTrailing = state.quarter >= 4 && state.secondsLeft < 300 && trailing
         val desperate = state.quarter >= 4 && state.secondsLeft < 150 && state.scoreDiff <= -4
 
@@ -62,6 +65,29 @@ object FourthDown {
         if (rng.nextFloat() < goChance) return FourthDownChoice.GO_FOR_IT
         return if (kickable) FourthDownChoice.FIELD_GOAL else FourthDownChoice.PUNT
     }
+
+    /**
+     * The clock is all but out - another snap with it running would end the
+     * half or the game - and a field goal is in range. At the half he takes
+     * the points; at the end, if a kick ties the game or wins it. On any
+     * down: nobody waits for fourth down with the clock at 0:20.
+     */
+    fun lastKick(
+        state: GameState,
+        kicker: Player?,
+        kickScheme: Scheme,
+        altitudeFt: Int,
+        snapRunoff: Int,
+    ): Boolean {
+        if (state.secondsLeft > snapRunoff) return false
+        val endOfHalf = state.quarter == 2
+        val endOfGame = state.quarter >= 4 && state.scoreDiff in -FIELD_GOAL_POINTS..0
+        if (!endOfHalf && !endOfGame) return false
+        return (100 - state.yardLine) + 17 <= kickerRange(kicker, kickScheme, altitudeFt)
+    }
+
+    /** What a field goal is worth: the rules. */
+    const val FIELD_GOAL_POINTS = 3
 
     /** The longest attempt a coach will send this kicker out for. */
     fun kickerRange(kicker: Player?, scheme: Scheme, altitudeFt: Int): Int {

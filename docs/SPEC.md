@@ -438,6 +438,13 @@ data class Tendencies(
 
 **Adaptation.** Each game, both coordinators track the opponent's realized tendencies and shift within a bounded window (±0.12) based on the HC's `adjustments` rating. A predictable coordinator gets punished. This is where your CFB slider-tuning instincts translate directly.
 
+**The end of a game.** Coordinators play the last minutes the way NFL coaches do:
+- **Victory formation.** Ahead in the fourth quarter, with no more clock left than the kneels before fourth down can run off, the offence kneels (`PlayCaller.canKneelItOut`). The kneel runs off what a running play does (`TuningTable.gameFlow.runPlayClockRunoff`).
+- **The kick that ties or wins.** When another snap would end the half or the game and a field goal is in range, the kicker goes out on any down (`FourthDown.lastKick`). At the half he takes the points; at the end he kicks if it ties the game or wins it.
+- **Fourth down, late and behind.** Late in the fourth, a club that trails by more than a field goal, or can't reach one, goes for it far more often. Within three and in range, it kicks.
+- **Prevent.** A defence `gameFlow.preventLead` (9) points ahead in the fourth quarter sits back: deep zones only, nobody sent, and a dime look on anything but short yardage. It gives up underneath yards and late points rather than the big play. That trade is why leads shrink at the end of games, and it's what keeps the close-game band (§13.2) honest.
+- A user calling his own offence is asked about the kick before fourth down, as he is on fourth down: kick now, or run a play.
+
 **User control.** You set your coordinators' `Tendencies` sliders in the game plan screen, plus a per-opponent weekly game plan (§10.4). That is the strategic layer. And you may call your own game: "Call the plays" on the hub plays the week with the user's regular-season game stopping at each of his snaps (`SnapCaller`). On offence he takes the coordinator's call or makes his own - a formation, then a play from it - and on fourth down chooses go, punt or kick first; on defence a front, then a coverage or pressure. Either side can go back to its coordinator at any snap, and "Let the coordinators finish the game" hands over the rest. The coordinators always call first, from the game's own stream, so a game whose every suggestion is taken plays exactly as a simmed one; a call of the user's own changes his game and nobody else's. In the postseason the same button calls each of the club's playoff games in turn:
 - Each game opens on a kickoff card showing the game just finished and the one about to start. The user can kick it off, let the coordinators play that one, or let them play the rest of the postseason.
 - A tied game goes to overtime (§5.10), and the user keeps calling it.
@@ -534,6 +541,7 @@ show - are the two together.
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
+  Built so far: runoff by play type and outcome. The two-minute warning, out-of-bounds rules, a trailing offence's hurry-up and the timeouts a trailing club spends are not built yet. They were tried while tuning close games and set aside (DECISIONS): they added about three plays a team to every game and did nothing for close finishes.
 - Overtime follows the NFL's rules from 2025 on (`Overtime`, passed to each game):
   - Every overtime period opens with a toss, a kickoff and two timeouts a side.
   - Both clubs get the ball once. After that, the next score wins, and a sudden-death touchdown has no try after it.
