@@ -31,12 +31,57 @@ class LateGameTest {
     @Test
     fun `ahead with the clock nearly out, the coordinator kneels`() {
         val runoff = flow.runPlayClockRunoff
-        assertTrue(PlayCaller.canKneelItOut(state(4, 3 * runoff, lead = 3).toPlayState(), runoff), "three kneels from first down")
-        assertFalse(PlayCaller.canKneelItOut(state(4, 3 * runoff + 1, lead = 3).toPlayState(), runoff), "one second too many")
-        assertTrue(PlayCaller.canKneelItOut(state(4, runoff, lead = 1, down = 3).toPlayState(), runoff), "one kneel left on third down")
-        assertFalse(PlayCaller.canKneelItOut(state(4, 30, lead = 0).toPlayState(), runoff), "level: play for the win")
-        assertFalse(PlayCaller.canKneelItOut(state(4, 30, lead = -3).toPlayState(), runoff), "behind")
-        assertFalse(PlayCaller.canKneelItOut(state(2, 30, lead = 7).toPlayState(), runoff), "the half, not the game")
+        val play = flow.playSeconds
+        // With the defence out of timeouts, three kneels from first down run off three snaps' clock.
+        fun noTimeouts(s: GameState) = s.copy(homeTimeouts = 0, awayTimeouts = 0).toPlayState()
+        assertTrue(PlayCaller.canKneelItOut(noTimeouts(state(4, 3 * runoff, lead = 3)), runoff, play), "three kneels from first down")
+        assertFalse(PlayCaller.canKneelItOut(noTimeouts(state(4, 3 * runoff + 1, lead = 3)), runoff, play), "one second too many")
+        assertTrue(PlayCaller.canKneelItOut(noTimeouts(state(4, runoff, lead = 1, down = 3)), runoff, play), "one kneel left on third down")
+        // Each timeout the defence has left stops the clock after a kneel.
+        val twoLeft = state(4, 3 * runoff - 2 * (runoff - play), lead = 3).copy(awayTimeouts = 2).toPlayState()
+        assertTrue(PlayCaller.canKneelItOut(twoLeft, runoff, play), "two timeouts cost two kneels' clock")
+        assertFalse(PlayCaller.canKneelItOut(twoLeft.copy(secondsLeftInQuarter = twoLeft.secondsLeftInQuarter + 1), runoff, play))
+        assertFalse(PlayCaller.canKneelItOut(state(4, 30, lead = 0).toPlayState(), runoff, play), "level: play for the win")
+        assertFalse(PlayCaller.canKneelItOut(state(4, 30, lead = -3).toPlayState(), runoff, play), "behind")
+        assertFalse(PlayCaller.canKneelItOut(state(2, 30, lead = 7).toPlayState(), runoff, play), "the half, not the game")
+    }
+
+    @Test
+    fun `the clock stops at the two-minute warning`() {
+        val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
+        val at = ClockManagement.after(state(4, 130, lead = 10), Side.HOME, run, flow)
+        assertEquals(10, at.runoff, "a snap at 2:10 stops at 2:00")
+        assertEquals(10, ClockManagement.after(state(2, 130, lead = 0), Side.HOME, run, flow).runoff, "the half too")
+        assertEquals(flow.runPlayClockRunoff, ClockManagement.after(state(3, 130, lead = 0), Side.HOME, run, flow).runoff)
+    }
+
+    @Test
+    fun `late and behind, a club hurries and spends its timeouts`() {
+        val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
+        // Behind with the ball and four minutes left: the hurry-up, no timeout yet.
+        val hurry = ClockManagement.after(state(4, 240, lead = -4), Side.HOME, run, flow)
+        assertEquals(flow.hurryUpRunoff, hurry.runoff)
+        assertEquals(null, hurry.timeout)
+        // Two minutes left: its timeout stops the clock.
+        val stop = ClockManagement.after(state(4, 100, lead = -4), Side.HOME, run, flow)
+        assertEquals(flow.playSeconds, stop.runoff)
+        assertEquals(Side.HOME, stop.timeout)
+        // Ahead, with the other club behind and holding timeouts: they stop it.
+        val theirs = ClockManagement.after(state(4, 100, lead = 4), Side.HOME, run, flow)
+        assertEquals(Side.AWAY, theirs.timeout)
+        // Out of timeouts, or too far behind to bother: the clock runs.
+        assertEquals(null, ClockManagement.after(state(4, 100, lead = 4).copy(awayTimeouts = 0), Side.HOME, run, flow).timeout)
+        assertEquals(null, ClockManagement.after(state(4, 100, lead = flow.timeoutMaxDeficit + 1), Side.HOME, run, flow).timeout)
+        // An incompletion stops the clock on its own: nobody spends a timeout.
+        val incomplete = PlayResult(PlayOutcome.INCOMPLETE, 0, flow.incompleteClockRunoff)
+        assertEquals(null, ClockManagement.after(state(4, 100, lead = -4), Side.HOME, incomplete, flow).timeout)
+    }
+
+    @Test
+    fun `ahead late, the clock is left to run`() {
+        val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
+        val ahead = ClockManagement.after(state(4, 240, lead = 4).copy(awayTimeouts = 0), Side.HOME, run, flow)
+        assertEquals(flow.runPlayClockRunoff, ahead.runoff, "no hurry-up when ahead")
     }
 
     @Test

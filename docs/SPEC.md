@@ -541,7 +541,14 @@ show - are the two together.
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
-  Built so far: runoff by play type and outcome. The two-minute warning, out-of-bounds rules, a trailing offence's hurry-up and the timeouts a trailing club spends are not built yet. They were tried while tuning close games and set aside (DECISIONS): they added about three plays a team to every game and did nothing for close finishes.
+  Built (`sim.ClockManagement`):
+  - Runoff by play type and outcome.
+  - The two-minute warning in the second and fourth quarters.
+  - The hurry-up: a trailing offence in the last `gameFlow.hurryUpSeconds` of the game, or any offence in the two-minute drill before the half, takes `hurryUpRunoff` off a running clock.
+  - Timeouts: three a side each half and two in each overtime period. The club chasing the game (behind, or level with the ball under two minutes) spends them to stop a running clock in the last `timeoutSeconds`, if it is within `timeoutMaxDeficit`. It doesn't spend one on a snap the warning stops anyway. The play-by-play says so.
+  - A leader kneels only when the kneels before fourth down can outlast the defence's timeouts.
+  - The base pace is slower than before (runs 34 s, completions 31 s, up from 31 and 28) so that plays per game stay in band with the time the clock now gives back.
+  - Not built: out-of-bounds rules. The user's own game uses the same clock logic; he doesn't call timeouts himself.
 - Overtime follows the NFL's rules from 2025 on (`Overtime`, passed to each game):
   - Every overtime period opens with a toss, a kickoff and two timeouts a side.
   - Both clubs get the ball once. After that, the next score wins. A touchdown that ends the game has no try after it, including the second club's first possession when the first came away with nothing. A touchdown that only draws level, or leaves the club short, still has its try.

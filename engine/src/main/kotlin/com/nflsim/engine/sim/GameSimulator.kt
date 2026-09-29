@@ -137,7 +137,9 @@ class GameSimulator(
                 recover(tuning.fatigue.halftimeRecovery)
                 val receiver = firstReceiver.other()
                 state = openWithKickoff(
-                    state.copy(possession = receiver, down = 1, distance = 10), receiver, rng)
+                    // Three timeouts a side each half: the rules.
+                    state.copy(possession = receiver, down = 1, distance = 10,
+                        homeTimeouts = HALF_TIMEOUTS, awayTimeouts = HALF_TIMEOUTS), receiver, rng)
             }
 
             // Safety valve. A drive that consumes nothing means a bug, and an
@@ -294,8 +296,15 @@ class GameSimulator(
             val outcome = runPlay(state, offense, rng)
             val result = outcome.result
             plays++
-            state = advanceClock(state, result.clockRunoff)
-            seconds += result.clockRunoff
+            val clock = ClockManagement.after(state, offense, result, tuning.gameFlow)
+            state = advanceClock(state, clock.runoff)
+            seconds += clock.runoff
+            clock.timeout?.let { side ->
+                state = if (side == Side.HOME) state.copy(homeTimeouts = state.homeTimeouts - 1)
+                    else state.copy(awayTimeouts = state.awayTimeouts - 1)
+                log(state, PlayLines.write("timeout", words, "team" to teamFor(side).team.name,
+                    "left" to timeoutsLeft(state.timeoutsFor(side))))
+            }
 
             val applied = applyResult(state, offense, result, outcome.wasPass)
             yards += applied.yardsGained
@@ -713,7 +722,14 @@ class GameSimulator(
     }
 
     companion object {
-        /** The rules, not a tuning: two timeouts a side in each overtime period. */
+        /** The rules, not a tuning: two timeouts a side in each overtime period, three each half. */
         const val OVERTIME_TIMEOUTS = 2
+        const val HALF_TIMEOUTS = 3
+
+        private fun timeoutsLeft(n: Int): String = when (n) {
+            0 -> "none left"
+            1 -> "one left"
+            else -> "$n left"
+        }
     }
 }

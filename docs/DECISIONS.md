@@ -2079,3 +2079,25 @@ pass. Points per team rise from 21.3 to 21.8 and yards per attempt from
 7.31 to 7.37, both well inside their bands. The tuning table gained a
 field, so saves go to version 20 with nothing to migrate.
 
+## ADR-0xx — Late-game clock management, paired with a slower pace between snaps
+
+**Context.** SPEC 5.10 always called for the two-minute warning, a
+trailing offence's hurry-up and timeouts, but the engine had none of them.
+When they were tried while tuning close games, they added about three plays
+a team to every game and pushed plays and yards out of their bands, so they
+were set aside (the ADR above).
+
+**Decision.** Build them (`sim.ClockManagement`) and pay for them where the
+time went. The base runoff between snaps rises from 31 to 34 seconds after
+a run, and from 28 to 31 after a completion. That's nearer the NFL's
+running-clock pace, and it gives back the plays the late-game clock adds.
+A chasing club spends timeouts only on a running clock, and never on a
+snap the two-minute warning stops anyway. The victory formation now
+counts the defence's timeouts.
+
+**Consequences.** All 18 bands pass over 2,000 games. Plays per team are
+65.5 -> 64.9, yards 352 -> 349, points 21.8 -> 21.6 and close games 0.21 ->
+0.20. Every game's clock changes, so no game plays out as it did before,
+and golden runs move. Old saves take the new pace unless their user moved
+a runoff slider.
+

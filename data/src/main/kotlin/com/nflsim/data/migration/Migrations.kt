@@ -52,6 +52,10 @@ object Migrations {
         // The play caller's and fourth down's coefficients moved into the
         // table at the values they had in code: an old save plays the same.
         Step(20, "the tuning table holds how coordinators call plays and fourth down (SPEC 12); nothing to move") { it },
+        // A save stores only the tuning its user moved off the defaults, so an
+        // old save takes the new pace and clock with everything else; one
+        // whose user moved a runoff slider keeps his figure.
+        Step(21, "the clock has a two-minute warning, a hurry-up and timeouts (SPEC 5.10); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

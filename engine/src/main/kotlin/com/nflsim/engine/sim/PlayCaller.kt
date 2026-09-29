@@ -16,7 +16,7 @@ object PlayCaller {
 
     fun offense(ctx: PlayContext, rng: Rng): OffensivePlayCall {
         val s = ctx.state
-        if (canKneelItOut(s, ctx.tuning.gameFlow.runPlayClockRunoff)) return OffensivePlayCall.Kneel()
+        if (canKneelItOut(s, ctx.tuning.gameFlow.runPlayClockRunoff, ctx.tuning.gameFlow.playSeconds)) return OffensivePlayCall.Kneel()
         val plan = ctx.offPlan
         var passRate = (plan.passRate ?: ctx.offense.scheme.basePassRate) + ctx.tuning.gameFlow.passRateShift
 
@@ -48,8 +48,13 @@ object PlayCaller {
      * to stop it, so the game is over - and nothing a snap could do (a
      * fumble, a score that runs the margin up) is worth the risk.
      */
-    fun canKneelItOut(s: PlayState, kneelRunoff: Int): Boolean =
-        s.quarter == 4 && s.scoreDiff > 0 && s.secondsLeftInQuarter <= (4 - s.down) * kneelRunoff
+    fun canKneelItOut(s: PlayState, kneelRunoff: Int, playSeconds: Int): Boolean {
+        if (s.quarter != 4 || s.scoreDiff <= 0) return false
+        // Each timeout the defence has left stops the clock after a kneel.
+        val kneels = 4 - s.down
+        val stopped = minOf(s.defenseTimeouts, kneels)
+        return s.secondsLeftInQuarter <= kneels * kneelRunoff - stopped * (kneelRunoff - playSeconds)
+    }
 
     private fun run(ctx: PlayContext, rng: Rng): OffensivePlayCall.Run {
         val s = ctx.state
