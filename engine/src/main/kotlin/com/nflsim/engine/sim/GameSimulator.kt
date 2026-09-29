@@ -672,7 +672,7 @@ class GameSimulator(
         val t = teamFor(offense)
         val suggested = FourthDown.decide(
             state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng)
+            home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng, tuning.fourthDown)
         return if (caller != null && offense == callerSide) {
             caller.fourthDown(Snap(state, offense, playByPlay.toList()), suggested)
         } else suggested
@@ -681,7 +681,7 @@ class GameSimulator(
     private fun lastKick(state: GameState, offense: Side): Boolean {
         val t = teamFor(offense)
         return FourthDown.lastKick(state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, tuning.gameFlow.runPlayClockRunoff)
+            home.team.stadium.altitudeFt, tuning.gameFlow.runPlayClockRunoff, tuning.fourthDown)
     }
 
     /**

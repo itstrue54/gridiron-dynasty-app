@@ -1220,7 +1220,9 @@ Every coefficient in the sim lives in one serializable `TuningTable`, saved with
 `injuries` (frequency, severity distribution)
 `progression` (scale, age curve steepness, dev multipliers)
 `ai` (FA aggression, trade frequency, draft BPA-vs-need weighting)
-`gameFlow` (tempo, plays per game, clock runoff)
+`gameFlow` (tempo, plays per game, clock runoff, when a defence plays prevent)
+`calling` (how down, distance and score move a coordinator's pass rate; sneaks, backs kept in to block, blitz adds)
+`fourthDown` (go-for-it rates by distance and field position, aggression scaling, kicker range)
 
 Ship 3 presets: **Realistic** (matches §13.2 bands), **Arcade** (higher scoring, more explosives), **Grinder** (lower scoring, run-heavy, more injuries). You will spend happy hours here.
 
