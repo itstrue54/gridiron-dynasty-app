@@ -143,8 +143,15 @@ object FreeAgency {
                 // not. That difference is where bad contracts come from, and
                 // bad contracts are what the cap is for.
                 val front = team.gm
+                // A club that transition-tagged a man keeps the room to match
+                // him while he is on the market: what he is asking, or worth
+                // if more. Tagging him and then spending that room elsewhere
+                // would make the tag an empty gesture (SPEC 8.3).
+                val holding = rightToMatch.entries
+                    .filter { (id, club) -> club == team.id && pool.any { it.id.v == id } }
+                    .sumOf { (id, _) -> maxOf(market[id] ?: 0, (asking[id] ?: 0f).roundToInt()) }
                 val rawSpace = CapManagement.spaceFor(current, year, dead[team.id.v] ?: 0,
-                    carryover = team.finances.carryover)
+                    carryover = team.finances.carryover) - holding
 
                 // A full roster still has a use for cap room: sign the better
                 // player and release the one he displaces. Without this a team
@@ -220,6 +227,28 @@ object FreeAgency {
                 }.filter { b ->
                     // The club that let him go gets him back only if he is willing.
                     letGo[id] != b.team || Extensions.willingToReturn(player, league.tuning)
+                }.filter { b ->
+                    // A bid stands only while the club can still pay it. Each was
+                    // sized to the room it had, but a club can win several on one
+                    // day, and each signing before this one spent some - as did
+                    // the room it keeps to match its own tagged men. The user's
+                    // offers were counted against his room when he made them.
+                    if (b.team == manual) return@filter true
+                    val current = roster[b.team] ?: emptyList()
+                    val holding = rightToMatch.entries
+                        .filter { (tagged, club) -> club == b.team && tagged != id && tagged !in signed && pool.any { it.id.v == tagged } }
+                        .sumOf { (tagged, _) -> maxOf(market[tagged] ?: 0, (asking[tagged] ?: 0f).roundToInt()) }
+                    val room = CapManagement.spaceFor(current, year, dead[b.team.v] ?: 0,
+                        carryover = league.team(b.team).finances.carryover) - holding
+                    // An upgrade frees what the man it displaces costs, less what cutting him leaves behind.
+                    val freed = b.replaces?.let { outId ->
+                        current.firstOrNull { it.id.v == outId }?.let { out ->
+                            out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
+                        }
+                    } ?: 0
+                    val hit = Contract.of(years = b.years, totalValue = b.annual * b.years, signedYear = year,
+                        guaranteedShare = 0.40f + (offers.size - 1).coerceAtMost(4) * 0.04f).capHit(year)
+                    room + freed >= hit
                 }
                 // A loyal player gives his old club the benefit of the doubt.
                 val best = live.maxByOrNull { b ->

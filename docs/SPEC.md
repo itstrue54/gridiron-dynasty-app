@@ -861,6 +861,14 @@ for plays on the tender. Handed to the front office, the club matches
 whatever fits, as the league's clubs do. The free-agency report says who
 was kept and who was lost.
 
+**Room, day by day.** A club's bids are each sized to its room, but it can
+win several on one day. A bid stands only if, when he takes it, the club
+can still pay the contract's first-year cap hit from what its earlier
+signings have left. A club that transition-tagged a man keeps the room to
+match him, whichever is more of his ask and his market, while he is on the
+market: it bids for others and accepts their terms only with what is left.
+The user's own offers were counted against his room when he made them.
+
 **The league's clubs haggle over demands.** A club that can afford a man
 who asks opens at 85% of his market, up to 100% for the boldest GM
 (`ai.disputeAiOpenBase`, `ai.disputeAiOpenAggression`); at or above his

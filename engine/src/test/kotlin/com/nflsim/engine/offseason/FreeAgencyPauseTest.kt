@@ -62,6 +62,23 @@ class FreeAgencyPauseTest {
     }
 
     @Test
+    fun `no club with room leaves free agency over the cap`() {
+        val fa = pause()
+        val before = fa.state.players.groupBy { it.teamId }
+        val after = fa.decide(null).state
+        val now = after.players.groupBy { it.teamId }
+        // The room free agency works from: this year's carryover, not last season's.
+        fa.ctx.league.teams.forEach { t ->
+            fun space(players: List<com.nflsim.engine.model.Player>?, dead: Int) = CapManagement.spaceFor(
+                players.orEmpty(), fa.year, dead, carryover = t.finances.carryover)
+            val start = space(before[t.id], fa.state.deadMoney[t.id.v] ?: 0)
+            val end = space(now[t.id], after.deadMoney[t.id.v] ?: 0)
+            // A club already over the cap may stay there; one with room may not spend past it.
+            assertTrue(end >= minOf(start, 0), "${t.abbrev} went from ${start} to ${end}")
+        }
+    }
+
+    @Test
     fun `leaving free agency to the front office is the old offseason`() {
         val auto = OffseasonEngine.runToDraft(season).finish().first
         val viaPause = pause().decide(null).finish().first
