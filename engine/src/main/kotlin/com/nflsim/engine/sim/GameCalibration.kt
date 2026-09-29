@@ -87,6 +87,7 @@ object GameCalibration {
                 defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
                 aggression = 0.35f + rng.nextFloat() * 0.4f,
                 staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
+                adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
             )
         }
 

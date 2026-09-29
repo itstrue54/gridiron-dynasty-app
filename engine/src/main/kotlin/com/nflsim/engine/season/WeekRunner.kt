@@ -28,6 +28,7 @@ object WeekRunner {
                 defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
                 aggression = GamePlan.defaultAggression(team.id.v),
                 staffPlan = Tendencies.of(team.staff, league.coaches),
+                adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
             )
         }
 

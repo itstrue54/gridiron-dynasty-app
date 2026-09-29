@@ -61,10 +61,15 @@ class BoxScoreArchiveTest {
             "nobody else's logs are kept")
         assertTrue(d.playoffs.all { it.plays.isEmpty() }, "the bracket should not keep a second copy")
 
-        // The last play of a log is the final score.
-        val last = ours.first().let { it to it.plays.last() }
-        assertEquals(last.first.homeScore to last.first.awayScore,
-            last.second.homeScore to last.second.awayScore)
+        // Each log is its game's, whole: it runs to the final snap. A line
+        // carries the score before its play, so the last one is at most one
+        // score short of the final - a game can end on a touchdown.
+        ours.forEach { g ->
+            val last = g.plays.last()
+            assertTrue(last.quarter >= 4, "the log stops before the end: $last")
+            assertTrue(g.homeScore - last.homeScore in 0..8 && g.awayScore - last.awayScore in 0..8,
+                "${g.homeScore}-${g.awayScore} final, last line at ${last.homeScore}-${last.awayScore}")
+        }
 
         // The year turning over ends it.
         d = DynastyEngine.advance(d)

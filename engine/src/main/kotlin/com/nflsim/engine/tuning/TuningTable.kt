@@ -31,6 +31,7 @@ data class TuningTable(
     val calling: Calling = Calling(),
     val fourthDown: FourthDown = FourthDown(),
     val weather: Weather = Weather(),
+    val adaptation: Adaptation = Adaptation(),
 ) {
     @Serializable
     data class Passing(
@@ -392,6 +393,26 @@ data class TuningTable(
         val kickRangePerMph: Float = 0.3f,
         val kickColdBelow: Int = 40,
         val kickRangePerDegree: Float = 0.1f,
+    )
+
+    /**
+     * In-game adaptation (SPEC 5.4, sim.GameSimulator.adaptation): how far a
+     * coordinator moves off his tendencies against what the other side has
+     * shown, at most [window] for a head coach rated 100 in adjustments.
+     */
+    @Serializable
+    data class Adaptation(
+        /** Snaps a side has to have seen before it moves at all. */
+        val minSnaps: Int = 8,
+        val window: Float = 0.12f,
+        /** The pass share a defence treats as neither run nor pass heavy, and how hard it reads a lean either way. */
+        val neutralPassRate: Float = 0.57f,
+        val passGain: Float = 5f,
+        /**
+         * How hard an offence reads the box it has seen: per man added on
+         * average. 1.5 put third-down conversion at 0.417, near its band's top.
+         */
+        val boxGain: Float = 1.0f,
     )
 
     @Serializable
