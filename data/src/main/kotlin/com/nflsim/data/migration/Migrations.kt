@@ -57,6 +57,7 @@ object Migrations {
         // whose user moved a runoff slider keeps his figure.
         Step(21, "the clock has a two-minute warning, a hurry-up and timeouts (SPEC 5.10); nothing to move") { it },
         Step(22, "a play can end out of bounds and stop the clock (SPEC 5.10); nothing to move") { it },
+        Step(23, "stadiums have a climate, and games weather (SPEC 5.10)", ::stadiumClimates),
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
@@ -143,6 +144,23 @@ object Migrations {
      */
     private fun formSquads(dynasty: Dynasty): Dynasty =
         dynasty.copy(league = com.nflsim.engine.season.PracticeSquads.fill(dynasty.league, dynasty.seed))
+
+    /**
+     * A save from before weather has every stadium in the default climate.
+     * Each club gets its region back from teams.json, found by its stadium
+     * (which an imported league keeps from its slot) or, failing that, its
+     * abbreviation. A club neither finds keeps the default.
+     */
+    private fun stadiumClimates(dynasty: Dynasty): Dynasty {
+        val seeds = com.nflsim.engine.gen.LeagueGenerator.teamSeeds
+        val teams = dynasty.league.teams.map { team ->
+            val seed = seeds.firstOrNull { it.stadium.name == team.stadium.name }
+                ?: seeds.firstOrNull { it.abbrev == team.abbrev }
+                ?: return@map team
+            team.copy(stadium = team.stadium.copy(climate = seed.stadium.climate))
+        }
+        return dynasty.copy(league = dynasty.league.copy(teams = teams))
+    }
 
     /**
      * 17 -> 18: general managers have names. A save from before them has a

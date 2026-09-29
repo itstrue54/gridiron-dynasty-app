@@ -36,6 +36,8 @@ object SpecialTeams {
         clutch: Boolean = false,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
         narration: Rng? = null,
+        weather: Weather = Weather.INDOORS,
+        weatherTuning: TuningTable.Weather = TuningTable.REALISTIC.weather,
     ): KickResult {
         val words = narration ?: rng.split("narration")
         // Snap, hold, and seven yards of backfield, plus the ten yard end zone.
@@ -46,7 +48,8 @@ object SpecialTeams {
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
 
         // Beyond his range it falls apart quickly rather than gradually.
-        val range = st.fgRangeBase + (power / 99f) * st.fgRangePower + (altitudeFt / 5280f) * st.fgAltitudeBonus
+        val range = st.fgRangeBase + (power / 99f) * st.fgRangePower + (altitudeFt / 5280f) * st.fgAltitudeBonus -
+            weather.kickRangeLoss(weatherTuning)
         val over = distance - range
 
         var chance = when {
@@ -55,6 +58,7 @@ object SpecialTeams {
         }
         if (over > 0) chance *= (1f - (over / st.fgBeyondRange)).coerceAtLeast(0.05f)
         if (clutch) chance *= st.clutchFloor + (kicker.traits.clutch / 99f) * st.clutchRange
+        chance *= 1f - weather.kickAccuracyPenalty(weatherTuning)
         chance = chance.coerceIn(0.005f, 0.995f)
 
         val good = rng.nextFloat() < chance

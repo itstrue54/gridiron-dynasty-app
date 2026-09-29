@@ -18,6 +18,8 @@ data class Stadium(
     val capacity: Int = 68_000,
     /** 0..100. Drives road false starts and communication penalties. */
     val crowdNoise: Int = 70,
+    /** The region its weather comes from (climate.json, SPEC 5.10). A domed stadium plays indoors. */
+    val climate: String = "temperate",
 )
 
 @Serializable

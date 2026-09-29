@@ -41,10 +41,14 @@ class OvertimeTest {
             val ot = g.regular.playByPlay.filter { it.quarter >= 5 }
             assertTrue(ot.all { it.quarter == 5 }, "one period only")
             assertTrue(ot.all { it.clock <= Overtime.REGULAR_SEASON.periodSeconds }, "ten minutes, not fifteen")
-            // A tie only once the period has run out - the last drive took the
-            // clock to zero, if it tied the game with the last snap.
-            if (g.regular.isTie) g.regular.drives.last().let { d ->
-                assertTrue(d.startQuarter == 5 && d.seconds >= d.startClock, "the period had time left: $d")
+            // A tie only once the period has run out: the last snap of
+            // overtime came with no more than a snap's clock left, and it, or
+            // the punt or kick after it, took the rest. (A drive's own
+            // seconds don't count the punt, so they can't show it.)
+            if (g.regular.isTie) {
+                val last = g.regular.playByPlay.last { it.quarter == 5 }
+                assertTrue(last.clock <= league.tuning.gameFlow.runPlayClockRunoff + PUNT_SECONDS,
+                    "the period had time left: $last")
             }
         }
     }
@@ -92,6 +96,8 @@ class OvertimeTest {
 
     private companion object {
         const val GAMES = 800
+        /** What a punt takes off the clock (GameSimulator). */
+        const val PUNT_SECONDS = 12
 
         // Played once for the class, not once a test.
         private val league = LeagueGenerator.generate(2026, 12L)

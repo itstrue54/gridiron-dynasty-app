@@ -2111,3 +2111,27 @@ yards 349 -> 351, points 21.6 -> 21.8, and close games 0.20 -> 0.23: going
 out of bounds late is how a chasing club gets one more snap, and one more
 chance to draw level.
 
+## ADR-0xx — Weather, and a fair-weather baseline
+
+**Context.** SPEC 5.10 described weather (by stadium, month and region,
+affecting deep passing, kicking and fumbles), but the engine had none.
+
+**Decision.** Weather is data, not code: a climate region on each stadium
+in `teams.json`, and a table by region and month in `climate.json`. Each
+game draws its weather once from its own stream, so the plays don't move
+and only the conditions do. A dome draws nothing and plays exactly as a
+game did before weather existed. The effects are `TuningTable.weather`
+fields.
+
+The calibration bands are NFL numbers, and the NFL plays in its weather.
+So the fair-weather baseline rises to meet them: base completion 0.82 ->
+0.83 and base fumble rate 0.0125 -> 0.0115. With weather at the old
+baseline, completion read 0.63 and fumbles per carry 0.013, at the edges
+of their bands.
+
+**Consequences.** All 18 bands pass over 2,000 games at the same readings
+as before weather: completion 0.64, fumbles 0.012, yards per attempt 7.36,
+points 21.5, close games 0.23. Cold, windy and wet games now play
+differently from warm ones, and domes differ from open stadiums. Old
+saves get their stadiums' regions back by migration.
+
