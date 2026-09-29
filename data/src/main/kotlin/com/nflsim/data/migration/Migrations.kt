@@ -49,6 +49,9 @@ object Migrations {
         // it always showed.
         Step(18, "the league and its conferences can be named (SPEC 9.4); nothing to move") { it },
         Step(19, "the tuning table learned when a defence plays prevent (SPEC 5.4); nothing to move") { it },
+        // The play caller's and fourth down's coefficients moved into the
+        // table at the values they had in code: an old save plays the same.
+        Step(20, "the tuning table holds how coordinators call plays and fourth down (SPEC 12); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

@@ -28,6 +28,8 @@ data class TuningTable(
     val form: Form = Form(),
     val fatigue: Fatigue = Fatigue(),
     val ratings: Ratings = Ratings(),
+    val calling: Calling = Calling(),
+    val fourthDown: FourthDown = FourthDown(),
 ) {
     @Serializable
     data class Passing(
@@ -287,6 +289,79 @@ data class TuningTable(
             else -> 0f
         }
     }
+
+    /**
+     * How a coordinator calls a snap (sim.PlayCaller): what down, distance
+     * and the score do to his pass rate, and how often he keeps a man in or
+     * sends one more. The situations themselves - third and long, the goal
+     * line - are football's, and stay in the caller.
+     */
+    @Serializable
+    data class Calling(
+        /** Added to the pass rate by down: first, second, third (4+ to go, or fewer), fourth (3+, or fewer). */
+        val passFirstDown: Float = -0.06f,
+        val passSecondDown: Float = 0.02f,
+        val passThirdLong: Float = 0.30f,
+        val passThirdShort: Float = 0.05f,
+        val passFourthLong: Float = 0.35f,
+        val passFourthShort: Float = -0.10f,
+        /** Per yard to go past eight, and the most distance can move it either way. */
+        val passPerYardToGo: Float = 0.016f,
+        val passDistanceMin: Float = -0.14f,
+        val passDistanceMax: Float = 0.22f,
+        /** Per point behind (a lead takes it off), and the most the score can move it either way. */
+        val passPerPointBehind: Float = 0.011f,
+        val passScoreMin: Float = -0.16f,
+        val passScoreMax: Float = 0.24f,
+        /** Taken off at the goal line, two yards or fewer to go. */
+        val passGoalLineCut: Float = 0.22f,
+        /** No coordinator is ever all run or all pass. */
+        val passRateFloor: Float = 0.08f,
+        val passRateCeiling: Float = 0.94f,
+        /** How deep a second-down throw aims, per yard to go. */
+        val secondDownDepthPerYard: Float = 0.9f,
+        /** How often a run from the one is a quarterback sneak. */
+        val sneakRate: Float = 0.4f,
+        /** How often a back stays in to block on a deep shot, and on anything else but a quick throw. */
+        val protectDeepRate: Float = 0.55f,
+        val protectRate: Float = 0.25f,
+        /** Added to the blitz rate on third and six or more, and with goal to go. */
+        val blitzThirdLong: Float = 0.10f,
+        val blitzGoalToGo: Float = 0.06f,
+    )
+
+    /**
+     * Fourth down (sim.FourthDown): how often a coach goes for it, by how far
+     * he has to go and where, and how far he trusts his kicker.
+     */
+    @Serializable
+    data class FourthDown(
+        /** Going for it: in his own end, with a yard or less, two, four or fewer, and more. */
+        val goOwnEnd: Float = 0.01f,
+        val goInches: Float = 0.42f,
+        val goTwo: Float = 0.26f,
+        val goShort: Float = 0.12f,
+        val goLong: Float = 0.04f,
+        /** Added between the opponent's 33 and 48, too far to kick and too close to punt. */
+        val goFourDownTerritory: Float = 0.22f,
+        /** Added inside the five with three or fewer to go. */
+        val goGoalLine: Float = 0.25f,
+        /** Added late and behind by more than a kick can make up. */
+        val goLateTrailing: Float = 0.35f,
+        /** Taken off in the fourth quarter more than a score ahead. */
+        val goProtectingLead: Float = 0.10f,
+        /** The coach's aggression scales it: base + aggression x scale, then the floor and ceiling. */
+        val aggressionBase: Float = 0.6f,
+        val aggressionScale: Float = 0.8f,
+        val goFloor: Float = 0.005f,
+        val goCeiling: Float = 0.95f,
+        /** The longest kick he sends a kicker out for: a base, plus kick power and altitude. */
+        val rangeBase: Float = 44f,
+        val rangePerPower: Float = 20f,
+        val rangePerMile: Float = 4f,
+        /** With nobody who kicks for a living. */
+        val rangeNoKicker: Int = 35,
+    )
 
     @Serializable
     data class GameFlow(

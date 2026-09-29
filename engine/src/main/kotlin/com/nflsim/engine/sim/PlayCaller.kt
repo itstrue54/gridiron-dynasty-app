@@ -21,21 +21,23 @@ object PlayCaller {
         var passRate = (plan.passRate ?: ctx.offense.scheme.basePassRate) + ctx.tuning.gameFlow.passRateShift
 
         // Down and distance move a coordinator more than anything else.
+        val t = ctx.tuning.calling
         passRate += when (s.down) {
-            1 -> -0.06f
-            2 -> 0.02f
-            3 -> if (s.distance >= 4) 0.30f else 0.05f
-            else -> if (s.distance >= 3) 0.35f else -0.10f
+            1 -> t.passFirstDown
+            2 -> t.passSecondDown
+            3 -> if (s.distance >= 4) t.passThirdLong else t.passThirdShort
+            else -> if (s.distance >= 3) t.passFourthLong else t.passFourthShort
         }
-        passRate += ((s.distance - 8) * 0.016f).coerceIn(-0.14f, 0.22f)
+        passRate += ((s.distance - 8) * t.passPerYardToGo).coerceIn(t.passDistanceMin, t.passDistanceMax)
 
         // Trailing teams throw. Leading teams bleed clock.
-        passRate += plan.trailingPassScale?.let { k -> (-s.scoreDiff * 0.011f * k).coerceIn(-0.16f * k, 0.24f * k) }
-            ?: (-s.scoreDiff * 0.011f).coerceIn(-0.16f, 0.24f)
+        passRate += plan.trailingPassScale?.let { k ->
+            (-s.scoreDiff * t.passPerPointBehind * k).coerceIn(t.passScoreMin * k, t.passScoreMax * k)
+        } ?: (-s.scoreDiff * t.passPerPointBehind).coerceIn(t.passScoreMin, t.passScoreMax)
         if (s.twoMinuteDrill && s.scoreDiff <= 0) passRate += plan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST
-        if (s.goalToGo && s.yardsToGoal <= 2) passRate -= 0.22f
+        if (s.goalToGo && s.yardsToGoal <= 2) passRate -= t.passGoalLineCut
 
-        passRate = passRate.coerceIn(0.08f, 0.94f)
+        passRate = passRate.coerceIn(t.passRateFloor, t.passRateCeiling)
 
         return if (rng.nextFloat() < passRate) pass(ctx, rng) else run(ctx, rng)
     }
@@ -51,7 +53,7 @@ object PlayCaller {
 
     private fun run(ctx: PlayContext, rng: Rng): OffensivePlayCall.Run {
         val s = ctx.state
-        if (s.goalToGo && s.yardsToGoal <= 1 && rng.nextFloat() < 0.4f) {
+        if (s.goalToGo && s.yardsToGoal <= 1 && rng.nextFloat() < ctx.tuning.calling.sneakRate) {
             return OffensivePlayCall.Run(RunConcept.QB_SNEAK, Personnel.GOAL_LINE)
         }
         // Scheme decides what the run game looks like.
@@ -85,7 +87,7 @@ object PlayCaller {
         // opposite directions, from one cause.
         val targetDepth = when (s.down) {
             1 -> 7 + rng.nextInt(7)                                  // 7-13
-            2 -> (s.distance * 0.9f).toInt().coerceIn(5, 17)
+            2 -> (s.distance * ctx.tuning.calling.secondDownDepthPerYard).toInt().coerceIn(5, 17)
             else -> (s.distance + 1).coerceIn(5, 25)
         }
 
@@ -108,9 +110,9 @@ object PlayCaller {
 
         // Deep shots keep extra help in; quick game empties the pocket.
         val extraProtectors = when {
-            concept.airYards >= 20 -> if (rng.nextFloat() < 0.55f) 1 else 0
+            concept.airYards >= 20 -> if (rng.nextFloat() < ctx.tuning.calling.protectDeepRate) 1 else 0
             concept.quick -> 0
-            else -> if (rng.nextFloat() < 0.25f) 1 else 0
+            else -> if (rng.nextFloat() < ctx.tuning.calling.protectRate) 1 else 0
         }
 
         // Where the ball goes, correlated with how deep it is going.
@@ -164,8 +166,8 @@ object PlayCaller {
         }.let { it[rng.nextInt(it.size)] }
 
         var blitzRate = ctx.defPlan.blitzRate ?: scheme.blitzRate
-        if (s.down == 3 && s.distance >= 6) blitzRate += 0.10f
-        if (s.goalToGo) blitzRate += 0.06f
+        if (s.down == 3 && s.distance >= 6) blitzRate += ctx.tuning.calling.blitzThirdLong
+        if (s.goalToGo) blitzRate += ctx.tuning.calling.blitzGoalToGo
         val extraRushers = if (rng.nextFloat() < blitzRate) 1 + rng.nextInt(2) else 0
 
         // Selling out against the run when it is obviously coming.
