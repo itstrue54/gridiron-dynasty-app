@@ -37,6 +37,8 @@ data class PlayContext(
     val tuning: TuningTable = TuningTable.REALISTIC,
     /** 0..100, drives false starts and communication problems on the road. */
     val crowdNoise: Int = 0,
+    /** The game's weather (SPEC 5.10). */
+    val weather: Weather = Weather.INDOORS,
     /** Each side's game plan: the tendencies its coordinator calls from. */
     val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
@@ -157,7 +159,8 @@ internal object RunResolution {
         val hitPower = ctx.defense.frontSeven.averageRating(RatingId.HIT_POWER, defScheme)
         val fumbleChance = t.rushing.fumbleBase *
             (t.rushing.fumbleSecurityBase - rate(carrier, RatingId.BALL_SECURITY, offScheme) / 99f) *
-            (t.rushing.fumbleHitBase + hitPower / t.rushing.fumbleHitScale)
+            (t.rushing.fumbleHitBase + hitPower / t.rushing.fumbleHitScale) *
+            ctx.weather.fumbleFactor(t.weather)
         if (rng.nextFloat() < fumbleChance) {
             return PlayResult(
                 outcome = PlayOutcome.FUMBLE_LOST,

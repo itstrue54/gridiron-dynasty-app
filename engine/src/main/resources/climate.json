@@ -1,0 +1,577 @@
+{
+  "_comment": "Gameday weather by region and month (SPEC 5.10): mean temperature and its spread in degrees F, the chance of rain or snow, the mean wind in mph and its spread. Rough regional norms for an afternoon kickoff. Snow when it's 33 or colder and wet. A domed stadium plays indoors whatever its region.",
+  "regions": {
+    "temperate": {
+      "SEP": {
+        "tempF": 70,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 60,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 50,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "DEC": {
+        "tempF": 42,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "JAN": {
+        "tempF": 38,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "FEB": {
+        "tempF": 40,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 10,
+        "windSd": 5
+      }
+    },
+    "northeast": {
+      "SEP": {
+        "tempF": 70,
+        "tempSd": 7,
+        "precip": 0.26,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 59,
+        "tempSd": 7,
+        "precip": 0.26,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "NOV": {
+        "tempF": 49,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 11,
+        "windSd": 6
+      },
+      "DEC": {
+        "tempF": 39,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 12,
+        "windSd": 6
+      },
+      "JAN": {
+        "tempF": 34,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 12,
+        "windSd": 6
+      },
+      "FEB": {
+        "tempF": 36,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 12,
+        "windSd": 6
+      }
+    },
+    "great_lakes": {
+      "SEP": {
+        "tempF": 67,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "OCT": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 11,
+        "windSd": 6
+      },
+      "NOV": {
+        "tempF": 43,
+        "tempSd": 7,
+        "precip": 0.33,
+        "windMph": 12,
+        "windSd": 6
+      },
+      "DEC": {
+        "tempF": 31,
+        "tempSd": 7,
+        "precip": 0.35,
+        "windMph": 13,
+        "windSd": 6
+      },
+      "JAN": {
+        "tempF": 25,
+        "tempSd": 7,
+        "precip": 0.35,
+        "windMph": 13,
+        "windSd": 6
+      },
+      "FEB": {
+        "tempF": 27,
+        "tempSd": 7,
+        "precip": 0.33,
+        "windMph": 13,
+        "windSd": 6
+      }
+    },
+    "midsouth": {
+      "SEP": {
+        "tempF": 74,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 62,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 51,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 41,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "JAN": {
+        "tempF": 36,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "FEB": {
+        "tempF": 40,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 10,
+        "windSd": 5
+      }
+    },
+    "plains": {
+      "SEP": {
+        "tempF": 73,
+        "tempSd": 7,
+        "precip": 0.22,
+        "windMph": 10,
+        "windSd": 5
+      },
+      "OCT": {
+        "tempF": 61,
+        "tempSd": 7,
+        "precip": 0.22,
+        "windMph": 11,
+        "windSd": 6
+      },
+      "NOV": {
+        "tempF": 48,
+        "tempSd": 7,
+        "precip": 0.2,
+        "windMph": 11,
+        "windSd": 6
+      },
+      "DEC": {
+        "tempF": 36,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 12,
+        "windSd": 6
+      },
+      "JAN": {
+        "tempF": 31,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 12,
+        "windSd": 6
+      },
+      "FEB": {
+        "tempF": 35,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 12,
+        "windSd": 6
+      }
+    },
+    "mountain": {
+      "SEP": {
+        "tempF": 67,
+        "tempSd": 7,
+        "precip": 0.12,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.14,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 43,
+        "tempSd": 7,
+        "precip": 0.15,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 34,
+        "tempSd": 7,
+        "precip": 0.15,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 33,
+        "tempSd": 7,
+        "precip": 0.15,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 35,
+        "tempSd": 7,
+        "precip": 0.15,
+        "windMph": 9,
+        "windSd": 4
+      }
+    },
+    "southeast": {
+      "SEP": {
+        "tempF": 76,
+        "tempSd": 7,
+        "precip": 0.24,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 65,
+        "tempSd": 7,
+        "precip": 0.22,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.24,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 47,
+        "tempSd": 7,
+        "precip": 0.26,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 44,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 48,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 8,
+        "windSd": 4
+      }
+    },
+    "florida": {
+      "SEP": {
+        "tempF": 84,
+        "tempSd": 7,
+        "precip": 0.38,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 79,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 72,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 67,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 64,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 67,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      }
+    },
+    "gulf": {
+      "SEP": {
+        "tempF": 83,
+        "tempSd": 7,
+        "precip": 0.3,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 75,
+        "tempSd": 7,
+        "precip": 0.24,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 65,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 57,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 59,
+        "tempSd": 7,
+        "precip": 0.28,
+        "windMph": 9,
+        "windSd": 4
+      }
+    },
+    "texas": {
+      "SEP": {
+        "tempF": 83,
+        "tempSd": 7,
+        "precip": 0.2,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 74,
+        "tempSd": 7,
+        "precip": 0.2,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 63,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 53,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 57,
+        "tempSd": 7,
+        "precip": 0.18,
+        "windMph": 9,
+        "windSd": 4
+      }
+    },
+    "desert": {
+      "SEP": {
+        "tempF": 88,
+        "tempSd": 7,
+        "precip": 0.04,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 76,
+        "tempSd": 7,
+        "precip": 0.04,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 62,
+        "tempSd": 7,
+        "precip": 0.05,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 52,
+        "tempSd": 7,
+        "precip": 0.07,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 52,
+        "tempSd": 7,
+        "precip": 0.08,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 56,
+        "tempSd": 7,
+        "precip": 0.08,
+        "windMph": 8,
+        "windSd": 4
+      }
+    },
+    "pacific_nw": {
+      "SEP": {
+        "tempF": 64,
+        "tempSd": 7,
+        "precip": 0.25,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 55,
+        "tempSd": 7,
+        "precip": 0.4,
+        "windMph": 8,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 47,
+        "tempSd": 7,
+        "precip": 0.55,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 42,
+        "tempSd": 7,
+        "precip": 0.55,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 43,
+        "tempSd": 7,
+        "precip": 0.55,
+        "windMph": 9,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 45,
+        "tempSd": 7,
+        "precip": 0.5,
+        "windMph": 9,
+        "windSd": 4
+      }
+    },
+    "california": {
+      "SEP": {
+        "tempF": 72,
+        "tempSd": 7,
+        "precip": 0.04,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "OCT": {
+        "tempF": 68,
+        "tempSd": 7,
+        "precip": 0.08,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "NOV": {
+        "tempF": 62,
+        "tempSd": 7,
+        "precip": 0.14,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "DEC": {
+        "tempF": 57,
+        "tempSd": 7,
+        "precip": 0.2,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "JAN": {
+        "tempF": 57,
+        "tempSd": 7,
+        "precip": 0.22,
+        "windMph": 7,
+        "windSd": 4
+      },
+      "FEB": {
+        "tempF": 58,
+        "tempSd": 7,
+        "precip": 0.22,
+        "windMph": 7,
+        "windSd": 4
+      }
+    }
+  }
+}

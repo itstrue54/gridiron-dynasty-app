@@ -26,10 +26,12 @@ object FourthDown {
         aggression: Float,
         rng: Rng,
         t: TuningTable.FourthDown = TuningTable.REALISTIC.fourthDown,
+        /** Yards the weather takes off the kicker's range (Weather.kickRangeLoss). */
+        rangeLoss: Float = 0f,
     ): FourthDownChoice {
         val yardsToGoal = 100 - state.yardLine
         val kickDistance = yardsToGoal + 17
-        val range = kickerRange(kicker, kickScheme, altitudeFt, t)
+        val range = kickerRange(kicker, kickScheme, altitudeFt, t, rangeLoss)
         val kickable = kickDistance <= range
 
         // Late and behind by more than a kick can make up, a coach goes for it.
@@ -81,12 +83,13 @@ object FourthDown {
         altitudeFt: Int,
         snapRunoff: Int,
         t: TuningTable.FourthDown = TuningTable.REALISTIC.fourthDown,
+        rangeLoss: Float = 0f,
     ): Boolean {
         if (state.secondsLeft > snapRunoff) return false
         val endOfHalf = state.quarter == 2
         val endOfGame = state.quarter >= 4 && state.scoreDiff in -FIELD_GOAL_POINTS..0
         if (!endOfHalf && !endOfGame) return false
-        return (100 - state.yardLine) + 17 <= kickerRange(kicker, kickScheme, altitudeFt, t)
+        return (100 - state.yardLine) + 17 <= kickerRange(kicker, kickScheme, altitudeFt, t, rangeLoss)
     }
 
     /** What a field goal is worth: the rules. */
@@ -98,9 +101,10 @@ object FourthDown {
         scheme: Scheme,
         altitudeFt: Int,
         t: TuningTable.FourthDown = TuningTable.REALISTIC.fourthDown,
+        rangeLoss: Float = 0f,
     ): Int {
         if (kicker == null) return t.rangeNoKicker
         val power = rate(kicker, RatingId.KICK_POWER, scheme)
-        return (t.rangeBase + (power / 99f) * t.rangePerPower + (altitudeFt / 5280f) * t.rangePerMile).toInt()
+        return (t.rangeBase + (power / 99f) * t.rangePerPower + (altitudeFt / 5280f) * t.rangePerMile - rangeLoss).toInt()
     }
 }

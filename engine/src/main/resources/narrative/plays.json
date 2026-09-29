@@ -19,6 +19,16 @@
     "A quick spike from {qb} stops the clock.",
     "{qb} spikes it with the clock running down."
   ],
+  "weather": [
+    "Kickoff in {conditions}.",
+    "Conditions at kickoff: {conditions}.",
+    "It's {conditions} as they line up for the kick.",
+    "The weather at kickoff: {conditions}.",
+    "They kick off in {conditions}.",
+    "{conditions} at the stadium for the opening kick.",
+    "Game time conditions: {conditions}.",
+    "A kickoff in {conditions}."
+  ],
   "out_of_bounds": [
     "He gets out of bounds to stop the clock.",
     "He steps out, and the clock stops.",

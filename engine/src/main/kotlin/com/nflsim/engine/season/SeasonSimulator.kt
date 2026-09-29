@@ -95,7 +95,8 @@ class SeasonSimulator(
             schedule.week(week).forEach { matchup ->
                 val rng = root.split("y=$year|w=$week|h=${matchup.home.v}|a=${matchup.away.v}")
                 val g = GameSimulator(teams.getValue(matchup.home), teams.getValue(matchup.away), tuning,
-                    overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON)
+                    overtime = com.nflsim.engine.sim.Overtime.REGULAR_SEASON,
+                    weather = com.nflsim.engine.sim.Weather.draw(teams.getValue(matchup.home).team.stadium, week, rng.split("weather")))
                     .simulate(rng)
                 outcomes += GameOutcome(week, matchup.home, matchup.away, g.homeScore, g.awayScore)
                 stats = merge(stats, g.boxScore.players)
@@ -234,7 +235,10 @@ class SeasonSimulator(
         while (true) {
             val live = calling?.takeIf { attempt == 0 }
             val g = GameSimulator(gameTeams.getValue(home), gameTeams.getValue(away), tuning,
-                caller = live, callerSide = live?.let { side }, overtime = com.nflsim.engine.sim.Overtime.PLAYOFFS)
+                caller = live, callerSide = live?.let { side }, overtime = com.nflsim.engine.sim.Overtime.PLAYOFFS,
+                // The same weather for a replay: it is the same afternoon.
+                weather = com.nflsim.engine.sim.Weather.draw(gameTeams.getValue(home).team.stadium,
+                    Schedule.WEEKS + round.ordinal + 1, rng.split("weather")))
                 .simulate(rng.split("ot=$attempt"))
             collect(g.boxScore.players)
             if (g.homeScore != g.awayScore || attempt >= MAX_OVERTIME) {

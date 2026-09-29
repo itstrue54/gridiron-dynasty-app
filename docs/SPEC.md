@@ -561,6 +561,16 @@ show - are the two together.
   - Unlike the NFL, each period opens with its own toss and kickoff rather than carrying on from the spot.
   - Past ten periods, a safety valve, the bracket's old rule settles the game: the coordinators replay it, up to three times, and then the home club wins by three.
 - Weather generated per game from stadium + month + a regional climate table. Dome = neutral. Affects deep passing, kicking, and fumble rate.
+  Built (`sim.Weather`, `climate.json`):
+  - Each stadium has a climate region (`teams.json`). The table gives each region and month a temperature and its spread, a chance of rain or snow (snow at 33° or colder), and wind.
+  - Each game draws its weather once, from its own stream, for the home stadium and the week: September through January, and February for the title game. A domed stadium plays indoors, where nothing applies.
+  - Effects (`TuningTable.weather`):
+    - Wind past 10 mph costs completion on throws of 15+ air yards.
+    - Rain and snow cost completion on every throw and raise the fumble chance on a carry.
+    - Wind, rain and snow cost a field goal accuracy.
+    - Wind and cold shorten a kicker's range, for the kick itself and for the coach's fourth-down call.
+  - The conditions open an outdoor game's play-by-play. The game result records them.
+  - The bands (§13.2) are the NFL's, weather and all, so the fair-weather baseline was raised to meet them: base completion 0.83 (from 0.82) and base fumble rate 0.0115 (from 0.0125).
 
 ### 5.11 Determinism **[LOCKED]**
 

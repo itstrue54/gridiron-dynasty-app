@@ -58,4 +58,16 @@ class MigrationsTest {
             Migrations.migrate(dynasty, CURRENT_SAVE_VERSION, CURRENT_SAVE_VERSION + 1)
         }
     }
+
+    @Test
+    fun `a save from before weather gets its stadiums' climates back`() {
+        val league = com.nflsim.engine.gen.LeagueGenerator.generate(2026, 11L)
+        val fresh = com.nflsim.engine.season.DynastyEngine.start(league, 2026, 11L, league.teams.first().id)
+        val old = fresh.copy(league = fresh.league.copy(teams = fresh.league.teams.map {
+            it.copy(stadium = it.stadium.copy(climate = "temperate"))
+        }))
+        val migrated = Migrations.migrate(old, 23, 24)
+        assertEquals(fresh.league.teams.map { it.stadium.climate }, migrated.league.teams.map { it.stadium.climate })
+        assertTrue(migrated.league.teams.any { it.stadium.climate == "great_lakes" })
+    }
 }

@@ -150,7 +150,8 @@ internal object PassResolution {
 
         var completion = t.passing.baseCompletion +
             ((accuracy - 70) * t.passing.accuracyWeight + routeWin * t.passing.separationWeight) / t.passing.completionScale -
-            t.passing.depthPenaltyPerYard * call.concept.airYards.coerceAtLeast(0)
+            t.passing.depthPenaltyPerYard * call.concept.airYards.coerceAtLeast(0) -
+            ctx.weather.passPenalty(call.concept.airYards, t.weather)
         if (pressured) completion *= t.passing.pressureCompletionMult *
             (t.passing.poiseBase + rate(qb, RatingId.THROW_UNDER_PRESSURE, off) / t.passing.poiseScale)
         completion = completion.coerceIn(0.02f, 0.95f)

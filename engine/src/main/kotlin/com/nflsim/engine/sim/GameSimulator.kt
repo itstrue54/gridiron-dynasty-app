@@ -53,6 +53,8 @@ data class GameResult(
     /** Injuries that cost games, and every player's scrimmage snaps - for the week that follows. */
     val injuries: List<Injury> = emptyList(),
     val snaps: Map<Int, Int> = emptyMap(),
+    /** The weather it was played in (SPEC 5.10). */
+    val weather: Weather = Weather.INDOORS,
 ) {
     val winner: TeamId? get() = when {
         homeScore > awayScore -> home
@@ -85,6 +87,8 @@ class GameSimulator(
      * regular season's, or the playoffs'. Null, a tie after regulation stands.
      */
     private val overtime: Overtime? = null,
+    /** The weather at kickoff (SPEC 5.10): the season draws it from the home stadium and the week. */
+    private val weather: Weather = Weather.INDOORS,
 ) {
 
     private val stats = StatBuilder()
@@ -126,6 +130,8 @@ class GameSimulator(
         val firstReceiver = if (awayReceivesFirst) Side.AWAY else Side.HOME
 
         var state = GameState(home.id, away.id, possession = firstReceiver)
+        // Outdoors, the conditions open the play-by-play.
+        if (!weather.indoors) log(state, PlayLines.write("weather", words, "conditions" to weather.description))
         state = openWithKickoff(state, firstReceiver, rng)
 
         var secondHalfStarted = false
@@ -163,6 +169,7 @@ class GameSimulator(
             playByPlay = playByPlay.toList(),
             injuries = injuries.toList(),
             snaps = snaps.toMap(),
+            weather = weather,
         )
     }
 
@@ -273,7 +280,7 @@ class GameSimulator(
                             100 - state.yardLine, kicking.offScheme,
                             home.team.stadium.altitudeFt, rng,
                             clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams,
-                            narration = words)
+                            narration = words, weather = weather, weatherTuning = tuning.weather)
                         log(state, kick.narrative)
                         state = advanceClock(state, 6)
                         if (kick.good) {
@@ -430,6 +437,7 @@ class GameSimulator(
             state = playState,
             tuning = tuning,
             crowdNoise = if (offense == Side.AWAY) home.team.stadium.crowdNoise else 0,
+            weather = weather,
             offPlan = offTeam.plan,
             defPlan = defTeam.plan,
             carries = stats::carries,
@@ -729,7 +737,8 @@ class GameSimulator(
         val t = teamFor(offense)
         val suggested = FourthDown.decide(
             state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng, tuning.fourthDown)
+            home.team.stadium.altitudeFt, t.plan.fourthDownAggression ?: t.aggression, rng, tuning.fourthDown,
+            weather.kickRangeLoss(tuning.weather))
         return if (caller != null && offense == callerSide) {
             caller.fourthDown(Snap(state, offense, playByPlay.toList()), suggested)
         } else suggested
@@ -738,7 +747,8 @@ class GameSimulator(
     private fun lastKick(state: GameState, offense: Side): Boolean {
         val t = teamFor(offense)
         return FourthDown.lastKick(state, SpecialTeams.kickerFor(t.offDepth), t.offScheme,
-            home.team.stadium.altitudeFt, tuning.gameFlow.runPlayClockRunoff, tuning.fourthDown)
+            home.team.stadium.altitudeFt, tuning.gameFlow.runPlayClockRunoff, tuning.fourthDown,
+            weather.kickRangeLoss(tuning.weather))
     }
 
     /**

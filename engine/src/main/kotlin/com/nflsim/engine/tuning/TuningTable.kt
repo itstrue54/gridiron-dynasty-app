@@ -30,6 +30,7 @@ data class TuningTable(
     val ratings: Ratings = Ratings(),
     val calling: Calling = Calling(),
     val fourthDown: FourthDown = FourthDown(),
+    val weather: Weather = Weather(),
 ) {
     @Serializable
     data class Passing(
@@ -39,8 +40,11 @@ data class TuningTable(
         val sackGivenPressure: Float = 0.21f,
         /** Bigger = accuracy and coverage differences matter less. */
         val completionScale: Float = 88f,
-        /** Completion probability at a dead-even matchup, before depth. */
-        val baseCompletion: Float = 0.82f,
+        /**
+         * Completion probability at a dead-even matchup, before depth, in fair
+         * weather: 0.82 before weather (SPEC 5.10) took its share.
+         */
+        val baseCompletion: Float = 0.83f,
         /** Completion penalty per yard of intended air distance. */
         val depthPenaltyPerYard: Float = 0.0138f,
         /** Multiplier on completion when the quarterback is pressured. */
@@ -105,7 +109,8 @@ data class TuningTable(
         val breakawayAdvantageScale: Float = 0.030f,
         /** Mean extra yards once a run breaks. Long tail lives here. */
         val breakawayYards: Float = 11.0f,
-        val fumbleBase: Float = 0.0125f,
+        /** A carry's fumble chance before ball security and the hit, in the dry: 0.0125 before weather. */
+        val fumbleBase: Float = 0.0115f,
         val tackleForLossFloor: Float = -6f,
         /** Blocking advantage lost per yard inside the twenty. */
         val redZoneCompression: Float = 0.32f,
@@ -361,6 +366,32 @@ data class TuningTable(
         val rangePerMile: Float = 4f,
         /** With nobody who kicks for a living. */
         val rangeNoKicker: Int = 35,
+    )
+
+    /**
+     * What the weather does to a game (SPEC 5.10, sim.Weather). Indoors, none
+     * of it applies. Wind counts past [windCalm].
+     */
+    @Serializable
+    data class Weather(
+        val windCalm: Int = 10,
+        /** Completion lost per mph of wind past calm, on a throw of [deepAirYards] or more. */
+        val deepAirYards: Int = 15,
+        val deepPassPerMph: Float = 0.004f,
+        /** Completion lost on every throw in rain, and in snow. */
+        val rainCompletion: Float = 0.03f,
+        val snowCompletion: Float = 0.05f,
+        /** What rain and snow multiply a carry's fumble chance by. */
+        val rainFumble: Float = 1.3f,
+        val snowFumble: Float = 1.4f,
+        /** A field goal's accuracy lost per mph of wind past calm, and in rain and snow. */
+        val kickAccuracyPerMph: Float = 0.005f,
+        val rainKick: Float = 0.03f,
+        val snowKick: Float = 0.05f,
+        /** Yards of a kicker's range lost per mph of wind past calm, and per degree below [kickColdBelow]. */
+        val kickRangePerMph: Float = 0.3f,
+        val kickColdBelow: Int = 40,
+        val kickRangePerDegree: Float = 0.1f,
     )
 
     @Serializable

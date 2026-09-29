@@ -110,8 +110,11 @@ object GameCalibration {
             if (a == h) a = (a + 1) % teams.size
 
             // Measured as the regular season plays: a tie goes to its overtime.
-            val result = GameSimulator(teams[h], teams[a], tuning, overtime = Overtime.REGULAR_SEASON)
-                .simulate(rng.split("game=$it"))
+            // And in the weather a season brings: every week of it, in turn.
+            val stream = rng.split("game=$it")
+            val result = GameSimulator(teams[h], teams[a], tuning, overtime = Overtime.REGULAR_SEASON,
+                weather = Weather.draw(teams[h].team.stadium, it % 18 + 1, stream.split("weather")))
+                .simulate(stream)
 
             played++
             result.drives.forEach { d ->
