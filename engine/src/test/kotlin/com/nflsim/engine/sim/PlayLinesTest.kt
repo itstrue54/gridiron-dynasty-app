@@ -17,6 +17,7 @@ class PlayLinesTest {
         "kneel" to setOf("qb"),
         "spike" to setOf("qb"),
         "timeout" to setOf("team", "left"),
+        "out_of_bounds" to setOf(),
         "penalty.false_start" to setOf("who"),
         "penalty.offside" to setOf("who"),
         "penalty.pass_holding" to setOf("who"),

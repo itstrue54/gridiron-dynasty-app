@@ -368,12 +368,13 @@ data class TuningTable(
         val playClockSeconds: Int = 40,
         /**
          * What a snap takes off a running clock, play and huddle together.
-         * Slower than it was before late-game clock management (31 and 28):
-         * the two-minute warning, the hurry-up and timeouts give back the
-         * time, and plays per game stay in their band (SPEC 13.2).
+         * Slower than it was before the clock learned the two-minute
+         * warning, the hurry-up, timeouts (31 and 28, then 34 and 31) and
+         * out of bounds: they give back the time, and plays per game stay in
+         * their band (SPEC 13.2).
          */
-        val runPlayClockRunoff: Int = 34,
-        val completionClockRunoff: Int = 31,
+        val runPlayClockRunoff: Int = 35,
+        val completionClockRunoff: Int = 32,
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */
         val passRateShift: Float = -0.04f,
@@ -392,6 +393,21 @@ data class TuningTable(
         val timeoutMaxDeficit: Int = 16,
         /** What a snap takes off the clock when it is stopped straight after: the play itself. */
         val playSeconds: Int = 6,
+        /**
+         * How often a play ends out of bounds (SPEC 5.10): a run to the
+         * outside or up the middle, a scramble, a catch on a sideline route
+         * or anywhere else.
+         */
+        val outOfBoundsOutsideRun: Float = 0.12f,
+        val outOfBoundsInsideRun: Float = 0.02f,
+        val outOfBoundsScramble: Float = 0.20f,
+        val outOfBoundsSidelineCatch: Float = 0.35f,
+        val outOfBoundsCatch: Float = 0.05f,
+        /** Late, a club chasing the game heads for the sideline, and one protecting a lead stays in. */
+        val outOfBoundsChasing: Float = 2.0f,
+        val outOfBoundsProtecting: Float = 0.3f,
+        /** Outside the last two minutes of the half and five of the game, the clock restarts on the spot: what that saves. */
+        val outOfBoundsRestartSave: Int = 12,
     )
 
     /** Kicking, punting and returns - SPEC 12's FG distance curve and return rates. */

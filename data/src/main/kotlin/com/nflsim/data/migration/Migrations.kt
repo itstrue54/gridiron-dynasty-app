@@ -56,6 +56,7 @@ object Migrations {
         // old save takes the new pace and clock with everything else; one
         // whose user moved a runoff slider keeps his figure.
         Step(21, "the clock has a two-minute warning, a hurry-up and timeouts (SPEC 5.10); nothing to move") { it },
+        Step(22, "a play can end out of bounds and stop the clock (SPEC 5.10); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
