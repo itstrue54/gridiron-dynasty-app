@@ -366,13 +366,32 @@ data class TuningTable(
     @Serializable
     data class GameFlow(
         val playClockSeconds: Int = 40,
-        val runPlayClockRunoff: Int = 31,
-        val completionClockRunoff: Int = 28,
+        /**
+         * What a snap takes off a running clock, play and huddle together.
+         * Slower than it was before late-game clock management (31 and 28):
+         * the two-minute warning, the hurry-up and timeouts give back the
+         * time, and plays per game stay in their band (SPEC 13.2).
+         */
+        val runPlayClockRunoff: Int = 34,
+        val completionClockRunoff: Int = 31,
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */
         val passRateShift: Float = -0.04f,
         /** A defence this many points ahead in the fourth quarter plays prevent (PlayCaller.defense). */
         val preventLead: Int = 9,
+        /**
+         * Late-game clock management (SPEC 5.10, sim.ClockManagement): seconds
+         * left in the fourth quarter or overtime from which a trailing offense
+         * hurries, and what a snap takes off a running clock when it does -
+         * as it also does in the two-minute drill before the half.
+         */
+        val hurryUpSeconds: Int = 300,
+        val hurryUpRunoff: Int = 16,
+        /** Seconds left from which the club chasing the game spends its timeouts, and how far behind it still bothers. */
+        val timeoutSeconds: Int = 180,
+        val timeoutMaxDeficit: Int = 16,
+        /** What a snap takes off the clock when it is stopped straight after: the play itself. */
+        val playSeconds: Int = 6,
     )
 
     /** Kicking, punting and returns - SPEC 12's FG distance curve and return rates. */

@@ -43,6 +43,20 @@ class TransitionMatchTest {
         } ?: error("no expiring man drew an offer sheet on this seed")
     }
 
+    /**
+     * A tagged man nobody bids for: the first of the user's expiring men who
+     * draws no offer sheet. Found, like [contested], rather than assumed: who
+     * the market wants moves with every season the engine plays.
+     */
+    private val uncontested: Pair<FreeAgencyPause, Int> by lazy {
+        val pause = OffseasonEngine.runToContracts(season)
+        pause.expiring.firstNotNullOfOrNull { e ->
+            val (fa, id) = tagged { list -> list.first { it.player.id == e.player.id } }
+            val bid = fa.decide(emptyList(), mapOf(id to 0)).state.auction?.signings?.any { it.player == id } == true
+            if (bid) null else fa to id
+        } ?: error("every expiring man drew an offer sheet on this seed")
+    }
+
     @Test
     fun `a tagged man is listed with every ceiling and a recommended one`() {
         val (fa, star) = tagged()
@@ -69,8 +83,9 @@ class TransitionMatchTest {
 
     @Test
     fun `unsigned, he plays on the tender whatever the ceiling`() {
-        val (fa, star) = tagged()
-        assertEquals(fa.userTeam, clubAfter(fa, star, emptyList(), 0))
+        val (fa, id) = uncontested
+        assertEquals(fa.userTeam, clubAfter(fa, id, emptyList(), 0))
+        assertEquals(fa.userTeam, clubAfter(fa, id, emptyList(), Int.MAX_VALUE))
     }
 
     @Test

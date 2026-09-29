@@ -19,6 +19,17 @@
     "A quick spike from {qb} stops the clock.",
     "{qb} spikes it with the clock running down."
   ],
+  "timeout": [
+    "Timeout, {team} ({left}).",
+    "{team} use a timeout to stop the clock, {left}.",
+    "The clock stops: timeout {team}, {left}.",
+    "{team} call time out to save the clock ({left}).",
+    "{team} stop the clock with a timeout, {left}.",
+    "Time out on the field: {team}, {left}.",
+    "{team} burn a timeout to keep the clock still, {left}.",
+    "{team} save what's left of the clock with a timeout, {left}.",
+    "Timeout called by {team}, {left}."
+  ],
   "penalty.false_start": [
     "False start, {who}. Five yards.",
     "Flag before the snap: false start on {who}. Five yards.",

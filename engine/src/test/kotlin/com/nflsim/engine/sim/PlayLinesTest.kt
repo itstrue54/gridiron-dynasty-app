@@ -16,6 +16,7 @@ class PlayLinesTest {
     private val allowed = mapOf(
         "kneel" to setOf("qb"),
         "spike" to setOf("qb"),
+        "timeout" to setOf("team", "left"),
         "penalty.false_start" to setOf("who"),
         "penalty.offside" to setOf("who"),
         "penalty.pass_holding" to setOf("who"),
