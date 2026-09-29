@@ -56,7 +56,9 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run engine tests
-        run: ./gradlew :engine:test :data:test --stacktrace
+        # The command-line tool has no tests of its own, but it calls the
+        # engine's API and has to keep compiling against it.
+        run: ./gradlew :engine:test :data:test :engine-cli:build --stacktrace
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
