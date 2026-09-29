@@ -19,6 +19,16 @@
     "A quick spike from {qb} stops the clock.",
     "{qb} spikes it with the clock running down."
   ],
+  "out_of_bounds": [
+    "He gets out of bounds to stop the clock.",
+    "He steps out, and the clock stops.",
+    "He gets to the sideline and out.",
+    "Out of bounds: the clock stops.",
+    "He takes it out of bounds to save the clock.",
+    "He's forced out, and the clock stops.",
+    "He gets out before the tackle, and the clock stops.",
+    "He steps out of bounds, clock stopped."
+  ],
   "timeout": [
     "Timeout, {team} ({left}).",
     "{team} use a timeout to stop the clock, {left}.",

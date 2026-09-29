@@ -2104,3 +2104,10 @@ counts the defence's timeouts.
 and golden runs move. Old saves take the new pace unless their user moved
 a runoff slider.
 
+Out of bounds followed on the same terms: its own random stream, so the
+plays don't move, only the clock. The pace slows once more, to 35 and 32
+seconds, to pay for it. Over 2,000 games, plays per team are 64.9 -> 65.4,
+yards 349 -> 351, points 21.6 -> 21.8, and close games 0.20 -> 0.23: going
+out of bounds late is how a chasing club gets one more snap, and one more
+chance to draw level.
+

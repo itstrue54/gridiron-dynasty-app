@@ -97,6 +97,40 @@ class LateGameTest {
     }
 
     @Test
+    fun `out of bounds stops the clock late, and saves a little before then`() {
+        val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
+        assertTrue(ClockManagement.outOfBoundsStops(state(4, 300, lead = 0)))
+        assertFalse(ClockManagement.outOfBoundsStops(state(4, 301, lead = 0)))
+        assertTrue(ClockManagement.outOfBoundsStops(state(2, 120, lead = 0)))
+        assertFalse(ClockManagement.outOfBoundsStops(state(2, 121, lead = 0)))
+        assertTrue(ClockManagement.outOfBoundsStops(state(5, 600, lead = 0)), "overtime")
+        // Late (ahead, so no hurry-up and nobody's timeout in play): only the play's own seconds.
+        val late = state(4, 250, lead = 20).copy(awayTimeouts = 0)
+        assertEquals(flow.playSeconds, ClockManagement.after(late, Side.HOME, run, flow, outOfBounds = true).runoff)
+        // Earlier, the clock restarts on the spot: a little saved.
+        assertEquals(flow.runPlayClockRunoff - flow.outOfBoundsRestartSave,
+            ClockManagement.after(state(1, 600, lead = 0), Side.HOME, run, flow, outOfBounds = true).runoff)
+        // Nobody spends a timeout on a clock out of bounds already stopped.
+        val behind = state(4, 100, lead = -4)
+        assertEquals(null, ClockManagement.after(behind, Side.HOME, run, flow, outOfBounds = true).timeout)
+        assertFalse(ClockManagement.canStop(behind, Side.HOME, Side.HOME, run, flow, outOfBounds = true))
+    }
+
+    @Test
+    fun `a game says when a man gets out of bounds, and only where it stops the clock`() {
+        val teams = com.nflsim.engine.season.WeekRunner.teams(league, league.tuning).values.toList()
+        val lines = PlayLines.templates.getValue("out_of_bounds").toSet()
+        val out = (0 until 60).flatMap { i ->
+            GameSimulator(teams[i % 32], teams[(i + 5) % 32], league.tuning).simulate(SplitMixRng(i.toLong())).playByPlay
+        }.filter { log -> lines.any { log.text.endsWith(it) } }
+        assertTrue(out.isNotEmpty(), "some plays end out of bounds late")
+        assertTrue(out.all {
+            (it.quarter == 2 && it.clock <= ClockManagement.TWO_MINUTE_WARNING) ||
+                (it.quarter == 4 && it.clock <= ClockManagement.LAST_FIVE_MINUTES) || it.quarter >= 5
+        }, "only in the windows where it stops the clock")
+    }
+
+    @Test
     fun `ahead late, the clock is left to run`() {
         val run = PlayResult(PlayOutcome.RUN, 4, flow.runPlayClockRunoff)
         val ahead = ClockManagement.after(state(4, 240, lead = 4).copy(awayTimeouts = 0), Side.HOME, run, flow)

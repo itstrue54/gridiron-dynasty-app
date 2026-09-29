@@ -110,6 +110,9 @@ class GameSimulator(
     private val out = mutableSetOf<Int>()
     val injuries = mutableListOf<Injury>()
     private var injuryRng: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
+    /** Whether a play ends out of bounds (SPEC 5.10): its own stream, so it moves the clock and nothing else. */
+    private var sideline: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
+
     /** How the plays are worded (SPEC 10.4): its own stream, so words never move a snap. */
     private var words: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
 
@@ -117,6 +120,7 @@ class GameSimulator(
         // Its own stream, so a game nobody is hurt in plays exactly as before.
         injuryRng = rng.split("injuries")
         words = rng.split("narration")
+        sideline = rng.split("out-of-bounds")
         // Coin toss. The team that defers gets the ball out of the half.
         val awayReceivesFirst = rng.nextBoolean()
         val firstReceiver = if (awayReceivesFirst) Side.AWAY else Side.HOME
@@ -296,15 +300,22 @@ class GameSimulator(
             val outcome = runPlay(state, offense, rng)
             val result = outcome.result
             plays++
+            val outOfBounds = outOfBounds(state, offense, outcome)
+            if (outOfBounds && ClockManagement.outOfBoundsStops(state)) {
+                // Said where it matters: it stopped the clock.
+                playByPlay[playByPlay.lastIndex] = playByPlay.last().let {
+                    it.copy(text = it.text + " " + PlayLines.write("out_of_bounds", words))
+                }
+            }
             // His timeouts are his to call, when he is calling the game: the
             // coordinators' call is the suggestion (SnapCaller.timeout).
             val choice = if (caller != null && callerSide != null &&
-                ClockManagement.canStop(state, callerSide, offense, result, tuning.gameFlow)
+                ClockManagement.canStop(state, callerSide, offense, result, tuning.gameFlow, outOfBounds)
             ) {
-                val suggested = ClockManagement.after(state, offense, result, tuning.gameFlow).timeout == callerSide
+                val suggested = ClockManagement.after(state, offense, result, tuning.gameFlow, outOfBounds = outOfBounds).timeout == callerSide
                 callerSide to caller.timeout(Snap(state, callerSide, playByPlay.toList()), suggested)
             } else null
-            val clock = ClockManagement.after(state, offense, result, tuning.gameFlow, choice)
+            val clock = ClockManagement.after(state, offense, result, tuning.gameFlow, choice, outOfBounds)
             state = advanceClock(state, clock.runoff)
             seconds += clock.runoff
             clock.timeout?.let { side ->
@@ -373,7 +384,36 @@ class GameSimulator(
 
     // ---------------------------------------------------------------
 
-    private data class PlayOutcomeBundle(val result: PlayResult, val wasPass: Boolean)
+    private data class PlayOutcomeBundle(val result: PlayResult, val wasPass: Boolean, val call: OffensivePlayCall)
+
+    /**
+     * Whether the ball carrier ends the play out of bounds (SPEC 5.10): a
+     * run to the outside or a catch on a sideline route more often than
+     * one up the middle. Late, a club chasing the game heads for the
+     * sideline and one protecting a lead stays in. A score, a turnover or
+     * a flag settles the clock without it.
+     */
+    private fun outOfBounds(state: GameState, offense: Side, outcome: PlayOutcomeBundle): Boolean {
+        val r = outcome.result
+        if (r.outcome != PlayOutcome.RUN && r.outcome != PlayOutcome.SCRAMBLE && r.outcome != PlayOutcome.COMPLETION) return false
+        if (r.turnover || r.penalty != null || r.yards >= 100 - state.yardLine) return false
+        val f = tuning.gameFlow
+        var chance = when (val call = outcome.call) {
+            is OffensivePlayCall.Run -> if (call.concept.outside) f.outOfBoundsOutsideRun else f.outOfBoundsInsideRun
+            is OffensivePlayCall.Pass -> when {
+                r.outcome == PlayOutcome.SCRAMBLE -> f.outOfBoundsScramble
+                call.concept.sideline -> f.outOfBoundsSidelineCatch
+                else -> f.outOfBoundsCatch
+            }
+            else -> return false
+        }
+        if (ClockManagement.outOfBoundsStops(state)) {
+            val lead = state.scoreFor(offense) - state.scoreFor(offense.other())
+            if (lead < 0 || (lead == 0 && state.secondsLeft <= ClockManagement.TWO_MINUTE_WARNING) || state.quarter == 2) chance *= f.outOfBoundsChasing
+            else if (lead > 0 && state.quarter >= 4) chance *= f.outOfBoundsProtecting
+        }
+        return sideline.nextFloat() < chance.coerceAtMost(1f)
+    }
 
     private fun runPlay(state: GameState, offense: Side, rng: Rng): PlayOutcomeBundle {
         val offTeam = teamFor(offense)
@@ -410,7 +450,7 @@ class GameSimulator(
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
         snap(ctx, offTeam, defTeam, state.quarter)
         log(state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""))
-        return PlayOutcomeBundle(result, offCall is OffensivePlayCall.Pass)
+        return PlayOutcomeBundle(result, offCall is OffensivePlayCall.Pass, offCall)
     }
 
     /** Everyone on the field tires, everyone else rests, and the tired come out (SPEC 5.5). */

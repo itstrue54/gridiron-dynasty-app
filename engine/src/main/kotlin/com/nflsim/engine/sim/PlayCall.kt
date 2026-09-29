@@ -19,16 +19,22 @@ enum class RunConcept(val label: String, val outside: Boolean) {
 
 /** Intended depth of a pass concept, in yards past the line. */
 @Serializable
-enum class PassConcept(val label: String, val airYards: Int, val quick: Boolean) {
+enum class PassConcept(
+    val label: String,
+    val airYards: Int,
+    val quick: Boolean,
+    /** Thrown to the sideline, where a catch can end out of bounds (SPEC 5.10). */
+    val sideline: Boolean = false,
+) {
     SCREEN("screen", -2, true),
-    FLAT("flat", 2, true),
+    FLAT("flat", 2, true, sideline = true),
     SLANT("slant", 5, true),
     STICK("stick", 6, true),
     CROSSER("crosser", 11, false),
     CURL("curl", 12, false),
     DIG("dig", 15, false),
-    OUT("out", 14, false),
-    CORNER("corner", 20, false),
+    OUT("out", 14, false, sideline = true),
+    CORNER("corner", 20, false, sideline = true),
     POST("post", 22, false),
     GO("go", 28, false),
     SEAM("seam", 18, false),

@@ -29,8 +29,9 @@ object ClockManagement {
         result: PlayResult,
         flow: TuningTable.GameFlow,
         choice: Pair<Side, Boolean>? = null,
+        outOfBounds: Boolean = false,
     ): Decision {
-        var runoff = running(before, offense, result, flow)
+        var runoff = running(before, offense, result, flow, outOfBounds)
         var timeout: Side? = null
         // A kneel runs the clock like any snap; a spike and an incompletion stop it.
         val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
@@ -48,7 +49,7 @@ object ClockManagement {
                 else -> null
             }
             if (chasing != null && kotlin.math.abs(lead) <= flow.timeoutMaxDeficit &&
-                before.secondsLeft <= flow.timeoutSeconds && canStop(before, chasing, offense, result, flow)
+                before.secondsLeft <= flow.timeoutSeconds && canStop(before, chasing, offense, result, flow, outOfBounds)
             ) {
                 timeout = chasing
             }
@@ -56,7 +57,7 @@ object ClockManagement {
         // His own call, for his own side.
         if (choice != null) {
             val (side, call) = choice
-            if (call && canStop(before, side, offense, result, flow)) timeout = side
+            if (call && canStop(before, side, offense, result, flow, outOfBounds)) timeout = side
             else if (!call && timeout == side) timeout = null
         }
         if (timeout != null) runoff = flow.playSeconds
@@ -72,15 +73,39 @@ object ClockManagement {
      * clock would run, it has a timeout, and stopping saves time - not on a
      * snap that ends the half anyway, nor one the two-minute warning stops.
      */
-    fun canStop(before: GameState, side: Side, offense: Side, result: PlayResult, flow: TuningTable.GameFlow): Boolean {
+    fun canStop(
+        before: GameState,
+        side: Side,
+        offense: Side,
+        result: PlayResult,
+        flow: TuningTable.GameFlow,
+        outOfBounds: Boolean = false,
+    ): Boolean {
         val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
-        val r = running(before, offense, result, flow)
+        val r = running(before, offense, result, flow, outOfBounds)
         return clockRuns && before.timeoutsFor(side) > 0 && r > flow.playSeconds &&
             before.secondsLeft > flow.playSeconds && !warningStops(before, r)
     }
 
-    /** What the snap takes with nobody calling time: the hurry-up applied, before any timeout. */
-    private fun running(before: GameState, offense: Side, result: PlayResult, flow: TuningTable.GameFlow): Int {
+    /**
+     * The last two minutes of the half and the last five of the game, and
+     * overtime: where going out of bounds stops the clock until the snap.
+     */
+    fun outOfBoundsStops(before: GameState): Boolean =
+        (before.quarter == 2 && before.secondsLeft <= TWO_MINUTE_WARNING) ||
+            (before.quarter == 4 && before.secondsLeft <= LAST_FIVE_MINUTES) || before.quarter >= 5
+
+    /** The rules: the window in the fourth quarter where out of bounds stops the clock. */
+    const val LAST_FIVE_MINUTES = 300
+
+    /** What the snap takes with nobody calling time: the hurry-up and out of bounds applied, before any timeout. */
+    private fun running(
+        before: GameState,
+        offense: Side,
+        result: PlayResult,
+        flow: TuningTable.GameFlow,
+        outOfBounds: Boolean = false,
+    ): Int {
         var runoff = result.clockRunoff
         val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
         if (!clockRuns) return runoff
@@ -92,6 +117,10 @@ object ClockManagement {
             val lead = before.scoreFor(offense) - before.scoreFor(offense.other())
             val chasingWithBall = lead < 0 || (lead == 0 && before.secondsLeft <= TWO_MINUTE_WARNING)
             if (chasingWithBall && before.secondsLeft <= flow.hurryUpSeconds) runoff = minOf(runoff, flow.hurryUpRunoff)
+        }
+        if (outOfBounds) {
+            runoff = if (outOfBoundsStops(before)) minOf(runoff, flow.playSeconds)
+                else maxOf(flow.playSeconds, runoff - flow.outOfBoundsRestartSave)
         }
         return runoff
     }
