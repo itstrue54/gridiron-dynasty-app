@@ -453,7 +453,9 @@ class DynastyStore(private val saveDir: File) {
                 } ?: return false
                 dynasty = next
                 persist(next)
-                message = tradeNote(made)
+                val farewell = com.nflsim.engine.season.TradeDesk.farewell(
+                    com.nflsim.engine.season.TradeDesk.inSeason(current), current.userTeamId, proposal)
+                message = tradeNote(made) + "\n" + farewell.text
                 return true
             }
             val room = draftRoom?.takeIf { it.picks.isEmpty() } ?: return false
@@ -461,7 +463,8 @@ class DynastyStore(private val saveDir: File) {
                 room.pause.trade(proposal)?.let { pause -> DraftRoom(pause, room.picks, pause.boardFor(current.userTeamId, room.picks)) }
             } ?: return false
             draftRoom = next
-            message = "Trade made. The draft board has the picks where they now belong."
+            val farewell = com.nflsim.engine.season.TradeDesk.farewell(room.pause.tradeBook, current.userTeamId, proposal)
+            message = "Trade made. The draft board has the picks where they now belong.\n" + farewell.text
             return true
         } finally {
             busy = false

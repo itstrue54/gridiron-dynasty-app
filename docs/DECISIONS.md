@@ -2180,3 +2180,25 @@ screen says so in picks ("about a round 4 pick short"), not in the value
 units. Computer clubs don't yet bring offers to the user, and don't trade
 with each other in the season.
 
+## ADR-0xx — Banter is drawn from the conversation, not from the sim's stream
+
+**Context.** Trade answers and contract replies were bare facts ("Boston
+want more for it", "his agent says he will not go below $4.0M"). The user
+asked for GMs and agents to talk. A trade answer is recomputed every time
+the trade screen redraws, and a contract offer is a pure function of the
+league. Neither has a place in the dynasty's random stream.
+
+**Decision.** `narrative.Banter` picks a line from `narrative/banter.json`
+with a stream of its own: the league seed split by the line's key, the
+speaker, and the offer. The same offer gets the same answer on every
+redraw, the sim's streams are untouched, and nothing is saved. The facts
+stay in the note, with the quote after them, so a reader who skips the
+flavour misses nothing. Agents are a fixed pool of 40 generated names,
+chosen by player id, and not a new field on the player, so the save format
+does not change. A GM's tone comes from his aggression, the trait that
+already sets how hard his club bids.
+
+**Consequences.** No calibration band can move: the lines are chosen after
+the outcome is settled and from a separate stream. Computer clubs' own
+haggling writes quotes that nobody reads, a few string builds a week.
+

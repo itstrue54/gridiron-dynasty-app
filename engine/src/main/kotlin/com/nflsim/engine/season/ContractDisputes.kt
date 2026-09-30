@@ -12,6 +12,7 @@ import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.model.Transaction
 import com.nflsim.engine.model.TransactionKind
+import com.nflsim.engine.narrative.Banter
 import com.nflsim.engine.offseason.CapManagement
 import com.nflsim.engine.ratings.SchemeCatalog
 import com.nflsim.engine.ratings.overall
@@ -254,8 +255,10 @@ object ContractDisputes {
                         demandFloor = wants,
                     ) else it
                 }),
-                "${man.lastName} turns down ${money(annual)} a year. His agent says " +
+                said("${man.lastName} turns down ${money(annual)} a year. His agent says " +
                     "he will not go below ${money(wants)}.",
+                    Banter.agent(league.seed, man, "agent.counter", "dispute|$annual",
+                        "player" to man.lastName, "figure" to money(wants))),
             )
         }
         val settled = man.copy(
@@ -269,9 +272,11 @@ object ContractDisputes {
             Transaction.of(league.year, week, TransactionKind.SIGNED, team, man,
                 amount = annual, years = asking.years),
             league.copy(players = league.players.map { if (it.id == playerId) settled else it }),
-            "${man.position.label} ${man.name} signs for ${asking.years} years at " +
+            said("${man.position.label} ${man.name} signs for ${asking.years} years at " +
                 "${money(annual)} a year" +
                 if (share < 0.99f) ", ${(100 - share * 100).toInt()}% under the market." else ".",
+                Banter.agent(league.seed, man, if (share < 0.99f) "agent.signed.discount" else "agent.signed",
+                    "dispute|$annual", "player" to man.lastName, "club" to league.team(team).nickname)),
         )
     }
 
@@ -368,8 +373,10 @@ object ContractDisputes {
             demandFloor = 0,
             morale = (man.morale + league.tuning.ai.disputeSettledMorale).coerceAtMost(100),
         )
-        val note = "${man.position.label} ${man.name} signs a new deal: " +
-            "${deal.years} years at ${money(deal.annual)} a year, ${deal.structure.label.lowercase()}."
+        val note = said("${man.position.label} ${man.name} signs a new deal: " +
+            "${deal.years} years at ${money(deal.annual)} a year, ${deal.structure.label.lowercase()}.",
+            Banter.agent(league.seed, man, "agent.signed", "extend|${deal.annual}|${deal.years}",
+                "player" to man.lastName, "club" to league.team(team).nickname))
         return Transactions.Outcome.Done(
             league.copy(players = league.players.map { if (it.id == playerId) settled else it })
                 .logged(Transaction.of(
@@ -390,9 +397,14 @@ object ContractDisputes {
         )
         return Transactions.Outcome.Done(
             league.copy(players = league.players.map { if (it.id == playerId) refused else it }),
-            "${man.position.label} ${man.name} is told to play out his deal.",
+            said("${man.position.label} ${man.name} is told to play out his deal.",
+                Banter.agent(league.seed, man, "agent.refused", "refused|${league.year}",
+                    "player" to man.lastName, "club" to league.team(team).nickname)),
         )
     }
+
+    /** What happened, then what his agent had to say about it. */
+    private fun said(note: String, quote: Banter.Quote): String = "$note\n${quote.text}"
 
     private fun done(entry: Transaction, league: League, note: String) =
         Transactions.Outcome.Done(league.logged(entry), note)

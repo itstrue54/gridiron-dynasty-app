@@ -118,6 +118,12 @@ class FreeAgencyPauseTest {
         assertEquals(1, first.pause.talksLeft(c.player.id.v))
         val second = first.pause.negotiate(c.player.id.v, floor * 9 / 10, c.years)
         assertTrue(!second.signed && second.note.contains("done talking"), second.note)
+        // His agent walks away in words of his own.
+        val walk = com.nflsim.engine.narrative.Banter.templates.getValue("agent.walk").map { w ->
+            Regex(w.replace("{player}", c.player.lastName).split("{figure}").joinToString("""\$[0-9.]+[Mk]""") { Regex.escape(it) })
+        }
+        val said = second.note.lines().last()
+        assertTrue(walk.any { it.containsMatchIn(said) } && said.endsWith("${c.player.lastName}'s agent"), second.note)
         // Even at his floor now: he has gone to market.
         val third = second.pause.negotiate(c.player.id.v, floor + 1, c.years)
         assertTrue(!third.signed, third.note)

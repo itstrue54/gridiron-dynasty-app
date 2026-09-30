@@ -2,6 +2,7 @@ package com.nflsim.engine.season
 
 import com.nflsim.engine.econ.MarketValue
 import com.nflsim.engine.model.League
+import com.nflsim.engine.narrative.Banter
 import com.nflsim.engine.model.PickAsset
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerStatus
@@ -71,7 +72,18 @@ object TradeDesk {
      * is - in the same value it weighs everything in, [shortBy] zero when it
      * says yes.
      */
-    data class Verdict(val accepted: Boolean, val reasons: List<String>, val theyGet: Float, val theyGive: Float, val shortBy: Float)
+    data class Verdict(
+        val accepted: Boolean,
+        val reasons: List<String>,
+        val theyGet: Float,
+        val theyGive: Float,
+        val shortBy: Float,
+        /** What stands in the way first, for the other GM to say: NONE when it says yes. */
+        val snag: Snag = Snag.NONE,
+    )
+
+    /** What stops a deal: nothing; an offer that can't be made; the roster limit; the cap; or the value. */
+    enum class Snag { NONE, INVALID, ROSTER, CAP, VALUE }
 
     /** A trade made: the book after it, and what it put on the wire and in the report. */
     data class Made(
@@ -105,7 +117,7 @@ object TradeDesk {
         (give + get).filter { it.status == PlayerStatus.PRACTICE_SQUAD }.forEach {
             reasons += "${it.name} is on a practice squad, not a roster: he can be signed, not traded."
         }
-        if (reasons.isNotEmpty()) return Verdict(false, reasons, 0f, 0f, 0f)
+        if (reasons.isNotEmpty()) return Verdict(false, reasons, 0f, 0f, 0f, Snag.INVALID)
 
         // Roster limits: men on the roster, not on reserve.
         fun onRoster(p: Player) = p.status == PlayerStatus.ACTIVE
@@ -114,6 +126,7 @@ object TradeDesk {
         val partnerAfter = count(proposal.partner) - get.count(::onRoster) + give.count(::onRoster)
         if (userAfter > book.rosterLimit) reasons += "You'd have $userAfter on the roster, over the ${book.rosterLimit}. Make room first."
         if (partnerAfter > book.rosterLimit) reasons += "${partner.name} would have $partnerAfter on the roster, over the ${book.rosterLimit}."
+        val rosterSnag = reasons.isNotEmpty()
 
         // The cap, with the contracts and the dead money moved.
         fun room(team: TeamId, out: List<Player>, inn: List<Player>): Int {
@@ -127,6 +140,7 @@ object TradeDesk {
         // A club already over the cap may stay there, but not go further over.
         if (userRoom < minOf(roomNow(user), 0)) reasons += "You'd be ${money(-userRoom)} over the cap."
         if (partnerRoom < minOf(roomNow(proposal.partner), 0)) reasons += "${partner.name} would be ${money(-partnerRoom)} over the cap."
+        val capSnag = reasons.isNotEmpty() && !rosterSnag
 
         // What it's worth to them.
         val theyGet = give.sumOf { value(book, it, partner).toDouble() }.toFloat() +
@@ -136,8 +150,49 @@ object TradeDesk {
         val wants = theyGive * (1f + book.league.tuning.ai.tradeSellerMargin)
         val shortBy = (wants - theyGet).coerceAtLeast(0f)
         if (shortBy > 0f) reasons += "${partner.name} want more for it."
-        return Verdict(reasons.isEmpty(), reasons, theyGet, theyGive, if (reasons.isEmpty()) 0f else shortBy)
+        val snag = when {
+            rosterSnag -> Snag.ROSTER
+            capSnag -> Snag.CAP
+            shortBy > 0f -> Snag.VALUE
+            else -> Snag.NONE
+        }
+        return Verdict(reasons.isEmpty(), reasons, theyGet, theyGive, if (reasons.isEmpty()) 0f else shortBy, snag)
     }
+
+    /**
+     * What the other club's GM says to [verdict] (SPEC 10.4): yes; the
+     * roster or the cap; nothing in it for them; short of their margin only
+     * (close); or short of even what they give (far). Null for an offer
+     * that can't be made at all - that is the rules talking, not the GM.
+     */
+    fun answer(book: Book, user: TeamId, proposal: Proposal, verdict: Verdict): Banter.Quote? {
+        val partner = book.league.team(proposal.partner)
+        val tone = Banter.tone(partner)
+        val key = when (verdict.snag) {
+            Snag.INVALID -> return null
+            Snag.NONE -> "gm.trade.yes.$tone"
+            Snag.ROSTER -> "gm.trade.roster"
+            Snag.CAP -> "gm.trade.cap"
+            Snag.VALUE -> when {
+                verdict.theyGet <= 0f -> "gm.trade.nothing"
+                verdict.theyGet >= verdict.theyGive -> "gm.trade.close.$tone"
+                else -> "gm.trade.far.$tone"
+            }
+        }
+        return Banter.gm(book.league.seed, partner, key, context(proposal), "club" to book.league.team(user).nickname)
+    }
+
+    /** What the other club's GM says once [proposal] is made. */
+    fun farewell(book: Book, user: TeamId, proposal: Proposal): Banter.Quote {
+        val partner = book.league.team(proposal.partner)
+        return Banter.gm(book.league.seed, partner, "gm.trade.done.${Banter.tone(partner)}", context(proposal),
+            "club" to book.league.team(user).nickname)
+    }
+
+    /** A proposal as words to draw from: the same table, the same answer. */
+    private fun context(p: Proposal): String =
+        "${p.give.sorted()}|${p.get.sorted()}|${p.givePicks.map { "${it.year}.${it.round}.${it.original}" }.sorted()}|" +
+            "${p.getPicks.map { "${it.year}.${it.round}.${it.original}" }.sorted()}"
 
     /** Makes [proposal] if the other club says yes; null if it doesn't. */
     fun make(book: Book, user: TeamId, proposal: Proposal, week: Int): Made? {
