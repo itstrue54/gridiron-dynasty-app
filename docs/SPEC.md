@@ -922,7 +922,8 @@ Value function combining a draft-pick chart (make it a tunable table, not Jimmy 
   - a practice-squad man, who is signed, not traded.
 - **What the user sees:** the answer as the offer stands, and when it falls short, roughly the pick that would cover the gap. Their GM says it first, in his own words (§10.4 banter), and has a parting line once a trade is made.
 - **When a deal goes through:** contracts move as they stand, and each club eats the unamortised bonus of the men it sends (ADR-010). Players go on the wire, and in the offseason the trade goes in the report. The other club's players read through the scouting lens as a newcomer's would (§4.6).
-- Not yet: computer clubs bringing offers to the user, and in-season trades between computer clubs.
+- **Clubs that call** (`season.TradeOffers`): each week before the deadline, each club calls with chance `ai.tradeOfferCallChance` (0.2), and the user hears the best `ai.tradeOffersMax` (2) calls for the calling clubs. A club calls about one of the user's men who would beat its own best at his position by `ai.tradeClearUpgrade`, as a contender judges a star; nobody calls about a FB, K, P or LS. Its offer is built from the `ai.tradeOfferPool` (6) pieces the user's club would want most, its players other than its best at each position and its picks, singly or in pairs. It is the most the user's club would get of those that the calling club would still take at the desk, and a club calls only when that is worth at least the man to the user's club. Both can come out ahead because each counts on its own timeline. Who calls is drawn from the dynasty seed split by the season and week, from a stream nothing else reads, so the same week brings the same calls and nothing is saved. The GM pitches it in his own words (§10.4). The user can take the deal, work from it (it goes on the table to change), or turn it down, which hides it for the session. The hub's Trades link counts the calls.
+- Not yet: calls at the draft room, and in-season trades between computer clubs.
 
 ### 8.5 Draft class generation
 
@@ -1198,7 +1199,7 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   waiting costs 2 morale a week, down to 50. News also carries a line when
   another club signs a man off the user's practice squad.
 - **Banter:** the other side of a deal talks (`narrative/Banter`, from
-  `narrative/banter.json`). A general manager answers the user's trade
+  `narrative/banter.json`). A general manager pitches a call about one of the user's men (§8.4) and answers the user's trade
   offer as the verdict stands: yes; the roster limit; the cap; nothing in it
   for them (the offer is worth nothing to his club); close (it covers what
   they give but not their margin); or far. He signs off once a trade is

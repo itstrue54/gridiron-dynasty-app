@@ -127,6 +127,8 @@ fun HubScreen(
     val record = dynasty.record()
     val next = dynasty.nextGame()
     val roster = dynasty.league.roster(team.id)
+    // Who is calling about trades this week, for the hub's Trades link.
+    androidx.compose.runtime.LaunchedEffect(dynasty) { store.refreshTradeOffers() }
 
     ScreenList {
         item {
@@ -277,7 +279,10 @@ fun HubScreen(
                     HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Free agents") { onNavigate(Tab.MARKET) }
                     HubLink("Transactions") { onNavigate(Tab.WIRE) }
-                    if (com.nflsim.engine.season.TradeDesk.open(dynasty)) HubLink("Trades") { onNavigate(Tab.TRADES) }
+                    if (com.nflsim.engine.season.TradeDesk.open(dynasty)) {
+                        val calling = store.tradeOffers.size
+                        HubLink(if (calling > 0) "Trades ($calling calling)" else "Trades") { onNavigate(Tab.TRADES) }
+                    }
                     HubLink("Demands") { onNavigate(Tab.DEMANDS) }
                     HubLink("Saves") { onNavigate(Tab.SAVES) }
                     HubLink("Title screen") { onTitle() }
