@@ -65,4 +65,55 @@ class TradeOffersTest {
         assertEquals(offers.first().proposal.partner,
             after.league.player(com.nflsim.engine.model.PlayerId(offers.first().target)).teamId)
     }
+
+    @Test
+    fun `only the user's own men go on the block, and a man who leaves comes off it`() {
+        val d = weeks.first().first
+        val mine = d.league.roster(d.userTeamId).first()
+        val theirs = d.league.players.first { it.teamId != null && it.teamId != d.userTeamId }
+        val on = TradeOffers.setOnBlock(TradeOffers.setOnBlock(d, mine.id.v, true), theirs.id.v, true)
+        assertEquals(setOf(mine.id.v), TradeOffers.block(on))
+        assertEquals(emptySet(), TradeOffers.block(TradeOffers.setOnBlock(on, mine.id.v, false)))
+        // Traded away, he is no longer the user's to offer.
+        val gone = on.copy(league = on.league.copy(players = on.league.players.map {
+            if (it.id == mine.id) it.copy(teamId = theirs.teamId) else it
+        }))
+        assertEquals(emptySet(), TradeOffers.block(gone))
+    }
+
+    @Test
+    fun `men on the block draw calls, first and in their own words, and still no lowballs`() {
+        var d = weeks.first().first
+        val book = TradeDesk.inSeason(d)
+        val user = d.league.team(d.userTeamId)
+        // His three best, as his own club counts them.
+        val block = d.league.roster(d.userTeamId).filter { it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE }
+            .sortedByDescending { TradeDesk.value(book, it, user) }.take(3)
+        block.forEach { d = TradeOffers.setOnBlock(d, it.id.v, true) }
+        var about = 0
+        var week = d
+        while (TradeDesk.open(week)) {
+            val offers = TradeOffers.thisWeek(week)
+            val plain = TradeOffers.thisWeek(week.copy(tradeBlock = emptySet()))
+            // Calls about the block come ahead of any other.
+            assertEquals(offers.sortedByDescending { it.onBlock }, offers)
+            offers.filter { it.onBlock }.forEach { o ->
+                about++
+                assertTrue(o.target in week.tradeBlock)
+                assertTrue(Banter.templates.getValue("gm.offer.block").any { w ->
+                    w.replace("{player}", week.league.player(com.nflsim.engine.model.PlayerId(o.target)).lastName)
+                        .replace("{club}", user.nickname) == o.pitch.line
+                }, o.pitch.line)
+                val b = TradeDesk.inSeason(week)
+                assertTrue(TradeDesk.evaluate(b, week.userTeamId, o.proposal).accepted)
+                val worth = TradeDesk.value(b, week.league.player(com.nflsim.engine.model.PlayerId(o.target)), user)
+                val back = o.proposal.get.sumOf { TradeDesk.value(b, week.league.player(com.nflsim.engine.model.PlayerId(it)), user).toDouble() } +
+                    o.proposal.getPicks.sumOf { TradeDesk.value(b, it, user).toDouble() }
+                assertTrue(back >= worth, "a lowball for a man on the block")
+            }
+            assertTrue(plain.none { it.onBlock })
+            week = DynastyEngine.advance(week).copy(tradeBlock = d.tradeBlock)
+        }
+        assertTrue(about >= 3, "only $about calls about three men on the block")
+    }
 }

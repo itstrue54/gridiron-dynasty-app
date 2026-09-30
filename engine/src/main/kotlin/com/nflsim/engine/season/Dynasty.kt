@@ -56,6 +56,12 @@ data class Dynasty(
      * are his to make.
      */
     val frontOfficeRoster: Boolean = false,
+    /**
+     * The user's men he has said are available (SPEC 8.4): clubs that could
+     * use one call about him before the deadline. Ids; a man who has left
+     * the club is no longer on it, whatever the set says ([TradeOffers.block]).
+     */
+    val tradeBlock: Set<Int> = emptySet(),
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)

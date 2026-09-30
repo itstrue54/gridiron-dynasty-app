@@ -490,6 +490,14 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** Put one of the user's men on the trade block, or take him off it (SPEC 8.4). */
+    suspend fun setOnBlock(playerId: Int, on: Boolean) {
+        val current = dynasty ?: return
+        val next = com.nflsim.engine.season.TradeOffers.setOnBlock(current, playerId, on)
+        dynasty = next
+        persist(next)
+    }
+
     /** Not interested: that call is gone for good. */
     fun declineOffer(offer: com.nflsim.engine.season.TradeOffers.Offer) {
         declinedOffers = declinedOffers + offer.proposal

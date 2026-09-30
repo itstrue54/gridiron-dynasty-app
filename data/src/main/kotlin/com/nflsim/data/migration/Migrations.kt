@@ -61,6 +61,8 @@ object Migrations {
         Step(24, "coordinators adapt to each other during a game (SPEC 5.4); nothing to move") { it },
         Step(25, "the tuning table knows how often clubs call the user with trade offers (SPEC 8.4); nothing to move") { it },
         Step(26, "the news can carry a deadline trade (SPEC 8.4); nothing to move") { it },
+        // An old save has nobody on the block, which is the empty default.
+        Step(27, "the user has a trade block, and its tuning (SPEC 8.4); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

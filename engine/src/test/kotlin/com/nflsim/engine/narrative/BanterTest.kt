@@ -24,6 +24,7 @@ class BanterTest {
         "gm.trade.done.warm" to setOf("club"),
         "gm.offer.blunt" to setOf("player", "club"),
         "gm.offer.warm" to setOf("player", "club"),
+        "gm.offer.block" to setOf("player", "club"),
         "gm.lost_man" to setOf("player", "club"),
         "agent.counter" to setOf("player", "figure"),
         "agent.walk" to setOf("player", "figure"),
