@@ -706,6 +706,12 @@ data class TuningTable(
         /** How much more a seller wants back, and how far past break-even the most aggressive buyer goes. */
         val tradeSellerMargin: Float = 0.05f,
         val tradeAggressionOverpay: Float = 0.25f,
+        /** Chance each club calls the user about a trade in a week before the deadline. */
+        val tradeOfferCallChance: Float = 0.2f,
+        /** Most calls the user takes in a week: the best for the calling clubs. */
+        val tradeOffersMax: Int = 2,
+        /** How many of the pieces the user's club would want most a calling club builds its offer from. */
+        val tradeOfferPool: Int = 6,
         /** How often a club grants a player's trade request. */
         val tradeRequestGrantChance: Float = 0.45f,
         /** The draft board: need and scheme fit against talent, as a club reads it. */

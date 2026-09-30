@@ -471,6 +471,31 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /**
+     * The week's calls from other clubs (SPEC 8.4), less the ones the user
+     * has turned down. Worked out off the main thread, once a dynasty.
+     */
+    var tradeOffers by mutableStateOf<List<com.nflsim.engine.season.TradeOffers.Offer>>(emptyList())
+        private set
+    private var offersFor: Dynasty? = null
+    private var declinedOffers = setOf<com.nflsim.engine.season.TradeDesk.Proposal>()
+
+    suspend fun refreshTradeOffers() {
+        val current = dynasty ?: return
+        if (offersFor === current) return
+        val calls = withContext(Dispatchers.Default) { com.nflsim.engine.season.TradeOffers.thisWeek(current) }
+        if (dynasty === current) {
+            offersFor = current
+            tradeOffers = calls.filter { it.proposal !in declinedOffers }
+        }
+    }
+
+    /** Not interested: that call is gone for good. */
+    fun declineOffer(offer: com.nflsim.engine.season.TradeOffers.Offer) {
+        declinedOffers = declinedOffers + offer.proposal
+        tradeOffers = tradeOffers - offer
+    }
+
     private fun tradeNote(made: com.nflsim.engine.season.TradeDesk.Made): String {
         val user = dynasty?.userTeam ?: 0
         val inn = made.moves.filter { it.to == user }.joinToString(", ") { "${it.position} ${it.name}" }

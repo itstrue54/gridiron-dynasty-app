@@ -109,6 +109,26 @@
     "Good trade. I'll be watching how it plays out.",
     "Done. Thanks for thinking of us."
   ],
+  "gm.offer.blunt": [
+    "I'll keep it short. We want {player}. Here's what we'll give.",
+    "{player}. That's who we're calling about. Take it or leave it.",
+    "We need what {player} gives you. This is our number.",
+    "You don't need {player} as much as we do. Let's make it simple.",
+    "I've got a deal on the table for {player}. It won't be there next week.",
+    "Straight to it: {player}, for this. Yes or no.",
+    "My coach keeps asking about {player}. Here's what I'm willing to part with.",
+    "The {club} can do better than {player}, and we can't. Let's deal."
+  ],
+  "gm.offer.warm": [
+    "Hope the season's treating you well. We'd love to talk about {player}.",
+    "We've admired {player} for a while. I think this works for both of us.",
+    "I'll be upfront: {player} would fill a real hole for us. Have a look.",
+    "No pressure, but we've put together something for {player}.",
+    "I think we can help each other. We're interested in {player}.",
+    "The {club} have a player we'd really like. Here's our best offer for {player}.",
+    "I've been meaning to call. What would it take for {player}? We'd start here.",
+    "Take your time. We think this is fair for {player}."
+  ],
   "gm.lost_man": [
     "We wanted {player} back. The {club} just wanted him more.",
     "Good for {player}. I'm not happy about it, but good for him.",

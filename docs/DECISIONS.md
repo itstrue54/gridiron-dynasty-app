@@ -2202,3 +2202,28 @@ already sets how hard his club bids.
 the outcome is settled and from a separate stream. Computer clubs' own
 haggling writes quotes that nobody reads, a few string builds a week.
 
+## ADR-0xx — Clubs call with offers computed each week, not stored
+
+**Context.** Only the user started trades. SPEC 8.4 has computer clubs
+proposing too, and the trades ADR left "computer clubs bringing offers to
+the user" open.
+
+**Decision.** `season.TradeOffers` works out the week's calls from the
+dynasty as it stands. Which clubs call comes from the dynasty seed split by
+season and week, a stream nothing else reads. A call is a deal the calling
+club would take at the trade desk, so taking it is making it there, with no
+second set of rules. The club offers the most it would still take, and
+calls only when that is worth at least the man to the user's own club. A
+call is therefore never a lowball, and one comes only where the two
+timelines disagree enough for both to gain. Calls are not saved. The same
+dynasty gives the same calls, and a trade made changes the dynasty, so the
+calls are worked out again. A call the user turns down is hidden in memory
+for the session.
+
+**Consequences.** No sim change: until the user takes a call, nothing moves.
+The save changes only for the three new tuning fields (step 25, nothing to
+move). Across three test leagues, about 16 calls come before a deadline,
+most of them player for player. They are mostly for linemen, whose value to
+a club with a hole is highest. Working out a week's calls takes about 60 ms
+on a laptop, so the app does it off the main thread.
+

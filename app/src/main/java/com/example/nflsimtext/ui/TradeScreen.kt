@@ -88,6 +88,9 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
         val comp = if (pick.compensatory) " comp" else ""
         return "${pick.year} round ${pick.round}$comp$from"
     }
+    val byId = remember(book) { book.players.associateBy { it.id.v } }
+    androidx.compose.runtime.LaunchedEffect(dynasty) { store.refreshTradeOffers() }
+
     fun roster(team: TeamId) = book.players
         .filter { it.teamId == team && (it.status == PlayerStatus.ACTIVE || it.status == PlayerStatus.IR) }
         .filter { group == ALL || it.position.group.name == group }
@@ -115,6 +118,43 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                 SituationBlock("Last move", situation = Situation.THIRD_DOWN) {
                     Text(note, style = NdTheme.type.body, color = c.chalk)
                     SecondaryButton("Clear", { store.dismissMessage() }, Modifier.padding(top = NdTheme.spacing.s))
+                }
+            }
+        }
+
+        // Clubs that called this week (in the season only: the draft room has no calls).
+        if (book.rosterLimit == com.nflsim.engine.season.Transactions.ROSTER_LIMIT) {
+            store.tradeOffers.forEach { offer ->
+                val caller = book.league.team(offer.proposal.partner)
+                item(key = "call-${caller.abbrev}-${offer.target}") {
+                    SituationBlock("${caller.abbrev} calling", meta = caller.name, situation = Situation.TWO_MINUTE) {
+                        Text("\u201C${offer.pitch.line}\u201D", style = NdTheme.type.body, color = c.chalk)
+                        Text("\u2014 ${offer.pitch.speaker}", style = NdTheme.type.caption, color = c.chalkDim)
+                        Text("They want", style = NdTheme.type.label, color = c.chalkDim,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s))
+                        offer.proposal.give.mapNotNull { byId[it] }.forEach {
+                            Text(label(it), style = NdTheme.type.body, color = c.chalk)
+                        }
+                        Text("They offer", style = NdTheme.type.label, color = c.chalkDim,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s))
+                        offer.proposal.get.mapNotNull { byId[it] }.forEach {
+                            Text(label(it), style = NdTheme.type.body, color = c.chalk)
+                        }
+                        offer.proposal.getPicks.forEach { Text(pickLabel(it), style = NdTheme.type.body, color = c.chalk) }
+                        PrimaryButton(
+                            "Take the deal",
+                            { scope.launch { if (store.trade(offer.proposal)) clear() } },
+                            Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
+                            enabled = !store.busy,
+                        )
+                        SecondaryButton("Work from it", {
+                            partnerId = offer.proposal.partner
+                            give = offer.proposal.give; get = offer.proposal.get
+                            givePicks = offer.proposal.givePicks; getPicks = offer.proposal.getPicks
+                        }, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
+                        SecondaryButton("Not interested", { store.declineOffer(offer) },
+                            Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
+                    }
                 }
             }
         }
