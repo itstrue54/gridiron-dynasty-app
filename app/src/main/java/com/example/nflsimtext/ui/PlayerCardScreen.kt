@@ -322,6 +322,25 @@ fun PlayerCardScreen(
             }
         }
 
+        // SPEC 8.4: say he is available, and clubs he would help call about him.
+        if (store != null && scope != null && player.status != com.nflsim.engine.model.PlayerStatus.PRACTICE_SQUAD) {
+            val onBlock = player.id.v in com.nflsim.engine.season.TradeOffers.block(dynasty)
+            item {
+                SituationBlock("Trade block", meta = if (onBlock) "Available" else "Not shopped") {
+                    Text(
+                        if (onBlock) "Clubs he would help call about him before the deadline, and ahead of other calls."
+                        else "Put him on the block and clubs he would help call about him before the deadline.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                    )
+                    SecondaryButton(
+                        if (onBlock) "Take him off the block" else "Put him on the block",
+                        { scope.launch { store.setOnBlock(player.id.v, !onBlock) } },
+                        Modifier.padding(top = NdTheme.spacing.s),
+                    )
+                }
+            }
+        }
+
         item { SecondaryButton("Back to the roster", onBack) }
     }
 }

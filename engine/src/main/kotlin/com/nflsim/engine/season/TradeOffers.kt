@@ -20,6 +20,10 @@ import com.nflsim.engine.rng.SplitMixRng
  * So a contender and a rebuilder can both come out ahead: they don't count
  * a pick or a veteran the same way.
  *
+ * A man the user has put on his trade block needs only to be an upgrade
+ * (`ai.tradeBlockUpgrade`), and a club he would help calls more often
+ * (`ai.tradeBlockCallChance`). Calls about the block come first.
+ *
  * Which clubs call is drawn from the dynasty seed split by the week, from a
  * stream nothing else reads: asking for the week's calls again gets the same
  * calls, and no call changes the sim unless the user takes it. Nothing is
@@ -28,7 +32,18 @@ import com.nflsim.engine.rng.SplitMixRng
 object TradeOffers {
 
     /** A club's call: the deal as the user would make it, and what its GM said. */
-    data class Offer(val proposal: TradeDesk.Proposal, val target: Int, val pitch: Banter.Quote)
+    data class Offer(val proposal: TradeDesk.Proposal, val target: Int, val pitch: Banter.Quote, val onBlock: Boolean = false)
+
+    /** The men on the user's trade block who are still his. */
+    fun block(dynasty: Dynasty): Set<Int> =
+        dynasty.tradeBlock.filter { dynasty.league.playersById[com.nflsim.engine.model.PlayerId(it)]?.teamId == dynasty.userTeamId }.toSet()
+
+    /** [dynasty] with the user's man [playerId] put on the block, or taken off it. Only his own men go on. */
+    fun setOnBlock(dynasty: Dynasty, playerId: Int, on: Boolean): Dynasty {
+        val mine = dynasty.league.playersById[com.nflsim.engine.model.PlayerId(playerId)]?.teamId == dynasty.userTeamId
+        val now = block(dynasty)
+        return dynasty.copy(tradeBlock = if (on && mine) now + playerId else now - playerId)
+    }
 
     /** The week's calls, best for the calling club first. Empty outside the trade window. */
     fun thisWeek(dynasty: Dynasty): List<Offer> {
@@ -39,24 +54,38 @@ object TradeOffers {
     private fun calls(book: TradeDesk.Book, dynasty: Dynasty, user: Team): List<Offer> {
         val t = book.league.tuning.ai
         val rng = SplitMixRng(dynasty.seed).split("trade-calls|${dynasty.league.year}|${dynasty.week}")
-        // Every club rolls, in league order, so who calls doesn't depend on who else could.
-        val calling = book.league.teams.filter { it.id != user.id }.filter { rng.nextFloat() < t.tradeOfferCallChance }
         val mine = active(book, user)
-        return calling.mapNotNull { club -> best(book, user, club, mine) }
-            .sortedByDescending { it.second }
+        val block = block(dynasty)
+        // Every club rolls once, in league order, so who calls doesn't depend
+        // on who else could; one a man on the block would help rolls against
+        // the block's chance.
+        val calling = book.league.teams.filter { it.id != user.id }.filter { club ->
+            val roll = rng.nextFloat()
+            val wantsBlock = block.isNotEmpty() && targets(book, club, mine.filter { it.id.v in block }, t.tradeBlockUpgrade).isNotEmpty()
+            roll < if (wantsBlock) t.tradeBlockCallChance else t.tradeOfferCallChance
+        }
+        return calling.mapNotNull { club -> best(book, user, club, mine, block) }
+            .sortedWith(compareByDescending<Pair<Offer, Float>> { it.first.onBlock }.thenByDescending { it.second })
             .take(t.tradeOffersMax)
             .map { it.first }
     }
 
+    /** The men [club] would call about, with how much each would add over its best at his position, best first. */
+    private fun targets(book: TradeDesk.Book, club: Team, men: List<Player>, bar: Float): List<Pair<Player, Float>> {
+        val bestAt = active(book, club).groupBy { it.position }.mapValues { (_, g) -> g.maxOf { TradeDesk.value(book, it, club) } }
+        return men.filter { it.position !in NOT_A_TARGET }
+            .map { it to TradeDesk.value(book, it, club) - (bestAt[it.position] ?: 0f) }
+            .filter { (_, gain) -> gain >= bar && gain > 0f }
+            .sortedByDescending { it.second }
+    }
+
     /** The club's best call on the user's roster, and how much it gains: null if it has none worth making. */
-    private fun best(book: TradeDesk.Book, user: Team, club: Team, mine: List<Player>): Pair<Offer, Float>? {
+    private fun best(book: TradeDesk.Book, user: Team, club: Team, mine: List<Player>, block: Set<Int>): Pair<Offer, Float>? {
         val t = book.league.tuning.ai
         val theirs = active(book, club)
-        val bestAt = theirs.groupBy { it.position }.mapValues { (_, g) -> g.maxOf { TradeDesk.value(book, it, club) } }
-        val targets = mine.filter { it.position !in NOT_A_TARGET }
-            .map { it to TradeDesk.value(book, it, club) - (bestAt[it.position] ?: 0f) }
-            .filter { (_, gain) -> gain >= t.tradeClearUpgrade }
-            .sortedByDescending { it.second }
+        // The block first, then anyone else it would clearly upgrade on.
+        val targets = targets(book, club, mine.filter { it.id.v in block }, t.tradeBlockUpgrade) +
+            targets(book, club, mine.filter { it.id.v !in block }, t.tradeClearUpgrade)
         if (targets.isEmpty()) return null
 
         // What the club can part with: anyone but its best at a position, and its picks.
@@ -88,9 +117,10 @@ object TradeOffers {
                 // The most it would give that it would still take.
                 .firstOrNull { TradeDesk.evaluate(book, user.id, it).accepted }
                 ?: continue
-            val pitch = Banter.gm(book.league.seed, club, "gm.offer.${Banter.tone(club)}", "call|${book.year}|${star.id.v}",
-                "player" to star.lastName, "club" to user.nickname)
-            return Offer(deal, star.id.v, pitch) to gain
+            val onBlock = star.id.v in block
+            val pitch = Banter.gm(book.league.seed, club, if (onBlock) "gm.offer.block" else "gm.offer.${Banter.tone(club)}",
+                "call|${book.year}|${star.id.v}", "player" to star.lastName, "club" to user.nickname)
+            return Offer(deal, star.id.v, pitch, onBlock) to gain
         }
         return null
     }

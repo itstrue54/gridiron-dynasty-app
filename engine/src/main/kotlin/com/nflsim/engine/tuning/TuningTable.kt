@@ -712,6 +712,10 @@ data class TuningTable(
         val tradeOffersMax: Int = 2,
         /** How many of the pieces the user's club would want most a calling club builds its offer from. */
         val tradeOfferPool: Int = 6,
+        /** Chance a club calls in a week when a man on the user's trade block would help it. */
+        val tradeBlockCallChance: Float = 0.5f,
+        /** How much better than its best at his position a man on the block must be for a club to call: any upgrade. */
+        val tradeBlockUpgrade: Float = 0f,
         /** How often a club grants a player's trade request. */
         val tradeRequestGrantChance: Float = 0.45f,
         /** The draft board: need and scheme fit against talent, as a club reads it. */

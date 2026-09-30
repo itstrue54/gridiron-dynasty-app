@@ -2251,3 +2251,24 @@ generated league and never passes a deadline, so no calibration band can
 move. A deadline brings 0 to 2 deals across the test leagues. NewsKind
 gains TRADE, which is save step 26, nothing to move.
 
+## ADR-0xx — The trade block raises the chance of a call, and never lowers the price
+
+**Context.** SPEC 8.4's Trades screen listed a trade block as not yet built.
+Clubs already call with offers (TradeOffers).
+
+**Decision.** The block is a set of the user's player ids saved on the
+dynasty. It does two things:
+- A club that a blocked man would help rolls against a higher call chance.
+- It needs him only to be an upgrade, not a clear one.
+
+The offer itself is built by the same rules as any call, so the club still
+pays at least what he is worth to the user's club. Saying a man is
+available tells the league to call; it doesn't tell it he's cheap.
+Membership is filtered by who is still on the user's club at the time it's
+read. That way a trade or a release never leaves a stale entry to clean up
+in the save.
+
+**Consequences.** Save step 27 (nothing to move), version 28, for the field
+and two tuning values. With nobody on the block, the calls are exactly what
+they were: every club rolls one number either way.
+

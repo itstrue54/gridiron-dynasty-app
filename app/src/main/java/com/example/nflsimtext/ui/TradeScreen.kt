@@ -127,7 +127,8 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
             store.tradeOffers.forEach { offer ->
                 val caller = book.league.team(offer.proposal.partner)
                 item(key = "call-${caller.abbrev}-${offer.target}") {
-                    SituationBlock("${caller.abbrev} calling", meta = caller.name, situation = Situation.TWO_MINUTE) {
+                    SituationBlock("${caller.abbrev} calling", meta = if (offer.onBlock) "About your block" else caller.name,
+                        situation = Situation.TWO_MINUTE) {
                         Text("\u201C${offer.pitch.line}\u201D", style = NdTheme.type.body, color = c.chalk)
                         Text("\u2014 ${offer.pitch.speaker}", style = NdTheme.type.caption, color = c.chalkDim)
                         Text("They want", style = NdTheme.type.label, color = c.chalkDim,
@@ -154,6 +155,22 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                         }, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
                         SecondaryButton("Not interested", { store.declineOffer(offer) },
                             Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
+                    }
+                }
+            }
+        }
+
+        // The user's block: who he has said is available (in the season; calls come only then).
+        if (book.rosterLimit == com.nflsim.engine.season.Transactions.ROSTER_LIMIT) {
+            val block = com.nflsim.engine.season.TradeOffers.block(dynasty).mapNotNull { byId[it] }
+            item {
+                SituationBlock("Your trade block", meta = if (block.isEmpty()) "nobody" else "${block.size}") {
+                    if (block.isEmpty()) Text("Put a man on the block from his player card, and clubs he would help call about him.",
+                        style = NdTheme.type.caption, color = c.chalkDim)
+                    block.forEach { p ->
+                        Text(label(p), style = NdTheme.type.body, color = c.chalk)
+                        SecondaryButton("Take him off", { scope.launch { store.setOnBlock(p.id.v, false) } },
+                            Modifier.padding(bottom = NdTheme.spacing.s))
                     }
                 }
             }

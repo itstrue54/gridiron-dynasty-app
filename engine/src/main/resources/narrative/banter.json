@@ -129,6 +129,16 @@
     "I've been meaning to call. What would it take for {player}? We'd start here.",
     "Take your time. We think this is fair for {player}."
   ],
+  "gm.offer.block": [
+    "Saw {player} is available. We'd like to talk.",
+    "Word is the {club} are shopping {player}. We're buying.",
+    "You put {player} out there, so here I am.",
+    "If {player} is really on the market, this is what we can do.",
+    "Heard you might move {player}. We've got a spot for him.",
+    "{player} fits what we need. Here's our offer.",
+    "Your loss could be our gain. Let's talk about {player}.",
+    "We've had a look at {player}. We're interested if you're serious."
+  ],
   "gm.lost_man": [
     "We wanted {player} back. The {club} just wanted him more.",
     "Good for {player}. I'm not happy about it, but good for him.",
