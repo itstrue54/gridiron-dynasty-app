@@ -257,20 +257,35 @@ object TradeDesk {
     fun makeInSeason(dynasty: Dynasty, proposal: Proposal): Pair<Dynasty, Made>? {
         if (!open(dynasty)) return null
         val made = make(inSeason(dynasty), dynasty.userTeamId, proposal, dynasty.week) ?: return null
-        val league = dynasty.league
-        val moved = made.book.players.associateBy { it.id }
+        val moved = (proposal.give + proposal.get).map { com.nflsim.engine.model.PlayerId(it) }.toSet()
+        val next = settle(dynasty.league, made.book.players, moved, made.book.picks, made.book.deadMoney, made.wire)
+        return dynasty.copy(league = next) to made
+    }
+
+    /**
+     * A league in the season after trades: [players] as they now stand, the
+     * [moved] men off their old clubs' rosters and onto their new ones, the
+     * picks and each club's dead money as the trades left them, and the wire.
+     */
+    internal fun settle(
+        league: League,
+        players: List<Player>,
+        moved: Set<com.nflsim.engine.model.PlayerId>,
+        picks: List<PickAsset>,
+        deadMoney: Map<Int, Int>,
+        wire: List<Transaction>,
+    ): League {
+        val now = players.associateBy { it.id }
         val teams = league.teams.map { team ->
-            val out = team.roster.filter { moved[it]?.teamId != team.id }.toSet()
-            val inn = made.book.players.filter { it.teamId == team.id && it.id !in team.roster && it.id.v in (proposal.give + proposal.get) }
-                .map { it.id }
+            val out = team.roster.filter { it in moved && now[it]?.teamId != team.id }.toSet()
+            val inn = moved.filter { now[it]?.teamId == team.id && it !in team.roster }
             if (out.isEmpty() && inn.isEmpty()) team
             else team.copy(
                 roster = team.roster.filterNot { it in out } + inn,
-                finances = team.finances.copy(deadMoney = made.book.deadMoney[team.id.v] ?: team.finances.deadMoney),
+                finances = team.finances.copy(deadMoney = deadMoney[team.id.v] ?: team.finances.deadMoney),
             )
         }
-        val next = league.copy(players = made.book.players, picks = made.book.picks, teams = teams).logged(*made.wire.toTypedArray())
-        return dynasty.copy(league = next) to made
+        return league.copy(players = players, picks = picks, teams = teams).logged(*wire.toTypedArray())
     }
 
     private fun schemeFor(league: League, team: TeamId, pos: Position): Scheme {
