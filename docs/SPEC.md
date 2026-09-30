@@ -912,6 +912,18 @@ to trade against, only the annual figure.
 
 Value function combining a draft-pick chart (make it a tunable table, not Jimmy Johnson gospel), player surplus value (production − cap hit, adjusted for age and years of control), and team-fit modifiers. AI teams both propose and evaluate. Deadline behavior shifts based on whether they're in contention.
 
+**The user's trades** (`season.TradeDesk`, the Trades screen):
+- **What and where:** players and picks, both ways, with any club. During the regular season, until week 10 kicks off (the NFL's deadline falls after week 9, `TradeDesk.DEADLINE_WEEK`). In the offseason, at the draft room before the user's first pick, where this year's picks can move.
+- **How the other club answers:** as the league's clubs answer each other (ContenderTrades). Everything is valued on its own timeline: players by rosterValue at its win now, picks by the chart tilted the same way. It says yes only when what it gets beats what it gives by `ai.tradeSellerMargin`.
+- **What stops a deal:**
+  - either club over its roster limit afterwards (53 not counting reserve in the season, 90 out of it);
+  - either club with room going over the cap once the contracts and dead money move (a club already over may not go further over);
+  - a piece that isn't the sender's to send;
+  - a practice-squad man, who is signed, not traded.
+- **What the user sees:** the answer as the offer stands, and when it falls short, roughly the pick that would cover the gap.
+- **When a deal goes through:** contracts move as they stand, and each club eats the unamortised bonus of the men it sends (ADR-010). Players go on the wire, and in the offseason the trade goes in the report. The other club's players read through the scouting lens as a newcomer's would (§4.6).
+- Not yet: computer clubs bringing offers to the user, and in-season trades between computer clubs.
+
 ### 8.5 Draft class generation
 
 - Per class: ~260 drafted + ~450 UDFA-grade prospects.
@@ -1119,7 +1131,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Expiring contracts** | Offseason: each expiring man's market and ask, a recommendation and why, every way to write a re-signing, the two tags, let him go (§7) |
 | **Draft room** | Big board, your board vs consensus, needs, live picks, trade offers |
 | **Camp** | Offseason: the camp roster with dead money if cut, the street to sign from, suggested cuts and why, the 46–53 bounds (§7) |
-| **Trades** | Block, proposal builder with AI valuation feedback |
+| **Trades** | Proposal builder: a club, players and picks both ways, filtered by position, and the other club's answer as the offer stands, with how far short it is (§8.4). Open to the deadline and at the draft room before the first pick. Not yet: a trade block. |
 | **Staff** | Hire/fire, coach cards with scheme + dev ratings, coordinator tree |
 | **Free agents (in season)** | The street and other clubs' practice squads to sign from, the user's squad and IR, releases with their dead money, the front office roster toggle (§6.1) |
 | **Contract demands** | Demands from the user's own men: every way to pay, 90%/80% offers, refuse, or let the front office answer (§10.4) |

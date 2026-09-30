@@ -72,6 +72,8 @@ enum class Tab(val label: String) {
     MARKET("Free agents"),
     /** SPEC 4.7: the transactions wire, behind the Hub. */
     WIRE("Transactions"),
+    /** SPEC 8.4: trades, behind the Hub to the deadline and in the draft room before the first pick. */
+    TRADES("Trades"),
     /** SPEC 10.1: men who have noticed what they are paid, behind the Hub. */
     DEMANDS("Demands"),
     /** SPEC 9.1: five slots and the autosaves, behind the Hub. */
@@ -119,6 +121,7 @@ fun DynastyApp(
         tab = when (tab) {
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
+            Tab.TRADES -> if (store.draftRoom != null) Tab.DRAFT else Tab.HUB
             else -> Tab.HUB
         }
     }
@@ -182,7 +185,9 @@ fun DynastyApp(
                         dynasty, store, scope,
                         onFinished = { tab = Tab.CUTDOWN },
                         onBack = { tab = Tab.HUB },
+                        onTrade = { tab = Tab.TRADES },
                     )
+                    Tab.TRADES -> TradeScreen(dynasty, store, scope)
                     Tab.LIVE -> LiveGameScreen(dynasty, store) {
                         // A week ends on the game just played; a postseason on his last playoff game.
                         boxGame = store.dynasty?.let { d ->
@@ -252,6 +257,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
+                    Tab.TRADES,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
