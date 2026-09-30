@@ -94,11 +94,15 @@ fun TransactionsScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                             ColumnSpec("Terms", 1.2f, numeric = true),
                         ),
                         rows = lines.take(ROWS).map { line ->
+                            // In the club's own view, a man another club traded
+                            // for is one who left: said from this side.
+                            val away = whose != LEAGUE && line.kind == TransactionKind.TRADED &&
+                                line.team != dynasty.userTeam && line.other == dynasty.userTeam
                             RowData(listOfNotNull(
                                 if (whose == LEAGUE) abbrev[line.team] ?: "-" else null,
                                 "${line.position} ${line.name}",
-                                line.kind.short,
-                                terms(line, abbrev),
+                                if (away) "traded away" else line.kind.short,
+                                if (away) "to ${abbrev[line.team] ?: "?"}" else terms(line, abbrev),
                             ))
                         },
                     )

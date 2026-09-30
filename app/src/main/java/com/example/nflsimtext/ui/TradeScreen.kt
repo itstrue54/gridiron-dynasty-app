@@ -63,6 +63,8 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     var givePicks by remember { mutableStateOf(listOf<PickAsset>()) }
     var getPicks by remember { mutableStateOf(listOf<PickAsset>()) }
     var group by remember { mutableStateOf(ALL) }
+    // The next draft's picks by default; later years on request. A pick on the table always shows.
+    var laterYears by remember { mutableStateOf(false) }
     val partner = book.league.team(partnerId)
 
     fun clear() { give = emptySet(); get = emptySet(); givePicks = emptyList(); getPicks = emptyList() }
@@ -89,7 +91,9 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
         .filter { it.teamId == team && (it.status == PlayerStatus.ACTIVE || it.status == PlayerStatus.IR) }
         .filter { group == ALL || it.position.group.name == group }
         .sortedWith(compareBy({ it.position.ordinal }, { it.lastName }))
-    fun picks(team: TeamId) = book.picks.filter { it.owner == team.v }.sortedWith(compareBy({ it.year }, { it.round }))
+    fun picks(team: TeamId) = book.picks
+        .filter { it.owner == team.v && (laterYears || it.year == book.draftYear || it in givePicks || it in getPicks) }
+        .sortedWith(compareBy({ it.year }, { it.round }))
 
     ScreenList {
         item {
@@ -125,6 +129,9 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                     }
                 }
                 FilterChipRow(GROUPS, group, { group = it }, Modifier.padding(top = NdTheme.spacing.s))
+                Chip("Later years' picks", laterYears, Modifier.padding(top = NdTheme.spacing.s), role = Role.Checkbox) {
+                    laterYears = !laterYears
+                }
             }
         }
 
