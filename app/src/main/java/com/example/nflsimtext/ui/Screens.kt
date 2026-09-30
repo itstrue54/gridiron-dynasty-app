@@ -277,6 +277,7 @@ fun HubScreen(
                     HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Free agents") { onNavigate(Tab.MARKET) }
                     HubLink("Transactions") { onNavigate(Tab.WIRE) }
+                    if (com.nflsim.engine.season.TradeDesk.open(dynasty)) HubLink("Trades") { onNavigate(Tab.TRADES) }
                     HubLink("Demands") { onNavigate(Tab.DEMANDS) }
                     HubLink("Saves") { onNavigate(Tab.SAVES) }
                     HubLink("Title screen") { onTitle() }

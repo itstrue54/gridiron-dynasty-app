@@ -42,6 +42,8 @@ fun DraftRoomScreen(
     scope: CoroutineScope,
     onFinished: () -> Unit = {},
     onBack: () -> Unit = {},
+    /** SPEC 8.4: trade picks and players before the first pick. */
+    onTrade: () -> Unit = {},
 ) {
     val c = NdTheme.colors
     val room = store.draftRoom
@@ -98,6 +100,10 @@ fun DraftRoomScreen(
                     else "Your scouts watched ${focus.joinToString(", ") { it.label }}.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )
+                // Before the first pick, the board can still be traded (SPEC 8.4).
+                if (room != null && room.picks.isEmpty()) {
+                    SecondaryButton("Trade picks or players", onTrade, Modifier.padding(top = NdTheme.spacing.s))
+                }
             }
         }
 

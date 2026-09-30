@@ -432,6 +432,53 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /**
+     * Where the user can trade now (SPEC 8.4): the regular season, up to the
+     * deadline, or the draft room before he has made a pick. Null anywhere else.
+     */
+    fun tradeBook(): com.nflsim.engine.season.TradeDesk.Book? {
+        val current = dynasty ?: return null
+        if (com.nflsim.engine.season.TradeDesk.open(current)) return com.nflsim.engine.season.TradeDesk.inSeason(current)
+        return draftRoom?.takeIf { it.picks.isEmpty() }?.pause?.tradeBook
+    }
+
+    /** Makes [proposal] where the user can trade; false if the other club says no or trading is closed. */
+    suspend fun trade(proposal: com.nflsim.engine.season.TradeDesk.Proposal): Boolean {
+        val current = dynasty ?: return false
+        busy = true
+        try {
+            if (com.nflsim.engine.season.TradeDesk.open(current)) {
+                val (next, made) = withContext(Dispatchers.Default) {
+                    com.nflsim.engine.season.TradeDesk.makeInSeason(current, proposal)
+                } ?: return false
+                dynasty = next
+                persist(next)
+                message = tradeNote(made)
+                return true
+            }
+            val room = draftRoom?.takeIf { it.picks.isEmpty() } ?: return false
+            val next = withContext(Dispatchers.Default) {
+                room.pause.trade(proposal)?.let { pause -> DraftRoom(pause, room.picks, pause.boardFor(current.userTeamId, room.picks)) }
+            } ?: return false
+            draftRoom = next
+            message = "Trade made. The draft board has the picks where they now belong."
+            return true
+        } finally {
+            busy = false
+        }
+    }
+
+    private fun tradeNote(made: com.nflsim.engine.season.TradeDesk.Made): String {
+        val user = dynasty?.userTeam ?: 0
+        val inn = made.moves.filter { it.to == user }.joinToString(", ") { "${it.position} ${it.name}" }
+        val out = made.moves.filter { it.from == user }.joinToString(", ") { "${it.position} ${it.name}" }
+        val picksIn = made.pickTrades.count { it.to == user }
+        val picksOut = made.pickTrades.count { it.from == user }
+        fun part(names: String, picks: Int) = listOfNotNull(names.ifBlank { null },
+            if (picks > 0) "$picks ${if (picks == 1) "pick" else "picks"}" else null).joinToString(" and ").ifBlank { "nothing" }
+        return "Trade made: ${part(inn, picksIn)} in, ${part(out, picksOut)} out."
+    }
+
     /** Camp, stopped for the user's own fill and cut to 53 (SPEC 7 phases 10-11). In memory. */
     var cutdown by mutableStateOf<com.nflsim.engine.offseason.CutdownPause?>(null)
         private set

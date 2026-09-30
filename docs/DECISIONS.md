@@ -2157,3 +2157,26 @@ bands pass. A run-heavy offence gains fewer yards a carry against a staff
 rated 100 than against one rated 0 (AdaptationTest), and the adjustments
 rating now matters every Sunday.
 
+## ADR-0xx — The user's trades are answered by the league's own trade logic
+
+**Context.** Computer clubs traded with each other in the offseason
+(ContenderTrades), but the user could not trade at all. SPEC 8.4 has AI
+clubs evaluating offers; the user asked for trades in the season (to a
+deadline) and in the offseason (so draft picks can move).
+
+**Decision.** One desk (`season.TradeDesk`) works on a book: who is where,
+the picks, the dead money, the draft order and the roster limit. That lets
+the same rules serve the season, where the book comes from the league, and
+the draft room, where it comes from the offseason's state. The other club
+values the deal exactly as a computer club values a star trade: its own
+timeline, the same pick chart, and the same seller's margin. So the user
+can't win trades the league's own clubs would refuse each other. The
+offseason window is the draft room before the first pick. After that, a
+traded pick could be one the user had already made.
+
+**Consequences.** A trade can't leave either club over its roster limit
+or push a club with room over the cap. When an offer falls short, the
+screen says so in picks ("about a round 4 pick short"), not in the value
+units. Computer clubs don't yet bring offers to the user, and don't trade
+with each other in the season.
+

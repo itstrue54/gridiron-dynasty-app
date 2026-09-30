@@ -1051,7 +1051,45 @@ object OffseasonEngine {
 
         /** The draft done, and a stop before camp for the user's own cut to 53. */
         fun toCutdown(userPicks: Map<Int, Int> = emptyMap()): CutdownPause = runToCutdown(this, userPicks)
+
+        /**
+         * What a trade at the draft room reads (SPEC 8.4): everyone as free
+         * agency left them, the picks with this year's placed by the order the
+         * draft will use, and the offseason's roster limit.
+         */
+        val tradeBook: com.nflsim.engine.season.TradeDesk.Book get() = com.nflsim.engine.season.TradeDesk.Book(
+            league = ctx.league,
+            players = state.players,
+            picks = state.picks,
+            deadMoney = state.deadMoney,
+            year = ctx.newYear,
+            draftYear = ctx.newYear,
+            order = Picks.draftOrder(ctx.league.teams.map { it.id }, { id -> ctx.standings.record(id).winPct },
+                ctx.dynasty.results, ctx.dynasty.playoffs),
+            rosterLimit = OFFSEASON_ROSTER_LIMIT,
+            scheme = { team, pos -> ctx.scheme(team, pos) },
+        )
+
+        /**
+         * The draft room with the user's trade made, or null if the other club
+         * says no. Made before the draft opens: a pick traded after the user
+         * has used his would be a pick already made.
+         */
+        fun trade(proposal: com.nflsim.engine.season.TradeDesk.Proposal): DraftPause? {
+            val made = com.nflsim.engine.season.TradeDesk.make(tradeBook, ctx.dynasty.userTeamId, proposal, week = 0)
+                ?: return null
+            return DraftPause(
+                ctx,
+                state.copy(players = made.book.players, picks = made.book.picks, deadMoney = made.book.deadMoney,
+                    pickTrades = state.pickTrades + made.pickTrades),
+                rng, carousel, awards, previousTeam, made.book.deadMoney, releases, pricer, wishes,
+                trades + made.moves, valueCuts,
+            )
+        }
     }
+
+    /** A club's roster limit out of season: the NFL's 90. */
+    const val OFFSEASON_ROSTER_LIMIT = 90
 
     /**
      * Who led the league, kept by name: a leader who retires this spring is
