@@ -166,9 +166,16 @@ object DynastyEngine {
         onGame: (Int, Int) -> Unit,
         caller: com.nflsim.engine.sim.SnapCaller?,
     ): Dynasty {
+        val root = SplitMixRng(dynasty.seed)
+        // The deadline: as the window closes, before the week's games, the
+        // league's clubs make their deals (SPEC 8.4).
+        val deadline = if (dynasty.week == TradeDesk.DEADLINE_WEEK)
+            DeadlineDeals.run(dynasty, root.split("headlines|deadline|${dynasty.year}"))
+            else DeadlineDeals.Result(dynasty.league, emptyList())
+        @Suppress("NAME_SHADOWING")
+        val dynasty = dynasty.copy(league = deadline.league, news = dynasty.news + deadline.news)
         val teams = WeekRunner.teams(dynasty.league, tuning)
         val played = mutableListOf<GameResult>()
-        val root = SplitMixRng(dynasty.seed)
         val week = dynasty.week
 
         var stats = dynasty.playerStats

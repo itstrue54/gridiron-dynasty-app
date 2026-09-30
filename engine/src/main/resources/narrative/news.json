@@ -143,6 +143,16 @@
     "The answer from {club} to {player} ({pos}) is no. He plays on under his current deal.",
     "{club} have refused {pos} {player}'s demand for a new deal."
   ],
+  "trade.deadline": [
+    "{buyer} land {pos} {player} from {seller} for {price} at the deadline.",
+    "Deadline deal: {seller} send {pos} {player} to {buyer} for {price}.",
+    "{buyer} go all in, trading {price} to {seller} for {pos} {player}.",
+    "{pos} {player} is headed to {buyer}. {seller} get {price} back.",
+    "{seller} sell: {pos} {player} goes to {buyer} for {price}.",
+    "{buyer} add {pos} {player} for the stretch run, sending {price} to {seller}.",
+    "The {seller} rebuild goes on: {pos} {player} to {buyer} for {price}.",
+    "{buyer} pay {price} to pry {pos} {player} away from {seller}."
+  ],
   "poached": [
     "{by} have signed {pos} {player} off your practice squad.",
     "{by} have poached {pos} {player} off your practice squad.",

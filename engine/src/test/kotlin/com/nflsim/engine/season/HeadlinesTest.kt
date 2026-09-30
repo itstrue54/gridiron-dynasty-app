@@ -26,6 +26,7 @@ class HeadlinesTest {
         "dispute.settled" to setOf("player", "pos", "club", "years", "annual"),
         "dispute.refused" to setOf("player", "pos", "club"),
         "poached" to setOf("by", "pos", "player"),
+        "trade.deadline" to setOf("buyer", "seller", "pos", "player", "price"),
     )
 
     @Test

@@ -2227,3 +2227,27 @@ most of them player for player. They are mostly for linemen, whose value to
 a club with a hole is highest. Working out a week's calls takes about 60 ms
 on a laptop, so the app does it off the main thread.
 
+## ADR-0xx — Deadline deals reuse the offseason's contender trades
+
+**Context.** Computer clubs traded with each other only in the offseason, so
+a season's rosters moved only for injuries and signings. The trades ADR left
+in-season trades between computer clubs open.
+
+**Decision.** At the deadline, before week 10's games, `DeadlineDeals` runs
+ContenderTrades on the season's active rosters. It uses the standings so
+far, and values next year's picks toward next year's draft.
+ContenderTrades gains three optional parameters:
+- a roster limit, so a deal leaves both clubs within the 53;
+- a club it never deals for (the user's);
+- the draft year that picks are valued toward.
+
+The offseason calls it as before, with none of them, so the offseason is
+unchanged. Running once, at the deadline, keeps it the event it is in the
+NFL rather than a weekly churn.
+
+**Consequences.** The sim moves for the clubs that trade: week 10 on is
+played with the new rosters. GameCalibration plays single games on a
+generated league and never passes a deadline, so no calibration band can
+move. A deadline brings 0 to 2 deals across the test leagues. NewsKind
+gains TRADE, which is save step 26, nothing to move.
+

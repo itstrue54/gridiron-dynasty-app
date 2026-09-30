@@ -58,6 +58,12 @@ object ContenderTrades {
         /** Every club's picks; this year's are placed by [order]. */
         picks: List<PickAsset> = emptyList(),
         order: List<TeamId> = emptyList(),
+        /** The draft [picks] are valued toward: this year's in the offseason, next year's in the season. */
+        draftYear: Int = year,
+        /** Most men a club may carry after a deal, when [players] are its roster (the season's 53); null for none. */
+        rosterLimit: Int? = null,
+        /** A club that trades only when it says so: the user's, in the season. */
+        except: TeamId? = null,
     ): Result {
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
@@ -75,12 +81,14 @@ object ContenderTrades {
                 MarketValue.REPLACEMENT).coerceAtLeast(0f)
 
         fun value(pick: PickAsset, club: Team): Float =
-            PickValue.value(pick, year, order, club.gm.winNowVsFuture)
+            PickValue.value(pick, draftYear, order, club.gm.winNowVsFuture)
 
         val buyers = league.teams
+            .filter { it.id != except }
             .filter { winPct(it.id) >= league.tuning.ai.contenderWinPct && it.gm.winNowVsFuture >= league.tuning.ai.buyerWinNow }
             .sortedByDescending { winPct(it.id) }
         val sellers = league.teams
+            .filter { it.id != except }
             .filter { winPct(it.id) < 0.5f || it.gm.winNowVsFuture <= league.tuning.ai.sellerWinNow }
 
         buyers.forEach { buyer ->
@@ -133,6 +141,9 @@ object ContenderTrades {
                         // satisfies the seller. Picks carry no cap hit.
                         val pkg = packages
                             .filter { pkg ->
+                                (rosterLimit == null || pkg.count { it.player != null }.let { n ->
+                                    mine.size + 1 - n <= rosterLimit && theirs.size - 1 + n <= rosterLimit
+                                }) &&
                                 pkg.sumOf { it.toSeller.toDouble() } >= sellerWants &&
                                     pkg.sumOf { it.toBuyer.toDouble() } <= buyerPays &&
                                     fits(mine, theirs, star, pkg.mapNotNull { it.player }, year,
