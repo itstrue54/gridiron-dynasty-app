@@ -92,6 +92,9 @@ class ContractDisputeTest {
         val low = ContractDisputes.offer(l, club, id, floor - 0.05f) as Transactions.Outcome.Done
         assertEquals(DemandState.PENDING, low.league.player(id).demand, "the demand stays on the desk")
         assertTrue(low.note.contains("will not go below"), low.note)
+        // And his agent says it himself, figure and all.
+        val agent = com.nflsim.engine.narrative.Banter.agentName(man.id.v)
+        assertTrue(low.note.lines().last().endsWith("$agent, ${man.lastName}'s agent"), low.note)
         assertTrue(low.league.player(id).morale < man.morale, "a lowball costs him a little")
 
         // At it: he signs, for less than the market.

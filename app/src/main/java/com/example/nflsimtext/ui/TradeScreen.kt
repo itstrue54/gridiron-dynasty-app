@@ -70,6 +70,7 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     fun clear() { give = emptySet(); get = emptySet(); givePicks = emptyList(); getPicks = emptyList() }
     val proposal = TradeDesk.Proposal(partnerId, give, get, givePicks, getPicks)
     val verdict = if (proposal.empty) null else TradeDesk.evaluate(book, user, proposal)
+    val said = verdict?.let { TradeDesk.answer(book, user, proposal, it) }
 
     // How the user's club reads a man: his own as his staff knows them, theirs as a newcomer would.
     fun read(p: Player): String {
@@ -158,6 +159,13 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                     else -> Situation.RED_ZONE
                 },
             ) {
+                // What their GM says, then the facts behind it.
+                said?.let { q ->
+                    Column(Modifier.padding(bottom = NdTheme.spacing.s)) {
+                        Text("\u201C${q.line}\u201D", style = NdTheme.type.body, color = c.chalk)
+                        Text("\u2014 ${q.speaker}", style = NdTheme.type.caption, color = c.chalkDim)
+                    }
+                }
                 when {
                     verdict == null -> Text("Put something on the table.", style = NdTheme.type.body, color = c.chalkDim)
                     verdict.accepted -> Text("They'd take it.", style = NdTheme.type.body, color = c.chalk)

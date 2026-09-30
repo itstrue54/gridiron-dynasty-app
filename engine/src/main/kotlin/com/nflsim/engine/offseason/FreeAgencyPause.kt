@@ -5,6 +5,7 @@ import com.nflsim.engine.model.Contract
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerStatus
 import com.nflsim.engine.model.TeamId
+import com.nflsim.engine.narrative.Banter
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.season.Awards
@@ -178,11 +179,17 @@ class FreeAgencyPause internal constructor(
         val c = candidates.firstOrNull { it.player.id.v == playerId }
             ?: return Talk(this, false, "He is not on the market.")
         val p = c.player
+        val seed = ctx.league.seed
+        val club = ctx.league.team(userTeam).nickname
+        fun agent(key: String, context: String, vararg slots: Pair<String, Any>) =
+            Banter.agent(seed, p, key, "fa|$year|$context", "player" to p.lastName, *slots).text
         if (state.letGo[p.id.v] == userTeam && !Extensions.willingToReturn(p, ctx.league.tuning)) {
-            return Talk(this, false, "${p.lastName}'s agent will not take the call: you let him go.")
+            return Talk(this, false, "${p.lastName}'s agent will not take the call: you let him go.\n" +
+                agent("agent.cold", "cold", "club" to club))
         }
         if (talksLeft(playerId) == 0) {
-            return Talk(this, false, "${p.lastName} is done talking. He will take his chances on the market.")
+            return Talk(this, false, "${p.lastName} is done talking. He will take his chances on the market.\n" +
+                agent("agent.done_talking", "done"))
         }
         val contract = Contract.of(years, annual * years, year, guaranteedShare = PRE_MARKET_GUARANTEE)
         if (contract.capHit(year) > capSpace) {
@@ -196,7 +203,8 @@ class FreeAgencyPause internal constructor(
             val left = next.talksLeft(playerId)
             return Talk(next, false, "${p.lastName} turns down ${money(annual)} a year. His agent says he " +
                 "will not go below ${money(floor)} before the market opens" +
-                if (left == 0) ", and he is done talking." else ". One more offer and he is done talking.")
+                (if (left == 0) ", and he is done talking." else ". One more offer and he is done talking.") + "\n" +
+                agent(if (left == 0) "agent.walk" else "agent.counter", "$annual", "figure" to money(floor)))
         }
         val signed = p.copy(
             teamId = userTeam, status = PlayerStatus.ACTIVE, contract = contract,
@@ -207,8 +215,15 @@ class FreeAgencyPause internal constructor(
             preMarketSignings = state.preMarketSignings + Signing(
                 p.id.v, p.name, p.position.label, userTeam.v, annual, years, c.market, suitors = 1),
         ))
+        // His agent has his say, and so does the club he leaves, if it isn't the user's.
+        val former = c.from?.takeIf { it != userTeam }?.let { from ->
+            "\n" + Banter.gm(seed, ctx.league.team(from), "gm.lost_man", "fa|$year|${p.id.v}",
+                "player" to p.lastName, "club" to club).text
+        } ?: ""
         return Talk(next, true, "${p.position.label} ${p.name} signs before the market opens: " +
-            "$years ${if (years == 1) "year" else "years"} at ${money(annual)}.")
+            "$years ${if (years == 1) "year" else "years"} at ${money(annual)}.\n" +
+            agent(if (annual < c.market) "agent.signed.discount" else "agent.signed", "$annual|$years", "club" to club) +
+            former)
     }
 
     private fun copy(

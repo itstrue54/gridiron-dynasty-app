@@ -920,7 +920,7 @@ Value function combining a draft-pick chart (make it a tunable table, not Jimmy 
   - either club with room going over the cap once the contracts and dead money move (a club already over may not go further over);
   - a piece that isn't the sender's to send;
   - a practice-squad man, who is signed, not traded.
-- **What the user sees:** the answer as the offer stands, and when it falls short, roughly the pick that would cover the gap.
+- **What the user sees:** the answer as the offer stands, and when it falls short, roughly the pick that would cover the gap. Their GM says it first, in his own words (§10.4 banter), and has a parting line once a trade is made.
 - **When a deal goes through:** contracts move as they stand, and each club eats the unamortised bonus of the men it sends (ADR-010). Players go on the wire, and in the offseason the trade goes in the report. The other club's players read through the scouting lens as a newcomer's would (§4.6).
 - Not yet: computer clubs bringing offers to the user, and in-season trades between computer clubs.
 
@@ -1197,6 +1197,22 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   patience in the spring), or let the front office answer. A demand left
   waiting costs 2 morale a week, down to 50. News also carries a line when
   another club signs a man off the user's practice squad.
+- **Banter:** the other side of a deal talks (`narrative/Banter`, from
+  `narrative/banter.json`). A general manager answers the user's trade
+  offer as the verdict stands: yes; the roster limit; the cap; nothing in it
+  for them (the offer is worth nothing to his club); close (it covers what
+  they give but not their margin); or far. He signs off once a trade is
+  made. A GM whose aggression is 0.5 or more is blunt, the rest are warm.
+  An agent answers every contract offer: the counter that names his floor,
+  walking away when talks run out, not taking the call, done talking, a
+  deal signed (or signed under the market), and a demand refused. When the
+  user signs a man before the market opens, the GM of the club he leaves
+  has a word too. Agents are a pool of 40 generated names, fixed across
+  leagues, and a man's agent is fixed by his id, so clients share agents as
+  they do in the league. Words only: each line is drawn from the league
+  seed split by the conversation (the key, who is talking, and what was
+  offered), so the same offer draws the same answer however often it is
+  shown, and nothing said moves the sim or the save.
 - **Press conference / storyline beats:** a holdout, a rookie QB controversy, a coach on the hot seat.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.

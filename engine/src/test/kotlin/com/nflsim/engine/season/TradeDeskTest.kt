@@ -44,6 +44,50 @@ class TradeDeskTest {
         assertTrue(no.shortBy > 0f && no.reasons.any { "want more" in it }, "${no.reasons}")
     }
 
+    /** Whether [quote] is one of [key]'s lines, as the user's club reads it. */
+    private fun says(key: String, quote: com.nflsim.engine.narrative.Banter.Quote?): Boolean =
+        quote != null && com.nflsim.engine.narrative.Banter.templates.getValue(key)
+            .any { it.replace("{club}", dynasty.league.team(user).nickname) == quote.line }
+
+    @Test
+    fun `the other GM answers as the verdict stands, the same way every time`() {
+        val tone = com.nflsim.engine.narrative.Banter.tone(partner)
+        val good = TradeDesk.Proposal(partner.id, give = setOf(mineBest.id.v), get = setOf(theirWorst.id.v))
+        val yes = TradeDesk.answer(book, user, good, TradeDesk.evaluate(book, user, good))
+        assertTrue(says("gm.trade.yes.$tone", yes), "$yes")
+        assertEquals(yes, TradeDesk.answer(book, user, good, TradeDesk.evaluate(book, user, good)), "same table, same answer")
+        assertTrue(says("gm.trade.done.$tone", TradeDesk.farewell(book, user, good)))
+
+        // Something they'd use for far more than it: far apart.
+        val some = active(user).filter { TradeDesk.value(book, it, partner) > 0f }.minBy { TradeDesk.value(book, it, partner) }
+        val far = TradeDesk.Proposal(partner.id, give = setOf(some.id.v), get = setOf(theirBest.id.v))
+        val v = TradeDesk.evaluate(book, user, far)
+        assertEquals(TradeDesk.Snag.VALUE, v.snag)
+        assertTrue(v.theyGet > 0f && v.theyGet < v.theyGive, "$v")
+        assertTrue(says("gm.trade.far.$tone", TradeDesk.answer(book, user, far, v)))
+
+        // Only their margin short: close. A man worth a little less to them
+        // than ours, but not so little that ours covers their margin.
+        val margin = 1f + dynasty.league.tuning.ai.tradeSellerMargin
+        val closeBy = (active(user) - some).filter { TradeDesk.value(book, it, partner) > 0f }.firstNotNullOf { m ->
+            val x = TradeDesk.value(book, m, partner)
+            active(partner.id).firstOrNull { TradeDesk.value(book, it, partner).let { y -> y <= x && y * margin > x } }?.let { m to it }
+        }
+        val close = TradeDesk.Proposal(partner.id, give = setOf(closeBy.first.id.v), get = setOf(closeBy.second.id.v))
+        val c = TradeDesk.evaluate(book, user, close)
+        assertEquals(TradeDesk.Snag.VALUE, c.snag, "$c")
+        assertTrue(says("gm.trade.close.$tone", TradeDesk.answer(book, user, close, c)), "$c")
+
+        // Asking for a pick and offering nothing they'd use. (A man would put a full roster over the limit.)
+        val gift = TradeDesk.Proposal(partner.id, getPicks = listOf(book.picks.first { it.owner == partner.id.v && it.round == 1 }))
+        val g = TradeDesk.evaluate(book, user, gift)
+        assertTrue(says("gm.trade.nothing", TradeDesk.answer(book, user, gift, g)), "$g")
+
+        // An offer the rules forbid is the rules talking, not the GM.
+        val self = TradeDesk.Proposal(user, give = setOf(mineWorst.id.v))
+        assertEquals(null, TradeDesk.answer(book, user, self, TradeDesk.evaluate(book, user, self)))
+    }
+
     @Test
     fun `only your own men and picks go, only theirs come, and not with yourself`() {
         val mine = book.picks.first { it.owner == user.v }
@@ -63,6 +107,8 @@ class TradeDeskTest {
         val v = TradeDesk.evaluate(full, user, TradeDesk.Proposal(partner.id, give = setOf(mineBest.id.v), get = two))
         assertFalse(v.accepted)
         assertTrue(v.reasons.any { "Make room first" in it }, "${v.reasons}")
+        assertEquals(TradeDesk.Snag.ROSTER, v.snag)
+        assertTrue(says("gm.trade.roster", TradeDesk.answer(full, user, TradeDesk.Proposal(partner.id, give = setOf(mineBest.id.v), get = two), v)))
     }
 
     @Test
@@ -73,6 +119,9 @@ class TradeDeskTest {
         // Already over, a club may not go further over; taking a paid man on is further over.
         assertFalse(v.accepted)
         assertTrue(v.reasons.any { "over the cap" in it }, "${v.reasons}")
+        // With room on the roster, the cap is what the GM talks about.
+        val roomy = broke.copy(rosterLimit = OffseasonEngine.OFFSEASON_ROSTER_LIMIT)
+        assertEquals(TradeDesk.Snag.CAP, TradeDesk.evaluate(roomy, user, TradeDesk.Proposal(partner.id, give = setOf(mineBest.id.v))).snag)
     }
 
     @Test

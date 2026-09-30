@@ -1,0 +1,192 @@
+{
+  "gm.trade.yes.blunt": [
+    "Done. Send the paperwork before I change my mind.",
+    "Fine. That works for us. Don't make me regret it.",
+    "I can live with that. Let's get it filed.",
+    "You found my number. We have a deal.",
+    "That's the price. Call the league office.",
+    "Yes. I'd have taken a phone call less, but yes.",
+    "Works for me. The {club} drive a hard bargain, and so do I.",
+    "Take it before my owner hears about it."
+  ],
+  "gm.trade.yes.warm": [
+    "That's fair to both of us. I think we can do business.",
+    "I like it. Good for your club, good for mine.",
+    "We'd be glad to. Let's make it happen.",
+    "That's a deal I can take to my people with a straight face.",
+    "Happy to help the {club} out. We have a deal.",
+    "Say the word and it's done.",
+    "Everybody wins on this one. I'm in.",
+    "I've been hoping someone would call about this. Yes."
+  ],
+  "gm.trade.close.blunt": [
+    "Close isn't a deal. Sweeten it.",
+    "You're in the neighbourhood. Now knock on the door.",
+    "Add a little and we'll talk. Not before.",
+    "I'm not giving you a discount for calling first.",
+    "That's almost enough. Almost doesn't get filed.",
+    "You want me to meet you halfway. I'm already past halfway.",
+    "One more piece and you've got it. Not one less.",
+    "Nice try. Throw something else in."
+  ],
+  "gm.trade.close.warm": [
+    "We're close. Find me a little more and I think we're there.",
+    "I want to do this, I really do. It just needs a touch more.",
+    "It's a good start. Help me sell it upstairs.",
+    "We're nearly there. A late pick would get it over the line.",
+    "I like where this is going. Just not quite yet.",
+    "Give me something small to take to my owner and we're good.",
+    "So close. Can the {club} find a little extra?",
+    "I'd love to say yes. Help me say yes."
+  ],
+  "gm.trade.far.blunt": [
+    "You're not serious.",
+    "Call me back when you've got a real offer.",
+    "I've had better offers from my fantasy league.",
+    "That's not an offer. That's a wish list.",
+    "No. And tell whoever put that together to try again.",
+    "The {club} must think I was born yesterday.",
+    "Not even close. Not even in the same building.",
+    "I'll pretend this call didn't happen."
+  ],
+  "gm.trade.far.warm": [
+    "I appreciate the call, but we're a long way apart.",
+    "I don't see it working as it stands. We'd need a lot more.",
+    "I'll be honest with you: that's not near what we'd need.",
+    "We value what you're asking for a lot more than that.",
+    "I can't take that to my people. Let's keep talking, though.",
+    "That's a big gap. Maybe there's another way to get there.",
+    "I respect the {club} for asking, but no.",
+    "No hard feelings, but that one isn't for us."
+  ],
+  "gm.trade.nothing": [
+    "What exactly would we be getting here?",
+    "You're asking me to give it away. We're not a charity.",
+    "There's nothing in this for us.",
+    "I can't find the part of this deal that helps my club.",
+    "So we give, and we get a thank-you note?",
+    "Did the {club} forget to put their side on the table?",
+    "I need a reason to say yes. This has none.",
+    "Help me understand what's in it for us."
+  ],
+  "gm.trade.roster": [
+    "Somebody's roster doesn't add up. Fix the numbers and call back.",
+    "We can't fit that many bodies. Neither of us can break the limit.",
+    "Nice idea, but the roster count won't let us do it.",
+    "Count the heads again. It doesn't fit.",
+    "The league won't file a trade that leaves someone over the limit.",
+    "Clear some room first, then we'll talk.",
+    "I like the players. I don't have the lockers.",
+    "Get the numbers right and I'll look at it again."
+  ],
+  "gm.trade.cap": [
+    "The money doesn't work. My cap people are already shaking their heads.",
+    "We'd love to, but the cap says no.",
+    "That contract doesn't fit under anybody's cap as it stands.",
+    "Somebody's going over the cap on this, and the league won't have it.",
+    "Find a way to move some money and we can talk.",
+    "The numbers are fine. The dollars aren't.",
+    "I can't take that salary on right now. Not without cutting someone.",
+    "Our cap people ran it twice. It doesn't clear."
+  ],
+  "gm.trade.done.blunt": [
+    "Filed. Don't call me for a while.",
+    "Done. Good luck, except against us.",
+    "It's with the league office. Pleasure, I suppose.",
+    "That's that. We both think we won, which is how it should be.",
+    "Signed and sent. Next time bring a better offer.",
+    "Done deal. My phone's off for the rest of the day.",
+    "The {club} got their man. Now let's see who laughs last.",
+    "It's official. No returns, no refunds."
+  ],
+  "gm.trade.done.warm": [
+    "Great doing business with you. Good luck the rest of the way.",
+    "Pleasure working with the {club}. Let's do it again sometime.",
+    "It's done. I think it helps us both.",
+    "Congratulations. I hope it works out for you. Mostly.",
+    "All filed. Take care of the new guys for us.",
+    "That was easy. My door's always open.",
+    "Good trade. I'll be watching how it plays out.",
+    "Done. Thanks for thinking of us."
+  ],
+  "gm.lost_man": [
+    "We wanted {player} back. The {club} just wanted him more.",
+    "Good for {player}. I'm not happy about it, but good for him.",
+    "I'd hoped {player} would give us a chance to match. He didn't.",
+    "The {club} went and got {player} before we could blink.",
+    "We'll miss {player}. We'll also remember who took him.",
+    "{player} earned it. I just wish it was with us.",
+    "Nobody here's surprised. The {club} have been after {player} for a while.",
+    "It's a business. {player} did what was best for {player}."
+  ],
+  "agent.counter": [
+    "With respect, {player} is worth more than that. {figure}, and we're done.",
+    "I'll pass that along, but I already know the answer. We're at {figure}.",
+    "That's a nice number for somebody else. For {player}, it's {figure}.",
+    "Come up to {figure} and I'll have him in the building tomorrow.",
+    "Let's not waste each other's time. {figure} gets it done.",
+    "{player} has a number, and that isn't it. {figure}.",
+    "Any club in this league would pay {figure} tomorrow.",
+    "You know what he means to your team. {figure}."
+  ],
+  "agent.walk": [
+    "You had your chances. {player} will see what the market says.",
+    "I told you {figure}. Now it's somebody else's turn to call.",
+    "We're done here. Good luck finding another {player}.",
+    "That's it. We'll let the other thirty-one clubs make their case.",
+    "You had your shot at {figure}. The market opens soon.",
+    "No hard feelings, but {player} is going to test the waters.",
+    "We asked for {figure}. You couldn't get there. That's the end of it.",
+    "I've got a phone full of numbers. Yours isn't one of them any more."
+  ],
+  "agent.done_talking": [
+    "We already said everything there is to say.",
+    "{player} is taking his chances. I'd suggest you do the same.",
+    "Not taking offers. The market decides now.",
+    "My client has heard enough. We'll see you out there.",
+    "The window closed. You were there when it did.",
+    "Call someone else. {player}'s done talking.",
+    "Nothing personal. We're just done.",
+    "Save your breath. And maybe your cap space."
+  ],
+  "agent.cold": [
+    "The {club} let {player} walk. We don't need to talk.",
+    "You had him. You didn't want him. That's that.",
+    "{player} hasn't forgotten, and neither have I.",
+    "Funny how he's worth a call now.",
+    "We're not interested. Try one of the other thirty-one.",
+    "He gave you his best years. You gave him the door.",
+    "My client asked me not to take calls from the {club}. So I'm hanging up.",
+    "You made your choice. We're making ours."
+  ],
+  "agent.signed": [
+    "{player} is thrilled. So am I. Pleasure working with the {club}.",
+    "Good deal for everybody. He'll be ready to go.",
+    "That's a fair contract for a great player. We're happy.",
+    "He wanted to be here, and now he's paid like it.",
+    "Put the pen down, he's signing. Congratulations.",
+    "We got there. The {club} did right by him.",
+    "That's the number we talked about. He's all yours.",
+    "Great to get this done. Now go win some games."
+  ],
+  "agent.signed.discount": [
+    "He took less to be with the {club}. I hope you remember that.",
+    "Not the number I wanted, but {player} wanted this more than I did.",
+    "He's leaving money on the table. Make it worth his while.",
+    "You got a bargain. Don't tell the other agents.",
+    "{player} told me to take it, so we took it.",
+    "It's a hometown discount. Next time, it won't be.",
+    "He's happy. I'm less happy. We've got a deal.",
+    "You won this one. Enjoy it."
+  ],
+  "agent.refused": [
+    "Play out his deal? Fine. We'll remember this in the spring.",
+    "{player} will play. I can't promise he'll smile.",
+    "That's disappointing. The {club} will hear about it at the table next year.",
+    "We asked nicely. We won't the next time.",
+    "He'll honour his contract. You won't get a discount later.",
+    "Understood. I'll make sure every club knows how the {club} treat their people.",
+    "He's a pro. He'll play. But this doesn't go away.",
+    "Noted. Very noted."
+  ]
+}
