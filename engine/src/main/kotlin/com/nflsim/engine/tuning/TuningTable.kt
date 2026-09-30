@@ -710,7 +710,7 @@ data class TuningTable(
         val tradeOfferCallChance: Float = 0.2f,
         /** Most calls the user takes in a week: the best for the calling clubs. */
         val tradeOffersMax: Int = 2,
-        /** How many of the pieces the user's club would want most a calling club builds its offer from. */
+        /** How many of its best packages a calling club takes to the trade desk before it gives up on a man. */
         val tradeOfferPool: Int = 6,
         /** Chance a club calls in a week when a man on the user's trade block would help it. */
         val tradeBlockCallChance: Float = 0.5f,

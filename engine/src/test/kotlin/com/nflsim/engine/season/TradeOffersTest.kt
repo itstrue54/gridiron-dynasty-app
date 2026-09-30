@@ -116,4 +116,24 @@ class TradeOffersTest {
         }
         assertTrue(about >= 3, "only $about calls about three men on the block")
     }
+
+    @Test
+    fun `a club that could use a man on the block finds a way to pay for him`() {
+        // Every club calls that can: what is left is whether it finds a package.
+        val d0 = weeks.first().first
+        val tuning = d0.league.tuning.let { it.copy(ai = it.ai.copy(tradeBlockCallChance = 1f, tradeOffersMax = 32)) }
+        val d = d0.copy(league = d0.league.copy(tuning = tuning))
+        val book = TradeDesk.inSeason(d)
+        val user = d.league.team(d.userTeamId)
+        // Each of his ten best, one at a time: every one draws a call from
+        // somebody. (Building offers from only the six pieces the user's club
+        // would want most left one of them with none: the pieces that fit a
+        // club's budget were never among them.)
+        val best = d.league.roster(d.userTeamId).filter { it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE }
+            .sortedByDescending { TradeDesk.value(book, it, user) }.take(10)
+        val called = best.count { man ->
+            TradeOffers.thisWeek(TradeOffers.setOnBlock(d, man.id.v, true)).any { it.onBlock && it.target == man.id.v }
+        }
+        assertEquals(best.size, called, "only $called of his ten best drew a call from the block")
+    }
 }
