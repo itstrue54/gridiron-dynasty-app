@@ -255,16 +255,17 @@ fun PlayerCardScreen(
                             ColumnSpec("Year", 0.8f, numeric = true),
                             ColumnSpec("When", 0.9f),
                             ColumnSpec("Club", 0.7f),
-                            ColumnSpec("Move", 2.4f),
-                            ColumnSpec("Terms", 1.3f, numeric = true),
+                            ColumnSpec("Move", 2.4f, wrap = true),
+                            ColumnSpec("Terms", 1.3f, numeric = true, wrap = true),
                         ),
                         rows = moves.map { line ->
+                            val (move, terms) = moveAndTerms(line, abbrev, own = null)
                             RowData(listOf(
                                 "${line.year}",
                                 weekShort(line.week),
                                 abbrev[line.team] ?: "-",
-                                line.kind.short,
-                                terms(line, abbrev),
+                                move,
+                                terms,
                             ))
                         },
                     )
