@@ -70,6 +70,9 @@ object Migrations {
         Step(30, "the tuning table holds trades, player intent and the contract market (SPEC 12); nothing to move") { it },
         Step(31, "the tuning table holds the coaching carousel, the draft, team needs, camp and the honours (SPEC 12); nothing to move") { it },
         Step(32, "the tuning table holds scouting, roster value, production pricing and the sim's last literals (SPEC 12); nothing to move") { it },
+        // Old box scores have no carry fumbles counted apart: 0 is all they
+        // can say, and the archive reads team totals, not that split.
+        Step(33, "run and pass rebalanced, fumbles off sacks and catches, box scores count carry fumbles apart (SPEC 13.2); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

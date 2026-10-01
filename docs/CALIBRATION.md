@@ -266,6 +266,55 @@ global change rather than a local one.
 
 ---
 
+## Pass 4 — October 2026 (pre-launch review)
+
+**What was wrong:**
+- A first-time-player review saw a game with 79 runs to 41 passes.
+- `GameCalibration` turned out not to measure five of SPEC 13.2's per-game bands.
+- Four of those five were out of band. "All 18 bands pass" had never covered the run/pass balance.
+
+**The league ran too much and threw too little.** Carries were never the only way to fumble in the NFL; here they were, so carries fumbled at twice the NFL's rate to make up the total.
+
+**Measured** on league 2026, 2,000 games, seed 2026:
+
+| Band | Before | After | Target |
+|---|---|---|---|
+| Carries per team | **30.0** | 27.3 | 25–28 |
+| Pass attempts per team | 32.2 | 35.3 | 32–36 |
+| Passing TDs per team | **1.16** | 1.33 | 1.3–1.7 |
+| Sacks per team | **2.65** | 2.46 | 2.1–2.6 |
+| Fumbles lost per team | **0.34** | 0.56 | 0.5–0.8 |
+| Yards per carry | 4.43 | 4.36 | 4.1–4.6 |
+| Yards per attempt | 7.37 | 7.08 | 6.8–7.5 |
+| Completion % | 0.641 | 0.639 | 0.63–0.68 |
+| Points per team | 21.7 | 21.3 | 21.0–24.5 |
+| Yards per team | 352 | 353 | 320–360 |
+| Plays per team | 65.5 | 65.7 | 62–67 |
+| Third-down conversion | 0.415 | 0.399 | 0.37–0.42 |
+| Turnovers per team | 1.07 | 1.38 | 1.0–1.8 |
+| Games decided by 3 or less | 0.241 | 0.221 | 0.18–0.26 |
+
+All 23 bands pass on league 2026 and on league 7. League 99, the most pass-heavy mix of schemes, misses one: attempts at 36.3 against 36, 7% of the band.
+
+**Changes:**
+- **Calling:**
+  - pass rate on first down −0.06 → +0.015;
+  - pass rate on second down +0.02 → +0.06;
+  - goal-line cut +0.22 → −0.12 (clubs throw more at the goal line, so short scores are not all runs);
+  - sneak rate 0.40 → 0.20.
+- **Passing:**
+  - sack given pressure 0.21 → 0.18;
+  - yards after catch mean 2.6 → 1.7;
+  - base completion 0.83 → 0.85;
+  - depth penalty 0.0138 → 0.0155 (shorter completions, so yards per game stay in band while throwing more).
+- **Rushing:** base yards 3.63 → 3.48.
+- **Game flow:** run-play clock runoff 35 → 36 s.
+- **New:** strip-sacks (`stripSackLost` 0.05) and fumbles after a catch (`catchFumbleBase` 0.0051). Any turnover stops the clock.
+
+**Passing leaders:** the new balance raises the season passing leader by about 100 yards on average. Six seasons ran 4,810–5,587, against 4,791–5,466 before. That stays inside `SeasonTest`'s plausibility band.
+
+**Still off:** field-goal attempts run about 2.4 a team against the NFL's 1.8, and points sit near the bottom of their band. Drives stall in field-goal range too often; that is fourth-down and red-zone behaviour, for a later pass.
+
 ## Still unmeasured
 
 Multi-season shape, which needs the offseason (M7) before it means anything:

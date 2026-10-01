@@ -106,7 +106,8 @@ data class PlayResult(
     val penalty: Penalty? = null,
     val log: SimLog = SimLog(),
 ) {
-    val stopsClock: Boolean get() = outcome.stopsClock || penalty != null
+    /** The clock stops on a flag and on any change of possession, a fumbled sack or catch included. */
+    val stopsClock: Boolean get() = outcome.stopsClock || penalty != null || turnover
 
     /** Net yardage after any accepted flag. */
     val netYards: Int get() = when {

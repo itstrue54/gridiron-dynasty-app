@@ -509,6 +509,12 @@ val yardsAfterCatch = gamma(shape = f(wr.elusiveness, coverage), scale = g(depth
 2. Yardage uses **skewed distributions** (gamma/log-normal), never uniform. Real football yardage is long-tailed: most runs go 2–5 yards, a few go 60.
 3. Clamp nothing silently. If a value goes out of range, that is a bug — assert in debug builds.
 
+**Fumbles off a pass.** A carry is not the only way to lose the ball:
+- A sack strips the quarterback and the defence keeps it with chance `passing.stripSackLost` (0.05).
+- A catch short of the end zone is lost with chance `passing.catchFumbleBase` (0.0051), scaled by ball security and the weather as a carry's is.
+
+Either is a turnover where the play ended, it ends the drive as a fumble, and it is credited to the quarterback or the receiver. Box scores keep `rushFumblesLost` apart from the rest. Any change of possession stops the clock (§5.10). About half the league's lost fumbles come off sacks and catches, as in the NFL.
+
 ### 5.8 Penalties
 
 Sampled per play from a base rate modified by `discipline`, `penaltyProne`, coach `discipline`, home/road, and play type (holding on pass pro, false start on the road with crowd noise, DPI on deep routes contested by a low-`manCoverage` defender). Target ~6.2 accepted penalties per team per game.
@@ -576,7 +582,7 @@ show - are the two together.
     - Wind, rain and snow cost a field goal accuracy.
     - Wind and cold shorten a kicker's range, for the kick itself and for the coach's fourth-down call.
   - The conditions open an outdoor game's play-by-play. The game result records them.
-  - The bands (§13.2) are the NFL's, weather and all, so the fair-weather baseline was raised to meet them: base completion 0.83 (from 0.82) and base fumble rate 0.0115 (from 0.0125).
+  - The bands (§13.2) are the NFL's, weather and all, so the fair-weather baseline was raised to meet them: base completion 0.83 (from 0.82) and base fumble rate 0.0115 (from 0.0125). Base completion is now 0.85, raised with the depth penalty when the league was set to throw more and complete shorter (October 2026, `docs/CALIBRATION.md` pass 4).
 
 ### 5.11 Determinism **[LOCKED]**
 
@@ -1361,6 +1367,8 @@ Run 1,000 seasons in `engine-cli` and assert league-wide means fall in these ban
 | Best record in a 32-team league | 13–17 wins, mode ~14 |
 | Teams at 4 wins or fewer | 2 – 5 |
 | Repeat division winners (yr over yr) | 40% – 55% |
+
+`GameCalibration` measures every per-game band in this table. Until October 2026 it skipped five of them: rushes, pass attempts, passing touchdowns, sacks and fumbles lost per team. Four of the five were out of band, so the league ran too much and threw too little (`docs/CALIBRATION.md` pass 4).
 
 Also check **distribution shape**, not just means: a league where every team goes 8-9 is broken even if the mean is right. Assert the standard deviation of team wins is 2.6–3.4.
 

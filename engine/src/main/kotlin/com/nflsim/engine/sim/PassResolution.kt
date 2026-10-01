@@ -73,6 +73,19 @@ internal object PassResolution {
                 // Weighted by rush skill rather than always the best man, or
                 // one edge rusher finishes the season with 62 sacks.
                 val sacker = weightedRusher(rushers, dfs, rng)
+                // Strip-sack: the ball comes out and the defence has it.
+                if (rng.nextFloat() < t.passing.stripSackLost) {
+                    return PlayResult(
+                        outcome = PlayOutcome.SACK,
+                        yards = loss,
+                        clockRunoff = t.gameFlow.runPlayClockRunoff,
+                        passer = qb.id, ballCarrier = qb.id, tackler = sacker?.id,
+                        turnover = true,
+                        log = SimLog(values + ("sackChance" to sackChance),
+                            PlayLines.write("pass.sack.fumble", ctx.words,
+                                "qb" to qb.name, "sacker" to (sacker?.lastName ?: "the rush"))),
+                    )
+                }
                 return PlayResult(
                     outcome = PlayOutcome.SACK,
                     yards = loss,
@@ -202,6 +215,23 @@ internal object PassResolution {
         val stopper = if (rng.nextFloat() < t.tackling.coverageShare) defender
         else RunResolution.tacklerFor(ctx, total, rng) ?: defender
         val helper = RunResolution.assisterFor(ctx, total, rng, stopper)
+
+        // A catch can be lost, too: ball security, as on a carry. Not once he
+        // is in the end zone.
+        val catchFumble = t.passing.catchFumbleBase *
+            (t.rushing.fumbleSecurityBase - rate(receiver, RatingId.BALL_SECURITY, off) / 99f) *
+            ctx.weather.fumbleFactor(t.weather)
+        values["catchFumbleChance"] = catchFumble
+        if (total < ctx.state.yardsToGoal && rng.nextFloat() < catchFumble) {
+            return PlayResult(
+                outcome = PlayOutcome.COMPLETION, yards = total,
+                clockRunoff = t.gameFlow.completionClockRunoff,
+                passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
+                turnover = true,
+                log = SimLog(values, PlayLines.write("pass.complete.fumble", ctx.words,
+                    "qb" to qb.lastName, "receiver" to receiver.name, "yards" to total)),
+            )
+        }
 
         return PlayResult(
             outcome = PlayOutcome.COMPLETION, yards = total,

@@ -103,6 +103,7 @@ object GameCalibration {
         var homeYards = 0; var awayYards = 0
         var homePenalties = 0; var awayPenalties = 0
         var turnovers = 0; var penalties = 0
+        var passTds = 0; var carryFumbles = 0
         var played = 0
 
         repeat(games) {
@@ -133,11 +134,12 @@ object GameCalibration {
             listOf(result.boxScore.home, result.boxScore.away).forEach { b ->
                 carries += b.rushAttempts; rushYards += b.rushYards
                 rushLoss += b.rushesForLoss; rushBig += b.rushesOfTwentyPlus
-                fumbles += b.fumblesLost
+                fumbles += b.fumblesLost; carryFumbles += b.rushFumblesLost
                 attempts += b.passAttempts; completions += b.completions
                 passYards += b.passYards; sacks += b.sacksAllowed
                 picks += b.passInterceptions
             }
+            passTds += result.boxScore.players.values.sumOf { it.passTouchdowns }
             points += result.homeScore + result.awayScore
             plays += result.boxScore.home.plays + result.boxScore.away.plays
             yards += result.boxScore.home.totalYards + result.boxScore.away.totalYards
@@ -158,10 +160,17 @@ object GameCalibration {
 
         val teamGames = played * 2.0
         val metrics = listOf(
+            // SPEC 13.2's per-team volumes: how often a club runs and throws, and
+            // what comes of it. Rates alone let the balance drift unseen.
+            CalibrationMetric("RUSHING", "carries per team per game", carries / teamGames, 25.0, 28.0, "%.1f"),
+            CalibrationMetric("RUSHING", "fumbles lost per team per game", fumbles / teamGames, 0.5, 0.8, "%.2f"),
+            CalibrationMetric("PASSING", "attempts per team per game", attempts / teamGames, 32.0, 36.0, "%.1f"),
+            CalibrationMetric("PASSING", "passing touchdowns per team per game", passTds / teamGames, 1.3, 1.7, "%.2f"),
+            CalibrationMetric("PASSING", "sacks per team per game", sacks / teamGames, 2.1, 2.6, "%.2f"),
             CalibrationMetric("RUSHING", "yards per carry", rushYards.toDouble() / carries, 4.1, 4.6),
             CalibrationMetric("RUSHING", "carries losing yardage", rushLoss.toDouble() / carries, 0.08, 0.18),
             CalibrationMetric("RUSHING", "carries of 20+", rushBig.toDouble() / carries, 0.008, 0.030, "%.3f"),
-            CalibrationMetric("RUSHING", "fumbles per carry", fumbles.toDouble() / carries, 0.004, 0.014, "%.3f"),
+            CalibrationMetric("RUSHING", "fumbles per carry", carryFumbles.toDouble() / carries, 0.004, 0.014, "%.3f"),
             CalibrationMetric("PASSING", "completion percentage", completions.toDouble() / attempts, 0.63, 0.68),
             CalibrationMetric("PASSING", "yards per attempt", passYards.toDouble() / attempts, 6.8, 7.5),
             CalibrationMetric("PASSING", "interception rate", picks.toDouble() / attempts, 0.020, 0.028, "%.3f"),
