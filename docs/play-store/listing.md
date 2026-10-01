@@ -49,31 +49,23 @@ never shown in the store.
 
 ## Screenshots
 
-`assets/screenshots/` holds eight phone screenshots, taken on a Galaxy
-(1080x2340) from a 2026 season played to week 14:
+`assets/screenshots/` holds eight phone screenshots. They were taken on a Galaxy (1080x2340) on 1 October 2026, from a fictional club: the Cleveland Forge of a generated league, 9-3 going into week 14.
 
 | File | Screen |
 |---|---|
-| 1-hub | the club, its record, what needs attention, next week's game |
-| 2-roster | the roster with the club's own read on each man, as a range |
+| 1-hub | the club, its record, what needs attention, next week's game, and the grouped links |
+| 2-roster | the roster with the club's own read on each man, as a range, and the ratings legend |
 | 3-transactions | the league's wire, filtered to signings |
 | 4-free-agents | the market, the practice squad and the prorated minimum |
-| 5-game-plan | the tendencies a coordinator calls from |
-| 6-staff | the head coach, his coordinators and the building |
-| 7-standings | the division |
-| 8-box-score | a game from the archive: team stats and both sides' leaders |
+| 5-game-plan | the game plan in plain words |
+| 6-staff | the head coach and his ratings |
+| 7-standings | the division, the user's club highlighted |
+| 8-box-score | the last game's team stats |
 
-Two versions of each: the plain file is the phone's own 1080x2136 with the
-status bar and navigation bar cropped off (the status bar carries the
-owner's notifications, and neither is part of the app). The `store-`
-version is the same image letterboxed onto 1080x1920 in the app's own
-background colour, because Play asks for 16:9 or 9:16.
+There are two versions of each:
+- **The plain file** is the phone's screen with the status bar and the navigation bar cropped off: 1080x2108. The status bar carries the owner's notifications, and neither bar is part of the app.
+- **The `store-` version** is the same image scaled onto 1080x1920 in the app's own background colour, because Play asks for 16:9 or 9:16.
 
-Play needs at least two; all eight are worth uploading. Nothing in them
-is a mock-up - every number was played.
+Play needs at least two; all eight are worth uploading. Nothing in them is a mock-up: every number was played.
 
-**Retake before launch.** These were taken before the October 2026
-first-session fixes and show the old light theme and the old roster alert
-("Injured reserve took them"). Retake them on the current build, from a
-fictional club. Never use a save loaded from a real-roster file: Play will
-not accept NFL club or player names.
+**When to retake:** after any change to a screen they show. Take them from a fictional club, never from a save loaded from a real-roster file: Play will not accept NFL club or player names.
