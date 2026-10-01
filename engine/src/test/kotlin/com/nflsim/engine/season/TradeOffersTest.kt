@@ -136,4 +136,26 @@ class TradeOffersTest {
         }
         assertEquals(best.size, called, "only $called of his ten best drew a call from the block")
     }
+
+    @Test
+    fun `clubs call at the draft room too, by the same rules, and taking one is making it`() {
+        var d = weeks.last().first
+        while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
+        val pause = com.nflsim.engine.offseason.OffseasonEngine.runToContracts(d).decide(null)
+        val book = pause.tradeBook
+        val user = book.league.team(d.userTeamId)
+        val offers = TradeOffers.atDraft(d, book)
+        assertTrue(offers.isNotEmpty(), "nobody called at the draft room")
+        assertEquals(offers, TradeOffers.atDraft(d, book), "the same draft, the same calls")
+        offers.forEach { o ->
+            assertTrue(TradeDesk.evaluate(book, d.userTeamId, o.proposal).accepted, "${o.proposal}")
+            val man = book.players.first { it.id.v == o.target }
+            assertEquals(d.userTeamId, man.teamId)
+            val back = o.proposal.get.sumOf { id -> TradeDesk.value(book, book.players.first { it.id.v == id }, user).toDouble() } +
+                o.proposal.getPicks.sumOf { TradeDesk.value(book, it, user).toDouble() }
+            assertTrue(back >= TradeDesk.value(book, man, user), "no lowballs at the draft either")
+        }
+        val traded = assertNotNull(pause.trade(offers.first().proposal))
+        assertEquals(offers.first().proposal.partner, traded.tradeBook.players.first { it.id.v == offers.first().target }.teamId)
+    }
 }

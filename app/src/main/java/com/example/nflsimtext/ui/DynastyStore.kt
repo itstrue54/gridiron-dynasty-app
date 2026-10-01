@@ -477,15 +477,21 @@ class DynastyStore(private val saveDir: File) {
      */
     var tradeOffers by mutableStateOf<List<com.nflsim.engine.season.TradeOffers.Offer>>(emptyList())
         private set
-    private var offersFor: Dynasty? = null
+    /** What the calls were worked out for: the dynasty in the season, the draft room's book at the draft. */
+    private var offersFor: Any? = null
     private var declinedOffers = setOf<com.nflsim.engine.season.TradeDesk.Proposal>()
 
     suspend fun refreshTradeOffers() {
         val current = dynasty ?: return
-        if (offersFor === current) return
-        val calls = withContext(Dispatchers.Default) { com.nflsim.engine.season.TradeOffers.thisWeek(current) }
+        val draftBook = if (com.nflsim.engine.season.TradeDesk.open(current)) null else tradeBook()
+        val key: Any = draftBook ?: current
+        if (offersFor === key) return
+        val calls = withContext(Dispatchers.Default) {
+            if (draftBook != null) com.nflsim.engine.season.TradeOffers.atDraft(current, draftBook)
+            else com.nflsim.engine.season.TradeOffers.thisWeek(current)
+        }
         if (dynasty === current) {
-            offersFor = current
+            offersFor = key
             tradeOffers = calls.filter { it.proposal !in declinedOffers }
         }
     }

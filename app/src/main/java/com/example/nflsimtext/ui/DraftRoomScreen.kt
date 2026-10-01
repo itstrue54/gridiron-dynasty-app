@@ -102,7 +102,10 @@ fun DraftRoomScreen(
                 )
                 // Before the first pick, the board can still be traded (SPEC 8.4).
                 if (room != null && room.picks.isEmpty()) {
-                    SecondaryButton("Trade picks or players", onTrade, Modifier.padding(top = NdTheme.spacing.s))
+                    androidx.compose.runtime.LaunchedEffect(room) { store.refreshTradeOffers() }
+                    val calling = store.tradeOffers.size
+                    SecondaryButton(if (calling > 0) "Trade picks or players ($calling calling)" else "Trade picks or players",
+                        onTrade, Modifier.padding(top = NdTheme.spacing.s))
                 }
             }
         }
