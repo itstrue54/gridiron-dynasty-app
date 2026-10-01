@@ -56,10 +56,10 @@ object SpecialTeams {
             distance <= st.chipShotDistance -> st.chipShotChance
             else -> logistic((range - distance) / st.fgCurveWidth) * (st.fgBaseAccuracy + accuracy / st.fgAccuracyScale)
         }
-        if (over > 0) chance *= (1f - (over / st.fgBeyondRange)).coerceAtLeast(0.05f)
+        if (over > 0) chance *= (1f - (over / st.fgBeyondRange)).coerceAtLeast(st.fgBeyondFloor)
         if (clutch) chance *= st.clutchFloor + (kicker.traits.clutch / 99f) * st.clutchRange
         chance *= 1f - weather.kickAccuracyPenalty(weatherTuning)
-        chance = chance.coerceIn(0.005f, 0.995f)
+        chance = chance.coerceIn(st.fgMinChance, st.fgMaxChance)
 
         val good = rng.nextFloat() < chance
         val text = PlayLines.write(if (good) "fg.good" else "fg.miss", words,
@@ -80,7 +80,7 @@ object SpecialTeams {
         val words = narration ?: rng.split("narration")
         val yardsToGoal = 100 - yardLine
         if (punter == null) {
-            return PuntResult(NO_PUNTER_YARDS, false, 0, PlayLines.write("punt.no_punter", words, "gross" to NO_PUNTER_YARDS))
+            return PuntResult(st.noPunterYards, false, 0, PlayLines.write("punt.no_punter", words, "gross" to st.noPunterYards))
         }
 
         val power = rate(punter, RatingId.PUNT_POWER, puntScheme)
@@ -96,7 +96,7 @@ object SpecialTeams {
 
         if (yardLine + gross >= 100) {
             val touchbackChance = st.puntTouchbackBase - (placement - 70) * st.puntTouchbackPlacement
-            if (rng.nextFloat() < touchbackChance.coerceIn(0.15f, 0.9f)) {
+            if (rng.nextFloat() < touchbackChance.coerceIn(st.puntTouchbackMin, st.puntTouchbackMax)) {
                 return PuntResult(
                     netYards = (80 - yardLine).coerceAtLeast(5),
                     touchback = true, returnYards = 0,
@@ -157,8 +157,6 @@ object SpecialTeams {
         return spot to text
     }
 
-    /** How far a punt goes when nobody on the roster can punt. */
-    private const val NO_PUNTER_YARDS = 35
 
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)

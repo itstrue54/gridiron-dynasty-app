@@ -503,7 +503,7 @@ class GameSimulator(
             val now = fatigue[id] ?: 0f
             val next = if (id in onField) {
                 snaps[id] = (snaps[id] ?: 0) + 1
-                (now + f.perSnap(p.position) * (1.5f - p.ratings[RatingId.STAMINA] / 100f)).coerceIn(0f, 100f)
+                (now + f.perSnap(p.position) * (f.staminaFactor - p.ratings[RatingId.STAMINA] / 100f)).coerceIn(0f, 100f)
             } else {
                 (now - f.sidelineRecovery).coerceAtLeast(0f)
             }
@@ -525,11 +525,11 @@ class GameSimulator(
     /** A snap's chance of an injury that costs games, for this player at this fatigue. */
     private fun injuryRisk(p: com.nflsim.engine.model.Player, fatigue: Float): Float {
         val i = tuning.injuries
-        val proneness = 0.6f + 0.8f * p.traits.injuryProneness / 100f
-        val resistance = 1.3f - 0.6f * p.ratings[RatingId.INJURY_RESIST] / 100f
+        val proneness = i.pronenessBase + i.pronenessRange * p.traits.injuryProneness / 100f
+        val resistance = i.resistBase - i.resistRange * p.ratings[RatingId.INJURY_RESIST] / 100f
         return i.perSnap(p.position) * i.scale * (1f + i.fatigueRisk * fatigue / 100f) *
             (1f + i.wearRisk * p.wear / 100f) * proneness * resistance *
-            (1f + i.loadRisk * ((snaps[p.id.v] ?: 0) / 60f - 0.5f)).coerceAtLeast(0.2f)
+            (1f + i.loadRisk * ((snaps[p.id.v] ?: 0) / i.loadSnaps - i.loadCentre)).coerceAtLeast(i.loadFloor)
     }
 
     /** Games an injury costs, on the NFL's spread. */

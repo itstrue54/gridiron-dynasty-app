@@ -65,7 +65,7 @@ fun DraftRoomScreen(
     val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
     val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
     fun scheme(p: Player) = if (p.position.isOffense) offense else defense
-    fun lens(p: Player) = Scouting.lens(p.id.v, team.id.v, p.position, dept, focus)
+    fun lens(p: Player) = Scouting.lens(p.id.v, team.id.v, p.position, dept, focus, dynasty.league.tuning.scouting)
 
     val clock = room.onTheClock
     val board = room.board.available

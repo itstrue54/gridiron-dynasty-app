@@ -3,6 +3,7 @@ package com.nflsim.engine.econ
 import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PositionGroup
 import com.nflsim.engine.stats.StatLine
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * Last season, in one number per player, scaled so an average starter at his
@@ -21,23 +22,17 @@ import com.nflsim.engine.stats.StatLine
  *    proved anything. Finding those is the reward for scouting properly.
  *
  * Linemen and specialists have no counting statistics, so they are priced on
- * ability alone - which is also roughly how they are paid in reality.
+ * ability alone - which is also roughly how they are paid in reality. The
+ * factor's bounds and blend are tuning (ai.production*).
  */
 object Production {
-
-    /** Never fully worthless, never worth more than about twice the average. */
-    private const val FLOOR = 0.55f
-    private const val CEILING = 1.90f
-
-    /** A veteran who did not play has not proved anything lately. */
-    private const val UNPROVEN_VETERAN = 0.80f
 
     /**
      * @param players everyone whose production matters - a whole league.
      * @param stats last season only. Career totals would pay a thirty-four
      *   year old for what he did at twenty-six.
      */
-    fun index(players: List<Player>, stats: Map<Int, StatLine>): Map<Int, Float> {
+    fun index(players: List<Player>, stats: Map<Int, StatLine>, t: TuningTable.Ai): Map<Int, Float> {
         val raw = players.associate { it.id.v to raw(it, stats[it.id.v]) }
 
         // Normalise inside a position group. Comparing a corner's tackles to a
@@ -55,8 +50,8 @@ object Production {
             val factor = when {
                 par <= 0f -> 1f                                   // nothing to compare against
                 mine <= 0f && p.accruedSeasons == 0 -> 1f         // a rookie has an excuse
-                mine <= 0f -> UNPROVEN_VETERAN
-                else -> (0.55f + 0.45f * (mine / par)).coerceIn(FLOOR, CEILING)
+                mine <= 0f -> t.productionUnproven
+                else -> (t.productionBase + t.productionWeight * (mine / par)).coerceIn(t.productionFloor, t.productionCeiling)
             }
             p.id.v to factor
         }

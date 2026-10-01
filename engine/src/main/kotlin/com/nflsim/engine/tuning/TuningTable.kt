@@ -37,6 +37,7 @@ data class TuningTable(
     val staff: Staff = Staff(),
     val needs: Needs = Needs(),
     val honours: Honours = Honours(),
+    val scouting: Scouting = Scouting(),
 ) {
     @Serializable
     data class Passing(
@@ -100,6 +101,13 @@ data class TuningTable(
         val yacTackling: Float = 0.055f,
         val screenYac: Float = 4.2f,
         val zoneYac: Float = 0.8f,
+        /** The bounds on a throw's completion chance and its interception chance. */
+        val completionMin: Float = 0.02f,
+        val completionMax: Float = 0.95f,
+        val interceptionMin: Float = 0.002f,
+        val interceptionMax: Float = 0.22f,
+        /** Separation lost, in these units, adds a full interceptionCoverageScale. */
+        val interceptionCoverageRange: Float = 40f,
     )
 
     @Serializable
@@ -136,6 +144,9 @@ data class TuningTable(
         val rbRotationTopTwo: Float = 0.90f,
         /** Carries in a game after which the lead back's handoffs go to the next back. */
         val leadBackCarryCap: Int = 23,
+        /** The bounds on a carry's breakaway chance. */
+        val breakawayMin: Float = 0.004f,
+        val breakawayMax: Float = 0.42f,
     )
 
     /**
@@ -209,6 +220,10 @@ data class TuningTable(
         /** The defensive front: block shedding counts this much, strength the rest. */
         val shedWeight: Float = 0.62f,
         val powerWeight: Float = 0.38f,
+        /** A run's raw advantage over this is the advantage the carry is played on. */
+        val advantageDivisor: Float = 26f,
+        /** A replacement-level blocker: help above this counts, below it hurts. */
+        val blockerBaseline: Float = 68f,
     )
 
     @Serializable
@@ -244,6 +259,17 @@ data class TuningTable(
         val passInterferenceShare: Float = 0.55f,
         val passInterferenceSeparation: Float = 30f,
         val runHoldingShare: Float = 0.22f,
+        /** Discipline's say in false starts and offside: a base rate x (this - discipline / [disciplineRange]). */
+        val disciplineFactor: Float = 1.5f,
+        val disciplineRange: Float = 99f,
+        /** Holding on a pass: base + the protection's stress, which reads as [defaultPressure] when unknown. */
+        val holdingBase: Float = 0.5f,
+        val defaultPressure: Float = 0.3f,
+        /** How far separation moves pass interference either way, the shortest throw it is called on, and how its spot varies. */
+        val passInterferenceMin: Float = -0.5f,
+        val passInterferenceMax: Float = 1.2f,
+        val passInterferenceAirYards: Int = 12,
+        val passInterferenceSpotSpread: Float = 2f,
     )
 
     /**
@@ -285,6 +311,15 @@ data class TuningTable(
         val twoGames: Float = 0.24f,
         val threeFour: Float = 0.12f,
         val fiveEight: Float = 0.13f,
+        /** Proneness multiplies a snap's risk by base + range x proneness / 100; injury resistance by base - range x resistance / 100. */
+        val pronenessBase: Float = 0.6f,
+        val pronenessRange: Float = 0.8f,
+        val resistBase: Float = 1.3f,
+        val resistRange: Float = 0.6f,
+        /** A game's workload is read against this many snaps, centred on this share of them, and never cuts the risk below this. */
+        val loadSnaps: Float = 60f,
+        val loadCentre: Float = 0.5f,
+        val loadFloor: Float = 0.2f,
     ) {
         fun perSnap(position: com.nflsim.engine.model.Position): Float = when (position) {
             com.nflsim.engine.model.Position.RB, com.nflsim.engine.model.Position.FB -> perSnapBack
@@ -506,6 +541,15 @@ data class TuningTable(
         val kickoffReturnBase: Int = 22,
         val kickoffReturnSpeed: Float = 0.12f,
         val kickoffReturnVariance: Float = 5f,
+        /** A kick past his range keeps at least this much of its chance; any kick stays within these bounds. */
+        val fgBeyondFloor: Float = 0.05f,
+        val fgMinChance: Float = 0.005f,
+        val fgMaxChance: Float = 0.995f,
+        /** The bounds on a punt's touchback chance. */
+        val puntTouchbackMin: Float = 0.15f,
+        val puntTouchbackMax: Float = 0.9f,
+        /** How far a punt goes when nobody on the roster can punt. */
+        val noPunterYards: Int = 35,
     )
 
     /** SPEC 7.1 and 12: how players grow and decline each offseason. */
@@ -849,6 +893,30 @@ data class TuningTable(
         val squadCampOverall: Int = 51,
         val squadCampSpread: Int = 10,
         val squadCampAgeBias: Int = -4,
+        /** How noisily a club picks among camp bodies at a position. */
+        val fillSpread: Float = 3f,
+        /**
+         * How a front office ranks a player for a roster spot
+         * (offseason.rosterValue, ADR-004): the age past which it discounts him,
+         * by this much a year for a club in the middle; the age under which a
+         * rebuilding club pays for upside, by this much a year; and what scheme
+         * fit is worth in rating points.
+         */
+        val valueAgeCliff: Int = 29,
+        val valueAgePenalty: Float = 2.2f,
+        val valueYouthAge: Int = 26,
+        val valueYouthWeight: Float = 1f,
+        val valueFitWeight: Float = 8f,
+        /**
+         * Production pricing (econ.Production, SPEC 8.3): a player's factor is
+         * base + weight x (his production / his position's median), between
+         * floor and ceiling; a veteran who did not play is unproven.
+         */
+        val productionBase: Float = 0.55f,
+        val productionWeight: Float = 0.45f,
+        val productionFloor: Float = 0.55f,
+        val productionCeiling: Float = 1.90f,
+        val productionUnproven: Float = 0.80f,
     )
 
     /**
@@ -900,6 +968,8 @@ data class TuningTable(
         val halftimeRecovery: Float = 40f,
         val subOutAt: Float = 40f,
         val backInAt: Float = 15f,
+        /** Stamina's say in how fast a man tires: a snap costs perSnap x (this - stamina / 100). */
+        val staminaFactor: Float = 1.5f,
     ) {
         fun perSnap(position: com.nflsim.engine.model.Position): Float = when (position) {
             com.nflsim.engine.model.Position.LT, com.nflsim.engine.model.Position.LG,
@@ -1113,6 +1183,42 @@ data class TuningTable(
         val comebackFloor: Double = 120.0,
         val comebackShare: Double = 0.4,
         val comebackMinSeasons: Int = 2,
+    )
+
+    /**
+     * What a club knows of a player (SPEC 4.6, ratings.ScoutingLens,
+     * TraitScouting, Scouting): how wide its band is, when a trait shows a
+     * range, a grade and the truth, how fast its own men become known, and
+     * how a draft budget is spread.
+     */
+    @Serializable
+    data class Scouting(
+        /** Band half-width at no confidence, in rating points, and in trait points (traits span wider). */
+        val band: Float = 12f,
+        val traitBand: Float = 30f,
+        /** A trait shows a range from here, a grade from here, the truth from here; ratings are exact from [exactAt]. */
+        val rangeAt: Float = 0.4f,
+        val gradeAt: Float = 0.7f,
+        val exactAt: Float = 0.9f,
+        /** Confidence never reaches 1: a club is never quite certain. */
+        val ceiling: Float = 0.95f,
+        /** A scout's miss: at most this many standard deviations, and this share of the band per deviation. */
+        val biasClamp: Float = 2f,
+        val missShare: Float = 0.5f,
+        /** A club's own man: a new arrival reads base + up to dept by scouting department (from [ownDeptFrom] over [ownDeptRange]), and each year in the building adds [ownPerYear]. */
+        val ownBase: Float = 0.35f,
+        val ownDept: Float = 0.2f,
+        val ownDeptFrom: Int = 40,
+        val ownDeptRange: Float = 40f,
+        val ownPerYear: Float = 0.25f,
+        /** What a prospect's exposure gives a club for free, from a small school's to a big program's. */
+        val exposureFloor: Float = 0.10f,
+        val exposureCeiling: Float = 0.45f,
+        /** Draft scouting: the budget a department buys (floor + range x dept / 100), how many positions it spreads over when it names none, and what it still learns of a position it is not watching. */
+        val budgetFloor: Float = 0.25f,
+        val budgetRange: Float = 0.45f,
+        val spreadWidth: Float = 6f,
+        val leftover: Float = 0.08f,
     )
 
     companion object {

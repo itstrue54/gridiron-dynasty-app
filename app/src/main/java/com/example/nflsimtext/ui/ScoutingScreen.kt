@@ -106,10 +106,10 @@ fun ScoutingScreen(
                 val watched = if (focus.isEmpty()) SCOUTABLE.take(3) else focus.toList()
                 val ignored = SCOUTABLE.filterNot { it in focus }
                 watched.forEach { position ->
-                    Reading(position, dept, focus, watched = true)
+                    Reading(position, dept, focus, watched = true, t = dynasty.league.tuning.scouting)
                 }
                 if (focus.isNotEmpty() && ignored.isNotEmpty()) {
-                    Reading(ignored.first(), dept, focus, watched = false)
+                    Reading(ignored.first(), dept, focus, watched = false, t = dynasty.league.tuning.scouting)
                 }
                 Text(
                     "A band is what the club would put a prospect between. " +
@@ -126,11 +126,11 @@ fun ScoutingScreen(
 
 /** One position, and how wide a prospect's band would be there. */
 @Composable
-private fun Reading(position: Position, dept: Int, focus: Set<Position>, watched: Boolean) {
+private fun Reading(position: Position, dept: Int, focus: Set<Position>, watched: Boolean, t: com.nflsim.engine.tuning.TuningTable.Scouting) {
     val c = NdTheme.colors
     // A prospect rated 80 stands in for the board: what matters is the width.
-    val confidence = Scouting.prospect(SAMPLE_PROSPECT, position, dept, focus)
-    val view = ScoutingLens.of(SAMPLE_PROSPECT, 0, confidence).view(80)
+    val confidence = Scouting.prospect(SAMPLE_PROSPECT, position, dept, focus, t)
+    val view = ScoutingLens.of(SAMPLE_PROSPECT, 0, confidence, t).view(80)
     Row(
         Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,

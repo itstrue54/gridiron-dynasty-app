@@ -41,7 +41,7 @@ class CutdownPause internal constructor(
 
     /** What he is to this club: the same judgement its front office cuts by. */
     fun value(p: Player): Float = rosterValue(
-        p, draft.ctx.scheme(userTeam, p.position), year, league.team(userTeam).gm.winNowVsFuture)
+        p, draft.ctx.scheme(userTeam, p.position), year, league.team(userTeam).gm.winNowVsFuture, league.tuning.ai)
 
     /** Dead money this year if he is released. */
     fun deadIfCut(p: Player): Int = p.contract?.deadCap(year)?.thisYear ?: 0

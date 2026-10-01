@@ -82,7 +82,8 @@ internal fun signed(value: Int) = if (value >= 0) "+$value" else "−${-value}"
 internal fun lensFor(dynasty: Dynasty, player: Player): ScoutingLens = ScoutingLens.of(
     playerId = player.id.v,
     viewerId = dynasty.userTeamId.v,
-    confidence = ScoutingLens.ownPlayer(player.clubYears, dynasty.team.staff.scoutingDept),
+    confidence = ScoutingLens.ownPlayer(player.clubYears, dynasty.team.staff.scoutingDept, dynasty.league.tuning.scouting),
+    t = dynasty.league.tuning.scouting,
 )
 
 /** Whether the club played in the week that just finished, rather than sat a bye. */
@@ -976,7 +977,7 @@ internal fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
 // ---------------------------------------------------------------------------
 
 /** Coachability as far as the staff has seen it (SPEC 4.6). */
-internal fun coachabilityGrade(player: Player, scoutingDept: Int): Pair<String, Boolean> {
-    val seen = TraitScouting.confidence(player.clubYears, scoutingDept)
-    return TraitScouting.grade(player.traits.coachability, seen, player.id.v, "coachability") to (seen >= 0.7f)
+internal fun coachabilityGrade(player: Player, scoutingDept: Int, t: com.nflsim.engine.tuning.TuningTable.Scouting): Pair<String, Boolean> {
+    val seen = TraitScouting.confidence(player.clubYears, scoutingDept, t)
+    return TraitScouting.grade(player.traits.coachability, seen, player.id.v, "coachability", t) to (seen >= t.gradeAt)
 }

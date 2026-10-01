@@ -78,7 +78,7 @@ object ContenderTrades {
         val needBar = TeamNeeds.bar(roster, league.tuning.needs) { id, pos -> scheme(id, pos) }
 
         fun value(p: Player, club: Team): Float =
-            (rosterValue(p, scheme(club.id, p.position), year, club.gm.winNowVsFuture) -
+            (rosterValue(p, scheme(club.id, p.position), year, club.gm.winNowVsFuture, league.tuning.ai) -
                 MarketValue.REPLACEMENT).coerceAtLeast(0f)
 
         fun value(pick: PickAsset, club: Team): Float =

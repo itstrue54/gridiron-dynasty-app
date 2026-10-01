@@ -70,7 +70,7 @@ fun PlayerCardScreen(
         dynasty.league.tuning,
     )
     val fit = schemeFit(player, scheme)
-    val seen = TraitScouting.confidence(player.clubYears, team.staff.scoutingDept)
+    val seen = TraitScouting.confidence(player.clubYears, team.staff.scoutingDept, dynasty.league.tuning.scouting)
     val lens = lensFor(dynasty, player)
     val ovr = lens.view(overall(player))
 
@@ -177,7 +177,7 @@ fun PlayerCardScreen(
                     )
                 } else {
                     TRAITS.forEach { (label, value) ->
-                        val grade = TraitScouting.grade(value(player), seen, player.id.v, label)
+                        val grade = TraitScouting.grade(value(player), seen, player.id.v, label, dynasty.league.tuning.scouting)
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
                             verticalAlignment = Alignment.CenterVertically,

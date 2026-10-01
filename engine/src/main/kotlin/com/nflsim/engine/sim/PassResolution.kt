@@ -154,14 +154,14 @@ internal object PassResolution {
             ctx.weather.passPenalty(call.concept.airYards, t.weather)
         if (pressured) completion *= t.passing.pressureCompletionMult *
             (t.passing.poiseBase + rate(qb, RatingId.THROW_UNDER_PRESSURE, off) / t.passing.poiseScale)
-        completion = completion.coerceIn(0.02f, 0.95f)
+        completion = completion.coerceIn(t.passing.completionMin, t.passing.completionMax)
         values["completionChance"] = completion
 
         // ---- interception -----------------------------------------------
         val intChance = (t.passing.interceptionBase +
-            t.passing.interceptionCoverageScale * (-routeWin / 40f).coerceAtLeast(0f) +
+            t.passing.interceptionCoverageScale * (-routeWin / t.passing.interceptionCoverageRange).coerceAtLeast(0f) +
             (70 - rate(qb, RatingId.AWARENESS, off)) * t.passing.interceptionAwareness)
-            .coerceIn(0.002f, 0.22f) * (if (pressured) t.passing.interceptionPressure else 1f)
+            .coerceIn(t.passing.interceptionMin, t.passing.interceptionMax) * (if (pressured) t.passing.interceptionPressure else 1f)
         values["interceptionChance"] = intChance
 
         if (rng.nextFloat() < intChance) {
