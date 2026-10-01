@@ -197,13 +197,20 @@ fun HubScreen(
             com.nflsim.engine.season.RosterMoves.active(dynasty.league, team.id).size
         if (open > 0 && dynasty.phase == DynastyPhase.REGULAR_SEASON) {
             item {
+                // Name who went on reserve: an alert that does not say who got
+                // hurt sends a new player hunting for it.
+                val onReserve = dynasty.league.roster(team.id)
+                    .filter { it.status == com.nflsim.engine.model.PlayerStatus.IR }
+                    .joinToString(", ") { "${it.position.label} ${it.name}" }
                 SituationBlock(
-                    "${open} open ${if (open == 1) "place" else "places"} on the 53",
+                    "${open} open ${if (open == 1) "spot" else "spots"} on the 53-man roster",
                     situation = Situation.RED_ZONE,
                     onClick = { onNavigate(Tab.MARKET) },
                 ) {
                     Text(
-                        "Injured reserve took them. Sign or promote somebody in Free agents.",
+                        (if (onReserve.isNotEmpty()) "On injured reserve: $onReserve. " else "") +
+                            "Sign or promote somebody in Free agents to fill " +
+                            (if (open == 1) "the spot." else "the spots."),
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
                 }
@@ -871,9 +878,10 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
                         "First downs" to (a.firstDowns.toString() to h.firstDowns.toString()),
                         "Total yards" to (a.totalYards.toString() to h.totalYards.toString()),
                         "Rushing" to ("${a.rushAttempts}–${a.rushYards}" to "${h.rushAttempts}–${h.rushYards}"),
-                        "Passing" to (a.passYards.toString() to h.passYards.toString()),
+                        // Net passing, as box scores print it: total yards add up.
+                        "Passing" to ((a.passYards + a.sackYards).toString() to (h.passYards + h.sackYards).toString()),
                         "Completions" to ("${a.completions}–${a.passAttempts}" to "${h.completions}–${h.passAttempts}"),
-                        "Sacked" to (a.sacksAllowed.toString() to h.sacksAllowed.toString()),
+                        "Sacked" to ("${a.sacksAllowed}–${-a.sackYards}" to "${h.sacksAllowed}–${-h.sackYards}"),
                         "Third down" to ("${a.thirdDownConversions}–${a.thirdDownAttempts}"
                             to "${h.thirdDownConversions}–${h.thirdDownAttempts}"),
                         "Turnovers" to (a.turnovers.toString() to h.turnovers.toString()),
