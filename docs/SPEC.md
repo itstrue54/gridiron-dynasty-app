@@ -509,6 +509,7 @@ val yardsAfterCatch = gamma(shape = f(wr.elusiveness, coverage), scale = g(depth
 1. Every constant (`K_PRESSURE`, `K_THROW`, …) lives in `TuningTable`, never as a literal in the function.
 2. Yardage uses **skewed distributions** (gamma/log-normal), never uniform. Real football yardage is long-tailed: most runs go 2–5 yards, a few go 60.
 3. Clamp nothing silently. If a value goes out of range, that is a bug — assert in debug builds.
+4. A turnover is settled before the goal lines. A lost fumble ends the drive as a fumble and the defence's ball at the spot, never a touchdown or a safety for the club that lost it: one carried to either goal line is recovered at the one.
 
 **Fumbles off a pass.** A carry is not the only way to lose the ball:
 - A sack strips the quarterback and the defence keeps it with chance `passing.stripSackLost` (0.05).

@@ -2360,3 +2360,23 @@ values make save step 29 (nothing to move), version 30.
 - **No headroom left:** the search levelled off below the NFL's long-play rates within the yards band. Further progress needs a different structure, not more tuning.
 - **Saves:** every saved league takes the new defaults. Save step 35, version 36.
 
+## ADR-0xx — A fumble at the goal line is recovered at the one
+
+**Context.** A carry's fumble keeps up to three of the carry's yards, so
+one inside the three could reach the goal line. The game applied the goal
+lines before the turnover, which scored a touchdown for the club that lost
+the ball. A fumble behind its own goal line was a safety in the same way.
+The box score counted the fumble lost while no drive ended in one.
+
+**Decision.** The turnover is checked first. The defence takes the ball at
+the spot, clamped to the field of play as every turnover spot already was,
+so a fumble that reaches either goal line is the defence's ball at the one.
+The NFL's touchback for a fumble into the opponent's end zone, and the
+defensive touchdown behind the offense's own goal line, would need return
+and recovery logic the sim doesn't have. Ruling it the defence's ball at
+the one is the smallest correct-in-kind fix.
+
+**Consequences.** Every lost fumble ends a drive as FUMBLE
+(`FumbleDriveTest`). All 23 SPEC 13.2 bands still pass on leagues 2026 and
+7. Points per team move 22.48 -> 22.45 and touchdown drives 2.441 -> 2.436;
+nothing else moves more than 0.006.

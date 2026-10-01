@@ -615,9 +615,9 @@ class GameSimulator(
         val gained = result.yards
         val newLine = state.yardLine + gained
 
-        if (newLine >= 100) return Applied(state.copy(yardLine = 99), gained, touchdown = true)
-        if (newLine <= 0) return Applied(state.copy(yardLine = 1), gained, safety = true)
-
+        // The turnover first. A carry fumbled at the goal line can carry its
+        // yards to it, and that is the defence's ball, not a touchdown - or,
+        // fumbled behind it, a safety - for the club that lost it.
         if (result.turnover) {
             return Applied(
                 state.copy(
@@ -627,6 +627,9 @@ class GameSimulator(
                 gained, turnover = true,
             )
         }
+
+        if (newLine >= 100) return Applied(state.copy(yardLine = 99), gained, touchdown = true)
+        if (newLine <= 0) return Applied(state.copy(yardLine = 1), gained, safety = true)
 
         val gotFirstDown = gained >= state.distance
         if (gotFirstDown) {
