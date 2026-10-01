@@ -13,7 +13,8 @@ class FatigueTest {
     @Test
     fun `defensive linemen and backs rotate, quarterbacks never do`() {
         val league = LeagueGenerator.generate(2026, 2026L)
-        val t = league.tuning
+        // Nobody hurt: a starter carted off in the third is not a rotation.
+        val t = league.tuning.let { it.copy(injuries = it.injuries.copy(scale = 0f)) }
         val teams = league.teams.take(8).map { team ->
             GameTeam(team, league.roster(team.id), SchemeCatalog.tuned(team.offenseScheme, t),
                 SchemeCatalog.tuned(team.defenseScheme, t))
