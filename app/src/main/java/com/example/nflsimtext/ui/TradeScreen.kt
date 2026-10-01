@@ -76,7 +76,8 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     fun read(p: Player): String {
         val lens = if (p.teamId == user) lensFor(dynasty, p)
             else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, dynasty.team.staff.scoutingDept, book.league.tuning.scouting), book.league.tuning.scouting)
-        return lens.view(overall(p, book.scheme(user, p.position))).text
+        // The rating the roster leads with, so a man reads the same on both screens.
+        return "Ovr " + lens.view(overall(p)).text
     }
     fun label(p: Player): String {
         val contract = p.contract?.let { k -> ", ${money(p.capHit(book.year))} ×${(k.signedYear + k.years - book.year).coerceAtLeast(1)}" } ?: ""

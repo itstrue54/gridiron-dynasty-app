@@ -629,11 +629,11 @@ fun RosterScreen(
             Column {
                 Text(team.name, style = NdTheme.type.display, color = c.chalk)
                 Text(
-                    "Offense ${offense.name}, fit ${SchemeFitGrade.describe(roster, offense, true)}",
+                    "Offense ${offense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, offense, true))}",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
                 Text(
-                    "Defense ${defense.name}, fit ${SchemeFitGrade.describe(roster, defense, false)}",
+                    "Defense ${defense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, defense, false))}",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
                 SecondaryButton(
@@ -662,6 +662,17 @@ fun RosterScreen(
             com.example.nflsimtext.ui.components.FilterChipRow(
                 ROSTER_FILTERS.map { it.first }, filter, { filter = it },
             )
+        }
+        // What the columns are, before the first time anyone has to guess.
+        item {
+            Column {
+                Text(
+                    "Ovr is how good he is. Scheme is how good he is in your schemes. " +
+                        "Fit grades how well he suits them, A to F.",
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                )
+                com.example.nflsimtext.ui.components.RatingLegend(Modifier.padding(top = NdTheme.spacing.xs))
+            }
         }
         item {
             DataTable(
@@ -698,11 +709,7 @@ fun RosterScreen(
             )
         }
         item {
-            Text(
-                "Tap a player for his card. A range is a rating the club has " +
-                    "not seen enough of to be sure about.",
-                style = NdTheme.type.caption, color = c.chalkDim,
-            )
+            Text("Tap a player for his card.", style = NdTheme.type.caption, color = c.chalkDim)
         }
     }
 }
