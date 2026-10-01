@@ -458,6 +458,17 @@ It also has to keep total yards in band. No single value does it.
 
 **Still off:** plays of 20+ are about 80% of the NFL's, and 40+ about 60%. The search had levelled off: its best 15 candidates all sat at 2.75–2.90 and 0.32–0.39. More would need the total-yards band, or ordinary plays that gain less still.
 
+## Pass 6a — October 2026 (the clock at the end of a quarter)
+
+**What was wrong:**
+- **The clock carried over between quarters.** A play that ran past a quarter's end took the extra seconds from the next quarter. The NFL stops the clock at zero, so the sim's games were short of their full time.
+- **Kicks went unrecorded in possession.** Box-score possession left out the punt, field goal and try runoffs. A regulation game added up to about 57:40, not 60:00.
+
+**Measured** (league 2026, 2,000 games):
+- Ending the carry-over gave back about half a play per team per game. Plays went 65.6 → 66.1, and yards 357 → 360, the top of the band.
+- The run-play runoff goes 36 → 37 s to pay for it. With that, plays are 65.4 and yards 356, and every band is within 0.25 of where it was.
+- League 99 improves slightly: attempts 36.2, yards 361.
+
 ## Still unmeasured
 
 Multi-season shape, which needs the offseason (M7) before it means anything:
