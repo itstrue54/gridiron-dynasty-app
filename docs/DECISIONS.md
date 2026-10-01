@@ -2291,7 +2291,10 @@ reports for week 1 whatever happens. The game has no games-missed
 holdouts, because a man sitting out regular-season games would need
 roster and pay rules the sim doesn't have.
 
-**Consequences.** One or two a year across the test leagues. It moves the
+**Consequences.** One to four a year across five test leagues, 2.4 on
+average. (First reported as one or two: that count matched "camp" in the
+headlines, and two of the eight holdout headlines don't contain the
+lowercase word. Counted by the form a holdout loses, it is 1-4.) It moves the
 sim for those men's early weeks. GameCalibration's single games never pass
 through an offseason, so no calibration band can move. The new season no
 longer opens with empty news: camp's holdouts and answers are week 1's

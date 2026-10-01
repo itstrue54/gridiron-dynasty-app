@@ -1237,8 +1237,8 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   screen, and waiting costs morale as any demand does. Paid or not, he missed
   camp, so he starts the season `ai.holdoutForm` (30) short of form and
   `ai.holdoutMorale` (5) down in morale. Both the holdout and the club's
-  answer are week 1 news; a new season opens with nothing else said. One or
-  two holdouts a year across the test leagues.
+  answer are week 1 news; a new season opens with nothing else said. One to
+  four holdouts a year across five test leagues, 2.4 on average.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
 
