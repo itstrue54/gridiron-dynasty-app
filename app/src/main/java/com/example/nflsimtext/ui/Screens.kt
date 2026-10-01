@@ -115,13 +115,7 @@ fun HubScreen(
     dynasty: Dynasty,
     store: DynastyStore,
     scope: CoroutineScope,
-    theme: ThemeSetting,
-    onTheme: (ThemeSetting) -> Unit,
-    haptics: Boolean,
-    onHaptics: (Boolean) -> Unit,
     onNavigate: (Tab) -> Unit = {},
-    /** Back to the title screen; the dynasty stays in hand for Continue. */
-    onTitle: () -> Unit = {},
 ) {
     val c = NdTheme.colors
     val team = dynasty.team
@@ -270,37 +264,44 @@ fun HubScreen(
                     dynasty.schedule.week(dynasty.week).any { it.involves(dynasty.userTeamId) }
                 ) {
                     SecondaryButton(
-                        "Call the plays",
+                        "Call the plays yourself",
                         {
                             scope.launch { launch { store.playLive() }; onNavigate(Tab.LIVE) }
                         },
                         Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
                         enabled = !store.busy && store.live == null,
                     )
+                    Text(
+                        "Play the week and your coordinators call your game. Call it yourself and " +
+                            "it stops at each of your snaps.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                    )
                 }
-                // Wrapped, not scrolled: half of these used to sit off the right
-                // edge of the phone with nothing to say they were there, and the
-                // row scrolled back to the start every time the hub was reopened.
-                FlowRow(Modifier.fillMaxWidth()) {
-                    if (dynasty.lastGame != null) HubLink("Game day") { onNavigate(Tab.GAME) }
+                // Grouped by what they are for, so a new player can tell the
+                // club's work from the league's news, with settings out of the
+                // way. One flat row of fifteen equal links was the first thing
+                // every tester in the fresh-eyes review stumbled on.
+                HubGroup("Game day") {
+                    if (dynasty.lastGame != null) HubLink("Last game") { onNavigate(Tab.GAME) }
                     HubLink("Game plan") { onNavigate(Tab.PLAN) }
-                    HubLink("Staff") { onNavigate(Tab.STAFF) }
-                    HubLink("Free agents") { onNavigate(Tab.MARKET) }
-                    HubLink("Transactions") { onNavigate(Tab.WIRE) }
+                }
+                HubGroup("Your club") {
                     if (com.nflsim.engine.season.TradeDesk.open(dynasty)) {
                         val calling = store.tradeOffers.size
                         HubLink(if (calling > 0) "Trades ($calling calling)" else "Trades") { onNavigate(Tab.TRADES) }
                     }
+                    HubLink("Free agents") { onNavigate(Tab.MARKET) }
                     HubLink("Demands") { onNavigate(Tab.DEMANDS) }
-                    HubLink("Saves") { onNavigate(Tab.SAVES) }
-                    HubLink("Title screen") { onTitle() }
+                    HubLink("Staff") { onNavigate(Tab.STAFF) }
                     HubLink("Scouting") { onNavigate(Tab.SCOUTING) }
-                    HubLink("History") { onNavigate(Tab.HISTORY) }
-                    HubLink("Tuning") { onNavigate(Tab.TUNING) }
-                    HubLink("Theme: ${theme.label}") { onTheme(theme.next()) }
-                    HubLink(if (haptics) "Haptics: on" else "Haptics: off") { onHaptics(!haptics) }
-                    HubLink("Design") { onNavigate(Tab.GALLERY) }
                 }
+                HubGroup("League") {
+                    HubLink("Transactions") { onNavigate(Tab.WIRE) }
+                    HubLink("News") { onNavigate(Tab.NEWS) }
+                    HubLink("History") { onNavigate(Tab.HISTORY) }
+                }
+                HubLink("Settings: theme, saves, tuning") { onNavigate(Tab.SETTINGS) }
             }
         }
 
@@ -509,6 +510,16 @@ private fun tone(kind: NewsKind) = when (kind) {
     NewsKind.POACHED -> TagTone.URGENT
     NewsKind.TRADE -> TagTone.INFO
     NewsKind.STORY -> TagTone.CAUTION
+}
+
+/** A labelled group of hub links; wrapped, not scrolled, so none sits off the edge. */
+@Composable
+private fun HubGroup(title: String, links: @Composable () -> Unit) {
+    Text(
+        title.uppercase(), style = NdTheme.type.label, color = NdTheme.colors.chalkDim,
+        modifier = Modifier.padding(top = NdTheme.spacing.m),
+    )
+    FlowRow(Modifier.fillMaxWidth()) { links() }
 }
 
 @Composable
