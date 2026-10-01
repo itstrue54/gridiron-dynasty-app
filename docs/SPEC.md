@@ -1131,8 +1131,6 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders |
 | **Game plan** | Coordinator tendency sliders, weekly opponent plan, focus practice |
 | **Player card** | Bio, scouted ratings, revealed traits, career stats, contract, injury history, news |
-
-Wherever ratings are read (the roster and the player card), a short legend says what the colours mean (90+ elite, 80s good, 70s starter, below 70) and what a range is. The roster says what Ovr, Scheme and Fit are, and gives fit as a letter, not a decimal. The trade screen labels the rating it shows as Ovr, the same number the roster leads with.
 | **Schedule / Scores** | League-wide, filterable |
 | **Game center** | Drive chart, play-by-play feed, box score, snap counts, narrative recap |
 | **Standings** | Division/conference/playoff picture with tiebreak explanation |
@@ -1151,6 +1149,8 @@ Wherever ratings are read (the roster and the player card), a short legend says 
 | **Saves** | Five slots and three autosaves: play, copy, overwrite, delete, restore, start a new dynasty in an empty slot (§9.1) |
 | **History** | Champions, awards, records, franchise timeline, hall of fame |
 | **Settings / Tuning** | Sliders (§12), sim speed, autosave, export |
+
+Wherever ratings are read (the roster and the player card), a short legend says what the colours mean (90+ elite, 80s good, 70s starter, below 70) and what a range is. The roster says what Ovr, Scheme and Fit are, and gives fit as a letter, not a decimal. The trade screen labels the rating it shows as Ovr, the same number the roster leads with.
 
 ### 10.3 State pattern
 
