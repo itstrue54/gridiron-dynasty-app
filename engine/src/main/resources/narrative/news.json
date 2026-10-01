@@ -143,6 +143,26 @@
     "The answer from {club} to {player} ({pos}) is no. He plays on under his current deal.",
     "{club} have refused {pos} {player}'s demand for a new deal."
   ],
+  "qb.controversy.picks": [
+    "{club} fans want {player}. {starter} threw {picks} interceptions and the team is {wins}-{losses}.",
+    "The chants for {player} grow louder after {starter}'s {picks} interceptions drop the {club} to {wins}-{losses}.",
+    "{picks} more interceptions from {starter}, and the {club} face questions about rookie {player}.",
+    "Pressure builds on the {club} to start {player} after {starter}'s {picks}-interception day.",
+    "{starter} gives it away {picks} times. At {wins}-{losses}, the {club} crowd wants {player}.",
+    "Talk radio has one topic in town after {starter} threw {picks} picks: when the {club} turn to {player}.",
+    "The {club} say {starter} is their quarterback. After {picks} interceptions and a {wins}-{losses} start, the fans say {player}.",
+    "{starter} hears the boos after {picks} interceptions. Rookie {player} waits on the {club} bench."
+  ],
+  "qb.controversy.yards": [
+    "{club} fans want {player}. {starter} managed {yards} yards and the team is {wins}-{losses}.",
+    "{starter} threw for {yards} yards as the {club} fell to {wins}-{losses}, and the town asks if it is {player}'s time.",
+    "After {starter}'s {yards}-yard afternoon, the {club} face questions about rookie {player}.",
+    "Talk radio has one topic in town: when the {club} will turn to {player}.",
+    "{starter} hears the boos as the {club} slip to {wins}-{losses}. Rookie {player} waits.",
+    "The {club} say {starter} is their quarterback. At {wins}-{losses}, the fans say {player}.",
+    "{yards} passing yards from {starter}, and the calls for {player} grow louder in the {club} locker room.",
+    "The {club} offence stalls again under {starter}. The crowd chants for {player}."
+  ],
   "trade.deadline": [
     "{buyer} land {pos} {player} from {seller} for {price} at the deadline.",
     "Deadline deal: {seller} send {pos} {player} to {buyer} for {price}.",

@@ -472,6 +472,7 @@ private fun label(kind: NewsKind) = when (kind) {
     NewsKind.DISPUTE -> "Deal"
     NewsKind.POACHED -> "Squad"
     NewsKind.TRADE -> "Trade"
+    NewsKind.STORY -> "Story"
 }
 
 private fun tone(kind: NewsKind) = when (kind) {
@@ -484,6 +485,7 @@ private fun tone(kind: NewsKind) = when (kind) {
     NewsKind.DISPUTE -> TagTone.INFO
     NewsKind.POACHED -> TagTone.URGENT
     NewsKind.TRADE -> TagTone.INFO
+    NewsKind.STORY -> TagTone.CAUTION
 }
 
 @Composable
