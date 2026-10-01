@@ -1217,6 +1217,15 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   offered), so the same offer draws the same answer however often it is
   shown, and nothing said moves the sim or the save.
 - **Press conference / storyline beats:** a holdout, a rookie QB controversy, a coach on the hot seat.
+  The *hot seat* is weekly news from week 8: a club three or more games under
+  .500, once a season. The *rookie QB controversy* (`NewsKind.STORY`,
+  `qb.controversy.picks` / `.yards`) is filed when a club two or more games
+  under .500 had its veteran starter throw two or more interceptions, or
+  under 150 yards on 15 or more throws, and has a healthy rookie QB (no
+  accrued seasons) rated within 12 of him. It is filed once per rookie per
+  season. It is the town talking: the depth chart, not the news, decides who
+  plays. About one a season or two across the test leagues. The holdout is
+  not built yet.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
 

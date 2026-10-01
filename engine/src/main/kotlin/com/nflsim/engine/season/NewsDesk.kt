@@ -168,8 +168,55 @@ object NewsDesk {
             }
         }
 
+        // A rookie QB the crowd wants (SPEC 10.4's storylines): a club losing,
+        // its veteran starter having an afternoon to forget, and a first-year
+        // man on the bench good enough to be the answer. The sim plays whom
+        // the depth chart plays; this is the town talking. Once a rookie a season.
+        val called = alreadySaid.filter { it.kind == NewsKind.STORY }.mapNotNull { it.player }.toSet()
+        results.forEach { game ->
+            listOf(game.home, game.away).forEach { id ->
+                val record = standings.record(id)
+                if (record.losses - record.wins < ROOKIE_CALL_MARGIN) return@forEach
+                val club = league.team(id)
+                val scheme = com.nflsim.engine.ratings.SchemeCatalog.tuned(club.offenseScheme, league.tuning)
+                val qbs = league.roster(id).filter { it.position == com.nflsim.engine.model.Position.QB }
+                val starter = qbs.maxByOrNull { game.snaps[it.id.v] ?: 0 } ?: return@forEach
+                if (starter.accruedSeasons == 0 || (game.snaps[starter.id.v] ?: 0) == 0) return@forEach
+                val line = game.boxScore.players[starter.id.v] ?: return@forEach
+                val rough = line.interceptionsThrown >= ROUGH_INTERCEPTIONS ||
+                    (line.passAttempts >= ROUGH_ATTEMPTS && line.passYards < ROUGH_YARDS)
+                if (!rough) return@forEach
+                val rookie = qbs.filter {
+                    it.id != starter.id && it.accruedSeasons == 0 && it.injuryWeeks == 0 &&
+                        it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE && it.id.v !in called
+                }.maxByOrNull { com.nflsim.engine.ratings.overall(it, scheme) } ?: return@forEach
+                if (com.nflsim.engine.ratings.overall(rookie, scheme) <
+                    com.nflsim.engine.ratings.overall(starter, scheme) - ROOKIE_GAP) return@forEach
+                news += NewsEvent(
+                    week, NewsKind.STORY,
+                    Headlines.write(
+                        if (line.interceptionsThrown >= ROUGH_INTERCEPTIONS) "qb.controversy.picks" else "qb.controversy.yards",
+                        rng, "club" to club.nickname, "player" to rookie.name,
+                        "starter" to starter.name, "wins" to record.wins, "losses" to record.losses,
+                        "picks" to line.interceptionsThrown, "yards" to line.passYards),
+                    rookie.id.v, id.v,
+                )
+            }
+        }
+
         return news
     }
+
+    /** How far under .500 a club must be before the town wants the rookie. */
+    private const val ROOKIE_CALL_MARGIN = 2
+
+    /** An afternoon to forget: this many interceptions, or this few yards on this many throws. */
+    private const val ROUGH_INTERCEPTIONS = 2
+    private const val ROUGH_ATTEMPTS = 15
+    private const val ROUGH_YARDS = 150
+
+    /** How far under the starter a rookie can be rated and still be the one the town wants. */
+    private const val ROOKIE_GAP = 12
 
     /** Positions a coach benches a man at. Nobody reads that a guard sat. */
     private val BENCHABLE = listOf(
