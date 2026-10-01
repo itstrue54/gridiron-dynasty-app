@@ -73,13 +73,18 @@ class RecapsTest {
 
     @Test
     fun `a recap tells three to five plays, in order, starting with the biggest swing`() {
-        games(4).forEach { (d, g) ->
+        games(17).forEach { (d, g) ->
             val keys = Recaps.keyPlays(g.playByPlay, g.homeScore, g.awayScore)
             assertTrue(keys.size in Recaps.MIN_MOMENTS..Recaps.MAX_MOMENTS, "${keys.size} moments")
             assertEquals(keys.sortedBy { it.first }, keys, "told in the order they happened")
-            val curve = WinProbability.curve(g.playByPlay, g.homeScore, g.awayScore)
-            val biggest = g.playByPlay.indices.maxBy { abs(curve[it + 1] - curve[it]) }
+            // The biggest swing among snaps: a timeout or the weather is never a key play.
+            val biggest = Recaps.snapSwings(g.playByPlay, g.homeScore, g.awayScore).maxBy { abs(it.second) }.first
             assertTrue(keys.any { it.first == biggest }, "the play that moved it most is told")
+            val asides = listOf("timeout", "weather").flatMap { com.nflsim.engine.sim.PlayLines.templates.getValue(it) }
+                .map { way -> Regex(way.split(Regex("""\{\w+\}""")).joinToString(".+") { Regex.escape(it) }) }
+            keys.forEach { (i, _) ->
+                assertTrue(asides.none { it.matches(g.playByPlay[i].text) }, "not a snap: ${g.playByPlay[i].text}")
+            }
 
             val recap = Recaps.write(g.playByPlay, d.league.team(g.home), d.league.team(g.away),
                 g.homeScore, g.awayScore, Recaps.wordsFor(d.seed, g.playByPlay, g.home.v, g.away.v, g.homeScore, g.awayScore))!!

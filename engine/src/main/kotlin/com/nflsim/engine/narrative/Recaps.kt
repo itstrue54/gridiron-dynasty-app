@@ -50,10 +50,21 @@ object Recaps {
     fun wordsFor(seed: Long, plays: List<PlayLog>, home: Int, away: Int, homeScore: Int, awayScore: Int): Rng =
         SplitMixRng(seed).split("recap|$home|$away|$homeScore|$awayScore|${plays.size}")
 
+    /**
+     * Each snap's swing, by index: from its chance to the next snap's (or the
+     * result after the last). The log also carries lines that are not snaps -
+     * the weather before kickoff, a timeout - and they are never key plays;
+     * whatever moved across one belongs to the snap before it.
+     */
+    fun snapSwings(plays: List<PlayLog>, homeScore: Int, awayScore: Int): List<Pair<Int, Float>> {
+        val curve = WinProbability.curve(plays, homeScore, awayScore)
+        val snaps = plays.indices.filter { !isAside(plays[it].text) }
+        return snaps.mapIndexed { k, i -> i to curve[snaps.getOrElse(k + 1) { plays.size }] - curve[i] }
+    }
+
     /** The plays that moved the game most, by index, in the order they were played. */
     fun keyPlays(plays: List<PlayLog>, homeScore: Int, awayScore: Int): List<Pair<Int, Float>> {
-        val curve = WinProbability.curve(plays, homeScore, awayScore)
-        val swings = plays.indices.map { it to curve[it + 1] - curve[it] }
+        val swings = snapSwings(plays, homeScore, awayScore)
             .sortedByDescending { abs(it.second) }
         return swings.filterIndexed { rank, (_, swing) ->
             rank < MIN_MOMENTS || (rank < MAX_MOMENTS && abs(swing) >= TELLING_SWING)
@@ -127,4 +138,15 @@ object Recaps {
         4 -> "the fourth quarter"
         else -> "overtime"
     }
+
+    /** Lines in the log that are not a snap: written from these play-line keys. */
+    private val asides: List<Regex> by lazy {
+        listOf("timeout", "weather").flatMap { key ->
+            com.nflsim.engine.sim.PlayLines.templates.getValue(key).map { way ->
+                Regex(way.split(Regex("""\{\w+\}""")).joinToString(".+") { Regex.escape(it) })
+            }
+        }
+    }
+
+    private fun isAside(text: String): Boolean = asides.any { it.matches(text) }
 }
