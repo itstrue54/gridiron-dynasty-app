@@ -1182,8 +1182,10 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   on the score plus what the ball is worth (-1.5 points at the offence's own
   goal line, +0.075 a yard, -0.5 a down used), spread 13.5 points over a
   whole game and shrinking with the square root of the time left. A play's
-  swing is the change from its chance to the next play's, or to the result
-  after the last. The recap tells the three biggest swings, and up to five
+  swing is the change from its chance to the next snap's, or to the result
+  after the last. Only snaps are told: the log's other lines (the weather
+  before kickoff, a timeout) are never key plays, and what moves across one
+  belongs to the snap before it. The recap tells the three biggest swings, and up to five
   if the fourth and fifth moved the game 8% or more, in the order they were
   played. It opens by the kind of game: a tie, a comeback (the winner fell
   to 20% or less), a rout (21 or more), a close one (3 or fewer), or
