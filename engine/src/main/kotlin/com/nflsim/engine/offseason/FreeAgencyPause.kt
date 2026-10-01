@@ -56,7 +56,7 @@ class FreeAgencyPause internal constructor(
             .filter { it.teamId == null && it.status != PlayerStatus.RETIRED && it.status != PlayerStatus.PRACTICE_SQUAD }
             .map { p ->
                 val market = pricer.annual(p, ctx.scheme(null, p.position), year)
-                Candidate(p, market, FreeAgency.openingAsk(market),
+                Candidate(p, market, FreeAgency.openingAsk(market, ctx.league.tuning.ai),
                     MarketValue.termFor(p.age(year), depth = 0), previousTeam[p.id.v])
             }
             .sortedByDescending { it.market }

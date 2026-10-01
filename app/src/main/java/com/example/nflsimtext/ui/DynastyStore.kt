@@ -657,10 +657,11 @@ class DynastyStore(private val saveDir: File) {
     }
 
     /** SPEC 8.3: base salary into bonus - cheap now, dearer every year after. */
-    suspend fun restructure(playerId: Int, share: Float = com.nflsim.engine.offseason.CapManagement.RESTRUCTURE_SHARE) =
+    suspend fun restructure(playerId: Int, share: Float? = null) =
         transact { league, team ->
             com.nflsim.engine.season.Transactions.restructure(
-                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(), share)
+                league, team, com.nflsim.engine.model.PlayerId(playerId), wireWeek(),
+                share ?: league.tuning.ai.restructureShare)
         }
 
     private fun wireWeek(): Int = dynasty?.wireWeek ?: 0

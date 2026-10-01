@@ -73,6 +73,7 @@ object PlayerIntent {
 
     fun assess(league: League, players: List<Player>, ctx: Context, rng: Rng): List<Wish> {
         val wishes = mutableListOf<Wish>()
+        val t = league.tuning.intent
 
         players.filter { it.teamId != null && it.contract != null }.forEach { p ->
             val team = p.teamId!!
@@ -82,20 +83,20 @@ object PlayerIntent {
 
             // Only players who matter push. A camp body has no leverage and
             // knows it.
-            if (ovr < VOICE_THRESHOLD) return@forEach
+            if (ovr < t.voice) return@forEach
 
-            val losing = ((1f - ctx.winPct(team)) - 0.45f).coerceAtLeast(0f) * 2f *
-                ((age - 26).coerceAtLeast(0) / 6f).coerceIn(0.25f, 1.4f)
+            val losing = ((1f - ctx.winPct(team)) - t.losingFrom).coerceAtLeast(0f) * t.losingScale *
+                ((age - t.losingAgeFrom).coerceAtLeast(0) / t.losingAgeYears).coerceIn(t.losingAgeMin, t.losingAgeMax)
 
             val rank = ctx.depthRank[p.id.v] ?: 0
-            val buried = if (rank >= 1 && ovr >= STARTER_QUALITY) 0.35f + rank * 0.22f else 0f
+            val buried = if (rank >= 1 && ovr >= t.starterQuality) t.buriedBase + rank * t.buriedPerRank else 0f
 
             val worth = ctx.pricer.annual(p, sch, ctx.year)
             val paid = p.capHit(ctx.year).coerceAtLeast(1)
-            val underpaid = ((worth.toFloat() / paid) - 1.35f).coerceIn(0f, 1.2f)
+            val underpaid = ((worth.toFloat() / paid) - t.underpaidFrom).coerceIn(0f, t.underpaidMax)
 
             val worst = maxOf(losing, buried, underpaid)
-            if (worst < GRUMBLE) return@forEach
+            if (worst < t.grumble) return@forEach
 
             val intent = when (worst) {
                 losing -> Intent.WANTS_TO_WIN
@@ -112,11 +113,11 @@ object PlayerIntent {
             // most of them rookies on slotted deals and minimum-salary players
             // who had got good. They are underpaid by construction; that is
             // what a rookie contract is.
-            val pressure = if (intent == Intent.WANTS_PAYING) worst * MONEY_PATIENCE else worst
+            val pressure = if (intent == Intent.WANTS_PAYING) worst * t.moneyPatience else worst
             // A club that told him no in the autumn has used up his patience.
-            val refused = if (p.demand == com.nflsim.engine.model.DemandState.REFUSED) REFUSED_NERVE else 0f
-            val nerve = pressure + refused - p.traits.loyalty / 160f + rng.gaussian(0f, 0.18f)
-            val demands = nerve > DEMAND && p.contract!!.isActive(ctx.year + 1)
+            val refused = if (p.demand == com.nflsim.engine.model.DemandState.REFUSED) t.refusedNerve else 0f
+            val nerve = pressure + refused - p.traits.loyalty / t.loyaltyQuiet + rng.gaussian(0f, t.nerveSpread)
+            val demands = nerve > t.demand && p.contract!!.isActive(ctx.year + 1)
 
             wishes += Wish(
                 p.id.v, p.name, p.position.label, team.v, ovr,
@@ -168,6 +169,7 @@ object PlayerIntent {
         picks: List<com.nflsim.engine.model.PickAsset> = emptyList(),
         order: List<TeamId> = emptyList(),
     ): Trades {
+        val t = league.tuning.intent
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
             .mapValues { it.value.toMutableList() }
@@ -193,30 +195,30 @@ object PlayerIntent {
 
             val suitor = league.teams
                 .filter { it.id != from }
-                .mapNotNull { t ->
-                    val theirs = roster.getOrPut(t.id) { mutableListOf() }
-                    val space = CapManagement.spaceFor(theirs, ctx.year, dead[t.id.v] ?: 0,
-                        carryover = t.finances.carryover)
+                .mapNotNull { club ->
+                    val theirs = roster.getOrPut(club.id) { mutableListOf() }
+                    val space = CapManagement.spaceFor(theirs, ctx.year, dead[club.id.v] ?: 0,
+                        carryover = club.finances.carryover)
                     if (space < hit) return@mapNotNull null
 
-                    val sch = ctx.scheme(t.id, player.position)
+                    val sch = ctx.scheme(club.id, player.position)
                     val worth = ctx.pricer.annual(player, sch, ctx.year)
                     // Nobody trades for a contract that is already bad.
-                    if (worth < hit * WORTH_IT) return@mapNotNull null
+                    if (worth < hit * t.suitorWorth) return@mapNotNull null
 
-                    val winning = ctx.winPct(t.id)
+                    val winning = ctx.winPct(club.id)
                     // He asked for a reason; a team that does not fix it is
                     // not a destination.
                     val fixesIt = when (wish.intent) {
-                        Intent.TRADE_REQUEST -> winning >= CONTENDER ||
+                        Intent.TRADE_REQUEST -> winning >= t.contenderWinPct ||
                             theirs.count { it.position == player.position } <=
                                 TeamNeeds.requiredStarters(player.position)
                         else -> true
                     }
                     if (!fixesIt) return@mapNotNull null
 
-                    t.id to schemeFit(player, sch) * 6f + winning * 10f +
-                        (worth - hit) / 1_500f + keepRng.gaussian(0f, 2f)
+                    club.id to schemeFit(player, sch) * t.suitorFit + winning * t.suitorWinning +
+                        (worth - hit) / t.suitorSurplus + keepRng.gaussian(0f, t.suitorSpread)
                 }
                 .maxByOrNull { it.second }?.first ?: return@forEach
 
@@ -239,7 +241,7 @@ object PlayerIntent {
             val value = (rosterValue(player, ctx.scheme(from, player.position), ctx.year, winNow) -
                 com.nflsim.engine.econ.MarketValue.REPLACEMENT).coerceAtLeast(0f)
             held.filter { it.owner == suitor.v }
-                .map { it to PickValue.value(it, ctx.year, order, winNow) }
+                .map { it to PickValue.value(it, ctx.year, order, winNow, league.tuning.trades) }
                 .filter { it.second <= value }
                 .maxByOrNull { it.second }
                 ?.first
@@ -252,34 +254,4 @@ object PlayerIntent {
         val free = players.filter { it.teamId == null }
         return Trades(roster.values.flatten() + free, dead, moves, held, pickTrades)
     }
-
-    /** Below this a player has no leverage and knows it. */
-    private const val VOICE_THRESHOLD = 68
-
-    /** Good enough to start somewhere, if not here. */
-    private const val STARTER_QUALITY = 72
-
-    /** Unhappy enough to say something. */
-    private const val GRUMBLE = 0.30f
-
-    /** Unhappy enough to ask out. */
-    private const val DEMAND = 0.62f
-
-    /** How much less a money grievance pushes a player out the door. */
-    private const val MONEY_PATIENCE = 0.42f
-
-    /**
-     * What a refused in-season demand adds to his nerve in the spring. At
-     * 0.25 a refused man asked out no more often than anyone else, which
-     * made the refusal invisible; money grievances are damped hard by
-     * MONEY_PATIENCE and a refusal has to clear that.
-     */
-    private const val REFUSED_NERVE = 0.95f
-
-
-    /** A suitor has to value him above what he costs. */
-    private const val WORTH_IT = 1.15f
-
-    /** Win rate that reads as a contender to a player who wants to win. */
-    private const val CONTENDER = 0.55f
 }

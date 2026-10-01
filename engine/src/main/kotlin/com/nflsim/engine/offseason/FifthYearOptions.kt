@@ -28,6 +28,7 @@ object FifthYearOptions {
         scheme: (TeamId?, Position) -> Scheme,
         pricer: MarketValue.Pricer,
         depthRank: Map<Int, Int>,
+        t: com.nflsim.engine.tuning.TuningTable.Ai,
     ): Result {
         val rostered = players.filter { it.teamId != null }
         val salaries = rostered.filter { it.contract != null }
@@ -46,7 +47,7 @@ object FifthYearOptions {
             val option = salary(p, salaries[p.position].orEmpty(), franchise, transition, depthRank)
 
             val worth = pricer.annual(p, scheme(p.teamId, p.position), year)
-            if (worth >= option * OPTION_BAR) {
+            if (worth >= option * t.optionBar) {
                 exercised++
                 p.copy(contract = c.copy(
                     years = c.years + 1,
@@ -86,7 +87,4 @@ object FifthYearOptions {
 
     /** Contract year the decision falls before: after three seasons, ahead of the fourth. */
     private const val DECISION_YEAR = 3
-
-    /** A club takes the option when the player is worth at least this much of it. */
-    private const val OPTION_BAR = 0.9f
 }

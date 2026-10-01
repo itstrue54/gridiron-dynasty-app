@@ -272,7 +272,7 @@ object Transactions {
         player: Player,
         year: Int = 0,
         /** Of what can be moved, how much; a front office's habit when left alone. */
-        share: Float = CapManagement.RESTRUCTURE_SHARE,
+        share: Float = com.nflsim.engine.tuning.TuningTable.REALISTIC.ai.restructureShare,
     ): Restructure? {
         val contract = player.contract ?: return null
         val i = contract.yearIndex(year)
@@ -299,7 +299,7 @@ object Transactions {
         team: TeamId,
         playerId: PlayerId,
         week: Int = 0,
-        share: Float = CapManagement.RESTRUCTURE_SHARE,
+        share: Float = league.tuning.ai.restructureShare,
     ): Outcome {
         val man = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")

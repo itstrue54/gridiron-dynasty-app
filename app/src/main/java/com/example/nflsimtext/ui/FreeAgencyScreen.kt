@@ -71,7 +71,7 @@ fun FreeAgencyScreen(
         .filter { position == ALL || it.player.position.group.name == position }
         .take(SHOWN)
     val abbrev = dynasty.league.teams.associate { it.id to it.abbrev }
-    val cut = (FreeAgency.dailyCut * 100).toInt()
+    val cut = (FreeAgency.dailyCut(dynasty.league.tuning.ai) * 100).toInt()
 
     ScreenList {
         item {

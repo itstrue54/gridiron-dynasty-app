@@ -109,7 +109,7 @@ object FranchiseTag {
                     listOf(FRANCHISE, TRANSITION)
                         .map { kind -> kind to price(p, kind, franchise, transition) }
                         .firstOrNull { (kind, cost) ->
-                            cost in 1..space && worth >= cost * if (kind == FRANCHISE) WORTH_IT else TRANSITION_WORTH
+                            cost in 1..space && worth >= cost * if (kind == FRANCHISE) league.tuning.ai.tagWorth else league.tuning.ai.tagTransitionWorth
                         }
                         ?.let { (kind, cost) -> Triple(p, kind, cost) }
                 } ?: return@forEach
@@ -142,14 +142,6 @@ object FranchiseTag {
     private const val SECOND = 1.2f
     private const val THIRD = 1.44f
 
-    /**
-     * A club tags a player worth at least this share of the tag. The
-     * transition tag needs more: it only buys the right to match, which
-     * real clubs rarely think is worth a tender.
-     */
-    private const val WORTH_IT = 1.3f
-    private const val TRANSITION_WORTH = 1.6f
-    // Swept over five seeds (per year): franchise bar 0.9 -> 13.6 tags,
-    // 1.15 -> 8.3, 1.3 -> 6.5-7.2, against the NFL's five to eight; the
-    // transition bar at 1.3 -> 4.2, 1.6 -> 0.5, 2.0 -> none, against 0-1.
+    // How much a man must be worth to be tagged is tuning: ai.tagWorth and
+    // ai.tagTransitionWorth, with the sweep that set them.
 }

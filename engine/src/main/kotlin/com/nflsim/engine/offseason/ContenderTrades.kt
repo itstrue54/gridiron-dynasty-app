@@ -65,6 +65,7 @@ object ContenderTrades {
         /** A club that trades only when it says so: the user's, in the season. */
         except: TeamId? = null,
     ): Result {
+        val tt = league.tuning.trades
         val roster = players.filter { it.teamId != null }
             .groupBy { it.teamId!! }
             .mapValues { it.value.toMutableList() }
@@ -81,7 +82,7 @@ object ContenderTrades {
                 MarketValue.REPLACEMENT).coerceAtLeast(0f)
 
         fun value(pick: PickAsset, club: Team): Float =
-            PickValue.value(pick, draftYear, order, club.gm.winNowVsFuture)
+            PickValue.value(pick, draftYear, order, club.gm.winNowVsFuture, league.tuning.trades)
 
         val buyers = league.teams
             .filter { it.id != except }
@@ -89,26 +90,26 @@ object ContenderTrades {
             .sortedByDescending { winPct(it.id) }
         val sellers = league.teams
             .filter { it.id != except }
-            .filter { winPct(it.id) < 0.5f || it.gm.winNowVsFuture <= league.tuning.ai.sellerWinNow }
+            .filter { winPct(it.id) < tt.sellerWinPct || it.gm.winNowVsFuture <= league.tuning.ai.sellerWinNow }
 
         buyers.forEach { buyer ->
-            val deals = if (buyer.gm.aggression >= SECOND_DEAL_AGGRESSION) 2 else 1
+            val deals = if (buyer.gm.aggression >= tt.secondDealAggression) 2 else 1
             for (attempt in 1..deals) {
                 val mine = roster.getOrPut(buyer.id) { mutableListOf() }
                 // A player or two away: one or two real holes at positions a
                 // star can play. A club with more than that is not one trade
                 // from anything.
                 val holes = TeamNeeds.assess(mine, { pos -> scheme(buyer.id, pos) }, year, needBar)
-                    .filter { (pos, need) -> need >= HOLE && pos !in NOT_A_HOLE }.keys
-                if (holes.isEmpty() || holes.size > MAX_HOLES) break
+                    .filter { (pos, need) -> need >= tt.holeNeed && pos !in NOT_A_HOLE }.keys
+                if (holes.isEmpty() || holes.size > tt.maxHoles) break
 
-                val starMaxAge = STAR_MIN_AGE + 3 + (buyer.gm.riskTolerance * 4f).toInt()
+                val starMaxAge = tt.starMinAge + tt.starAgeSpan + (buyer.gm.riskTolerance * tt.starAgeRisk).toInt()
                 val bestAt = mine.groupBy { it.position }
                     .mapValues { (_, group) -> group.maxByOrNull { value(it, buyer) } }
                 // What the contender can spare: young, not at a position it is
                 // short at, and not its best player at his own - and its picks.
                 val spare = mine.filter { p ->
-                    p.age(year) <= YOUNG_AGE && p.position !in holes && bestAt[p.position]?.id != p.id
+                    p.age(year) <= tt.youngAge && p.position !in holes && bestAt[p.position]?.id != p.id
                 }
                 val ownPicks = held.filter { it.owner == buyer.id.v }
 
@@ -122,15 +123,15 @@ object ContenderTrades {
                     // when a different pair suits both.
                     val pieces = spare.map { Piece(it, null, value(it, seller), value(it, buyer)) } +
                         ownPicks.map { Piece(null, it, value(it, seller), value(it, buyer)) }
-                    val wanted = pieces.sortedByDescending { it.toSeller }.take(PACKAGE_POOL)
+                    val wanted = pieces.sortedByDescending { it.toSeller }.take(tt.packagePool)
                     val packages = wanted.map { listOf(it) } +
                         wanted.indices.flatMap { i -> (i + 1 until wanted.size).map { j -> listOf(wanted[i], wanted[j]) } }
 
                     for (star in theirs) {
                         if (star.position !in holes) continue
                         val age = star.age(year)
-                        if (age < STAR_MIN_AGE || age > starMaxAge) continue
-                        if (overall(star, scheme(buyer.id, star.position)) < STAR_OVERALL) continue
+                        if (age < tt.starMinAge || age > starMaxAge) continue
+                        if (overall(star, scheme(buyer.id, star.position)) < tt.starOverall) continue
                         val gain = value(star, buyer) - (bestAt[star.position]?.let { value(it, buyer) } ?: 0f)
                         if (gain < league.tuning.ai.tradeClearUpgrade) continue
                         if (chosen != null && gain <= chosen.gain) continue
@@ -213,28 +214,6 @@ object ContenderTrades {
             CapManagement.spaceFor(sellerRoster - star + pkg, year, sellerOwes, sellerCarryover) >= 0
     }
 
-
-
-    /** Need at a position that counts as a real hole, and how many a club can have and still be close. */
-    private const val HOLE = 0.35f
-    private const val MAX_HOLES = 2
-
-    /** Positions nobody trades for a star at. */
+    /** Positions nobody trades for a star at. (The thresholds are tuning: TuningTable.Trades.) */
     private val NOT_A_HOLE = setOf(Position.FB, Position.K, Position.P, Position.LS)
-
-    /** A star: this good, and old enough to be proven. Risk tolerance sets the upper age, 30 to 34. */
-    private const val STAR_OVERALL = 78
-    private const val STAR_MIN_AGE = 27
-
-    /** Young enough to be the future a rebuilding club is buying. */
-    private const val YOUNG_AGE = 25
-
-    /** How many of the pieces a seller wants most it will build a package from. */
-    private const val PACKAGE_POOL = 6
-
-
-
-
-    /** Aggression from which a contender goes back for a second player. */
-    private const val SECOND_DEAL_AGGRESSION = 0.75f
 }

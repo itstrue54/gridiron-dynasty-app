@@ -99,7 +99,7 @@ object TradeDesk {
             .coerceAtLeast(0f)
 
     fun value(book: Book, pick: PickAsset, club: Team): Float =
-        PickValue.value(pick, book.draftYear, book.order, club.gm.winNowVsFuture)
+        PickValue.value(pick, book.draftYear, book.order, club.gm.winNowVsFuture, book.league.tuning.trades)
 
     fun evaluate(book: Book, user: TeamId, proposal: Proposal): Verdict {
         val partner = book.league.team(proposal.partner)
