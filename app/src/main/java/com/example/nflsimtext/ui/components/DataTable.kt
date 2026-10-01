@@ -48,6 +48,8 @@ data class ColumnSpec(
     val weight: Float,
     val numeric: Boolean = false,
     val tier: Boolean = false,
+    /** Lets a cell run to a second line rather than clip, for names and labels that must read whole. */
+    val wrap: Boolean = false,
 )
 
 /** A row of already-formatted cells. */
@@ -200,7 +202,7 @@ fun DataTable(
                             cell,
                             style = NdTheme.type.data,
                             color = ink(col, cell),
-                            maxLines = 1,
+                            maxLines = if (col.wrap) 2 else 1,
                             // A clipped name should read as clipped, not as somebody else.
                             overflow = TextOverflow.Ellipsis,
                             textAlign = if (col.numeric) TextAlign.End else TextAlign.Start,

@@ -56,7 +56,7 @@
     "{team} {situation}{fourth}, {clock} left in {period}. {play}",
     "The swing came with {clock} left in {period}, {team} {situation}{fourth}. {play}",
     "{clock} to play in {period}, and {team} {situation}{fourth}. {play}",
-    "Then, {clock} left in {period} and {team} {situation}{fourth}: {play}",
+    "One that mattered: {clock} left in {period}, {team} {situation}{fourth}. {play}",
     "With {team} {situation}{fourth} and {clock} left in {period}: {play}"
   ],
   "situation.trailing": [

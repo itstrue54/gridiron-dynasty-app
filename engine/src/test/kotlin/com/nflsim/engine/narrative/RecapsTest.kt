@@ -36,6 +36,9 @@ class RecapsTest {
                 if (key.startsWith("lead.")) assertTrue(way.endsWith("."), "$key: $way")
                 // Every moment carries the play itself, and the pieces spliced into it.
                 if (key == "moment") assertTrue("{play}" in way && "{situation}{fourth}" in way, way)
+                // Any moment can be the first one told, so none may open as if
+                // following another ("Then, ...").
+                if (key == "moment") assertTrue(CONNECTORS.none { way.startsWith(it) }, "a moment opens mid-story: $way")
             }
         }
     }
@@ -113,5 +116,9 @@ class RecapsTest {
             t.replace("{winner}", home.name).replace("{loser}", away.name).replace("{ws}", "35")
                 .replace("{ls}", "3") == rout
         }, "a 32-point win is a rout: $rout")
+    }
+
+    private companion object {
+        val CONNECTORS = listOf("Then", "And ", "But ", "Later", "Next", "After that", "Also")
     }
 }

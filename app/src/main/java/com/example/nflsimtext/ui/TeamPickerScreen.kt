@@ -96,8 +96,8 @@ fun TeamPickerScreen(
                     SituationBlock(league.divisionName(teams.first())) {
                         DataTable(
                             columns = listOf(
-                                ColumnSpec("Club", 2.2f),
-                                ColumnSpec("Outlook", 1.8f),
+                                ColumnSpec("Club", 2.2f, wrap = true),
+                                ColumnSpec("Outlook", 1.8f, wrap = true),
                                 ColumnSpec("Market", 0.9f),
                             ),
                             rows = teams.map { t ->
