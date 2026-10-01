@@ -74,6 +74,7 @@ enum class Tab(val label: String) {
     WIRE("Transactions"),
     NEWS("News"),
     SETTINGS("Settings"),
+    GLOSSARY("Glossary"),
     /** SPEC 8.4: trades, behind the Hub to the deadline and in the draft room before the first pick. */
     TRADES("Trades"),
     /** SPEC 10.1: men who have noticed what they are paid, behind the Hub. */
@@ -169,6 +170,7 @@ fun DynastyApp(
                     Tab.NEWS -> NewsScreen(dynasty) { tab = Tab.HUB }
                     Tab.DEMANDS -> DemandsScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.SETTINGS }
+                    Tab.GLOSSARY -> GlossaryScreen { tab = Tab.HUB }
                     Tab.SETTINGS -> SettingsScreen(theme, onTheme, haptics, onHaptics,
                         onNavigate = { tab = it }, onTitle = { started = false }, onBack = { tab = Tab.HUB })
                     Tab.CONTRACTS -> ContractsScreen(
@@ -262,7 +264,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
-                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS,
+                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {

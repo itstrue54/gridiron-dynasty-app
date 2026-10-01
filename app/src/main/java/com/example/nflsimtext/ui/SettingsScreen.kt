@@ -40,6 +40,7 @@ fun SettingsScreen(
         item {
             SituationBlock("Your dynasty") {
                 SecondaryButton("Saves", { onNavigate(Tab.SAVES) }, Modifier.fillMaxWidth())
+                SecondaryButton("Glossary", { onNavigate(Tab.GLOSSARY) }, wide)
                 SecondaryButton("Back to the title screen", onTitle, wide)
             }
         }
