@@ -47,8 +47,9 @@ object FourthDown {
             else FourthDownChoice.GO_FOR_IT
         }
 
-        // Chip shot with anything but a very long distance to gain.
-        if (kickable && yardsToGoal <= 38 && state.distance >= 3) return FourthDownChoice.FIELD_GOAL
+        // Chip shot with anything but a short distance to gain.
+        val easyKick = kickable && yardsToGoal <= 38
+        if (easyKick && state.distance >= t.kickAlwaysDistance) return FourthDownChoice.FIELD_GOAL
 
         var goChance = when {
             yardsToGoal > 65 -> t.goOwnEnd
@@ -61,6 +62,11 @@ object FourthDown {
         // Four down territory: too far for a kick, too close to punt.
         if (yardsToGoal in 33..48) goChance += t.goFourDownTerritory
         if (yardsToGoal <= 5 && state.distance <= 3) goChance += t.goGoalLine
+        // Short of a first down in easy range, the points are not automatic:
+        // a touchdown is worth more than the three. Not late and within a
+        // kick, when the three tie or win it.
+        val kickDecides = state.quarter >= 4 && state.secondsLeft < 300 && state.scoreDiff in -FIELD_GOAL_POINTS..0
+        if (easyKick && !kickDecides) goChance += t.goKickRange
         if (lateAndTrailing) goChance += t.goLateTrailing
         if (state.quarter >= 4 && state.scoreDiff > 7) goChance -= t.goProtectingLead
 

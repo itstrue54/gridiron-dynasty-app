@@ -61,4 +61,24 @@ class CallingTuningTest {
         assertEquals(t.rangeNoKicker, FourthDown.kickerRange(null, scheme, 0, t))
         assertEquals(FourthDown.kickerRange(kicker, scheme, 0, t) + 10, FourthDown.kickerRange(kicker, scheme, 0, t.copy(rangeBase = t.rangeBase + 10)))
     }
+
+    @Test
+    fun `in easy kicking range, short of a first down he sometimes goes for it`() {
+        val t = TuningTable.REALISTIC.fourthDown
+        val kicker = league.roster(league.teams.first().id).first { it.position == com.nflsim.engine.model.Position.K }
+        val scheme = SchemeCatalog[league.teams.first().offenseScheme]
+        fun goes(distance: Int, tuning: TuningTable.FourthDown, quarter: Int = 2, lead: Int = 0) = (0 until 400).count {
+            val s = GameState(TeamId(1), TeamId(2), quarter = quarter, secondsLeft = 200, yardLine = 75, down = 4, distance = distance,
+                homeScore = maxOf(lead, 0), awayScore = maxOf(-lead, 0), possession = Side.HOME)
+            FourthDown.decide(s, kicker, scheme, 0, 0.5f, SplitMixRng(it.toLong()), tuning) == FourthDownChoice.GO_FOR_IT
+        }
+        // Fourth and four at the 25: kicked every time under the old rule, gone for some of the time now.
+        assertEquals(0, goes(4, t.copy(kickAlwaysDistance = 3, goKickRange = 0f)))
+        assertTrue(goes(4, t) > 0, "never goes for it on fourth and four in range")
+        assertEquals(0, goes(t.kickAlwaysDistance, t), "goes for it at the kick-always distance")
+        // The range bonus is the table's.
+        assertTrue(goes(2, t) > goes(2, t.copy(goKickRange = 0f)))
+        // Late and down three, the bonus is off: the kick ties it.
+        assertEquals(goes(2, t.copy(goKickRange = 0f), quarter = 4, lead = -3), goes(2, t, quarter = 4, lead = -3))
+    }
 }

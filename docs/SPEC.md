@@ -448,6 +448,7 @@ Built (`sim.Adaptation`, `TuningTable.adaptation`):
 - **Victory formation.** Ahead in the fourth quarter, with no more clock left than the kneels before fourth down can run off, the offence kneels (`PlayCaller.canKneelItOut`). The kneel runs off what a running play does (`TuningTable.gameFlow.runPlayClockRunoff`).
 - **The kick that ties or wins.** When another snap would end the half or the game and a field goal is in range, the kicker goes out on any down (`FourthDown.lastKick`). At the half he takes the points; at the end he kicks if it ties the game or wins it.
 - **Fourth down, late and behind.** Late in the fourth, a club that trails by more than a field goal, or can't reach one, goes for it far more often. Within three and in range, it kicks.
+- **Fourth and short in easy range.** Inside the opponent's 38, with fewer than `fourthDown.kickAlwaysDistance` (5) yards to go, a coach adds `fourthDown.goKickRange` (0.25) to his chance of going for it: a touchdown is worth more than the three, as NFL coaches now play it. With 5 or more to go he kicks. Late in the fourth and within a kick, the bonus is off, because the three tie or win it.
 - **Prevent.** A defence `gameFlow.preventLead` (9) points ahead in the fourth quarter sits back: deep zones only, nobody sent, and a dime look on anything but short yardage. It gives up underneath yards and late points rather than the big play. That trade is why leads shrink at the end of games, and it's what keeps the close-game band (§13.2) honest.
 - A user calling his own offence is asked about the kick before fourth down, as he is on fourth down: kick now, or run a play.
 
@@ -514,6 +515,13 @@ val yardsAfterCatch = gamma(shape = f(wr.elusiveness, coverage), scale = g(depth
 - A catch short of the end zone is lost with chance `passing.catchFumbleBase` (0.0051), scaled by ball security and the weather as a carry's is.
 
 Either is a turnover where the play ended, it ends the drive as a fumble, and it is credited to the quarterback or the receiver. Box scores keep `rushFumblesLost` apart from the rest. Any change of possession stops the clock (§5.10). About half the league's lost fumbles come off sacks and catches, as in the NFL.
+
+**Long plays.** Most of a game's yards come in short gains, but a game turns on its few long ones:
+- **A catch broken open.** A catch breaks open with chance `passing.yacBreakawayBase` (0.07). Each point of the receiver's elusiveness and speed over 70 adds `yacBreakawayElusiveness` (0.0015); each point of the secondary's tackling over 70 takes off `yacBreakawayTackling` (0.0015). The chance is capped at `yacBreakawayMax` (0.25). A broken catch adds an exponential run of mean `yacBreakawayYards` (28). One that goes `catchAndRunYards` (20) or more is called a catch and run.
+- **Throwing depth.** Every concept's depth of target is scaled by `passing.airYardsScale` (0.92), so the long plays come after the catch rather than all through the air.
+- **A run broken open** is `rushing.breakawayBase` (0.026), for an exponential run of mean `rushing.breakawayYards` (20). Breakaways are rarer than before but go further.
+
+`GameCalibration` reports plays of 20+ and 40+ and the share of touchdowns from 20+ yards out as diagnostics (CALIBRATION.md pass 5).
 
 ### 5.8 Penalties
 

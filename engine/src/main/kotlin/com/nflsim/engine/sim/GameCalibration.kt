@@ -104,6 +104,7 @@ object GameCalibration {
         var homePenalties = 0; var awayPenalties = 0
         var turnovers = 0; var penalties = 0
         var passTds = 0; var carryFumbles = 0
+        var fourthAtt = 0; var tdPlays = 0; var longTds = 0; var gains20 = 0; var gains40 = 0
         var played = 0
 
         repeat(games) {
@@ -140,6 +141,20 @@ object GameCalibration {
                 picks += b.passInterceptions
             }
             passTds += result.boxScore.players.values.sumOf { it.passTouchdowns }
+            // Long plays, read off the log: a snap's gain is the next snap's
+            // spot, and a touchdown's length is where it started.
+            result.playByPlay.zipWithNext().forEach { (a, b) ->
+                if (a.down !in 1..4) return@forEach
+                val scored = if (a.offense == Side.HOME) b.homeScore - a.homeScore else b.awayScore - a.awayScore
+                if (scored in 6..8) {
+                    tdPlays++
+                    if (100 - a.yardLine >= 20) longTds++
+                } else if (b.offense == a.offense && b.quarter == a.quarter) {
+                    val gain = b.yardLine - a.yardLine
+                    if (gain >= 20) gains20++
+                    if (gain >= 40) gains40++
+                }
+            }
             points += result.homeScore + result.awayScore
             plays += result.boxScore.home.plays + result.boxScore.away.plays
             yards += result.boxScore.home.totalYards + result.boxScore.away.totalYards
@@ -147,6 +162,7 @@ object GameCalibration {
             thirdConv += result.boxScore.home.thirdDownConversions + result.boxScore.away.thirdDownConversions
             rzTrips += result.boxScore.home.redZoneTrips + result.boxScore.away.redZoneTrips
             rzTd += result.boxScore.home.redZoneTouchdowns + result.boxScore.away.redZoneTouchdowns
+            fourthAtt += result.boxScore.home.fourthDownAttempts + result.boxScore.away.fourthDownAttempts
             turnovers += result.boxScore.home.turnovers + result.boxScore.away.turnovers
             penalties += result.boxScore.home.penalties + result.boxScore.away.penalties
             homePoints += result.homeScore; awayPoints += result.awayScore
@@ -201,6 +217,10 @@ object GameCalibration {
             CalibrationMetric("DRIVES", "field goals made-attempted", fgMade / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
             CalibrationMetric("DRIVES", "field goal attempts per team", fgAttempts / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
             CalibrationMetric("DRIVES", "punts per team per game", punts / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
+            CalibrationMetric("EXPLOSIVE", "plays of 20+ per team per game", gains20 / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
+            CalibrationMetric("EXPLOSIVE", "plays of 40+ per team per game", gains40 / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
+            CalibrationMetric("EXPLOSIVE", "touchdowns from 20+ yards", longTds.toDouble() / tdPlays.coerceAtLeast(1), 0.0, 1.0, "%.2f", diagnostic = true),
+            CalibrationMetric("DRIVES", "fourth-down attempts per team", fourthAtt / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
             CalibrationMetric("DRIVES", "turnovers on downs per team", downsLost / teamGames, 0.0, 99.0, "%.2f", diagnostic = true),
         )
         return CalibrationReport(plays, carries, attempts, metrics + diagnostics)
