@@ -33,4 +33,28 @@ class HubNewsTest {
         val two = listOf(item(NewsKind.INJURY, 1), item(NewsKind.PERFORMANCE, 1))
         assertEquals(2, hubNews(two).size)
     }
+
+    @Test
+    fun `a holdout and his club's answer are one story, so the week's others show`() {
+        fun about(player: Int, team: Int, what: String) = NewsEvent(1, NewsKind.DISPUTE, "$what $player", player, team)
+        val camp = listOf(
+            about(1, 10, "holdout"), about(1, 10, "answer"),
+            about(2, 11, "holdout"), about(2, 11, "answer"),
+            about(3, 12, "holdout"), about(3, 12, "answer"),
+        )
+        val shown = hubNews(camp)
+        // Two holdouts, not one holdout and its answer, and each by its newest line.
+        assertEquals(listOf("answer 3", "answer 2"), shown.map { it.headline })
+    }
+
+    @Test
+    fun `the user's club's stories always make the hub`() {
+        val ours = (1..3).map { NewsEvent(1, NewsKind.DISPUTE, "ours $it", 100 + it, 7) }
+        val theirs = (1..6).map { NewsEvent(1, NewsKind.INJURY, "theirs $it", 200 + it, 9) }
+        val shown = hubNews(ours + theirs, userTeam = 7)
+        assertEquals(5, shown.size)
+        assertTrue("every story about the user's club: $shown", ours.all { it in shown })
+        // Newest first throughout.
+        assertEquals(shown, shown.sortedByDescending { (ours + theirs).indexOf(it) })
+    }
 }
