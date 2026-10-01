@@ -85,8 +85,7 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                         if (head.hotSeat >= bar - WARNING) StatusTag("Hot seat", TagTone.URGENT)
                     }
                     Text(
-                        "Runs ${SchemeCatalog[head.scheme].name}. " +
-                            "Pressure ${head.hotSeat} against the $bar this club fires at.",
+                        "Runs ${SchemeCatalog[head.scheme].name}. " + jobSecurity(head.hotSeat, bar),
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -226,3 +225,17 @@ private fun contract(coach: Coach) = when (coach.contractYearsLeft) {
 
 /** Within this much of the club's firing bar is worth saying out loud. */
 private const val WARNING = 10
+
+/**
+ * Where a head coach stands, in words, with the numbers behind it: the
+ * pressure losing seasons build, and the level at which this club lets a
+ * coach go.
+ */
+internal fun jobSecurity(pressure: Int, bar: Int): String {
+    val standing = when {
+        pressure >= bar - WARNING -> "He is on the hot seat: another bad season and he is gone."
+        pressure * 2 >= bar -> "Losing has put some pressure on him."
+        else -> "His job is safe."
+    }
+    return "$standing Pressure $pressure; this club fires a coach at $bar."
+}

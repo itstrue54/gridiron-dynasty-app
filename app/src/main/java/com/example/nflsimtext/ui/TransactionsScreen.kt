@@ -90,19 +90,18 @@ fun TransactionsScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                         columns = listOfNotNull(
                             if (whose == LEAGUE) ColumnSpec("Club", 0.7f) else null,
                             ColumnSpec("Player", 2.7f),
-                            ColumnSpec("Move", 1.5f),
-                            ColumnSpec("Terms", 1.2f, numeric = true),
+                            // Moves and terms run to a second line rather than clip:
+                            // "signed away" and "by IND" are the point of the row.
+                            ColumnSpec("Move", 1.5f, wrap = true),
+                            ColumnSpec("Terms", 1.2f, numeric = true, wrap = true),
                         ),
                         rows = lines.take(ROWS).map { line ->
-                            // In the club's own view, a man another club traded
-                            // for is one who left: said from this side.
-                            val away = whose != LEAGUE && line.kind == TransactionKind.TRADED &&
-                                line.team != dynasty.userTeam && line.other == dynasty.userTeam
+                            val (move, terms) = moveAndTerms(line, abbrev, if (whose == LEAGUE) null else dynasty.userTeam)
                             RowData(listOfNotNull(
                                 if (whose == LEAGUE) abbrev[line.team] ?: "-" else null,
                                 "${line.position} ${line.name}",
-                                if (away) "traded away" else line.kind.short,
-                                if (away) "to ${abbrev[line.team] ?: "?"}" else terms(line, abbrev),
+                                move,
+                                terms,
                             ))
                         },
                     )
@@ -134,12 +133,28 @@ private fun weekTitle(week: Int): String = when {
     else -> "Before week $week"
 }
 
+/**
+ * A move and its terms, said from [own]'s side when it is given. In a
+ * club's own view, a man another club traded for, or signed off its
+ * practice squad, is one who left. Anywhere else the club column is the
+ * club that made the move.
+ */
+internal fun moveAndTerms(line: Transaction, abbrev: Map<Int, String>, own: Int?): Pair<String, String> {
+    val left = own != null && line.team != own && line.other == own
+    return when {
+        left && line.kind == TransactionKind.TRADED -> "traded away" to "to ${abbrev[line.team] ?: "?"}"
+        left && line.kind == TransactionKind.SIGNED_OFF_SQUAD -> "signed away" to "by ${abbrev[line.team] ?: "?"}"
+        line.kind == TransactionKind.SIGNED_OFF_SQUAD -> "took from" to (abbrev[line.other] ?: "?")
+        else -> line.kind.short to terms(line, abbrev)
+    }
+}
+
 /** The part of a move a reader wants next to it: money, a pick, a club. */
 internal fun terms(line: Transaction, abbrev: Map<Int, String>): String = when (line.kind) {
     TransactionKind.SIGNED ->
         if (line.years > 1) "${money(line.amount)} x ${line.years}" else money(line.amount)
     TransactionKind.PROMOTED -> money(line.amount)
-    TransactionKind.SIGNED_OFF_SQUAD -> "${money(line.amount)}, ${abbrev[line.other] ?: ""}"
+    TransactionKind.SIGNED_OFF_SQUAD -> abbrev[line.other] ?: ""
     TransactionKind.RELEASED -> if (line.amount > 0) "${money(line.amount)} dead" else ""
     TransactionKind.DRAFTED -> "Rd ${line.years}, #${line.amount}"
     TransactionKind.TRADED -> "from ${abbrev[line.other] ?: "?"}"
