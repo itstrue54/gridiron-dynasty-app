@@ -2322,7 +2322,7 @@ values make save step 29 (nothing to move), version 30.
 ## ADR-0xx — Long plays come after the catch, and coaches go for it in easy range
 
 **Context.**
-- Field-goal attempts ran about 2.4 a team against the NFL's 1.8.
+- Field-goal attempts ran about 2.4 a team; recent NFL seasons run about 1.9–2.0.
 - The sim had almost no long plays: 0.03 of 40+ yards a team per game, and 5% of touchdowns from 20+ yards out. Yards after the catch averaged under a yard.
 - Coaches kicked 94% of fourth downs inside the opponent's 40.
 
@@ -2335,6 +2335,6 @@ values make save step 29 (nothing to move), version 30.
 
 **Consequences.**
 - **Every saved league plays differently:** a save stores only the tuning its user moved. Save step 34, version 35.
-- **Long plays and field goals move, but neither reaches the NFL yet.** 40+ plays go from 0.03 to 0.23 a game, long touchdowns from 5% to 18%, and field-goal attempts from 2.42 to 2.09. Passing touchdowns and points rise within their bands. One pass-heavy league goes 4 yards over its yards-per-game band, inside the test's tolerance.
-- **The rest of the gap is in ordinary gains.** Ordinary gains are too uniform for more 20-yard plays. A further breakaway would only stack more onto the same few plays.
+- **Field goals come close to the NFL; long plays move but stay short of it.** Field-goal attempts go from 2.42 to 2.09, within about 0.1–0.2 of the NFL. 40+ plays go from 0.03 to 0.23 a game, and long touchdowns from 5% to 18%. Passing touchdowns and points rise within their bands. One pass-heavy league goes 4 yards over its yards-per-game band, inside the test's tolerance.
+- **The rest of the gap is in ordinary gains.** Ordinary gains are too uniform for more 20-yard plays. Single changes that were tried (CALIBRATION.md pass 5) either barely moved them or broke third downs or total yards, so a fix has to rebalance the concept mix and completion by depth together.
 
