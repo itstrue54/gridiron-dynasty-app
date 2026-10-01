@@ -42,7 +42,7 @@ class TuningTableTest {
 
     @Test
     fun `the draft reads the league's AI tuning`() {
-        val prospects = com.nflsim.engine.offseason.SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
+        val prospects = com.nflsim.engine.offseason.SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L), TuningTable.REALISTIC)
         val scheme = SchemeCatalog.offensive.first()
         // Scouting confidence far above the league's closes every band, so the
         // board is the true ratings and nothing else.

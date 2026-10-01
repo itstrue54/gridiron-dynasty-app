@@ -536,7 +536,7 @@ object OffseasonEngine {
                 // retired this spring waits his years like everybody else.
                 withRetirements.copy(
                     hallOfFame = withRetirements.hallOfFame +
-                        HallOfFame.induct(withRetirements, newYear),
+                        HallOfFame.induct(withRetirements, newYear, league.tuning.honours),
                 )
             // Box scores: full for the last five seasons played (SPEC 9.2).
             }.compressedFor(ctx.oldYear),
@@ -827,7 +827,7 @@ object OffseasonEngine {
             rng.split("cutdown-cap|${ctx.newYear}"), deadMoney = carried,
             // In late August every club restructures what it must, whatever
             // its habits in March: the alternative is not fielding a team.
-            restructures = CUTDOWN_RESTRUCTURES)
+            restructures = ctx.league.tuning.ai.cutdownRestructures)
         // Only what this pass added is new; the books keep their own figure.
         val deadMoney = ctx.league.teams.associate { t ->
             val id = t.id.v
@@ -861,7 +861,7 @@ object OffseasonEngine {
     ): OffseasonState {
         val (survivors, washedOut) = resolveUnsigned(
             state.players, ctx.newYear, ctx.scheme,
-            rng.split("waiver|${ctx.newYear}"))
+            rng.split("waiver|${ctx.newYear}"), ctx.league.tuning.ai)
         return state.copy(
             players = survivors,
             retirements = state.retirements + washedOut,
@@ -906,7 +906,7 @@ object OffseasonEngine {
     ): Pair<OffseasonState, DraftRunner.Result> {
         val nextId = (state.players.maxOfOrNull { it.id.v } ?: 0) + 1
         val prospects = SyntheticDraftClass.generate(
-            ctx.newYear, nextId, rng.split("draft|${ctx.newYear}"))
+            ctx.newYear, nextId, rng.split("draft|${ctx.newYear}"), ctx.league.tuning)
         // The NFL's order, each slot used by whoever owns that pick (SPEC 8.4).
         // A pick the league has no record of stays with the club it came from.
         val order = Picks.draftOrder(
@@ -923,7 +923,7 @@ object OffseasonEngine {
                 comp.filter { it.round == round }.sortedBy { it.compOrder }.map { round to TeamId(it.owner) }
         }
         val rosterNow = state.players.filter { it.teamId != null }.groupBy { it.teamId!! }
-        val needBar = TeamNeeds.bar(rosterNow) { id, pos -> ctx.scheme(id, pos) }
+        val needBar = TeamNeeds.bar(rosterNow, ctx.league.tuning.needs) { id, pos -> ctx.scheme(id, pos) }
         // Who each slot originally belonged to, for the record of any trade up.
         val slotOriginal = (1..DraftRunner.ROUNDS).flatMap { round ->
             order.map { it.v } + comp.filter { it.round == round }.sortedBy { it.compOrder }.map { it.original }
@@ -939,7 +939,7 @@ object OffseasonEngine {
                     rosterNow[id] ?: emptyList(),
                     { pos -> ctx.scheme(id, pos) },
                     ctx.newYear,
-                    needBar)
+                    needBar, ctx.league.tuning.needs)
             },
             year = ctx.newYear,
             rng = rng.split("picks|${ctx.newYear}"),
@@ -953,7 +953,7 @@ object OffseasonEngine {
                         rosterNow[id] ?: emptyList(),
                         { pos -> ctx.scheme(id, pos) },
                         ctx.newYear,
-                        needBar)
+                        needBar, ctx.league.tuning.needs)
                         .entries.sortedByDescending { it.value }.take(2).map { it.key }.toSet()
                 }
                 club.staff.scoutingDept to focus
@@ -1035,6 +1035,7 @@ object OffseasonEngine {
                 ctx.newYear,
                 (state.players.maxOfOrNull { it.id.v } ?: 0) + 1,
                 rng.split("draft|${ctx.newYear}"),
+                ctx.league.tuning,
             ).associateBy { it.id.v }
         }
 
@@ -1176,7 +1177,7 @@ object OffseasonEngine {
             rostered = marketPool,
             scheme = { p -> ctx.scheme(p.teamId, p.position) },
             year = ctx.newYear,
-            payroll = (leagueSpace * SPEND_SHARE).toLong(),
+            payroll = (leagueSpace * ctx.league.tuning.ai.leagueSpendShare).toLong(),
             cap = CapManagement.capFor(ctx.newYear),
             production = ctx.production,
         )
@@ -1427,9 +1428,6 @@ object OffseasonEngine {
         )
     }
 
-    /** Rating points a million of dead money is worth when choosing who to cut. */
-    private const val DEAD_MONEY_WEIGHT = 1f
-
     /**
      * Cuts every roster to 53, releasing the worst players in scheme terms.
      *
@@ -1457,7 +1455,7 @@ object OffseasonEngine {
 
             fun keepValue(p: Player) =
                 rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
-                (p.contract?.deadCap(year)?.thisYear ?: 0) / 1_000f * DEAD_MONEY_WEIGHT
+                (p.contract?.deadCap(year)?.thisYear ?: 0) / 1_000f * league.tuning.ai.cutDeadMoneyWeight
 
             // Protect the positional minimums first, then keep the best of the
             // rest - otherwise a team cuts its only long snapper to keep a
@@ -1499,6 +1497,7 @@ object OffseasonEngine {
         year: Int,
         scheme: (TeamId?, Position) -> Scheme,
         rng: Rng,
+        ai: com.nflsim.engine.tuning.TuningTable.Ai,
     ): Pair<List<Player>, List<Retirement>> {
         // A practice squad player has a club, if not a contract: he is not waiting by the phone.
         val onSquad = { p: Player -> p.status == PlayerStatus.PRACTICE_SQUAD }
@@ -1540,17 +1539,13 @@ object OffseasonEngine {
             .sortedByDescending {
                 overall(it, scheme(null, it.position)) - (it.age(year) - 26).coerceAtLeast(0) * 2
             }
-            .take(FREE_AGENT_POOL)
+            .take(ai.freeAgentPool)
 
         return (rostered + pool) to retirements
     }
 
     private const val ROSTER_LIMIT = 53
 
-    /** Deals a club will restructure to be legal on cut-down day. */
-    private const val CUTDOWN_RESTRUCTURES = 12
-
-    /** Roughly eight per team, which is about what a real wire holds. */
     /** Brackets match the age histogram in the CLI health check. */
     fun ageBracket(age: Int): String = when {
         age <= 24 -> "21-24"
@@ -1561,18 +1556,6 @@ object OffseasonEngine {
 
     private fun List<Int>.averageOrZero(): Float =
         if (isEmpty()) 0f else sum().toFloat() / size
-
-    /**
-     * How much of its cap space the league commits in a single offseason.
-     * Not all of it: teams keep room for the season's injuries and for the
-     * extensions they will hand their own players in the spring.
-     */
-    private const val SPEND_SHARE = 0.85f
-
-    private const val FREE_AGENT_POOL = 260
-
-    /** Overall a street free agent is generated at. */
-    internal const val CAMP_BODY = 55
 
     /**
      * Signs free agents until every roster is legal, best fit first.
@@ -1630,7 +1613,7 @@ object OffseasonEngine {
                     val pick = best ?: PlayerGenerator.generate(
                         id = PlayerId(nextId++),
                         position = position,
-                        targetOverall = CAMP_BODY + rng.nextInt(7),
+                        targetOverall = league.tuning.ai.campBody + rng.nextInt(league.tuning.ai.campBodySpread),
                         year = year,
                         rng = rng,
                         teamId = null,
@@ -1688,7 +1671,7 @@ object OffseasonEngine {
      * get a league-average guess rather than a hole in the calculation.
      */
     private fun coachDevRating(league: League, player: Player): Int {
-        val staff = player.teamId?.let { league.team(it).staff } ?: return DEFAULT_COACHING
+        val staff = player.teamId?.let { league.team(it).staff } ?: return league.tuning.progression.defaultCoaching
         val positionDev = staff.positionCoaches[player.position.group]
             ?.let { league.coaches[it] }?.ratings?.development
         val headDev = league.coaches[staff.headCoach]?.ratings?.development
@@ -1696,12 +1679,9 @@ object OffseasonEngine {
             positionDev != null && headDev != null -> (positionDev * 0.65f + headDev * 0.35f).toInt()
             positionDev != null -> positionDev
             headDev != null -> headDev
-            else -> DEFAULT_COACHING
+            else -> league.tuning.progression.defaultCoaching
         }
     }
-
-    /** Tracks the generator's mean, so an unattached player is not quietly penalised. */
-    private const val DEFAULT_COACHING = 65
 
     /**
      * Playing time from where a player sits on the depth chart.

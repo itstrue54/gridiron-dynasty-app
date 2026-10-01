@@ -70,29 +70,30 @@ object CoachingCarousel {
         previousWinPct: Map<Int, Float>,
         rng: Rng,
     ): Result {
+        val t = league.tuning.staff
         val coaches = league.coaches.toMutableMap()
         var nextId = (coaches.keys.maxOfOrNull { it.v } ?: 0) + 1
         val changes = mutableListOf<CoachingChange>()
         // Which sides of the ball changed scheme, per club.
         val relearn = mutableMapOf<TeamId, Pair<Boolean, Boolean>>()
-        val employed = league.teams.flatMap { t ->
-            listOf(t.staff.headCoach, t.staff.offCoordinator, t.staff.defCoordinator, t.staff.stCoordinator) +
-                t.staff.positionCoaches.values
+        val employed = league.teams.flatMap { club ->
+            listOf(club.staff.headCoach, club.staff.offCoordinator, club.staff.defCoordinator, club.staff.stCoordinator) +
+                club.staff.positionCoaches.values
         }.toMutableSet()
         coaches.replaceAll { id, c -> if (id in employed) c else c.copy(age = c.age + 1) }
-        coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= RETIRE_AGE }
+        coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= t.retireAge }
 
         val teams = league.teams.map { team ->
             val hc = coaches[team.staff.headCoach] ?: return@map team
             val now = winPct(team.id)
             val before = previousWinPct[team.id.v] ?: 0.5f
-            val seat = (hc.hotSeat * COOLING + (0.5f - now) * BELOW_500 + (before - now) * WORSE_THAN_LAST -
-                (if (team.id.v in playoffClubs) PLAYOFF_RELIEF else 0f)).roundToInt().coerceIn(0, 100)
+            val seat = (hc.hotSeat * t.seatCooling + (0.5f - now) * t.seatBelow500 + (before - now) * t.seatWorseThanLast -
+                (if (team.id.v in playoffClubs) t.seatPlayoffRelief else 0f)).roundToInt().coerceIn(0, 100)
             val contractLeft = hc.contractYearsLeft - 1
-            if (seat < fireBar(team) && !(contractLeft <= 0 && now < 0.5f)) {
+            if (seat < fireBar(team, t) && !(contractLeft <= 0 && now < 0.5f)) {
                 coaches[hc.id] = hc.copy(
                     hotSeat = seat, age = hc.age + 1,
-                    contractYearsLeft = if (contractLeft <= 0) EXTENSION else contractLeft,
+                    contractYearsLeft = if (contractLeft <= 0) t.extensionYears else contractLeft,
                 )
                 return@map team
             }
@@ -100,7 +101,7 @@ object CoachingCarousel {
             val hireRng = rng.split("hire|${team.id.v}")
             fun candidate(role: CoachRole, scheme: String): Coach {
                 val (first, last) = NameGenerator.fullName(hireRng)
-                fun stat() = (CANDIDATE_MEAN + hireRng.gaussian(0f, 20f)).roundToInt().coerceIn(30, 100)
+                fun stat() = (t.candidateMean + hireRng.gaussian(0f, t.candidateSpread)).roundToInt().coerceIn(t.candidateFloor, 100)
                 return Coach(
                     id = CoachId(nextId++), name = "$first $last", age = 38 + hireRng.nextInt(20),
                     role = role, scheme = scheme,
@@ -128,36 +129,36 @@ object CoachingCarousel {
             val offFit = fits(SchemeCatalog.offensive, true)
             val defFit = fits(SchemeCatalog.defensive, false)
             fun draw(fit: Map<String, Float>, current: String): String {
-                if (hireRng.nextFloat() < CONTINUITY) return current
-                val weights = fit.mapValues { (_, z) -> exp(FIT_Z * z) }
+                if (hireRng.nextFloat() < t.continuity) return current
+                val weights = fit.mapValues { (_, z) -> exp(t.fitZ * z) }
                 var r = hireRng.nextFloat().toDouble() * weights.values.sum()
                 for ((id, w) in weights) { r -= w; if (r <= 0) return id }
                 return weights.keys.last()
             }
             fun read(c: Coach, fit: Map<String, Float>) =
-                quality(c) + FIT_WEIGHT * (fit[c.scheme] ?: 0f) + hireRng.gaussian(0f, EVAL_NOISE)
+                quality(c) + t.fitWeight * (fit[c.scheme] ?: 0f) + hireRng.gaussian(0f, t.evalNoise)
 
-            val outside = (1..CANDIDATES).map { candidate(CoachRole.HEAD_COACH, draw(offFit, team.offenseScheme)) }
+            val outside = (1..t.candidates).map { candidate(CoachRole.HEAD_COACH, draw(offFit, team.offenseScheme)) }
             val outOfWork = coaches.values
                 .filter { it.id !in employed && it.role == CoachRole.HEAD_COACH }
-                .shuffled(hireRng).take(REHIRE_LOOK)
+                .shuffled(hireRng).take(t.rehireLook)
             // A head coach from the defense - a roster file can bring one - is
             // read against the defense his scheme would run.
             fun defensive(c: Coach) = SchemeCatalog[c.scheme].side == SchemeSide.DEFENSE
             val chosen = (outside + outOfWork).maxBy {
-                read(it, if (defensive(it)) defFit else offFit) - if (it in outOfWork) STIGMA else 0f
+                read(it, if (defensive(it)) defFit else offFit) - if (it in outOfWork) t.stigma else 0f
             }
-            val head = chosen.copy(contractYearsLeft = NEW_CONTRACT, hotSeat = 0)
+            val head = chosen.copy(contractYearsLeft = t.newContractYears, hotSeat = 0)
             // He brings his scheme to his side of the ball through a
             // coordinator from his tree, and the club finds the best it can
             // for the other side.
             val (oc, dc) = if (!defensive(head)) {
                 candidate(CoachRole.OFFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id) to
-                    (1..DC_CANDIDATES).map { candidate(CoachRole.DEFENSIVE_COORDINATOR, draw(defFit, team.defenseScheme)) }
+                    (1..t.coordinatorCandidates).map { candidate(CoachRole.DEFENSIVE_COORDINATOR, draw(defFit, team.defenseScheme)) }
                         .maxBy { read(it, defFit) }
                         .copy(tree = head.id)
             } else {
-                (1..DC_CANDIDATES).map { candidate(CoachRole.OFFENSIVE_COORDINATOR, draw(offFit, team.offenseScheme)) }
+                (1..t.coordinatorCandidates).map { candidate(CoachRole.OFFENSIVE_COORDINATOR, draw(offFit, team.offenseScheme)) }
                     .maxBy { read(it, offFit) }
                     .copy(tree = head.id) to
                     candidate(CoachRole.DEFENSIVE_COORDINATOR, head.scheme).copy(tree = head.id)
@@ -198,45 +199,6 @@ object CoachingCarousel {
      * the league - and why anything showing a hot seat has to ask for it
      * rather than guess a number.
      */
-    fun fireBar(team: Team): Int = (FIRE_BAR - team.gm.winNowVsFuture * WIN_NOW_IMPATIENCE).roundToInt()
-
-    /** How the seat moves: what carries over, and what a losing season adds. */
-    private const val COOLING = 0.6f
-    private const val BELOW_500 = 120f
-    private const val WORSE_THAN_LAST = 80f
-    private const val PLAYOFF_RELIEF = 20f
-
-    // Swept over five seeds: 75 -> 4.2 head coaches replaced a year, 65 -> 4.6,
-    // 55 -> 5.5, against the NFL's five to ten. Development did not move.
-    private const val FIRE_BAR = 55f
-    private const val WIN_NOW_IMPATIENCE = 20f
-
-    /** Years on a kept coach's extension, and on a new hire's deal. */
-    private const val EXTENSION = 3
-    private const val NEW_CONTRACT = 5
-
-    /** Candidates per vacancy, their mean rating, and how noisily a club reads them. */
-    private const val CANDIDATES = 4
-    private const val CANDIDATE_MEAN = 58f
-    private const val EVAL_NOISE = 8f
-
-    /** Defensive coordinator candidates per vacancy. */
-    private const val DC_CANDIDATES = 3
-
-    /** A candidate runs the club's own scheme this often, for continuity. */
-    private const val CONTINUITY = 0.3f
-
-    /**
-     * How strongly the other candidates' schemes lean to what the roster
-     * suits, and the rating points a club counts per standard deviation of fit.
-     */
-    private const val FIT_Z = 1.0
-    private const val FIT_WEIGHT = 3f
-
-    /** Coaches out of work a club looks at per vacancy, and what their firing costs them in its eyes. */
-    private const val REHIRE_LOOK = 2
-    private const val STIGMA = 6f
-
-    /** Coaches out of work leave the pool at this age. */
-    private const val RETIRE_AGE = 68
+    fun fireBar(team: Team, t: com.nflsim.engine.tuning.TuningTable.Staff): Int =
+        (t.fireBar - team.gm.winNowVsFuture * t.winNowImpatience).roundToInt()
 }

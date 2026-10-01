@@ -34,6 +34,9 @@ data class TuningTable(
     val adaptation: Adaptation = Adaptation(),
     val trades: Trades = Trades(),
     val intent: Intent = Intent(),
+    val staff: Staff = Staff(),
+    val needs: Needs = Needs(),
+    val honours: Honours = Honours(),
 ) {
     @Serializable
     data class Passing(
@@ -508,6 +511,8 @@ data class TuningTable(
     /** SPEC 7.1 and 12: how players grow and decline each offseason. */
     @Serializable
     data class Progression(
+        /** The coaching a player with no staff is developed under: the generator's mean, so he is not quietly penalised. */
+        val defaultCoaching: Int = 65,
         /** Work ethic multiplies growth by workBase + workRange x (work ethic / 100). */
         val workBase: Float = 0.75f,
         val workRange: Float = 0.5f,
@@ -817,6 +822,33 @@ data class TuningTable(
         /** Draft day: how badly a club must need the best player left, and how many picks back it looks, to move up. */
         val draftTradeUpNeed: Float = 0.6f,
         val draftTradeUpRange: Int = 12,
+        /** A club whose need at the best player left is no more than this trades the pick down; a club it knows nothing of reads as [draftMissingNeed]. */
+        val draftPassNeed: Float = 0.3f,
+        val draftMissingNeed: Float = 0.4f,
+        /** Aggression a club needs to move up. */
+        val draftTradeUpAggression: Float = 0.5f,
+        /**
+         * How many prospects exist for every one a mix calls for. At 350 for
+         * 224 picks clubs took 64% of the board and the class that arrived was
+         * barely better than the one generated; a real draft chooses a few
+         * hundred out of thousands, which is where a league's talent comes from.
+         */
+        val draftBoardDepth: Float = 1.45f,
+        /** Rating points a million of dead money is worth in a man's favour when a club chooses whom to cut. */
+        val cutDeadMoneyWeight: Float = 1f,
+        /** Deals a club will restructure to be legal on cut-down day. */
+        val cutdownRestructures: Int = 12,
+        /** How much of its cap space the league commits in one offseason, for pricing the market: room is kept for injuries and the spring's extensions. */
+        val leagueSpendShare: Float = 0.85f,
+        /** Unsigned men kept on the street after camp: about eight a club, what a real wire holds. */
+        val freeAgentPool: Int = 260,
+        /** The overall a street free agent is generated at, and how far above it one may be. */
+        val campBody: Int = 55,
+        val campBodySpread: Int = 7,
+        /** A practice squad's camp body: his overall, how far above it he may be, and how much younger than the generator's centre (undrafted rookies are 22 or 23). */
+        val squadCampOverall: Int = 51,
+        val squadCampSpread: Int = 10,
+        val squadCampAgeBias: Int = -4,
     )
 
     /**
@@ -996,6 +1028,91 @@ data class TuningTable(
         val suitorWinning: Float = 10f,
         val suitorSurplus: Float = 1_500f,
         val suitorSpread: Float = 2f,
+    )
+
+    /** The coaching carousel (offseason.CoachingCarousel, SPEC 7.1): the hot seat, firing, and hiring. */
+    @Serializable
+    data class Staff(
+        /** How the seat moves: what carries over, what a losing season and a worse one add, what the playoffs take off. */
+        val seatCooling: Float = 0.6f,
+        val seatBelow500: Float = 120f,
+        val seatWorseThanLast: Float = 80f,
+        val seatPlayoffRelief: Float = 20f,
+        /**
+         * The seat a head coach is fired at, less this for an all-in front
+         * office. Swept over five seeds: 75 gave 4.2 head coaches replaced a
+         * year, 65 gave 4.6, 55 gave 5.5, against the NFL's five to ten.
+         */
+        val fireBar: Float = 55f,
+        val winNowImpatience: Float = 20f,
+        /** Years on a kept coach's extension, and on a new hire's deal. */
+        val extensionYears: Int = 3,
+        val newContractYears: Int = 5,
+        /** Candidates per vacancy: how many, their mean rating and its spread, the lowest a rating goes, and how noisily a club reads them. */
+        val candidates: Int = 4,
+        val candidateMean: Float = 58f,
+        val candidateSpread: Float = 20f,
+        val candidateFloor: Int = 30,
+        val evalNoise: Float = 8f,
+        /** Coordinator candidates per vacancy. */
+        val coordinatorCandidates: Int = 3,
+        /** A candidate runs the club's own scheme this often, for continuity. */
+        val continuity: Float = 0.3f,
+        /** How strongly the other candidates' schemes lean to what the roster suits, and the rating points a club counts per standard deviation of fit. */
+        val fitZ: Double = 1.0,
+        val fitWeight: Float = 3f,
+        /** Coaches out of work a club looks at per vacancy, and what their firing costs them in its eyes. */
+        val rehireLook: Int = 2,
+        val stigma: Float = 6f,
+        /** Coaches out of work leave the pool at this age. */
+        val retireAge: Int = 68,
+    )
+
+    /** What a club reads as a need at a position (offseason.TeamNeeds), for the draft, the market, extensions and trades. */
+    @Serializable
+    data class Needs(
+        /** The bar for a position no club fields enough players at. */
+        val fallbackBar: Float = 74f,
+        /** Points under the league's typical starting unit before a position reads as a need, and how many more make it a full one. */
+        val slack: Float = 2f,
+        val qualityRange: Double = 26.0,
+        /** A starting unit about to fall apart: from this average age, over this many years, to this much need. */
+        val ageFrom: Int = 30,
+        val ageRange: Double = 7.0,
+        val ageMax: Double = 0.6,
+        /** No backup where the roster carries backups. */
+        val noBackup: Double = 0.25,
+        /** Where clubs rotate: how far the first man behind may trail the starters, the range past that, the most it adds, and its weight. */
+        val rotationSlack: Double = 6.0,
+        val rotationRange: Double = 20.0,
+        val rotationMax: Double = 0.5,
+        val rotationWeight: Double = 0.5,
+        /** How quality and age weigh against each other, and the scale on the whole. */
+        val qualityWeight: Double = 0.7,
+        val ageWeight: Double = 0.2,
+        val scale: Double = 1.15,
+    )
+
+    /** The Hall of Fame vote and the comeback award (season.HallOfFame, season.Awards). */
+    @Serializable
+    data class Honours(
+        /** Seasons a man waits after his last before he can be voted in, and the fewest he must have played. */
+        val hofWait: Int = 3,
+        val hofMinSeasons: Int = 5,
+        /** What a career has to be worth, in leading seasons, and how many go in together. */
+        val hofBar: Float = 14f,
+        val hofClassSize: Int = 3,
+        /** What the hardware counts for, in leading seasons. */
+        val hofMvp: Int = 4,
+        val hofPlayerOfYear: Int = 3,
+        val hofComeback: Int = 1,
+        val hofFirstTeam: Int = 2,
+        val hofSecondTeam: Int = 1,
+        val hofProBowl: Float = 0.5f,
+        /** A comeback is a real season, from a veteran of this many seasons who managed under this share of it the year before. */
+        val comebackFloor: Double = 120.0,
+        val comebackShare: Double = 0.4,
+        val comebackMinSeasons: Int = 2,
     )
 
     companion object {

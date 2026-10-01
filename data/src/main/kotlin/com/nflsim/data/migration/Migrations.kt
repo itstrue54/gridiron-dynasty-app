@@ -68,6 +68,7 @@ object Migrations {
         // The trade, contract and player-intent numbers moved into the table
         // at the values they had in code: an old save plays the same.
         Step(30, "the tuning table holds trades, player intent and the contract market (SPEC 12); nothing to move") { it },
+        Step(31, "the tuning table holds the coaching carousel, the draft, team needs, camp and the honours (SPEC 12); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

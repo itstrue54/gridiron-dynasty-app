@@ -220,7 +220,7 @@ class OffseasonTest {
 
     @Test
     fun `a draft class has a believable talent curve`() {
-        val prospects = SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
+        val prospects = SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L), com.nflsim.engine.tuning.TuningTable.REALISTIC)
         // The board is deliberately far deeper than the 224 picks that come
         // off it - the selection is where the league's talent comes from.
         assertTrue(prospects.size in 450..620, "class size was ${prospects.size}")
@@ -413,11 +413,11 @@ class OffseasonTest {
         val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
             if (pos.isOffense) offense else defense
         }
-        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }) { _, pos ->
+        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }, league.tuning.needs) { _, pos ->
             scheme(null, pos)
         }
         fun holes(roster: List<com.nflsim.engine.model.Player>) =
-            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar).count { it.value >= 0.35f }
+            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar, league.tuning.needs).count { it.value >= 0.35f }
 
         // The buyer: the club with the fewest holes, its receivers made weak so
         // that receiver is the one hole a star would fill.
@@ -637,11 +637,11 @@ class OffseasonTest {
         val scheme = { _: com.nflsim.engine.model.TeamId?, pos: Position ->
             if (pos.isOffense) offense else defense
         }
-        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }) { _, pos ->
+        val needBar = TeamNeeds.bar(league.teams.associate { it.id to league.roster(it.id) }, league.tuning.needs) { _, pos ->
             scheme(null, pos)
         }
         fun holes(roster: List<com.nflsim.engine.model.Player>) =
-            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar).count { it.value >= 0.35f }
+            TeamNeeds.assess(roster, { pos -> scheme(null, pos) }, year, needBar, league.tuning.needs).count { it.value >= 0.35f }
 
         // The buyer: fewest holes, receivers made weak, and every young player
         // aged past 25 so it has nobody to spare - only a pick can pay.
@@ -685,7 +685,7 @@ class OffseasonTest {
 
     @Test
     fun `a club that needs the best prospect trades up for him`() {
-        val prospects = SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L))
+        val prospects = SyntheticDraftClass.generate(2027, 100_000, SplitMixRng(5L), com.nflsim.engine.tuning.TuningTable.REALISTIC)
         val best = prospects.maxBy { overall(it) }
         val scheme = SchemeCatalog[league.teams.first().offenseScheme]
         val (a, b) = league.teams.take(2).map { it.id }

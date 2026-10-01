@@ -78,7 +78,7 @@ object StaffGenerator {
      */
     private fun randomRatings(rng: Rng): CoachRatings {
         // Rounded, and clamped the same distance either side of 65, so the
-        // generated mean is the 65 that DEFAULT_COACHING and SPEC 7.1 assume.
+        // generated mean is the 65 that progression.defaultCoaching and SPEC 7.1 assume.
         fun stat() = (65 + rng.gaussian(0f, 20f)).roundToInt().coerceIn(30, 100)
         return CoachRatings(
             development = stat(),

@@ -41,7 +41,7 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
 
     val head = coach(staff.headCoach)
     // The pressure this club fires at, rather than a number picked here.
-    val bar = CoachingCarousel.fireBar(team)
+    val bar = CoachingCarousel.fireBar(team, dynasty.league.tuning.staff)
     val offence = coach(staff.offCoordinator)
     val defence = coach(staff.defCoordinator)
     val special = coach(staff.stCoordinator)

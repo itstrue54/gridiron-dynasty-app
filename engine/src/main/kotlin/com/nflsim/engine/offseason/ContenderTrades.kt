@@ -75,7 +75,7 @@ object ContenderTrades {
         val held = picks.toMutableList()
         val pickTrades = mutableListOf<PickTrade>()
         val sold = mutableSetOf<TeamId>()
-        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
+        val needBar = TeamNeeds.bar(roster, league.tuning.needs) { id, pos -> scheme(id, pos) }
 
         fun value(p: Player, club: Team): Float =
             (rosterValue(p, scheme(club.id, p.position), year, club.gm.winNowVsFuture) -
@@ -99,7 +99,7 @@ object ContenderTrades {
                 // A player or two away: one or two real holes at positions a
                 // star can play. A club with more than that is not one trade
                 // from anything.
-                val holes = TeamNeeds.assess(mine, { pos -> scheme(buyer.id, pos) }, year, needBar)
+                val holes = TeamNeeds.assess(mine, { pos -> scheme(buyer.id, pos) }, year, needBar, league.tuning.needs)
                     .filter { (pos, need) -> need >= tt.holeNeed && pos !in NOT_A_HOLE }.keys
                 if (holes.isEmpty() || holes.size > tt.maxHoles) break
 

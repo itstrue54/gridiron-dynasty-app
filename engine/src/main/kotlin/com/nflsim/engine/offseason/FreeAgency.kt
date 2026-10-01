@@ -113,7 +113,7 @@ object FreeAgency {
             p.id.v to pricer.annual(p, scheme(null, p.position), year)
         }.toMutableMap()
         val asking = market.mapValues { (_, v) -> v * t.faOpeningPremium }.toMutableMap()
-        val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
+        val needBar = TeamNeeds.bar(roster, league.tuning.needs) { id, pos -> scheme(id, pos) }
 
         repeat(DAYS) { day ->
             val bids = mutableMapOf<Int, MutableList<Bid>>()
@@ -169,7 +169,7 @@ object FreeAgency {
                 val space = rawSpace - reserve(front.spendShare, year, league.tuning.ai.faReserveOfCap)
                 if (space < Contract.MIN_BASE_SALARY * t.faMinSpace) return@forEach
 
-                val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
+                val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar, league.tuning.needs)
                 val dayRng = rng.split("bid|${team.id.v}|$day")
 
                 // A team looks at a handful of players a day, not the whole

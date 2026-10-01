@@ -35,7 +35,7 @@ data class DraftPick(
  * whenever that project exists.
  */
 interface DraftClassSource {
-    fun generate(year: Int, firstId: Int, rng: Rng): List<Player>
+    fun generate(year: Int, firstId: Int, rng: Rng, tuning: TuningTable): List<Player>
 }
 
 object SyntheticDraftClass : DraftClassSource {
@@ -50,25 +50,14 @@ object SyntheticDraftClass : DraftClassSource {
         Position.K to 3, Position.P to 3, Position.LS to 3,
     )
 
-    /**
-     * How many prospects exist for every one that gets picked.
-     *
-     * This is the draft's whole point. At 350 prospects for 224 picks teams
-     * took 64% of the board - everybody who was drafted played, and the class
-     * that arrived was barely better than the class that was generated. A real
-     * draft chooses a few hundred players out of thousands, and that selection
-     * is where a league's talent actually comes from. Widening the board
-     * raises what arrives without touching what a prospect is worth.
-     */
-    private const val BOARD_DEPTH = 1.45f
-
-    override fun generate(year: Int, firstId: Int, rng: Rng): List<Player> {
+    override fun generate(year: Int, firstId: Int, rng: Rng, tuning: TuningTable): List<Player> {
+        val depth = tuning.ai.draftBoardDepth
         val pool = mutableListOf<Player>()
         var id = firstId
-        val total = POSITION_MIX.sumOf { (it.second * BOARD_DEPTH).roundToInt() }
+        val total = POSITION_MIX.sumOf { (it.second * depth).roundToInt() }
 
         POSITION_MIX.forEach { (position, baseCount) ->
-            val count = (baseCount * BOARD_DEPTH).roundToInt()
+            val count = (baseCount * depth).roundToInt()
             repeat(count) { i ->
                 // A handful of generational players, a fat middle, a long tail.
                 val percentile = (pool.size + i).toFloat() / total
@@ -197,13 +186,13 @@ object DraftRunner {
             // club moving down comes away with more. One move up per club.
             if (round == 1) {
                 val best = available.maxBy { overall(it) }
-                if ((needsFor(team)[best.position] ?: 0.4f) <= PASS_NEED) {
+                if ((needsFor(team)[best.position] ?: ai.draftMissingNeed) <= ai.draftPassNeed) {
                     val needOf = { t: TeamId -> needsFor(t)[best.position] ?: 0f }
                     val buyer = (i + 1 until minOf(board.size, i + 1 + ai.draftTradeUpRange))
                         .filter { j ->
                             val t = board[j].second
                             board[j].first == 1 && t != team && t !in movedUp &&
-                                aggression(t) >= TRADE_UP_AGGRESSION && needOf(t) >= ai.draftTradeUpNeed
+                                aggression(t) >= ai.draftTradeUpAggression && needOf(t) >= ai.draftTradeUpNeed
                         }
                         .maxByOrNull { j -> needOf(board[j].second) + aggression(board[j].second) }
                     val up = buyer?.let { board[it].second }
@@ -309,12 +298,10 @@ object DraftRunner {
 
     /**
      * Draft-day trades: round one only. The club on the clock needs the best
-     * player left no more than PASS_NEED, and a club within TRADE_UP_RANGE
+     * player left no more than ai.draftPassNeed, and a club within ai.draftTradeUpRange
      * picks needs him at least TRADE_UP_NEED and is aggressive enough to move.
      */
     const val TRADE_UP_REASON = "draft-day trade up"
-    private const val PASS_NEED = 0.3f
-    private const val TRADE_UP_AGGRESSION = 0.5f
 }
 
 /** What a roster is short of, 0 (set) to 1 (desperate). */
@@ -337,7 +324,7 @@ object TeamNeeds {
      * construction, and a single bar of 74 made every club look short at all
      * of them. Relative, not absolute, for the same reason as ADR-006.
      */
-    fun bar(rosters: Map<TeamId, List<Player>>, scheme: (TeamId, Position) -> Scheme): Map<Position, Float> =
+    fun bar(rosters: Map<TeamId, List<Player>>, t: TuningTable.Needs, scheme: (TeamId, Position) -> Scheme): Map<Position, Float> =
         Position.entries.associateWith { position ->
             val required = STARTERS[position] ?: 1
             val units = rosters.mapNotNull { (id, roster) ->
@@ -347,7 +334,7 @@ object TeamNeeds {
                     .takeIf { it.size >= required }
                     ?.take(required)?.average()
             }
-            if (units.isEmpty()) FALLBACK_BAR else units.average().toFloat()
+            if (units.isEmpty()) t.fallbackBar else units.average().toFloat()
         }
 
     fun assess(
@@ -355,6 +342,7 @@ object TeamNeeds {
         scheme: (Position) -> Scheme,
         year: Int,
         bar: Map<Position, Float>,
+        t: TuningTable.Needs,
     ): Map<Position, Float> =
         Position.entries.associateWith { position ->
             val group = roster.filter { it.position == position }
@@ -369,35 +357,27 @@ object TeamNeeds {
 
             // A starting unit short of this league's typical one at the
             // position is a need. So is a good one about to fall apart.
-            val threshold = (bar[position] ?: FALLBACK_BAR) - NEED_SLACK
-            val byQuality = ((threshold - quality) / 26.0).coerceIn(0.0, 1.0)
-            val byAge = ((age - 30) / 7.0).coerceIn(0.0, 0.6)
+            val threshold = (bar[position] ?: t.fallbackBar) - t.slack
+            val byQuality = ((threshold - quality) / t.qualityRange).coerceIn(0.0, 1.0)
+            val byAge = ((age - t.ageFrom) / t.ageRange).coerceIn(0.0, t.ageMax)
             // No backup is a need only where the roster carries backups. The
             // template has one center, fullback, kicker, punter and snapper,
             // so flagging those left every club shopping for a second one.
             val carriesBackups = (ROSTER_TEMPLATE[position] ?: required) > required
-            val byDepth = if (carriesBackups && group.size <= required) 0.25 else 0.0
+            val byDepth = if (carriesBackups && group.size <= required) t.noBackup else 0.0
             // Where clubs rotate, the first player in behind the starters
             // plays a real share of snaps (SPEC 5.5), so one well behind them
             // is a need too.
             val rotation = group.getOrNull(required)?.let { overall(it, scheme(position)).toDouble() }
             val byRotation = if (position in ROTATES && rotation != null)
-                ((quality - rotation - ROTATION_SLACK) / 20.0).coerceIn(0.0, 0.5) else 0.0
-            ((byQuality * 0.7 + byAge * 0.2 + byDepth + byRotation * ROTATION_WEIGHT) * 1.15)
+                ((quality - rotation - t.rotationSlack) / t.rotationRange).coerceIn(0.0, t.rotationMax) else 0.0
+            ((byQuality * t.qualityWeight + byAge * t.ageWeight + byDepth + byRotation * t.rotationWeight) * t.scale)
                 .coerceIn(0.0, 1.0).toFloat()
         }
 
-    /** The old single bar, for a position no club fields enough players at. */
-    private const val FALLBACK_BAR = 74f
-
-    /** Points under the league's typical starting unit before a position reads as a need. */
-    private const val NEED_SLACK = 2f
-
-    /** Positions that rotate, and how far a rotation player may trail the starters before it is a need. */
+    /** Positions that rotate (how far a rotation player may trail is TuningTable.Needs). */
     private val ROTATES = setOf(Position.RB, Position.WR, Position.TE, Position.EDGE, Position.DT,
         Position.LB, Position.CB, Position.S)
-    private const val ROTATION_SLACK = 6.0
-    private const val ROTATION_WEIGHT = 0.5
 
     fun requiredStarters(position: Position): Int = STARTERS[position] ?: 1
 
