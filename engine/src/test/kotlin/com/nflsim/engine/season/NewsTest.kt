@@ -53,6 +53,9 @@ class NewsTest {
         var d = season()
         while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
         val rolled = DynastyEngine.advance(d)
-        assertTrue(rolled.news.isEmpty(), "a new season starts with nothing said yet")
+        // Nothing from last year: only what camp brought, the holdouts and
+        // their clubs' answers (SPEC 10.4), all filed for week one.
+        assertTrue(rolled.news.none { it in d.news }, "last year's headlines are gone")
+        assertTrue(rolled.news.all { it.kind == NewsKind.DISPUTE && it.week == 1 }, "${rolled.news}")
     }
 }

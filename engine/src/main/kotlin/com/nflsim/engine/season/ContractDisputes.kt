@@ -117,42 +117,116 @@ object ContractDisputes {
                     (1f - (man.traits.loyalty - 50) / 150f)
                 if (rng.nextFloat() >= nerve) return@forEach
 
-                val asking = Ask(man, paid, market, years(man, out.year))
-                out = out.copy(players = out.players.map {
-                    if (it.id == man.id) it.copy(demand = DemandState.PENDING) else it
-                })
-                news += NewsEvent(
-                    week, NewsKind.DISPUTE,
-                    Headlines.write("dispute.raised", words, "player" to man.name,
-                        "pos" to man.position.label, "club" to club.abbrev,
-                        "paid" to money(paid), "market" to money(market)),
-                    man.id.v, club.id.v,
-                )
-
-                // The league's own clubs answer the same week.
-                if (club.id != userTeam) {
-                    val answered = if (canAfford(out, club.id, asking)) {
-                        haggle(out, club, man.id, week, pricer)
-                    } else {
-                        refuse(out, club.id, man.id, week)
-                    }
-                    if (answered is Transactions.Outcome.Done) {
-                        // Settling logs his new deal; telling him no logs nothing.
-                        val signed = answered.league.transactions.drop(out.transactions.size).lastOrNull()
-                        out = answered.league
-                        val about = arrayOf("player" to man.name, "pos" to man.position.label, "club" to club.abbrev)
-                        news += NewsEvent(
-                            week, NewsKind.DISPUTE,
-                            if (signed != null) Headlines.write("dispute.settled", words, *about,
-                                "years" to signed.years, "annual" to money(signed.amount))
-                            else Headlines.write("dispute.refused", words, *about),
-                            man.id.v, club.id.v,
-                        )
-                    }
-                }
+                val raised = raise(out, club, man, paid, market, week, userTeam, pricer, words, "dispute.raised")
+                out = raised.league
+                news += raised.news
             }
         }
         return Result(pressure(out, userTeam), news)
+    }
+
+    /**
+     * [man] asks [club] to fix his deal, and it is news under [key]. The
+     * league's own clubs answer at once - they pay if they have the room, and
+     * haggle as they do - and the user's is left to decide.
+     */
+    private fun raise(
+        league: League,
+        club: com.nflsim.engine.model.Team,
+        man: Player,
+        paid: Int,
+        market: Int,
+        week: Int,
+        userTeam: TeamId?,
+        pricer: MarketValue.Pricer,
+        words: Rng,
+        key: String,
+    ): Result {
+        var out = league
+        val news = mutableListOf<NewsEvent>()
+        val asking = Ask(man, paid, market, years(man, out.year))
+        out = out.copy(players = out.players.map {
+            if (it.id == man.id) it.copy(demand = DemandState.PENDING) else it
+        })
+        news += NewsEvent(
+            week, NewsKind.DISPUTE,
+            Headlines.write(key, words, "player" to man.name,
+                "pos" to man.position.label, "club" to club.abbrev,
+                "paid" to money(paid), "market" to money(market)),
+            man.id.v, club.id.v,
+        )
+
+        // The league's own clubs answer the same week.
+        if (club.id != userTeam) {
+            val answered = if (canAfford(out, club.id, asking)) {
+                haggle(out, club, man.id, week, pricer)
+            } else {
+                refuse(out, club.id, man.id, week)
+            }
+            if (answered is Transactions.Outcome.Done) {
+                // Settling logs his new deal; telling him no logs nothing.
+                val signed = answered.league.transactions.drop(out.transactions.size).lastOrNull()
+                out = answered.league
+                val about = arrayOf("player" to man.name, "pos" to man.position.label, "club" to club.abbrev)
+                news += NewsEvent(
+                    week, NewsKind.DISPUTE,
+                    if (signed != null) Headlines.write("dispute.settled", words, *about,
+                        "years" to signed.years, "annual" to money(signed.amount))
+                    else Headlines.write("dispute.refused", words, *about),
+                    man.id.v, club.id.v,
+                )
+            }
+        }
+        return Result(out, news)
+    }
+
+    /**
+     * Camp, for the men who stay away from it (SPEC 10.4's holdout). A
+     * veteran who told his club in the spring that he wants paying, who has
+     * the case for it the autumn's demands do, and whose ego will not let it
+     * go, skips camp: his demand is on the club's desk before a snap is
+     * played, and he comes back short of his form and a little sourer. The
+     * league's clubs answer at once; the user's is his to answer.
+     *
+     * [stats] is last season's: at camp that is what a man is paid against.
+     */
+    fun atCamp(
+        league: League,
+        userTeam: TeamId?,
+        wantsPaying: Set<Int>,
+        stats: Map<Int, StatLine>,
+        rng: Rng,
+    ): Result {
+        val t = league.tuning.ai
+        val pricer = pricer(league, Production.index(league.players, stats))
+        val words = rng.split("headlines")
+        val news = mutableListOf<NewsEvent>()
+        var out = league
+        league.teams.forEach { club ->
+            out.roster(club.id).forEach { man ->
+                if (man.id.v !in wantsPaying || man.demand != DemandState.NONE) return@forEach
+                if (man.traits.ego < t.holdoutEgo) return@forEach
+                val contract = man.contract ?: return@forEach
+                if (man.accruedSeasons < t.disputeAccruedSeasons) return@forEach
+                val sch = scheme(out, man)
+                if (overall(man, sch) < t.disputeVoice) return@forEach
+                val market = pricer.annual(man, sch, out.year)
+                val paid = contract.capHit(out.year).coerceAtLeast(1)
+                if (market < paid * t.disputePayGap) return@forEach
+
+                // He missed camp: rusty, and not delighted about any of it.
+                out = out.copy(players = out.players.map {
+                    if (it.id == man.id) it.copy(
+                        form = (it.form - t.holdoutForm).coerceAtLeast(-100),
+                        morale = (it.morale - t.holdoutMorale).coerceAtLeast(0),
+                    ) else it
+                })
+                val raised = raise(out, club, out.player(man.id), paid, market, 1, userTeam, pricer, words, "holdout")
+                out = raised.league
+                news += raised.news
+            }
+        }
+        return Result(out, news)
     }
 
     /**

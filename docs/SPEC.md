@@ -1224,8 +1224,21 @@ This is what makes a text game feel alive rather than like a spreadsheet dump. A
   under 150 yards on 15 or more throws, and has a healthy rookie QB (no
   accrued seasons) rated within 12 of him. It is filed once per rookie per
   season. It is the town talking: the depth chart, not the news, decides who
-  plays. About one a season or two across the test leagues. The holdout is
-  not built yet.
+  plays. About one a season or two across the test leagues.
+  The *holdout* (`ContractDisputes.atCamp`) happens as the new season opens.
+  A man holds out of camp when all of these are true:
+  - in the spring he told his club he wants paying (PlayerIntent's WANTS_PAYING);
+  - he has the case an autumn demand needs: 3 accrued seasons, rated 74 or
+    better, and a market past 1.8 times his cap hit;
+  - his ego is `ai.holdoutEgo` (80) or more.
+
+  His demand is then on the club's desk before week 1. The league's clubs
+  answer at once, as they answer demands. The user's is on the Demands
+  screen, and waiting costs morale as any demand does. Paid or not, he missed
+  camp, so he starts the season `ai.holdoutForm` (30) short of form and
+  `ai.holdoutMorale` (5) down in morale. Both the holdout and the club's
+  answer are week 1 news; a new season opens with nothing else said. One or
+  two holdouts a year across the test leagues.
 
 Keep templates in a data file (`narrative/*.json`), not in Kotlin. Aim for 8–15 variants per event type so repetition isn't obvious over a 30-year dynasty.
 

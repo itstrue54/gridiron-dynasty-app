@@ -119,6 +119,16 @@
     "{player} is outplaying his deal, and knows it: {paid} against a market of {market} a year for the {club} {pos}.",
     "The {club} {pos} {player} wants his contract looked at. He earns {paid}; the market is {market} a year."
   ],
+  "holdout": [
+    "{player} ({pos}, {club}) is holding out of camp. He is paid {paid} and wants {market} a year.",
+    "No {player} at {club} camp. The {pos} wants a new deal: {market} a year, not {paid}.",
+    "{club} open camp without {player}. The {pos}'s agent says the market is {market} a year.",
+    "Holdout: {pos} {player} stays away from {club} camp until his {paid} deal is fixed.",
+    "{player} skips {club} camp. The {pos} has made it plain: {paid} is not {market}.",
+    "Camp opens and {player}'s locker sits empty. The {club} {pos} wants {market} a year.",
+    "{club} confirm {pos} {player} has not reported. He is paid {paid}; the market says {market}.",
+    "{player} wants paying, and he is not at {club} camp until he is. The {pos} is on {paid} a year."
+  ],
   "dispute.settled": [
     "{club}: {pos} {player} signs a new deal: {years} years at {annual} a year.",
     "{club} pay up. {pos} {player} signs for {years} years at {annual} a year.",

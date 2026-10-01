@@ -64,6 +64,7 @@ object Migrations {
         // An old save has nobody on the block, which is the empty default.
         Step(27, "the user has a trade block, and its tuning (SPEC 8.4); nothing to move") { it },
         Step(28, "the news can carry a storyline (SPEC 10.4); nothing to move") { it },
+        Step(29, "the tuning table knows who holds out of camp, and what it costs (SPEC 10.4); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
