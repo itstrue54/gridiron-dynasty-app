@@ -38,21 +38,21 @@ object FourthDown {
         // Within a field goal and in range, he kicks it: down three it ties,
         // down one or two it wins (SPEC 5.4).
         val trailing = state.scoreDiff < 0 && (state.scoreDiff < -FIELD_GOAL_POINTS || !kickable)
-        val lateAndTrailing = state.quarter >= 4 && state.secondsLeft < 300 && trailing
-        val desperate = state.quarter >= 4 && state.secondsLeft < 150 && state.scoreDiff <= -4
+        val lateAndTrailing = state.quarter >= 4 && state.secondsLeft < t.lateSeconds && trailing
+        val desperate = state.quarter >= 4 && state.secondsLeft < t.desperateSeconds && state.scoreDiff <= -t.desperateDeficit
 
         // Down four or more with the clock going, a field goal is pointless.
         if (desperate) {
-            return if (yardsToGoal > 45 && state.distance > 8) FourthDownChoice.PUNT
+            return if (yardsToGoal > t.desperatePuntYards && state.distance > t.desperatePuntDistance) FourthDownChoice.PUNT
             else FourthDownChoice.GO_FOR_IT
         }
 
         // Chip shot with anything but a short distance to gain.
-        val easyKick = kickable && yardsToGoal <= 38
+        val easyKick = kickable && yardsToGoal <= t.easyKickYards
         if (easyKick && state.distance >= t.kickAlwaysDistance) return FourthDownChoice.FIELD_GOAL
 
         var goChance = when {
-            yardsToGoal > 65 -> t.goOwnEnd
+            yardsToGoal > t.ownEndYards -> t.goOwnEnd
             state.distance <= 1 -> t.goInches
             state.distance <= 2 -> t.goTwo
             state.distance <= 4 -> t.goShort
@@ -60,15 +60,15 @@ object FourthDown {
         }
 
         // Four down territory: too far for a kick, too close to punt.
-        if (yardsToGoal in 33..48) goChance += t.goFourDownTerritory
-        if (yardsToGoal <= 5 && state.distance <= 3) goChance += t.goGoalLine
+        if (yardsToGoal in t.fourDownTerritoryNear..t.fourDownTerritoryFar) goChance += t.goFourDownTerritory
+        if (yardsToGoal <= t.goalLineYards && state.distance <= t.goalLineDistance) goChance += t.goGoalLine
         // Short of a first down in easy range, the points are not automatic:
         // a touchdown is worth more than the three. Not late and within a
         // kick, when the three tie or win it.
-        val kickDecides = state.quarter >= 4 && state.secondsLeft < 300 && state.scoreDiff in -FIELD_GOAL_POINTS..0
+        val kickDecides = state.quarter >= 4 && state.secondsLeft < t.lateSeconds && state.scoreDiff in -FIELD_GOAL_POINTS..0
         if (easyKick && !kickDecides) goChance += t.goKickRange
         if (lateAndTrailing) goChance += t.goLateTrailing
-        if (state.quarter >= 4 && state.scoreDiff > 7) goChance -= t.goProtectingLead
+        if (state.quarter >= 4 && state.scoreDiff > t.protectingLeadPoints) goChance -= t.goProtectingLead
 
         goChance = (goChance * (t.aggressionBase + aggression * t.aggressionScale)).coerceIn(t.goFloor, t.goCeiling)
 

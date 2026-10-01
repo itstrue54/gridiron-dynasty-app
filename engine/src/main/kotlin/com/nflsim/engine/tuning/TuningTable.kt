@@ -411,6 +411,26 @@ data class TuningTable(
         /** Added to the blitz rate on third and six or more, and with goal to go. */
         val blitzThirdLong: Float = 0.10f,
         val blitzGoalToGo: Float = 0.06f,
+        /** Third and this many or more counts as third and long for the blitz. */
+        val blitzThirdLongDistance: Int = 6,
+        /** How deep second- and third-down throws may aim, whatever the distance. */
+        val secondDownDepthMinYards: Int = 5,
+        val secondDownDepthMaxYards: Int = 17,
+        val thirdDownDepthMinYards: Int = 5,
+        val thirdDownDepthMaxYards: Int = 25,
+        /** Yards a shot play adds to the aim, and how far either side of the aim a concept may be. */
+        val shotExtraDepth: Int = 10,
+        val conceptDepthWindow: Int = 6,
+        /** Inside this many yards of the goal line, no screen. */
+        val screenMinYardsToGoal: Int = 5,
+        /** Defensive fronts: goal line inside this many yards, dime on third and this many, nickel on this many to go. */
+        val goalLineFrontYards: Int = 3,
+        val dimeThirdDistance: Int = 8,
+        val nickelDistance: Int = 7,
+        /** A man more in the box on early downs with this many or fewer to go, one fewer with this many or more, and one more inside this many yards of the goal. */
+        val boxLoadDistance: Int = 3,
+        val boxLightDistance: Int = 12,
+        val boxGoalYards: Int = 12,
     )
 
     /**
@@ -425,16 +445,37 @@ data class TuningTable(
         val goTwo: Float = 0.26f,
         val goShort: Float = 0.12f,
         val goLong: Float = 0.04f,
-        /** Added between the opponent's 33 and 48, too far to kick and too close to punt. */
+        /** Added between [fourDownTerritoryNear] and [fourDownTerritoryFar] yards out, too far to kick and too close to punt. */
         val goFourDownTerritory: Float = 0.22f,
-        /** Added inside the five with three or fewer to go. */
+        val fourDownTerritoryNear: Int = 33,
+        val fourDownTerritoryFar: Int = 48,
+        /** Further out than this, he is in his own end and [goOwnEnd] applies. */
+        val ownEndYards: Int = 65,
+        /** Added inside [goalLineYards] with [goalLineDistance] or fewer to go. */
         val goGoalLine: Float = 0.25f,
+        val goalLineYards: Int = 5,
+        val goalLineDistance: Int = 3,
+        /**
+         * The end of a game: the last [lateSeconds] of the fourth quarter
+         * count as late. In the last [desperateSeconds], [desperateDeficit] or
+         * more behind, he goes for it unless he is more than
+         * [desperatePuntYards] out with more than [desperatePuntDistance] to go.
+         */
+        val lateSeconds: Int = 300,
+        val desperateSeconds: Int = 150,
+        val desperateDeficit: Int = 4,
+        val desperatePuntYards: Int = 45,
+        val desperatePuntDistance: Int = 8,
+        /** More than this ahead in the fourth, [goProtectingLead] comes off. */
+        val protectingLeadPoints: Int = 7,
         /** Added late and behind by more than a kick can make up. */
         val goLateTrailing: Float = 0.35f,
         /** Taken off in the fourth quarter more than a score ahead. */
         val goProtectingLead: Float = 0.10f,
+        /** Easy kicking range: this many yards out or closer. */
+        val easyKickYards: Int = 38,
         /**
-         * In easy kicking range (the opponent's 38 in), he always kicks with
+         * In easy kicking range ([easyKickYards] in), he always kicks with
          * this many yards or more to go; with fewer, [goKickRange] is added
          * to his chance of going for it instead of taking the three.
          */
@@ -544,6 +585,10 @@ data class TuningTable(
         val outOfBoundsProtecting: Float = 0.3f,
         /** Outside the last two minutes of the half and five of the game, the clock restarts on the spot: what that saves. */
         val outOfBoundsRestartSave: Int = 12,
+        /** What a punt, a field goal try and a try after a touchdown take off the clock. */
+        val puntClockRunoff: Int = 12,
+        val fieldGoalClockRunoff: Int = 6,
+        val tryClockRunoff: Int = 8,
     )
 
     /** Kicking, punting and returns - SPEC 12's FG distance curve and return rates. */
@@ -594,6 +639,14 @@ data class TuningTable(
         val puntTouchbackMax: Float = 0.9f,
         /** How far a punt goes when nobody on the roster can punt. */
         val noPunterYards: Int = 35,
+        /**
+         * Inside [puntAimYards] of the goal line a punter aims short of the
+         * end zone: [puntAimMargin] shy of it, less for poor placement, and
+         * never shorter than [puntAimMin].
+         */
+        val puntAimYards: Int = 45,
+        val puntAimMargin: Int = 6,
+        val puntAimMin: Int = 12,
     )
 
     /** SPEC 7.1 and 12: how players grow and decline each offseason. */

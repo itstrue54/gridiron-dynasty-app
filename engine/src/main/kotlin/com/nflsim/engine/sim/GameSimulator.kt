@@ -273,7 +273,7 @@ class GameSimulator(
                             narration = words)
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
-                        runClock(12)
+                        runClock(tuning.gameFlow.puntClockRunoff)
                         state = state.copy(
                             possession = offense.other(),
                             yardLine = (100 - landing).coerceIn(1, 99),
@@ -290,7 +290,7 @@ class GameSimulator(
                             clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams,
                             narration = words, weather = weather, weatherTuning = tuning.weather)
                         log(state, kick.narrative)
-                        runClock(6)
+                        runClock(tuning.gameFlow.fieldGoalClockRunoff)
                         if (kick.good) {
                             points += 3
                             state = addPoints(state, offense, 3)
@@ -357,7 +357,7 @@ class GameSimulator(
                     addTeam(offense) { it.copy(redZoneTouchdowns = it.redZoneTouchdowns + 1) }
                 }
                 ending = DriveEnding.TOUCHDOWN
-                runClock(8)
+                runClock(tuning.gameFlow.tryClockRunoff)
                 state = openWithKickoff(state, offense.other(), rng)
                 break
             }
