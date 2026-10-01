@@ -141,12 +141,12 @@ object AwardVoting {
         // Comeback: the biggest rise in production from a veteran who had
         // little of it the season before.
         val comeback = if (previousStats.isEmpty()) null else rostered
-            .filter { it.accruedSeasons >= 2 }
+            .filter { it.accruedSeasons >= league.tuning.honours.comebackMinSeasons }
             .mapNotNull { p ->
                 val line = stats[p.id.v] ?: return@mapNotNull null
                 val now = mvpProduction(p, line)
                 val before = previousStats[p.id.v]?.let { mvpProduction(p, it) } ?: 0.0
-                if (now < COMEBACK_FLOOR || before > now * COMEBACK_SHARE) null else Triple(p, line, now - before)
+                if (now < league.tuning.honours.comebackFloor || before > now * league.tuning.honours.comebackShare) null else Triple(p, line, now - before)
             }
             .maxByOrNull { it.third }
             ?.let { (p, line, _) ->
@@ -199,9 +199,6 @@ object AwardVoting {
         Position.K to 1, Position.P to 1, Position.LS to 1,
     )
 
-    /** A comeback is a real season, from someone who managed under 40% of it the year before. */
-    private const val COMEBACK_FLOOR = 120.0
-    private const val COMEBACK_SHARE = 0.4
 
     private fun summarise(player: Player, s: StatLine): String = when {
         s.passAttempts > 100 ->

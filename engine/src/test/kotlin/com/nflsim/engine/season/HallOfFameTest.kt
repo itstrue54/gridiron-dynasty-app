@@ -44,7 +44,7 @@ class HallOfFameTest {
     @Test
     fun `a career the league will not forget goes in`() {
         val history = LeagueHistory(retired = listOf(greatQb))
-        val class2033 = HallOfFame.induct(history, 2033)
+        val class2033 = HallOfFame.induct(history, 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours)
         assertEquals(listOf(1), class2033.map { it.player })
         assertEquals(12, class2033.first().seasons)
         assertTrue(class2033.first().headline > 50_000, "his yards should follow him in")
@@ -53,23 +53,23 @@ class HallOfFameTest {
     @Test
     fun `a good player is not a hall of famer`() {
         val history = LeagueHistory(retired = listOf(journeyman))
-        assertTrue(HallOfFame.induct(history, 2033).isEmpty(),
+        assertTrue(HallOfFame.induct(history, 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).isEmpty(),
             "six ordinary seasons should not be enough")
     }
 
     @Test
     fun `nobody goes in the year he finishes`() {
         val history = LeagueHistory(retired = listOf(greatQb))
-        assertTrue(HallOfFame.induct(history, 2030).isEmpty(), "he retired this year")
-        assertTrue(HallOfFame.induct(history, 2032).isEmpty(), "still inside the wait")
-        assertTrue(HallOfFame.induct(history, 2033).isNotEmpty(), "eligible by now")
+        assertTrue(HallOfFame.induct(history, 2030, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).isEmpty(), "he retired this year")
+        assertTrue(HallOfFame.induct(history, 2032, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).isEmpty(), "still inside the wait")
+        assertTrue(HallOfFame.induct(history, 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).isNotEmpty(), "eligible by now")
     }
 
     @Test
     fun `a man already in is not voted in twice`() {
         var history = LeagueHistory(retired = listOf(greatQb))
-        history = history.copy(hallOfFame = HallOfFame.induct(history, 2033))
-        assertTrue(HallOfFame.induct(history, 2034).isEmpty(), "he is already in")
+        history = history.copy(hallOfFame = HallOfFame.induct(history, 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours))
+        assertTrue(HallOfFame.induct(history, 2034, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).isEmpty(), "he is already in")
     }
 
     @Test
@@ -78,8 +78,8 @@ class HallOfFameTest {
             man(it, "QB", career(12, line = StatLine(passYards = 5_000, passTouchdowns = 40)),
                 proBowls = it)
         }
-        val inducted = HallOfFame.induct(LeagueHistory(retired = crowd), 2033)
-        assertEquals(HallOfFame.CLASS_SIZE, inducted.size)
+        val inducted = HallOfFame.induct(LeagueHistory(retired = crowd), 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours)
+        assertEquals(com.nflsim.engine.tuning.TuningTable.REALISTIC.honours.hofClassSize, inducted.size)
         assertTrue(inducted.map { it.score }.zipWithNext().all { (a, b) -> a >= b },
             "the best careers should go first")
     }
@@ -95,7 +95,7 @@ class HallOfFameTest {
             )
         }
         val history = LeagueHistory(seasons = honours, retired = listOf(guard))
-        assertTrue(HallOfFame.induct(history, 2033).any { it.player == 9 },
+        assertTrue(HallOfFame.induct(history, 2033, com.nflsim.engine.tuning.TuningTable.REALISTIC.honours).any { it.player == 9 },
             "a great lineman with no stat line should still get in")
     }
 }

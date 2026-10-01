@@ -4,6 +4,7 @@ import com.nflsim.engine.model.HallOfFamer
 import com.nflsim.engine.model.LeagueHistory
 import com.nflsim.engine.model.RetiredCareer
 import com.nflsim.engine.stats.StatLine
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * The hall of fame (SPEC 10's history screen).
@@ -18,26 +19,20 @@ import com.nflsim.engine.stats.StatLine
  */
 object HallOfFame {
 
-    /** Seasons a man waits after his last, before he can be voted in. */
-    const val WAIT = 3
-
-    /** What a career has to be worth: about fourteen leading seasons' worth. */
-    const val BAR = 14f
-
-    /** How many go in together, however good the class is. */
-    const val CLASS_SIZE = 3
+    // The wait, the bar, the class size and what the hardware counts for are
+    // tuning: TuningTable.Honours.
 
     /** Everyone voted in this year, newest class first in the history. */
-    fun induct(history: LeagueHistory, year: Int): List<HallOfFamer> {
+    fun induct(history: LeagueHistory, year: Int, t: TuningTable.Honours): List<HallOfFamer> {
         val already = history.hallOfFame.map { it.player }.toSet()
         val eligible = history.retired.filter {
-            it.player !in already && it.year <= year - WAIT && it.career.years >= 5
+            it.player !in already && it.year <= year - t.hofWait && it.career.years >= t.hofMinSeasons
         }
         return eligible
-            .map { it to score(it, history) }
-            .filter { it.second >= BAR }
+            .map { it to score(it, history, t) }
+            .filter { it.second >= t.hofBar }
             .sortedByDescending { it.second }
-            .take(CLASS_SIZE)
+            .take(t.hofClassSize)
             .map { (man, score) ->
                 HallOfFamer(
                     player = man.player,
@@ -59,24 +54,24 @@ object HallOfFame {
      * actually won count for as much again, because the league watched him
      * play and we did not.
      */
-    fun score(man: RetiredCareer, history: LeagueHistory): Float {
+    fun score(man: RetiredCareer, history: LeagueHistory, t: TuningTable.Honours): Float {
         val production = man.career.seasons.sumOf { season(man.position, it.stats).toDouble() }.toFloat()
         val awards = history.seasons.sumOf { record ->
             val a = record.awards ?: return@sumOf 0
             listOfNotNull(
-                a.mostValuablePlayer?.takeIf { it.player == man.player }?.let { MVP },
-                a.offensivePlayerOfTheYear?.takeIf { it.player == man.player }?.let { PLAYER_OF_YEAR },
-                a.defensivePlayerOfTheYear?.takeIf { it.player == man.player }?.let { PLAYER_OF_YEAR },
-                a.comebackPlayerOfTheYear?.takeIf { it.player == man.player }?.let { COMEBACK },
+                a.mostValuablePlayer?.takeIf { it.player == man.player }?.let { t.hofMvp },
+                a.offensivePlayerOfTheYear?.takeIf { it.player == man.player }?.let { t.hofPlayerOfYear },
+                a.defensivePlayerOfTheYear?.takeIf { it.player == man.player }?.let { t.hofPlayerOfYear },
+                a.comebackPlayerOfTheYear?.takeIf { it.player == man.player }?.let { t.hofComeback },
             ).sum() + a.honours.filter { it.player == man.player }.sumOf {
                 when (it.tier) {
-                    1 -> FIRST_TEAM
-                    2 -> SECOND_TEAM
+                    1 -> t.hofFirstTeam
+                    2 -> t.hofSecondTeam
                     else -> 0
                 }
             }
         }
-        return production + awards + man.proBowls * PRO_BOWL
+        return production + awards + man.proBowls * t.hofProBowl
     }
 
     /**
@@ -111,10 +106,4 @@ object HallOfFame {
         man.career.total { it.tackles },
     )
 
-    private const val MVP = 4
-    private const val PLAYER_OF_YEAR = 3
-    private const val COMEBACK = 1
-    private const val FIRST_TEAM = 2
-    private const val SECOND_TEAM = 1
-    private const val PRO_BOWL = 0.5f
 }

@@ -100,7 +100,7 @@ object PracticeSquads {
                 val squad = squads.getValue(team.id)
                 if (squad.size >= SIZE) return@forEach
                 val pick = pool.filter { hasRoom(squad, it) }.maxByOrNull { value(team, it) }
-                    ?: campBody(PlayerId(nextId++), squad, year, rng)
+                    ?: campBody(PlayerId(nextId++), squad, year, rng, tuning.ai)
                 pool.remove(pick)
                 val signed = pick.copy(status = PlayerStatus.PRACTICE_SQUAD, contract = null)
                 byId[signed.id] = signed
@@ -122,13 +122,13 @@ object PracticeSquads {
     }
 
     /** An undrafted rookie at the first position the squad is short of. */
-    private fun campBody(id: PlayerId, squad: List<Player>, year: Int, rng: Rng): Player {
+    private fun campBody(id: PlayerId, squad: List<Player>, year: Int, rng: Rng, t: TuningTable.Ai): Player {
         val position = CAMP_POSITIONS.first { pos -> squad.count { it.position == pos } < PER_POSITION }
         return PlayerGenerator.generate(
             id, position,
-            targetOverall = CAMP_OVERALL + rng.nextInt(CAMP_OVERALL_SPREAD),
+            targetOverall = t.squadCampOverall + rng.nextInt(t.squadCampSpread),
             year = year, rng = rng.split("camp|${id.v}"),
-            ageBias = CAMP_AGE_BIAS,
+            ageBias = t.squadCampAgeBias,
         ).copy(accruedSeasons = 0, yearsInSystem = 0, status = PlayerStatus.PRACTICE_SQUAD)
     }
 
@@ -140,8 +140,4 @@ object PracticeSquads {
         Position.LT, Position.RG, Position.RB, Position.TE, Position.FB,
     )
 
-    private const val CAMP_OVERALL = 51
-    private const val CAMP_OVERALL_SPREAD = 10
-    /** Undrafted rookies are 22 or 23; the generator centres on 26. */
-    private const val CAMP_AGE_BIAS = -4
 }

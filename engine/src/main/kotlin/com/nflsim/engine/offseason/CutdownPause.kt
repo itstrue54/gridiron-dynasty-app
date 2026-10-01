@@ -129,7 +129,7 @@ class CutdownPause internal constructor(
                 ?: PlayerGenerator.generate(
                     id = PlayerId((byId.keys.maxOrNull() ?: 0) + 1),
                     position = position,
-                    targetOverall = OffseasonEngine.CAMP_BODY,
+                    targetOverall = league.tuning.ai.campBody,
                     year = year,
                     rng = draft.rng.split("camp|${userTeam.v}|${position.name}|$year"),
                 ).also { added = added + it }
