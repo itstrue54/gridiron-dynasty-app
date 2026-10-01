@@ -396,6 +396,68 @@ Bold is out of band. Long plays alone barely moved field goals (F). The fourth-d
 
 It also has to keep total yards in band. No single value does it.
 
+## Pass 6 — October 2026 (the shape of a pass)
+
+**What was wrong:** pass 5 left plays of 20+ at 2.0 a team per game (NFL ~3.5) and of 40+ at 0.23 (NFL ~0.55). Measured by concept over 600 games, the mix and the outcomes were both off:
+- **Too many mid-range throws.** About 48% of attempts were 11–15-yard routes. First downs aimed 7–13 yards deep.
+- **No screens.** A screen's depth of −2 never fell in the depth pool, so they were 0.4% of attempts against the NFL's ~8–10%.
+- **Completion barely fell with depth.** Mid routes were caught 72% of the time (NFL ~57%), deep ones 58% (NFL ~38%).
+- **No variation in depth.** A route's depth varied by ±2 yards, so a dig was 14 yards and never 30.
+
+**Approach:** pass 5's single changes had each failed, so the new levers were tuned together by search.
+- Two new levers: screens, and a one-sided depth tail.
+- About 180 candidates on league 2026, 2,000 games each.
+- Each was scored by distance outside any band (with a 10% margin), plus distance from the NFL on plays of 20+ and 40+, field goals, third downs, completion and long touchdowns.
+- The best was rounded, then trimmed for yards on league 99.
+
+**Measured** on league 2026, 2,000 games, seed 2026:
+
+| | Before | After | Target / NFL |
+|---|---|---|---|
+| Plays of 20+ per team | 2.04 | 2.81 | ~3.5 (diagnostic) |
+| Plays of 40+ per team | 0.23 | 0.34 | ~0.55 (diagnostic) |
+| Touchdowns from 20+ yards | 0.18 | 0.25 | ~0.25 (diagnostic) |
+| Carries of 20+ | 0.012 | 0.017 | 0.008–0.030 |
+| Field-goal attempts per team | 2.09 | 2.16 | ~1.9–2.0 (diagnostic) |
+| Completion % | 0.640 | 0.638 | 0.63–0.68 |
+| Yards per attempt | 7.26 | 7.18 | 6.8–7.5 |
+| Yards per carry | 4.32 | 4.38 | 4.1–4.6 |
+| Passing TDs per team | 1.52 | 1.53 | 1.3–1.7 |
+| Points per team | 22.1 | 22.5 | 21.0–24.5 |
+| Yards per team | 357 | 357 | 320–360 |
+| Third-down conversion | 0.385 | 0.378 | 0.37–0.42 |
+| Red zone TD rate | 0.582 | 0.554 | 0.53–0.60 |
+
+**Bands:**
+- All 23 pass on leagues 2026 and 7.
+- League 99 misses the same two as after pass 5, inside the test's tolerance:
+  - attempts at 36.2;
+  - yards at 362, down from 364.
+
+**Changes:**
+- **Calling:**
+  - first-down depth 7–13 → 4–9 (`firstDownDepthMin`, `firstDownDepthRange`, new; the 7–13 was a literal in `PlayCaller`);
+  - screens `screenRate` 0.065, on early downs and third and 10+ (new).
+- **Passing:**
+  - base completion 0.85 → 0.88;
+  - depth penalty 0.0155 → 0.0216;
+  - air yards scale 0.92 → 0.87;
+  - depth tail `airYardsTail` 0.19, outside the red zone (new);
+  - YAC mean 1.7 → 1.73;
+  - catch breakaway base 0.07 → 0.11, mean 28 → 24.
+- **Rushing:**
+  - base yards 3.40 → 3.20;
+  - breakaway base 0.026 → 0.037;
+  - breakaway mean 20 → 23.
+
+**The trade:**
+- **Field goals rise slightly,** 2.09 → 2.16, and third downs fall slightly, 0.385 → 0.378. The search never found long plays that came without a few more yards between the 20s, and those yards end in field-goal range.
+- **The red-zone touchdown rate falls** to 0.554, close to the NFL's ~0.56.
+
+**The mix now:** 49% short routes, 39% mid and 11% deep (screens 6%), close to the NFL's split. Completion on thrown balls is 84%, 71% and 55% by those groups; the NFL's is ~75%, ~57% and ~38%, so the fall with depth is steeper than before but still too flat.
+
+**Still off:** plays of 20+ are about 80% of the NFL's, and 40+ about 60%. The search had levelled off: its best 15 candidates all sat at 2.75–2.90 and 0.32–0.39. More would need the total-yards band, or ordinary plays that gain less still.
+
 ## Still unmeasured
 
 Multi-season shape, which needs the offseason (M7) before it means anything:

@@ -198,7 +198,13 @@ internal object PassResolution {
         }
 
         // ---- caught ------------------------------------------------------
-        val air = (call.concept.airYards * t.passing.airYardsScale + rng.gaussian(0f, t.passing.airYardsSpread)).roundToInt()
+        var thrown = call.concept.airYards * t.passing.airYardsScale + rng.gaussian(0f, t.passing.airYardsSpread)
+        // A receiver who gets behind his man is thrown to where he is: only
+        // ever further, and further on a deeper route. Not in the red zone,
+        // where there is no behind.
+        if (t.passing.airYardsTail > 0f && call.concept.airYards > 0 && ctx.state.yardsToGoal > 20)
+            thrown += rng.exponential(call.concept.airYards * t.passing.airYardsTail)
+        val air = thrown.roundToInt()
         val tackling = ctx.defense.secondary.averageRating(RatingId.TACKLE, dfs)
         val yacBase = (rate(receiver, RatingId.ELUSIVENESS, off) +
             rate(receiver, RatingId.BREAK_TACKLE, off)) / 2f

@@ -92,7 +92,7 @@ object PlayCaller {
         // league completing 62% at 13.0 yards a catch - both wrong, in
         // opposite directions, from one cause.
         val targetDepth = when (s.down) {
-            1 -> 7 + rng.nextInt(7)                                  // 7-13
+            1 -> ctx.tuning.calling.firstDownDepthMin + rng.nextInt(ctx.tuning.calling.firstDownDepthRange)
             2 -> (s.distance * ctx.tuning.calling.secondDownDepthPerYard).toInt().coerceIn(5, 17)
             else -> (s.distance + 1).coerceIn(5, 25)
         }
@@ -109,7 +109,13 @@ object PlayCaller {
             .ifEmpty { available.sortedBy { kotlin.math.abs(it.airYards - depth) }.take(3) }
             .ifEmpty { listOf(PassConcept.FLAT) }
 
-        val concept = pool[rng.nextInt(pool.size)]
+        // The screen: a throw behind the line to a man with blockers in front
+        // of him. Too short for the depth pool, so it is called on its own.
+        val calling = ctx.tuning.calling
+        val screenDown = s.down <= 2 || s.distance >= calling.screenThirdDistance
+        val screen = calling.screenRate > 0f && screenDown && !shot && s.yardsToGoal > 5 &&
+            rng.nextFloat() < calling.screenRate
+        val concept = if (screen) PassConcept.SCREEN else pool[rng.nextInt(pool.size)]
 
         val playAction = !concept.quick && s.down <= 2 &&
             rng.nextFloat() < paRate

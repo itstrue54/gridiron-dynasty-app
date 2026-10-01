@@ -52,9 +52,9 @@ data class TuningTable(
          * weather. Raised from 0.83 with the depth penalty when the league was
          * set to throw more and complete shorter (SPEC 13.2's attempts band).
          */
-        val baseCompletion: Float = 0.85f,
+        val baseCompletion: Float = 0.88f,
         /** Completion penalty per yard of intended air distance. */
-        val depthPenaltyPerYard: Float = 0.0155f,
+        val depthPenaltyPerYard: Float = 0.0216f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
         val interceptionBase: Float = 0.021f,
@@ -98,7 +98,7 @@ data class TuningTable(
         val interceptionPressure: Float = 1.7f,
         val airYardsSpread: Float = 2.2f,
         /** Yards after catch: the exponential mean, per point over the tackler, and extras. */
-        val yacMean: Float = 1.7f,
+        val yacMean: Float = 1.73f,
         val yacTackling: Float = 0.055f,
         val screenYac: Float = 4.2f,
         val zoneYac: Float = 0.8f,
@@ -119,7 +119,12 @@ data class TuningTable(
         val stripSackLost: Float = 0.05f,
         val catchFumbleBase: Float = 0.0051f,
         /** Scales every concept's intended air distance: where the ball is thrown, before the catch and run. */
-        val airYardsScale: Float = 0.92f,
+        val airYardsScale: Float = 0.87f,
+        /**
+         * A throw's extra depth past the route, outside the red zone: an
+         * exponential with a mean of this share of the route's depth.
+         */
+        val airYardsTail: Float = 0.19f,
         /**
          * A catch broken open for a long gain: a chance from [yacBreakawayBase],
          * up with the receiver's elusiveness and speed, down with the
@@ -127,10 +132,10 @@ data class TuningTable(
          * run of mean [yacBreakawayYards]. One of [catchAndRunYards] or more is
          * called a catch and run.
          */
-        val yacBreakawayBase: Float = 0.07f,
+        val yacBreakawayBase: Float = 0.11f,
         val yacBreakawayElusiveness: Float = 0.0015f,
         val yacBreakawayTackling: Float = 0.0015f,
-        val yacBreakawayYards: Float = 28f,
+        val yacBreakawayYards: Float = 24f,
         val yacBreakawayMax: Float = 0.25f,
         val catchAndRunYards: Int = 20,
     )
@@ -138,16 +143,16 @@ data class TuningTable(
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.40f,
+        val baseYards: Float = 3.20f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
         val variance: Float = 4.00f,
         /** Chance a carry breaks into the second level at neutral advantage. */
-        val breakawayBase: Float = 0.026f,
+        val breakawayBase: Float = 0.037f,
         val breakawayAdvantageScale: Float = 0.030f,
         /** Mean extra yards once a run breaks. Long tail lives here. */
-        val breakawayYards: Float = 20.0f,
+        val breakawayYards: Float = 23.0f,
         /** A carry's fumble chance before ball security and the hit, in the dry: 0.0125 before weather. */
         val fumbleBase: Float = 0.0115f,
         val tackleForLossFloor: Float = -6f,
@@ -389,8 +394,15 @@ data class TuningTable(
         /** No coordinator is ever all run or all pass. */
         val passRateFloor: Float = 0.08f,
         val passRateCeiling: Float = 0.94f,
+        /** How deep a first-down throw aims: the shallowest, and how many yards deeper it can go (4-9). */
+        val firstDownDepthMin: Int = 4,
+        val firstDownDepthRange: Int = 6,
         /** How deep a second-down throw aims, per yard to go. */
         val secondDownDepthPerYard: Float = 0.9f,
+        /** How often a pass on first or second down, or on third and long, is a screen. */
+        val screenRate: Float = 0.065f,
+        /** Third and this many or more is long enough for a screen. */
+        val screenThirdDistance: Int = 10,
         /** How often a run from the one is a quarterback sneak. */
         val sneakRate: Float = 0.2f,
         /** How often a back stays in to block on a deep shot, and on anything else but a quick throw. */
