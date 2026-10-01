@@ -74,6 +74,8 @@ data class TeamStats(
     val turnovers: Int = 0,
     val passInterceptions: Int = 0,
     val fumblesLost: Int = 0,
+    /** Of [fumblesLost], those on carries: the rest came off sacks and catches. */
+    val rushFumblesLost: Int = 0,
     val rushesForLoss: Int = 0,
     val rushesOfTwentyPlus: Int = 0,
     val penalties: Int = 0,

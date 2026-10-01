@@ -44,16 +44,17 @@ data class TuningTable(
         /** Bigger = protection differences matter less. */
         val pressureScale: Float = 30f,
         /** Share of pressures that become sacks before the QB's escape rating. */
-        val sackGivenPressure: Float = 0.21f,
+        val sackGivenPressure: Float = 0.18f,
         /** Bigger = accuracy and coverage differences matter less. */
         val completionScale: Float = 88f,
         /**
          * Completion probability at a dead-even matchup, before depth, in fair
-         * weather: 0.82 before weather (SPEC 5.10) took its share.
+         * weather. Raised from 0.83 with the depth penalty when the league was
+         * set to throw more and complete shorter (SPEC 13.2's attempts band).
          */
-        val baseCompletion: Float = 0.83f,
+        val baseCompletion: Float = 0.85f,
         /** Completion penalty per yard of intended air distance. */
-        val depthPenaltyPerYard: Float = 0.0138f,
+        val depthPenaltyPerYard: Float = 0.0155f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
         val interceptionBase: Float = 0.021f,
@@ -97,7 +98,7 @@ data class TuningTable(
         val interceptionPressure: Float = 1.7f,
         val airYardsSpread: Float = 2.2f,
         /** Yards after catch: the exponential mean, per point over the tackler, and extras. */
-        val yacMean: Float = 2.6f,
+        val yacMean: Float = 1.7f,
         val yacTackling: Float = 0.055f,
         val screenYac: Float = 4.2f,
         val zoneYac: Float = 0.8f,
@@ -108,12 +109,21 @@ data class TuningTable(
         val interceptionMax: Float = 0.22f,
         /** Separation lost, in these units, adds a full interceptionCoverageScale. */
         val interceptionCoverageRange: Float = 40f,
+        /**
+         * Fumbles that are not carries: the chance a sack strips the ball and
+         * the defence keeps it, and a catch's chance of a lost fumble before
+         * ball security (rushing.fumbleSecurityBase - security / 99 scales it,
+         * as it does a carry's). About half the league's lost fumbles come off
+         * sacks and catches.
+         */
+        val stripSackLost: Float = 0.05f,
+        val catchFumbleBase: Float = 0.0051f,
     )
 
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.63f,
+        val baseYards: Float = 3.48f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
@@ -345,8 +355,8 @@ data class TuningTable(
     @Serializable
     data class Calling(
         /** Added to the pass rate by down: first, second, third (4+ to go, or fewer), fourth (3+, or fewer). */
-        val passFirstDown: Float = -0.06f,
-        val passSecondDown: Float = 0.02f,
+        val passFirstDown: Float = 0.015f,
+        val passSecondDown: Float = 0.06f,
         val passThirdLong: Float = 0.30f,
         val passThirdShort: Float = 0.05f,
         val passFourthLong: Float = 0.35f,
@@ -359,15 +369,15 @@ data class TuningTable(
         val passPerPointBehind: Float = 0.011f,
         val passScoreMin: Float = -0.16f,
         val passScoreMax: Float = 0.24f,
-        /** Taken off at the goal line, two yards or fewer to go. */
-        val passGoalLineCut: Float = 0.22f,
+        /** Taken off at the goal line, two yards or fewer to go (negative: a club throws more there). */
+        val passGoalLineCut: Float = -0.12f,
         /** No coordinator is ever all run or all pass. */
         val passRateFloor: Float = 0.08f,
         val passRateCeiling: Float = 0.94f,
         /** How deep a second-down throw aims, per yard to go. */
         val secondDownDepthPerYard: Float = 0.9f,
         /** How often a run from the one is a quarterback sneak. */
-        val sneakRate: Float = 0.4f,
+        val sneakRate: Float = 0.2f,
         /** How often a back stays in to block on a deep shot, and on anything else but a quick throw. */
         val protectDeepRate: Float = 0.55f,
         val protectRate: Float = 0.25f,
@@ -465,7 +475,7 @@ data class TuningTable(
          * out of bounds: they give back the time, and plays per game stay in
          * their band (SPEC 13.2).
          */
-        val runPlayClockRunoff: Int = 35,
+        val runPlayClockRunoff: Int = 36,
         val completionClockRunoff: Int = 32,
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */

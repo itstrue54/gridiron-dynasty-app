@@ -111,6 +111,26 @@
     "The pocket collapses and {sacker} sacks {qb} for {loss}.",
     "{qb} holds it too long. {sacker} sacks him for a loss of {loss}."
   ],
+  "pass.sack.fumble": [
+    "{qb} is stripped by {sacker} and the defence falls on the fumble.",
+    "Strip-sack! {sacker} knocks it out of {qb}'s hand and the defence recovers the fumble.",
+    "{qb} goes down and the ball goes with him: fumble, recovered by the defence.",
+    "{sacker} gets home and gets the ball out. {qb} fumbles, and it's the defence's ball.",
+    "Fumble! {qb} is sacked by {sacker} and the defence comes up with it.",
+    "{qb} holds it too long, {sacker} punches it out, and the fumble goes the other way.",
+    "The pocket collapses, {qb} fumbles on the sack, and the defence has it.",
+    "{sacker} with the sack and the strip. The fumble is recovered by the defence."
+  ],
+  "pass.complete.fumble": [
+    "{qb} hits {receiver} for {yards}, but he fumbles and the defence recovers.",
+    "{receiver} catches it from {qb}, takes a hit and fumbles. Defence's ball.",
+    "Caught by {receiver} for {yards}, then knocked loose: fumble, recovered by the defence.",
+    "{qb} to {receiver}, who loses the fumble at the end of a {yards}-yard gain.",
+    "{receiver} makes the catch, but the ball comes out. Fumble, and the defence has it.",
+    "Fumble! {receiver} is stripped after the catch from {qb}.",
+    "{receiver} turns upfield after the catch and fumbles. The defence falls on it.",
+    "{qb} finds {receiver}, but the ball is punched out. Fumble, recovered by the defence."
+  ],
   "pass.sack.team": [
     "The defence gets home. {qb} sacked for {loss}.",
     "{qb} is sacked for a loss of {loss}.",

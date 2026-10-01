@@ -707,6 +707,11 @@ class GameSimulator(
                         receivingYards = it.receivingYards + result.yards,
                         receivingTouchdowns = it.receivingTouchdowns + if (td) 1 else 0)
                 }
+                // Caught, then lost.
+                if (result.turnover) {
+                    addTeam(offense) { it.copy(turnovers = it.turnovers + 1, fumblesLost = it.fumblesLost + 1) }
+                    stats.update(result.target) { it.copy(fumblesLost = it.fumblesLost + 1) }
+                }
             }
             PlayOutcome.INCOMPLETE, PlayOutcome.THROWAWAY -> {
                 addTeam(offense) { it.copy(passAttempts = it.passAttempts + 1) }
@@ -732,11 +737,16 @@ class GameSimulator(
                 }
                 stats.update(result.passer) { it.copy(timesSacked = it.timesSacked + 1) }
                 stats.update(result.tackler) { it.copy(sacks = it.sacks + 1) }
+                // A strip-sack: the quarterback lost it.
+                if (result.turnover) {
+                    addTeam(offense) { it.copy(turnovers = it.turnovers + 1, fumblesLost = it.fumblesLost + 1) }
+                    stats.update(result.passer) { it.copy(fumblesLost = it.fumblesLost + 1) }
+                }
             }
             PlayOutcome.FUMBLE_LOST -> {
                 addTeam(offense) {
                     it.copy(rushAttempts = it.rushAttempts + 1, turnovers = it.turnovers + 1,
-                        fumblesLost = it.fumblesLost + 1)
+                        fumblesLost = it.fumblesLost + 1, rushFumblesLost = it.rushFumblesLost + 1)
                 }
                 stats.update(result.ballCarrier) {
                     it.copy(carries = it.carries + 1, fumblesLost = it.fumblesLost + 1)

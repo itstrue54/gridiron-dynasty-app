@@ -33,8 +33,9 @@ object ClockManagement {
     ): Decision {
         var runoff = running(before, offense, result, flow, outOfBounds)
         var timeout: Side? = null
-        // A kneel runs the clock like any snap; a spike and an incompletion stop it.
-        val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
+        // A kneel runs the clock like any snap; a spike, an incompletion and a
+        // change of possession (a fumbled sack or catch included) stop it.
+        val clockRuns = !result.outcome.stopsClock && !result.turnover && result.outcome != PlayOutcome.SPIKE
         val lateInGame = before.quarter >= 4
         fun warningStops(r: Int) = warningStops(before, r)
 
@@ -81,7 +82,7 @@ object ClockManagement {
         flow: TuningTable.GameFlow,
         outOfBounds: Boolean = false,
     ): Boolean {
-        val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
+        val clockRuns = !result.outcome.stopsClock && !result.turnover && result.outcome != PlayOutcome.SPIKE
         val r = running(before, offense, result, flow, outOfBounds)
         return clockRuns && before.timeoutsFor(side) > 0 && r > flow.playSeconds &&
             before.secondsLeft > flow.playSeconds && !warningStops(before, r)
@@ -107,7 +108,7 @@ object ClockManagement {
         outOfBounds: Boolean = false,
     ): Int {
         var runoff = result.clockRunoff
-        val clockRuns = !result.outcome.stopsClock && result.outcome != PlayOutcome.SPIKE
+        val clockRuns = !result.outcome.stopsClock && !result.turnover && result.outcome != PlayOutcome.SPIKE
         if (!clockRuns) return runoff
         if (before.quarter == 2 && before.secondsLeft <= TWO_MINUTE_WARNING && result.outcome != PlayOutcome.KNEEL) {
             // The two-minute drill before the half: whoever has the ball hurries.

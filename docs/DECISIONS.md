@@ -2302,3 +2302,20 @@ news. Two tests that asserted the empty opening were changed to assert
 what they meant: nothing from last season carries over. Three tuning
 values make save step 29 (nothing to move), version 30.
 
+## ADR-0xx — Calibration measures every per-game band, and the ball comes out on passes too
+
+**Context.** A pre-launch review saw a game with almost twice as many runs as passes. `GameCalibration` turned out to measure 18 metrics, but not five of SPEC 13.2's locked per-game bands: rushes, pass attempts, passing touchdowns, sacks and fumbles lost per team. Four were out of band.
+
+**Decision.**
+- **Measure the bands.** The five are measured as real bands, not diagnostics, so `CalibrationTest` guards them like the rest.
+- **Rebalance run and pass.** The calling and passing values were retuned to pass more, and shorter. The values are in CALIBRATION.md pass 4.
+- **Add the missing fumbles.** Lost fumbles were low because only carries fumbled. Tuning carries up would have made them fumble at twice the NFL's rate (they already did, to make up the total). Instead, the sim gained the two missing kinds: strip-sacks and fumbles after a catch.
+- **Count carry fumbles apart.** A box score's `rushFumblesLost` keeps carry fumbles separate, so the per-carry band still measures carries.
+- **Stop the clock on turnovers.** Any turnover stops the clock, as a change of possession does in the NFL. The new pass fumbles had let the clock run, and the team that lost the ball spent a timeout.
+
+**Consequences.**
+- **Every saved league plays differently:** a save stores only the tuning its user moved, so old saves take the new defaults. A box score gains a field. Save step 33, version 34.
+- **The band set is wider:** 23 bands pass on the reference league. One league with a pass-heavy mix of schemes misses pass attempts by 7% of the band, inside the test's 30% tolerance.
+- **Passing leaders run about 100 yards higher** on average.
+- **Field goals still too common:** attempts run high and points sit low, so field-goal range is where too many drives end. That is the next calibration pass.
+

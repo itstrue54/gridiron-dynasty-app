@@ -26,6 +26,8 @@ class PlayLinesTest {
         "penalty.run_holding" to setOf("who"),
         "pass.sack" to setOf("sacker", "qb", "loss"),
         "pass.sack.team" to setOf("qb", "loss"),
+        "pass.sack.fumble" to setOf("qb", "sacker"),
+        "pass.complete.fumble" to setOf("qb", "receiver", "yards"),
         "pass.scramble" to setOf("qb", "gain"),
         "pass.scramble.stopped" to setOf("qb"),
         "pass.throwaway" to setOf("qb"),
@@ -86,8 +88,8 @@ class PlayLinesTest {
         PlayLines.templates.getValue("pass.interception").forEach {
             assertTrue("intercept" in it.lowercase(), it)
         }
-        PlayLines.templates.getValue("run.fumble").forEach {
-            assertTrue("fumble" in it.lowercase(), it)
+        listOf("run.fumble", "pass.sack.fumble", "pass.complete.fumble").forEach { key ->
+            PlayLines.templates.getValue(key).forEach { assertTrue("fumble" in it.lowercase(), "$key: $it") }
         }
     }
 
