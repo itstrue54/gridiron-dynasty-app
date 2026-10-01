@@ -351,7 +351,7 @@ fun HubScreen(
             }
         }
 
-        val news = hubNews(dynasty.news)
+        val news = hubNews(dynasty.news, dynasty.userTeam)
         if (news.isNotEmpty()) {
             item {
                 SituationBlock(
@@ -360,22 +360,10 @@ fun HubScreen(
                     situation = if (news.any { it.kind == NewsKind.INJURY && it.team == dynasty.userTeam })
                         Situation.RED_ZONE else Situation.NORMAL,
                 ) {
-                    news.forEach { story ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            StatusTag(
-                                label(story.kind),
-                                tone(story.kind),
-                                Modifier.padding(end = NdTheme.spacing.s),
-                            )
-                            Text(
-                                story.headline,
-                                style = NdTheme.type.body,
-                                color = if (story.team == dynasty.userTeam) c.chalk else c.chalkDim,
-                            )
-                        }
+                    news.forEach { story -> NewsLine(story, dynasty.userTeam) }
+                    // A busy week files more than the hub carries; the rest is a tap away.
+                    if (dynasty.news.size > news.size) {
+                        HubLink("All the news (${dynasty.news.size})") { onNavigate(Tab.NEWS) }
                     }
                 }
             }
@@ -434,14 +422,41 @@ fun HubScreen(
  * The week's news as the hub carries it: newest first, and no more than
  * [NEWS_PER_KIND] of any one kind. Benchings are filed last, so taking the
  * five newest buried the week's results under four men losing their places.
+ *
+ * One line a man within a kind: a holdout and his club's answer are one
+ * story, and the answer is the news. Otherwise one holdout took the whole
+ * quota and the week's others never showed. Stories about [userTeam]'s club
+ * always make it, ahead of the cap.
  */
-internal fun hubNews(all: List<com.nflsim.engine.model.NewsEvent>): List<com.nflsim.engine.model.NewsEvent> {
-    val newestFirst = all.asReversed()
-    return newestFirst
+internal fun hubNews(all: List<com.nflsim.engine.model.NewsEvent>, userTeam: Int? = null): List<com.nflsim.engine.model.NewsEvent> {
+    val stories = all.asReversed()
+        .withIndex()
+        .distinctBy { (i, it) -> if (it.player != null) Pair(it.kind, it.player) else i }
+        .map { it.value }
+    val ours = stories.filter { userTeam != null && it.team == userTeam }.take(NEWS_SHOWN)
+    val rest = stories.filter { it !in ours }
         .groupBy { it.kind }
         .flatMap { (_, of) -> of.take(NEWS_PER_KIND) }
-        .sortedBy { newestFirst.indexOf(it) }
-        .take(NEWS_SHOWN)
+        .sortedBy { stories.indexOf(it) }
+        .take(NEWS_SHOWN - ours.size)
+    return (ours + rest).sortedBy { stories.indexOf(it) }
+}
+
+/** One story, tagged by kind; the user's club's in full chalk. */
+@Composable
+internal fun NewsLine(story: com.nflsim.engine.model.NewsEvent, userTeam: Int) {
+    val c = NdTheme.colors
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusTag(label(story.kind), tone(story.kind), Modifier.padding(end = NdTheme.spacing.s))
+        Text(
+            story.headline,
+            style = NdTheme.type.body,
+            color = if (story.team == userTeam) c.chalk else c.chalkDim,
+        )
+    }
 }
 
 /**
