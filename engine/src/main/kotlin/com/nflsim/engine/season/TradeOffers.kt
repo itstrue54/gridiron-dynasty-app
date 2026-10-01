@@ -48,14 +48,24 @@ object TradeOffers {
     /** The week's calls, best for the calling club first. Empty outside the trade window. */
     fun thisWeek(dynasty: Dynasty): List<Offer> {
         if (!TradeDesk.open(dynasty)) return emptyList()
-        return calls(TradeDesk.inSeason(dynasty), dynasty, dynasty.userTeamId.let { dynasty.league.team(it) })
+        return calls(TradeDesk.inSeason(dynasty), dynasty, "trade-calls|${dynasty.league.year}|${dynasty.week}")
     }
 
-    private fun calls(book: TradeDesk.Book, dynasty: Dynasty, user: Team): List<Offer> {
+    /**
+     * The calls at the draft room, before the user's first pick: the same
+     * rules on the offseason's book, where rosters run to 90. One set of
+     * calls a draft, drawn from its own stream.
+     */
+    fun atDraft(dynasty: Dynasty, book: TradeDesk.Book): List<Offer> =
+        calls(book, dynasty, "trade-calls|draft|${book.draftYear}")
+
+    private fun calls(book: TradeDesk.Book, dynasty: Dynasty, label: String): List<Offer> {
         val t = book.league.tuning.ai
-        val rng = SplitMixRng(dynasty.seed).split("trade-calls|${dynasty.league.year}|${dynasty.week}")
+        val user = book.league.team(dynasty.userTeamId)
+        val rng = SplitMixRng(dynasty.seed).split(label)
         val mine = active(book, user)
-        val block = block(dynasty)
+        // The block, as the book has it: a man who has left is off it.
+        val block = dynasty.tradeBlock.filter { id -> mine.any { it.id.v == id } }.toSet()
         // Every club rolls once, in league order, so who calls doesn't depend
         // on who else could; one a man on the block would help rolls against
         // the block's chance.

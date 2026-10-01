@@ -89,7 +89,7 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
         return "${pick.year} round ${pick.round}$comp$from"
     }
     val byId = remember(book) { book.players.associateBy { it.id.v } }
-    androidx.compose.runtime.LaunchedEffect(dynasty) { store.refreshTradeOffers() }
+    androidx.compose.runtime.LaunchedEffect(dynasty, book) { store.refreshTradeOffers() }
 
     fun roster(team: TeamId) = book.players
         .filter { it.teamId == team && (it.status == PlayerStatus.ACTIVE || it.status == PlayerStatus.IR) }
@@ -122,8 +122,8 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
             }
         }
 
-        // Clubs that called this week (in the season only: the draft room has no calls).
-        if (book.rosterLimit == com.nflsim.engine.season.Transactions.ROSTER_LIMIT) {
+        // Clubs that called: this week in the season, or at the draft room.
+        run {
             store.tradeOffers.forEach { offer ->
                 val caller = book.league.team(offer.proposal.partner)
                 item(key = "call-${caller.abbrev}-${offer.target}") {
@@ -160,8 +160,8 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
             }
         }
 
-        // The user's block: who he has said is available (in the season; calls come only then).
-        if (book.rosterLimit == com.nflsim.engine.season.Transactions.ROSTER_LIMIT) {
+        // The user's block: who he has said is available.
+        run {
             val block = com.nflsim.engine.season.TradeOffers.block(dynasty).mapNotNull { byId[it] }
             item {
                 SituationBlock("Your trade block", meta = if (block.isEmpty()) "nobody" else "${block.size}") {
