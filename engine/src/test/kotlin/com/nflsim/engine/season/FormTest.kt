@@ -62,6 +62,11 @@ class FormTest {
         // Into the next season, everyone starts level.
         while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
         d = DynastyEngine.advance(d)
-        assertTrue(d.league.players.all { it.form == 0 }, "a new season starts level")
+        // Everyone but a man who held out of camp (SPEC 10.4), who is short
+        // of form by exactly what missing it costs.
+        val held = d.news.mapNotNull { it.player }.toSet()
+        assertTrue(d.league.players.all {
+            if (it.id.v in held) it.form == -d.league.tuning.ai.holdoutForm else it.form == 0
+        }, "a new season starts level")
     }
 }

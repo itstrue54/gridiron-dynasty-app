@@ -78,7 +78,10 @@ class ContractDisputeTest {
         // Nobody carries it into the next season.
         while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
         d = DynastyEngine.advance(d)
-        assertTrue(d.league.players.all { it.demand == DemandState.NONE }, "the spring settles everything")
+        // The spring settles everything; what the new season opens with is
+        // camp's - the holdouts (SPEC 10.4), each of them in the week's news.
+        val held = d.news.mapNotNull { it.player }.toSet()
+        assertTrue(d.league.players.all { it.demand == DemandState.NONE || it.id.v in held }, "the spring settles everything")
     }
 
     @Test

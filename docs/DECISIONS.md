@@ -2272,3 +2272,30 @@ in the save.
 and two tuning values. With nobody on the block, the calls are exactly what
 they were: every club rolls one number either way.
 
+## ADR-0xx — A holdout is a demand raised at camp
+
+**Context.** SPEC 10.4 lists the holdout as a storyline beat. The game
+already has in-season contract demands, with their case, their answers,
+their waiting cost and their Demands screen, and spring wishes where a man
+says he wants paying.
+
+**Decision.** A holdout is that same demand, raised as the new season opens
+by a man who said in the spring he wanted paying, has the demand's case,
+and has the ego to stay away. It goes through the same raising and
+answering code: the in-season demand path was extracted into
+`ContractDisputes.raise`, which both now use. What makes it a holdout
+rather than a demand is the camp he missed: a form and morale cost.
+Form is the existing Sunday modifier that wears off with play, so a
+holdout costs a few points early in the season and nothing permanent. He
+reports for week 1 whatever happens. The game has no games-missed
+holdouts, because a man sitting out regular-season games would need
+roster and pay rules the sim doesn't have.
+
+**Consequences.** One or two a year across the test leagues. It moves the
+sim for those men's early weeks. GameCalibration's single games never pass
+through an offseason, so no calibration band can move. The new season no
+longer opens with empty news: camp's holdouts and answers are week 1's
+news. Two tests that asserted the empty opening were changed to assert
+what they meant: nothing from last season carries over. Three tuning
+values make save step 29 (nothing to move), version 30.
+

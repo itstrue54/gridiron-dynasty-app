@@ -25,6 +25,7 @@ class HeadlinesTest {
         "dispute.raised" to setOf("player", "pos", "club", "paid", "market"),
         "dispute.settled" to setOf("player", "pos", "club", "years", "annual"),
         "dispute.refused" to setOf("player", "pos", "club"),
+        "holdout" to setOf("player", "pos", "club", "paid", "market"),
         "poached" to setOf("by", "pos", "player"),
         "trade.deadline" to setOf("buyer", "seller", "pos", "player", "price"),
         "qb.controversy.picks" to setOf("club", "player", "starter", "wins", "losses", "picks"),

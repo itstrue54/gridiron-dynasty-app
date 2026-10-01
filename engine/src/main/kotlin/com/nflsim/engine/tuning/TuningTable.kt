@@ -625,6 +625,12 @@ data class TuningTable(
         val disputeAccruedSeasons: Int = 3,
         val disputeVoice: Int = 74,
         val disputePayGap: Float = 1.8f,
+        /** Ego (0..100) from which a man who wanted paying in the spring, and has the case, holds out of camp. */
+        val holdoutEgo: Int = 80,
+        /** Form a holdout comes back short of, for missing camp (-100..100). */
+        val holdoutForm: Int = 30,
+        /** Morale a holdout costs him. */
+        val holdoutMorale: Int = 5,
         val disputeWeeklyChance: Float = 0.02f,
         val disputeWaitingMorale: Int = 2,
         /** Waiting wears on him only so far; a refusal can take him lower. */

@@ -674,8 +674,13 @@ object OffseasonEngine {
             yourPicks = draft.picks.filter { it.team == dynasty.userTeam },
         )
 
+        // Camp: who stays away from it until he is paid (SPEC 10.4).
+        val camp = com.nflsim.engine.season.ContractDisputes.atCamp(
+            newLeague, dynasty.userTeamId,
+            wishes.filter { it.intent == Intent.WANTS_PAYING }.map { it.player }.toSet(),
+            dynasty.playerStats, rng.split("holdouts|$newYear"))
         val next = dynasty.copy(
-            league = newLeague,
+            league = camp.league,
             year = newYear,
             schedule = schedule,
             week = 1,
@@ -683,8 +688,8 @@ object OffseasonEngine {
             results = emptyList(),
             playerStats = emptyMap(),
             previousStats = dynasty.playerStats,
-            // Last year's headlines are not what a league remembers.
-            news = emptyList(),
+            // Last year's headlines are not what a league remembers; camp's are this year's.
+            news = camp.news,
             playoffs = emptyList(),
             champion = null,
             lastGame = null,
