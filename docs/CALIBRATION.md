@@ -315,6 +315,87 @@ All 23 bands pass on league 2026 and on league 7. League 99, the most pass-heavy
 
 **Still off:** field-goal attempts run about 2.4 a team against the NFL's 1.8, and points sit near the bottom of their band. Drives stall in field-goal range too often; that is fourth-down and red-zone behaviour, for a later pass.
 
+## Pass 5 — October 2026 (field goals and long plays)
+
+**What was wrong:** field goals ran about 2.4 attempts a team. Recent NFL seasons run about 1.9–2.0 (pass 4's 1.8 was low). Three measurements explained why:
+- **Few long plays.** Plays of 40+ yards: 0.03 a team per game, against the NFL's ~0.6. Touchdowns from 20+ yards out: 5% of touchdowns, against ~25%. Yards after the catch averaged under a yard (`yacScale` 0.35), so every score was a long march, and long marches stall.
+- **Fourth downs in range nearly always kicked.** Of fourth downs inside the opponent's 40, 94% were kicked; NFL coaches go for it far more on fourth and short there. With 3 or more to go inside the 38, the code kicked every time.
+- **Cutting air yards doesn't work.** Shortening every throw to pay for long catch-and-runs cost passing touchdowns and points faster than it bought long plays (candidates A–C below).
+
+**Measured** on league 2026, 2,000 games, seed 2026:
+
+| | Before | After | Target / NFL |
+|---|---|---|---|
+| Plays of 40+ per team | 0.03 | 0.23 | ~0.6 (diagnostic) |
+| Plays of 20+ per team | 2.2 | 2.0 | ~3.5 (diagnostic) |
+| Touchdowns from 20+ yards | 0.05 | 0.18 | ~0.25 (diagnostic) |
+| Field-goal attempts per team | 2.42 | 2.09 | ~1.9–2.0 (diagnostic) |
+| Touchdown drives per team | 2.19 | 2.41 | ~2.4 (diagnostic) |
+| Fourth-down attempts per team | ~1.0 | 1.42 | ~1.3 (diagnostic) |
+| Turnovers on downs per team | ~0.38 | 0.52 | ~0.6 (diagnostic) |
+| Passing TDs per team | 1.33 | 1.52 | 1.3–1.7 |
+| Yards per attempt | 7.08 | 7.26 | 6.8–7.5 |
+| Yards per carry | 4.36 | 4.32 | 4.1–4.6 |
+| Points per team | 21.3 | 22.1 | 21.0–24.5 |
+| Yards per team | 353 | 357 | 320–360 |
+| Red zone TD rate | — | 0.582 | 0.53–0.60 |
+| Third-down conversion | 0.399 | 0.385 | 0.37–0.42 |
+
+**Bands:**
+- All 23 pass on leagues 2026 and 7.
+- League 99, the most pass-heavy mix of schemes, misses two:
+  - attempts at 36.2 against 36. It missed this before too, at 36.3.
+  - yards at 364 against 360, 10% of the band.
+
+  Both are inside the test's tolerance.
+
+**Candidates tried** (league 2026, before the fourth-down change):
+
+| | Air scale | Catch breakaway (base / mean) | Run breakaway (base / mean) | Pass TD | Points | 40+ | FGA |
+|---|---|---|---|---|---|---|---|
+| A | 0.90 | 0.06 / 16 | 0.030 / 16 | **1.20** | **20.7** | 0.14 | 2.49 |
+| B | 0.85 | 0.08 / 18 | — | **1.17** | **20.2** | 0.18 | 2.48 |
+| C | 0.88 | 0.07 / 20 | 0.028 / 18 | **1.28** | **20.9** | 0.19 | 2.45 |
+| F | 0.95 | 0.05 / 25 | 0.026 / 20 | 1.42 | 22.1 | 0.16 | 2.42 |
+
+Bold is out of band. Long plays alone barely moved field goals (F). The fourth-down change did: with it, F went to 2.08 attempts.
+
+**Changes:**
+- **Passing (new):**
+  - catch breakaways: base 0.07, mean 28 yards, ±0.0015 per point of receiver elusiveness and speed, and of the secondary's tackling, capped at 0.25;
+  - `airYardsScale` 0.92;
+  - a catch and run of 20+ yards gets its own play-by-play lines.
+- **Rushing:**
+  - breakaway base 0.042 → 0.026;
+  - breakaway mean 11 → 20 yards;
+  - base yards 3.48 → 3.40.
+- **Fourth down (new):**
+  - in easy range (the opponent's 38 in), he always kicks only with 5+ to go (was 3+);
+  - with less, `goKickRange` 0.25 is added to his chance of going for it, except late in the fourth within a kick.
+
+**Field goals** are now within about 0.1–0.2 a game of the NFL. The fourth-down change did most of that.
+
+**Still off: long plays.** Plays of 40+ are about a third of the NFL's, and plays of 20+ about 60%. The gains are too uniform:
+- a route's depth varies by only ±2 yards (`airYardsSpread` 2.2);
+- yards after the catch are small apart from breakaways;
+- mid-range throws complete about 72% of the time (NFL ~57%), and deep ones about 58% (NFL ~38%).
+
+**Tried and not shipped** (league 2026, 2,000 games):
+
+| Change | Plays of 20+ | Problem |
+|---|---|---|
+| More YAC, shorter routes (YAC mean up to 3.5, air scale down to 0.62) | 1.8–2.0 | No gain: a 2–3 yard exponential seldom reaches 20, and shorter routes lose the deep gains |
+| More and shorter catch breakaways (base 0.15–0.20, mean 12–14 yards) | ~2.2 | Barely moves |
+| Wider route spread (5–6 yards) | 2.9–3.6 | Third-down conversion falls to 0.36: half the throws land short of the sticks |
+| One-sided depth tail (exponential, 0.20–0.35 of route depth, outside the red zone) | 3.0–3.3, third downs in band | 370–380 yards a team; a steeper depth penalty to pay for it drops completion to 0.61; field goals rise, because more yards between the 20s mean more trips into range |
+
+**The next pass** has to rebalance three things at once:
+- the concept mix, with more short throws;
+- completion by depth;
+- a one-sided depth tail.
+
+It also has to keep total yards in band. No single value does it.
+
 ## Still unmeasured
 
 Multi-season shape, which needs the offseason (M7) before it means anything:

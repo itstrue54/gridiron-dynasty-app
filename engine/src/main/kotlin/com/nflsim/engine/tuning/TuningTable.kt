@@ -118,21 +118,36 @@ data class TuningTable(
          */
         val stripSackLost: Float = 0.05f,
         val catchFumbleBase: Float = 0.0051f,
+        /** Scales every concept's intended air distance: where the ball is thrown, before the catch and run. */
+        val airYardsScale: Float = 0.92f,
+        /**
+         * A catch broken open for a long gain: a chance from [yacBreakawayBase],
+         * up with the receiver's elusiveness and speed, down with the
+         * secondary's tackling, at most [yacBreakawayMax]; then an exponential
+         * run of mean [yacBreakawayYards]. One of [catchAndRunYards] or more is
+         * called a catch and run.
+         */
+        val yacBreakawayBase: Float = 0.07f,
+        val yacBreakawayElusiveness: Float = 0.0015f,
+        val yacBreakawayTackling: Float = 0.0015f,
+        val yacBreakawayYards: Float = 28f,
+        val yacBreakawayMax: Float = 0.25f,
+        val catchAndRunYards: Int = 20,
     )
 
     @Serializable
     data class Rushing(
         /** Yards on a perfectly neutral carry before any roll. */
-        val baseYards: Float = 3.48f,
+        val baseYards: Float = 3.40f,
         /** Yards added per unit of blocking advantage. */
         val advantageYards: Float = 2.00f,
         /** Spread of the ordinary run-to-run roll. */
         val variance: Float = 4.00f,
         /** Chance a carry breaks into the second level at neutral advantage. */
-        val breakawayBase: Float = 0.042f,
+        val breakawayBase: Float = 0.026f,
         val breakawayAdvantageScale: Float = 0.030f,
         /** Mean extra yards once a run breaks. Long tail lives here. */
-        val breakawayYards: Float = 11.0f,
+        val breakawayYards: Float = 20.0f,
         /** A carry's fumble chance before ball security and the hit, in the dry: 0.0125 before weather. */
         val fumbleBase: Float = 0.0115f,
         val tackleForLossFloor: Float = -6f,
@@ -406,6 +421,13 @@ data class TuningTable(
         val goLateTrailing: Float = 0.35f,
         /** Taken off in the fourth quarter more than a score ahead. */
         val goProtectingLead: Float = 0.10f,
+        /**
+         * In easy kicking range (the opponent's 38 in), he always kicks with
+         * this many yards or more to go; with fewer, [goKickRange] is added
+         * to his chance of going for it instead of taking the three.
+         */
+        val kickAlwaysDistance: Int = 5,
+        val goKickRange: Float = 0.25f,
         /** The coach's aggression scales it: base + aggression x scale, then the floor and ceiling. */
         val aggressionBase: Float = 0.6f,
         val aggressionScale: Float = 0.8f,

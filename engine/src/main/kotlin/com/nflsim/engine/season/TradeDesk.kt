@@ -101,6 +101,17 @@ object TradeDesk {
     fun value(book: Book, pick: PickAsset, club: Team): Float =
         PickValue.value(pick, book.draftYear, book.order, club.gm.winNowVsFuture, book.league.tuning.trades)
 
+    /** [team]'s cap space with [out] gone and [inn] arrived, their contracts and dead money moved. */
+    fun room(book: Book, team: TeamId, out: List<Player>, inn: List<Player>): Int {
+        val roster = book.players.filter { it.teamId == team && it !in out } + inn
+        val dead = (book.deadMoney[team.v] ?: 0) + out.sumOf { it.contract?.deadCap(book.year)?.thisYear ?: 0 }
+        return CapManagement.spaceFor(roster, book.year, dead, carryover = book.league.team(team).finances.carryover)
+    }
+
+    /** Whether [team] can make the move under the cap: a club already over it may stay there, but not go further over. */
+    fun fitsCap(book: Book, team: TeamId, out: List<Player>, inn: List<Player>): Boolean =
+        room(book, team, out, inn) >= minOf(room(book, team, emptyList(), emptyList()), 0)
+
     fun evaluate(book: Book, user: TeamId, proposal: Proposal): Verdict {
         val partner = book.league.team(proposal.partner)
         val reasons = mutableListOf<String>()
@@ -128,18 +139,10 @@ object TradeDesk {
         if (partnerAfter > book.rosterLimit) reasons += "${partner.name} would have $partnerAfter on the roster, over the ${book.rosterLimit}."
         val rosterSnag = reasons.isNotEmpty()
 
-        // The cap, with the contracts and the dead money moved.
-        fun room(team: TeamId, out: List<Player>, inn: List<Player>): Int {
-            val roster = book.players.filter { it.teamId == team && it !in out } + inn
-            val dead = (book.deadMoney[team.v] ?: 0) + out.sumOf { it.contract?.deadCap(book.year)?.thisYear ?: 0 }
-            return CapManagement.spaceFor(roster, book.year, dead, carryover = book.league.team(team).finances.carryover)
-        }
-        fun roomNow(team: TeamId) = room(team, emptyList(), emptyList())
-        val userRoom = room(user, give, get)
-        val partnerRoom = room(proposal.partner, get, give)
-        // A club already over the cap may stay there, but not go further over.
-        if (userRoom < minOf(roomNow(user), 0)) reasons += "You'd be ${money(-userRoom)} over the cap."
-        if (partnerRoom < minOf(roomNow(proposal.partner), 0)) reasons += "${partner.name} would be ${money(-partnerRoom)} over the cap."
+        val userRoom = room(book, user, give, get)
+        val partnerRoom = room(book, proposal.partner, get, give)
+        if (!fitsCap(book, user, give, get)) reasons += "You'd be ${money(-userRoom)} over the cap."
+        if (!fitsCap(book, proposal.partner, get, give)) reasons += "${partner.name} would be ${money(-partnerRoom)} over the cap."
         val capSnag = reasons.isNotEmpty() && !rosterSnag
 
         // What it's worth to them.

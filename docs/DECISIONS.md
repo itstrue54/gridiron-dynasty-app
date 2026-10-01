@@ -2319,3 +2319,22 @@ values make save step 29 (nothing to move), version 30.
 - **Passing leaders run about 100 yards higher** on average.
 - **Field goals still too common:** attempts run high and points sit low, so field-goal range is where too many drives end. That is the next calibration pass.
 
+## ADR-0xx — Long plays come after the catch, and coaches go for it in easy range
+
+**Context.**
+- Field-goal attempts ran about 2.4 a team; recent NFL seasons run about 1.9–2.0.
+- The sim had almost no long plays: 0.03 of 40+ yards a team per game, and 5% of touchdowns from 20+ yards out. Yards after the catch averaged under a yard.
+- Coaches kicked 94% of fourth downs inside the opponent's 40.
+
+**Decision.**
+- **A catch can break open.** Rated on the receiver's elusiveness and speed against the secondary's tackling, it adds a long, exponential run. Throws are a little shorter (`airYardsScale` 0.92) to pay for it.
+  - Shortening throws further was tried and rejected: every yard taken from the air cost passing touchdowns and points before it bought enough long plays.
+- **Runs break open less often, and further.** Breakaway base 0.026, mean 20 yards.
+- **Fourth and short in easy range is no longer an automatic kick.** Inside the 38 with under 5 to go, a coach adds 0.25 to his chance of going for it, except late in the fourth within a kick.
+- **The calibration measures long plays.** It reports three diagnostics: plays of 20+ and 40+, and the share of long touchdowns.
+
+**Consequences.**
+- **Every saved league plays differently:** a save stores only the tuning its user moved. Save step 34, version 35.
+- **Field goals come close to the NFL; long plays move but stay short of it.** Field-goal attempts go from 2.42 to 2.09, within about 0.1–0.2 of the NFL. 40+ plays go from 0.03 to 0.23 a game, and long touchdowns from 5% to 18%. Passing touchdowns and points rise within their bands. One pass-heavy league goes 4 yards over its yards-per-game band, inside the test's tolerance.
+- **The rest of the gap is in ordinary gains.** Ordinary gains are too uniform for more 20-yard plays. Single changes that were tried (CALIBRATION.md pass 5) either barely moved them or broke third downs or total yards, so a fix has to rebalance the concept mix and completion by depth together.
+

@@ -198,13 +198,25 @@ internal object PassResolution {
         }
 
         // ---- caught ------------------------------------------------------
-        val air = (call.concept.airYards + rng.gaussian(0f, t.passing.airYardsSpread)).roundToInt()
+        val air = (call.concept.airYards * t.passing.airYardsScale + rng.gaussian(0f, t.passing.airYardsSpread)).roundToInt()
         val tackling = ctx.defense.secondary.averageRating(RatingId.TACKLE, dfs)
         val yacBase = (rate(receiver, RatingId.ELUSIVENESS, off) +
             rate(receiver, RatingId.BREAK_TACKLE, off)) / 2f
         var yac = (rng.exponential(t.passing.yacMean) + (yacBase - tackling) * t.passing.yacTackling) * t.passing.yacScale
         if (call.concept == PassConcept.SCREEN) yac += rng.exponential(t.passing.screenYac)
         if (!def.coverage.man) yac += t.passing.zoneYac
+        // Caught in stride with room to run: the long plays a game turns on.
+        val openField = (rate(receiver, RatingId.ELUSIVENESS, off) + rate(receiver, RatingId.SPEED, off)) / 2f
+        val breakChance = (t.passing.yacBreakawayBase +
+            (openField - 70f) * t.passing.yacBreakawayElusiveness -
+            (tackling - 70f) * t.passing.yacBreakawayTackling).coerceIn(0f, t.passing.yacBreakawayMax)
+        val broke = t.passing.yacBreakawayBase > 0f && rng.nextFloat() < breakChance
+        if (broke) {
+            val extra = rng.exponential(t.passing.yacBreakawayYards)
+            yac += extra
+            values["yacBreakawayYards"] = extra
+        }
+        values["yacBreakChance"] = breakChance
 
         val total = (air + yac).roundToInt().coerceIn(-4, ctx.state.yardsToGoal)
         values["airYards"] = air.toFloat()
@@ -239,7 +251,11 @@ internal object PassResolution {
             passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
             assister = helper?.id,
             log = SimLog(values, PlayLines.write(
-                if (total > 0) "pass.complete" else "pass.complete.nothing", ctx.words,
+                when {
+                    broke && total >= t.passing.catchAndRunYards -> "pass.catch_and_run"
+                    total > 0 -> "pass.complete"
+                    else -> "pass.complete.nothing"
+                }, ctx.words,
                 "qb" to qb.lastName, "receiver" to receiver.name, "concept" to call.concept.label,
                 "yards" to total, "yardage" to PlayLines.yardage(total))),
         )

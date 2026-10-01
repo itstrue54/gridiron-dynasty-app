@@ -214,6 +214,17 @@
     "{qb} connects with {receiver} on the {concept} for {yards}.",
     "{receiver} hauls in the {concept} from {qb}, {yardage}."
   ],
+  "pass.catch_and_run": [
+    "{qb} hits {receiver} in stride on the {concept}, and he is gone! {yardage}!",
+    "{receiver} catches the {concept}, makes a man miss, and runs for {yardage}!",
+    "{qb} to {receiver} on the {concept}, and nobody can catch him! {yardage}!",
+    "{receiver} turns the {concept} upfield and races {yardage}!",
+    "A short throw becomes a long gain: {receiver} takes the {concept} {yardage}!",
+    "{receiver} breaks a tackle after the catch on the {concept}, {yardage}!",
+    "{qb} finds {receiver} on the {concept} with room to run: {yardage}!",
+    "{receiver} splits the defence after the catch on the {concept}, a gain of {yards}!",
+    "The {concept} to {receiver}, and he is off! {yardage}!"
+  ],
   "pass.complete.nothing": [
     "{qb} finds {receiver} on the {concept}, but there is nothing after the catch.",
     "{receiver} catches the {concept} and is dropped at once.",

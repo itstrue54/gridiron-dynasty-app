@@ -158,4 +158,25 @@ class TradeOffersTest {
         val traded = assertNotNull(pause.trade(offers.first().proposal))
         assertEquals(offers.first().proposal.partner, traded.tradeBook.players.first { it.id.v == offers.first().target }.teamId)
     }
+
+    @Test
+    fun `a club tight against the cap still gets calls, from clubs that fit under it`() {
+        var d = weeks.last().first
+        while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
+        val open = com.nflsim.engine.offseason.OffseasonEngine.runToContracts(d).decide(null).tradeBook
+        // Dead money that leaves the user's club $5M under the cap. Each
+        // club's richest packages all add more than that, so a club that
+        // tried only those, before the cap, never called.
+        val left = 5_000
+        val room = TradeDesk.room(open, d.userTeamId, emptyList(), emptyList())
+        val book = open.copy(deadMoney = open.deadMoney + (d.userTeamId.v to (open.deadMoney[d.userTeamId.v] ?: 0) + room - left))
+        assertEquals(left, TradeDesk.room(book, d.userTeamId, emptyList(), emptyList()))
+        val offers = TradeOffers.atDraft(d, book)
+        assertTrue(offers.isNotEmpty(), "nobody called a club $5M under the cap")
+        offers.forEach { o ->
+            assertTrue(TradeDesk.evaluate(book, d.userTeamId, o.proposal).accepted, "${o.proposal}")
+            val men = book.players.filter { it.id.v in o.proposal.get }
+            assertTrue(TradeDesk.fitsCap(book, d.userTeamId, book.players.filter { it.id.v == o.target }, men))
+        }
+    }
 }

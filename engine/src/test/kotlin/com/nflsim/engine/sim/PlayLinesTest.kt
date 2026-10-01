@@ -36,6 +36,7 @@ class PlayLinesTest {
         "pass.incomplete" to setOf("qb", "concept", "receiver"),
         "pass.complete" to setOf("qb", "receiver", "concept", "yards", "yardage"),
         "pass.complete.nothing" to setOf("qb", "receiver", "concept"),
+        "pass.catch_and_run" to setOf("qb", "receiver", "concept", "yards", "yardage"),
         "run.fumble" to setOf("carrier", "concept"),
         "run.loss" to setOf("carrier", "concept", "loss", "stop"),
         "run.stuffed" to setOf("carrier", "concept", "stop"),
