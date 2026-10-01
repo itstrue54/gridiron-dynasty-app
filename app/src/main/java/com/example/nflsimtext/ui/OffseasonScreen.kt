@@ -35,25 +35,25 @@ fun OffseasonScreen(dynasty: Dynasty) {
     val report = dynasty.lastOffseason
     val team = dynasty.team
 
+    // Before the first offseason there is no report, but there is a cap:
+    // the front office's own numbers are the reason to open this tab.
     if (report == null) {
-        Column(Modifier.padding(NdTheme.spacing.xl)) {
-            Text("No offseason yet", style = NdTheme.type.title, color = NdTheme.colors.chalk)
-            Spacer(Modifier.height(NdTheme.spacing.s))
-            Text(
-                "Play a season through the playoffs and the year will turn over: " +
-                    "players retire and develop, contracts expire, the draft runs, " +
-                    "and the market opens.",
-                style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
-            )
+        ScreenList {
+            item {
+                Column {
+                    Text("Front office", style = NdTheme.type.display, color = NdTheme.colors.chalk)
+                    Text(
+                        "Your cap as it stands. Play the season through the playoffs and the year " +
+                            "turns over: players retire and develop, contracts expire, the draft runs, " +
+                            "and the market opens. Its report lands here.",
+                        style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
+                    )
+                }
+            }
+            item { CapSheet(dynasty) }
         }
         return
     }
-
-    val roster = dynasty.league.roster(team.id)
-    val cap = CapManagement.capFor(dynasty.year)
-    val committed = roster.sumOf { it.capHit(dynasty.year) }
-    val dead = team.finances.deadMoney
-    val carried = team.finances.carryover
 
     ScreenList {
         item {
@@ -71,25 +71,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
         }
 
         // ---- your cap sheet, which is the whole game ----
-        item {
-            Section("Your cap sheet") {
-                Line("salary cap", money(cap))
-                if (carried > 0) Line("carried over", money(carried))
-                Line("committed", money(committed))
-                if (dead > 0) Line("dead money", money(dead), warn = true)
-                Line("space", money(cap + carried - committed - dead), bold = true)
-                Spacer(Modifier.height(8.dp))
-                Text("Biggest hits", style = NdTheme.type.label, color = NdTheme.colors.chalkDim)
-                roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->
-                    val sch = if (p.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
-                              else SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
-                    Line(
-                        "${p.name}  ${p.position.label} ${overall(p, sch)}",
-                        money(p.capHit(dynasty.year)),
-                    )
-                }
-            }
-        }
+        item { CapSheet(dynasty) }
 
         // ---- what players said ----
         val yours = report.wishes.filter { it.team == team.id.v }
@@ -256,4 +238,32 @@ private fun Line(
 private fun money(thousands: Int): String = when {
     thousands >= 1_000 -> "$%.1fM".format(thousands / 1_000.0)
     else -> "$%dk".format(thousands)
+}
+
+/** The club's cap, and where it goes: the five biggest hits, read as the staff knows them (SPEC 4.6). */
+@Composable
+private fun CapSheet(dynasty: Dynasty) {
+    val team = dynasty.team
+    val roster = dynasty.league.roster(team.id)
+    val cap = CapManagement.capFor(dynasty.year)
+    val committed = roster.sumOf { it.capHit(dynasty.year) }
+    val dead = team.finances.deadMoney
+    val carried = team.finances.carryover
+    Section("Your cap sheet") {
+        Line("salary cap", money(cap))
+        if (carried > 0) Line("carried over", money(carried))
+        Line("committed", money(committed))
+        if (dead > 0) Line("dead money", money(dead), warn = true)
+        Line("space", money(cap + carried - committed - dead), bold = true)
+        Spacer(Modifier.height(8.dp))
+        Text("Biggest hits", style = NdTheme.type.label, color = NdTheme.colors.chalkDim)
+        roster.sortedByDescending { it.capHit(dynasty.year) }.take(5).forEach { p ->
+            val sch = if (p.position.isOffense) SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
+                      else SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
+            Line(
+                "${p.name}  ${p.position.label} ${lensFor(dynasty, p).view(overall(p, sch)).text}",
+                money(p.capHit(dynasty.year)),
+            )
+        }
+    }
 }
