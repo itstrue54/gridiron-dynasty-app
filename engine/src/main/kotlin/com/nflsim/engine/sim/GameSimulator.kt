@@ -242,6 +242,12 @@ class GameSimulator(
         var points = 0
         var ending = DriveEnding.END_OF_HALF
         var reachedRedZone = false
+        // Every second the clock runs while this drive has the ball is its
+        // possession: the snaps, and the punt, kick or try that ends it.
+        fun runClock(runoff: Int) {
+            seconds += minOf(runoff, state.secondsLeft)
+            state = advanceClock(state, runoff)
+        }
 
         while (true) {
             if (state.quarter > state.periods) { ending = DriveEnding.END_OF_GAME; break }
@@ -267,7 +273,7 @@ class GameSimulator(
                             narration = words)
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
-                        state = advanceClock(state, 12)
+                        runClock(12)
                         state = state.copy(
                             possession = offense.other(),
                             yardLine = (100 - landing).coerceIn(1, 99),
@@ -284,7 +290,7 @@ class GameSimulator(
                             clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams,
                             narration = words, weather = weather, weatherTuning = tuning.weather)
                         log(state, kick.narrative)
-                        state = advanceClock(state, 6)
+                        runClock(6)
                         if (kick.good) {
                             points += 3
                             state = addPoints(state, offense, 3)
@@ -325,8 +331,7 @@ class GameSimulator(
                 callerSide to caller.timeout(Snap(state, callerSide, playByPlay.toList()), suggested)
             } else null
             val clock = ClockManagement.after(state, offense, result, tuning.gameFlow, choice, outOfBounds)
-            state = advanceClock(state, clock.runoff)
-            seconds += clock.runoff
+            runClock(clock.runoff)
             clock.timeout?.let { side ->
                 state = if (side == Side.HOME) state.copy(homeTimeouts = state.homeTimeouts - 1)
                     else state.copy(awayTimeouts = state.awayTimeouts - 1)
@@ -352,7 +357,7 @@ class GameSimulator(
                     addTeam(offense) { it.copy(redZoneTouchdowns = it.redZoneTouchdowns + 1) }
                 }
                 ending = DriveEnding.TOUCHDOWN
-                state = advanceClock(state, 8)
+                runClock(8)
                 state = openWithKickoff(state, offense.other(), rng)
                 break
             }
@@ -760,14 +765,15 @@ class GameSimulator(
         }
     }
 
+    /**
+     * Runs the clock. A quarter ends when its clock does: a play that runs
+     * past zero takes nothing from the next quarter, which starts full.
+     */
     private fun advanceClock(state: GameState, seconds: Int): GameState {
-        var left = state.secondsLeft - seconds
-        var quarter = state.quarter
-        while (left <= 0 && quarter <= state.periods) {
-            quarter++
-            if (quarter <= state.periods) left += GameState.QUARTER_SECONDS else left = 0
-        }
-        return state.copy(quarter = quarter, secondsLeft = left.coerceAtLeast(0))
+        val left = state.secondsLeft - seconds
+        if (left > 0) return state.copy(secondsLeft = left)
+        val quarter = state.quarter + 1
+        return state.copy(quarter = quarter, secondsLeft = if (quarter <= state.periods) GameState.QUARTER_SECONDS else 0)
     }
 
     private fun addPoints(state: GameState, side: Side, points: Int): GameState =

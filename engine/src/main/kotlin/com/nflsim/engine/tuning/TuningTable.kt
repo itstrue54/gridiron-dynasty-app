@@ -509,7 +509,7 @@ data class TuningTable(
          * out of bounds: they give back the time, and plays per game stay in
          * their band (SPEC 13.2).
          */
-        val runPlayClockRunoff: Int = 36,
+        val runPlayClockRunoff: Int = 37,
         val completionClockRunoff: Int = 32,
         val incompleteClockRunoff: Int = 6,
         /** Added to every play caller's pass rate, league-wide, before down and distance. */
