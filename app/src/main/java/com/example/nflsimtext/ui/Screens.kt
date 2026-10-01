@@ -211,6 +211,13 @@ fun HubScreen(
             }
         }
 
+        // A new dynasty's first hub says how a week works, once.
+        if (dynasty.league.history.seasons.isEmpty() && dynasty.week == 1 &&
+            dynasty.phase == DynastyPhase.REGULAR_SEASON && dynasty.results.isEmpty()
+        ) {
+            item { WelcomeCard(onGlossary = { onNavigate(Tab.GLOSSARY) }) }
+        }
+
         item {
             Column {
                 Text(nextUpTitle(dynasty, next), style = NdTheme.type.headline, color = c.chalk)
@@ -301,7 +308,10 @@ fun HubScreen(
                     HubLink("News") { onNavigate(Tab.NEWS) }
                     HubLink("History") { onNavigate(Tab.HISTORY) }
                 }
-                HubLink("Settings: theme, saves, tuning") { onNavigate(Tab.SETTINGS) }
+                Row {
+                    HubLink("Glossary") { onNavigate(Tab.GLOSSARY) }
+                    HubLink("Settings: theme, saves, tuning") { onNavigate(Tab.SETTINGS) }
+                }
             }
         }
 
