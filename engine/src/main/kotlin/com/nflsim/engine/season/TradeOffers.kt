@@ -120,8 +120,12 @@ object TradeOffers {
                 // Men for men within both rosters' limits: one comes, the package's men go.
                 .filter { pkg -> pkg.count { it.player != null }.let { n ->
                     mine.size - 1 + n <= book.rosterLimit && theirs.size + 1 - n <= book.rosterLimit } }
+                // Within both clubs' caps: a user up against it still gets calls,
+                // from a club that pays in picks or cheaper men.
+                .filter { pkg -> pkg.mapNotNull { it.player }.let { men ->
+                    TradeDesk.fitsCap(book, user.id, listOf(star), men) && TradeDesk.fitsCap(book, club.id, men, listOf(star)) } }
                 .sortedByDescending { pkg -> pkg.sumOf { it.toUser.toDouble() } }
-                // The desk checks the roster and the cap as well; the club tries its best few there.
+                // The desk checks the rest; the club tries its best few there.
                 .take(t.tradeOfferPool)
                 .map { pkg ->
                     TradeDesk.Proposal(
