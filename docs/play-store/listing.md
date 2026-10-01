@@ -2,46 +2,36 @@
 
 ## Title (30 characters max)
 
-Gridiron Dynasty: Text GM
+Gridiron Dynasty: Football GM
 
 ## Short description (80 characters max)
 
-Run a football franchise for decades. Draft, sign, scout and build a dynasty.
+Draft, trade and call the plays. Build a football dynasty that lasts decades.
 
 ## Full description (4,000 characters max)
 
-You are the general manager. The games play themselves; everything else is on
-you.
+Take over a pro football club and build a dynasty that lasts for decades. Draft the players, sign them, trade for them, and call the plays when it matters - or let your coordinators run the game while you run the club.
 
-Build a football franchise across decades in a deep, text-driven simulation.
-Thirty-two fictional clubs, seventeen hundred players nobody has heard of, and
-a league that keeps its own history.
+Thirty-two fictional clubs and seventeen hundred players you will come to know: rookies you drafted, veterans you kept, and the ones that got away.
 
-**Run the front office**
-- Scout prospects through your own scouts - you never see a player's true
-  ratings, only what your people believe, and a club that watches a position
-  closely drafts it better.
-- Sit in the draft room and make your own picks while every other club drafts
-  through its own scouting.
-- Re-sign, tag, trade and bid in free agency under a real salary cap, where a
-  bad contract becomes dead money.
-- Hire and fire coaches, whose schemes and tendencies shape how your club plays.
+**Build the roster**
+- Scout the draft through your own scouts. You never see a player's true ratings, only what your people believe - and a range narrows as you get to know him.
+- Run your own draft room. Clubs call with offers for your players, and you can deal picks and players before the first pick.
+- Trade with any club before the deadline. Their general managers answer in their own words, call you with offers, and come knocking for anyone you put on the trade block.
+- Re-sign your stars, use the franchise tag, and bid in free agency under a real salary cap. Cut a bad contract and you still pay for it.
 
-**Set how you play**
-- Order your depth chart and pin players to packages.
-- Set a game plan: pass rate, play action, blitzing, fourth-down aggression.
-- Watch your games play by play, or simulate straight to the final.
+**Run the team**
+- Hire and fire coaches; their schemes and tendencies shape how your club plays.
+- Set your depth chart and a game plan: how often you pass, when you blitz, how often you go for it on fourth down.
+- Watch every game play by play, call the plays yourself, or skip straight to the final.
 
-**A league that remembers**
-- Players carry their careers season by season.
-- Champions, awards, league records and a hall of fame, voted from the careers
-  that have ended.
-- Weekly news: injuries, big games, career milestones, coaches on the hot seat.
+**Live with the consequences**
+- Agents haggle over every contract. Underpaid stars hold out of camp. Fans want the rookie quarterback when the veteran struggles.
+- Rival clubs make deadline deals, and players ask out of losing teams.
+- Every career is kept season by season: champions, awards, league records and a hall of fame.
 
 **Built to feel real**
-Calibrated against real league statistics, with fatigue, rotation and injuries
-at believable rates. Choose Realistic, Arcade or Grinder, or tune every value
-yourself.
+Calibrated against real league statistics - how often teams run and pass, how many points they score, how often the ball comes loose - with fatigue, injuries and weather. Play it Realistic, Arcade or Grinder, or tune every value yourself.
 
 No ads. No purchases. No accounts. No internet connection needed.
 
@@ -81,3 +71,9 @@ background colour, because Play asks for 16:9 or 9:16.
 
 Play needs at least two; all eight are worth uploading. Nothing in them
 is a mock-up - every number was played.
+
+**Retake before launch.** These were taken before the October 2026
+first-session fixes and show the old light theme and the old roster alert
+("Injured reserve took them"). Retake them on the current build, from a
+fictional club. Never use a save loaded from a real-roster file: Play will
+not accept NFL club or player names.
