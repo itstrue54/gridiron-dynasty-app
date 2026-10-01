@@ -2338,3 +2338,25 @@ values make save step 29 (nothing to move), version 30.
 - **Field goals come close to the NFL; long plays move but stay short of it.** Field-goal attempts go from 2.42 to 2.09, within about 0.1–0.2 of the NFL. 40+ plays go from 0.03 to 0.23 a game, and long touchdowns from 5% to 18%. Passing touchdowns and points rise within their bands. One pass-heavy league goes 4 yards over its yards-per-game band, inside the test's tolerance.
 - **The rest of the gap is in ordinary gains.** Ordinary gains are too uniform for more 20-yard plays. Single changes that were tried (CALIBRATION.md pass 5) either barely moved them or broke third downs or total yards, so a fix has to rebalance the concept mix and completion by depth together.
 
+## ADR-0xx — A pass's shape is tuned as a whole, by search
+
+**Context.**
+- Pass 5 left long plays at about 60% of the NFL's 20+ and 40% of its 40+.
+- Measured by concept, the sim threw mostly mid-range routes, almost no screens, completed deep balls too often, and varied a route's depth by only ±2 yards.
+- Pass 5 tried four single changes. Each either did nothing or broke third downs or total yards.
+
+**Decision.**
+- **Two new levers:**
+  - **Screens:** called at a set rate on early downs and third and long. Before, they could only arise from a depth pool that never reached them.
+  - **A one-sided depth tail:** a throw goes further than its route between the twenties, never shorter, so third-down throws still reach the sticks.
+- **First-down depth moves into the tuning table.** It was a literal in `PlayCaller`.
+- **Thirteen values are tuned together by random search** against a loss made from the bands and NFL targets. They are not hand-tuned one at a time: the levers interact. Every long play adds yards, and those have to come off the ordinary plays.
+
+**Consequences.**
+- **Long plays:** plays of 20+ go from 2.0 to 2.8 a game, 40+ from 0.23 to 0.34, and long touchdowns reach the NFL's 25%.
+- **Small costs:**
+  - field goals 2.09 → 2.16;
+  - third downs 0.385 → 0.378, still in band.
+- **No headroom left:** the search levelled off below the NFL's long-play rates within the yards band. Further progress needs a different structure, not more tuning.
+- **Saves:** every saved league takes the new defaults. Save step 35, version 36.
+

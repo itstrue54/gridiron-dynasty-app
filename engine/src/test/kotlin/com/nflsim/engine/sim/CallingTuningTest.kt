@@ -81,4 +81,28 @@ class CallingTuningTest {
         // Late and down three, the bonus is off: the kick ties it.
         assertEquals(goes(2, t.copy(goKickRange = 0f), quarter = 4, lead = -3), goes(2, t, quarter = 4, lead = -3))
     }
+
+    @Test
+    fun `screens are called at the table's rate, on early downs and third and long only`() {
+        val t = TuningTable.REALISTIC
+        fun screens(tuning: TuningTable, state: PlayState) = (0 until 300).count {
+            // All passes, and no shot plays: a shot is never a screen.
+            val c = ctx(tuning.copy(calling = tuning.calling.copy(passRateFloor = 1f, passRateCeiling = 1f)), state)
+                .copy(offPlan = com.nflsim.engine.model.GamePlan(deepShotRate = 0f))
+            val call = PlayCaller.offense(c, SplitMixRng(it.toLong()))
+            (call as OffensivePlayCall.Pass).concept == PassConcept.SCREEN
+        }
+        val always = t.copy(calling = t.calling.copy(screenRate = 1f))
+        val never = t.copy(calling = t.calling.copy(screenRate = 0f))
+        // A short first-down aim can still draw a screen from the depth pool;
+        // the rate is on top of that.
+        val firstDown = PlayState(down = 1, distance = 10, yardLine = 40)
+        assertTrue(screens(never, firstDown) < 60)
+        assertEquals(300, screens(always, firstDown))
+        assertEquals(300, screens(always, PlayState(down = 3, distance = t.calling.screenThirdDistance, yardLine = 40)))
+        // Third and short, and inside the five, the rate adds none.
+        for (s in listOf(PlayState(down = 3, distance = 4, yardLine = 40), PlayState(down = 1, distance = 4, yardLine = 96)))
+            assertEquals(screens(never, s), screens(always, s), "$s")
+    }
 }
+
