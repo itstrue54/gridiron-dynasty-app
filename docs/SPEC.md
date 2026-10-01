@@ -1150,6 +1150,8 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **History** | Champions, awards, records, franchise timeline, hall of fame |
 | **Settings / Tuning** | Sliders (§12), sim speed, autosave, export |
 
+Wherever ratings are read (the roster and the player card), a short legend says what the colours mean (90+ elite, 80s good, 70s starter, below 70) and what a range is. The roster says what Ovr, Scheme and Fit are, and gives fit as a letter, not a decimal. The trade screen labels the rating it shows as Ovr, the same number the roster leads with.
+
 ### 10.3 State pattern
 
 One `DynastyStore` owns the current `Dynasty`, the save slots, and the

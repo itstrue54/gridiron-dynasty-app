@@ -95,10 +95,11 @@ fun PlayerCardScreen(
                 )
             }
             Text(
-                if (ovr.exact) "The club knows him."
-                else "An estimate. The club has him somewhere from ${ovr.low} to ${ovr.high}.",
+                if (ovr.exact) "Overall ${ovr.point}. The club knows him."
+                else "Overall: an estimate. The club has him somewhere from ${ovr.low} to ${ovr.high}.",
                 style = NdTheme.type.caption, color = c.chalkDim,
             )
+            com.example.nflsimtext.ui.components.RatingLegend(Modifier.padding(top = NdTheme.spacing.xs))
             // Hurt, and how he is playing this month (SPEC 10.1). Form is not
             // talent: it is worth a few points on Sunday and nothing else.
             val form = player.form
@@ -131,7 +132,7 @@ fun PlayerCardScreen(
         item {
             SituationBlock(
                 "What the position asks for",
-                meta = player.position.label,
+                meta = "${player.position.label}, most important first",
             ) {
                 OverallWeights.forPosition(player.position).entries
                     .sortedByDescending { it.value }
