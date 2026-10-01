@@ -73,6 +73,7 @@ enum class Tab(val label: String) {
     /** SPEC 4.7: the transactions wire, behind the Hub. */
     WIRE("Transactions"),
     NEWS("News"),
+    SETTINGS("Settings"),
     /** SPEC 8.4: trades, behind the Hub to the deadline and in the draft room before the first pick. */
     TRADES("Trades"),
     /** SPEC 10.1: men who have noticed what they are paid, behind the Hub. */
@@ -123,6 +124,7 @@ fun DynastyApp(
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
             Tab.TRADES -> if (store.draftRoom != null) Tab.DRAFT else Tab.HUB
+            Tab.TUNING, Tab.GALLERY, Tab.SAVES -> Tab.SETTINGS
             else -> Tab.HUB
         }
     }
@@ -144,8 +146,7 @@ fun DynastyApp(
                     TeamPickerScreen(store.pendingLeague!!, store, scope) { begin() }
                 dynasty == null || !started -> StartScreen(store, scope) { begin() }
                 else -> when (tab) {
-                    Tab.HUB -> HubScreen(dynasty, store, scope, theme, onTheme, haptics, onHaptics,
-                        onNavigate = { tab = it }, onTitle = { started = false })
+                    Tab.HUB -> HubScreen(dynasty, store, scope, onNavigate = { tab = it })
                     Tab.STANDINGS -> StandingsScreen(dynasty)
                     Tab.ROSTER -> RosterScreen(
                         dynasty,
@@ -155,10 +156,10 @@ fun DynastyApp(
                     Tab.SCHEDULE -> ScheduleScreen(dynasty) { boxGame = it; tab = Tab.BOX }
                     Tab.OFFSEASON -> OffseasonScreen(dynasty)
                     Tab.BOX -> BoxScoreScreen(dynasty, boxGame)
-                    Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.HUB }
+                    Tab.TUNING -> TuningScreen(dynasty, store, scope) { tab = Tab.SETTINGS }
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
-                    Tab.GALLERY -> DesignGallery { tab = Tab.HUB }
+                    Tab.GALLERY -> DesignGallery { tab = Tab.SETTINGS }
                     Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope) { tab = Tab.ROSTER }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
@@ -167,7 +168,9 @@ fun DynastyApp(
                     Tab.WIRE -> TransactionsScreen(dynasty) { tab = Tab.HUB }
                     Tab.NEWS -> NewsScreen(dynasty) { tab = Tab.HUB }
                     Tab.DEMANDS -> DemandsScreen(dynasty, store, scope) { tab = Tab.HUB }
-                    Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.HUB }
+                    Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.SETTINGS }
+                    Tab.SETTINGS -> SettingsScreen(theme, onTheme, haptics, onHaptics,
+                        onNavigate = { tab = it }, onTitle = { started = false }, onBack = { tab = Tab.HUB })
                     Tab.CONTRACTS -> ContractsScreen(
                         dynasty, store, scope,
                         onDraft = { tab = Tab.FREE_AGENCY },
@@ -259,7 +262,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
-                    Tab.TRADES, Tab.NEWS,
+                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
