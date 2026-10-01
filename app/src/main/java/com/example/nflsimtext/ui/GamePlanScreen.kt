@@ -34,8 +34,15 @@ private class Lever(
     val default: Float,
     val range: ClosedFloatingPointRange<Float>,
     val percent: Boolean,
+    /** The value in plain words: what a coach would call it. */
+    val words: (Float) -> String,
     val set: (GamePlan, Float?) -> GamePlan,
 )
+
+/** Plain words for a value, by the bands it falls in, lowest first. */
+private fun bands(vararg cuts: Pair<Float, String>, top: String): (Float) -> String = { v ->
+    cuts.firstOrNull { (limit, _) -> v < limit }?.second ?: top
+}
 
 /**
  * SPEC 5.4's user control: you set the tendencies your coordinators call
@@ -56,44 +63,59 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
     }
 
     val offense = listOf(
-        Lever("Pass rate", "before down, distance and score", plan.passRate, staffPlan.passRate ?: off.basePassRate,
-            0.2f..0.85f, true) { p, v -> p.copy(passRate = v) },
-        Lever("Play action", "on early downs", plan.playActionRate, staffPlan.playActionRate ?: off.playActionRate,
-            0f..0.6f, true) { p, v -> p.copy(playActionRate = v) },
-        Lever("Deep shots", "follows play action unless set", plan.deepShotRate,
-            (plan.playActionRate ?: staffPlan.playActionRate ?: off.playActionRate) * GamePlan.DEEP_SHOT_SHARE,
-            0f..0.5f, true) { p, v -> p.copy(deepShotRate = v) },
-        Lever("Pass when trailing", "times the usual lean", plan.trailingPassScale, staffPlan.trailingPassScale ?: 1f,
-            0f..2f, false) { p, v -> p.copy(trailingPassScale = v) },
-        Lever("Two-minute pass boost", "when not leading", plan.twoMinutePassBoost, staffPlan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST,
-            0f..0.5f, true) { p, v -> p.copy(twoMinutePassBoost = v) },
-        Lever("Fourth-down aggression", "0 punts always, 1 goes for it", plan.fourthDownAggression,
-            staffPlan.fourthDownAggression ?: GamePlan.defaultAggression(team.id.v), 0f..1f, false) { p, v -> p.copy(fourthDownAggression = v) },
+        Lever("Pass rate", "How often your coordinator throws, before down, distance and score adjust it.",
+            plan.passRate, staffPlan.passRate ?: off.basePassRate, 0.2f..0.85f, true,
+            bands(0.40f to "Run-first", 0.52f to "Balanced", 0.62f to "Pass-first", top = "Air it out")) { p, v -> p.copy(passRate = v) },
+        Lever("Play action", "How often an early-down pass starts with a fake handoff.",
+            plan.playActionRate, staffPlan.playActionRate ?: off.playActionRate, 0f..0.6f, true,
+            bands(0.15f to "Rarely", 0.30f to "Sometimes", 0.45f to "Often", top = "Most of the time")) { p, v -> p.copy(playActionRate = v) },
+        Lever("Deep shots", "How often a pass goes deep. It follows play action unless you set it.",
+            plan.deepShotRate, (plan.playActionRate ?: staffPlan.playActionRate ?: off.playActionRate) * GamePlan.DEEP_SHOT_SHARE,
+            0f..0.5f, true, bands(0.10f to "Rarely", 0.20f to "Sometimes", 0.32f to "Often", top = "Every chance")) { p, v -> p.copy(deepShotRate = v) },
+        Lever("Pass when trailing", "How much more he throws when you are behind.",
+            plan.trailingPassScale, staffPlan.trailingPassScale ?: 1f, 0f..2f, false,
+            bands(0.75f to "Stays patient", 1.25f to "Like most coaches", top = "Throws to catch up")) { p, v -> p.copy(trailingPassScale = v) },
+        Lever("Two-minute drill", "How much more he throws late in a half when not leading.",
+            plan.twoMinutePassBoost, staffPlan.twoMinutePassBoost ?: GamePlan.TWO_MINUTE_BOOST, 0f..0.5f, true,
+            bands(0.10f to "Barely changes", 0.25f to "Speeds up", top = "All out")) { p, v -> p.copy(twoMinutePassBoost = v) },
+        Lever("Fourth down", "How often he goes for it on fourth down instead of kicking.",
+            plan.fourthDownAggression, staffPlan.fourthDownAggression ?: GamePlan.defaultAggression(team.id.v), 0f..1f, false,
+            bands(0.30f to "Conservative", 0.60f to "Balanced", 0.80f to "Aggressive", top = "Very aggressive")) { p, v -> p.copy(fourthDownAggression = v) },
     )
     val defense = listOf(
-        Lever("Blitz rate", "extra rushers", plan.blitzRate, staffPlan.blitzRate ?: def.blitzRate,
-            0f..0.7f, true) { p, v -> p.copy(blitzRate = v) },
-        Lever("Man coverage", "share of snaps in man", plan.manZoneSplit, staffPlan.manZoneSplit ?: def.manZoneSplit,
-            0f..1f, true) { p, v -> p.copy(manZoneSplit = v) },
-        Lever("Double their top receiver", "how often", plan.doubleTeamRate, staffPlan.doubleTeamRate ?: GamePlan.DOUBLE_TEAM_RATE,
-            0f..0.6f, true) { p, v -> p.copy(doubleTeamRate = v) },
+        Lever("Blitz", "How often extra rushers come after the quarterback.",
+            plan.blitzRate, staffPlan.blitzRate ?: def.blitzRate, 0f..0.7f, true,
+            bands(0.15f to "Rarely", 0.30f to "Sometimes", 0.45f to "Often", top = "All the time")) { p, v -> p.copy(blitzRate = v) },
+        Lever("Man or zone", "Man: each defender follows a receiver. Zone: each covers an area.",
+            plan.manZoneSplit, staffPlan.manZoneSplit ?: def.manZoneSplit, 0f..1f, true,
+            bands(0.35f to "Mostly zone", 0.65f to "Mixed", top = "Mostly man")) { p, v -> p.copy(manZoneSplit = v) },
+        Lever("Double their best receiver", "How often two defenders cover their top target.",
+            plan.doubleTeamRate, staffPlan.doubleTeamRate ?: GamePlan.DOUBLE_TEAM_RATE, 0f..0.6f, true,
+            bands(0.15f to "Rarely", 0.30f to "Sometimes", top = "Often")) { p, v -> p.copy(doubleTeamRate = v) },
     )
+    // The exact values, for the players who want them; plain words for everyone else.
+    var numbers by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
     ScreenList {
         item {
             Column {
                 Text("Game plan", style = NdTheme.type.display, color = NdTheme.colors.chalk)
                 Text(
-                    "Your coordinators call the plays; these set what they call from. " +
-                        "A lever you have not touched follows their tendencies in your schemes.",
+                    "When you play a week, your coordinators call the plays from these tendencies. " +
+                        "Leave one alone and it follows your staff. To call the plays yourself, " +
+                        "use Call the plays yourself on the hub.",
                     style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
+                )
+                SecondaryButton(
+                    if (numbers) "Hide the numbers" else "Show the numbers", { numbers = !numbers },
+                    Modifier.padding(top = NdTheme.spacing.s),
                 )
             }
         }
         item {
             SituationBlock("Offense", meta = off.name) {
                 offense.forEach { l ->
-                    LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
+                    LeverRow(l, numbers, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
                         onReset = { save(l.set(plan, null)) })
                 }
             }
@@ -101,7 +123,7 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
         item {
             SituationBlock("Defense", meta = def.name) {
                 defense.forEach { l ->
-                    LeverRow(l, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
+                    LeverRow(l, numbers, onChange = { v -> plan = l.set(plan, v) }, onDone = { save(plan) },
                         onReset = { save(l.set(plan, null)) })
                 }
             }
@@ -122,7 +144,7 @@ fun GamePlanScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope,
 }
 
 @Composable
-private fun LeverRow(l: Lever, onChange: (Float) -> Unit, onDone: () -> Unit, onReset: () -> Unit) {
+private fun LeverRow(l: Lever, numbers: Boolean, onChange: (Float) -> Unit, onDone: () -> Unit, onReset: () -> Unit) {
     val c = NdTheme.colors
     val shown = (l.value ?: l.default).coerceIn(l.range.start, l.range.endInclusive)
     Column(Modifier.padding(vertical = NdTheme.spacing.xs)) {
@@ -137,14 +159,15 @@ private fun LeverRow(l: Lever, onChange: (Float) -> Unit, onDone: () -> Unit, on
                 Text(l.note, style = NdTheme.type.caption, color = c.chalkDim)
             }
             Text(
-                if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown),
+                if (!numbers) l.words(shown)
+                else if (l.percent) "${(shown * 100).roundToInt()}%" else "%.2f".format(shown),
                 style = NdTheme.type.data,
                 color = if (l.value != null) c.chalk else c.chalkDim,
             )
-            // An untouched lever says whose number it is showing.
+            // An untouched lever says whose call it is showing.
             if (l.value == null) {
                 Text(
-                    " staff",
+                    if (numbers) " staff" else "",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )
             } else {
