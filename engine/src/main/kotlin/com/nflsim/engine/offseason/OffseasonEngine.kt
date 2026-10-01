@@ -963,10 +963,11 @@ object OffseasonEngine {
                 // The chart price of the move, chart as-is with no timeline
                 // tilt, paid in the cheapest one or two later picks that cover
                 // it: this draft's at their slots, future ones by PickValue.
-                val gap = (PickValue.points(to + 1) - PickValue.points(from + 1)) / PickValue.POINTS_PER_VALUE
-                val pieces = later.map { k -> Triple<PickAsset?, Int?, Float>(null, k, PickValue.points(k + 1) / PickValue.POINTS_PER_VALUE) } +
+                val tt = ctx.league.tuning.trades
+                val gap = (PickValue.points(to + 1, tt) - PickValue.points(from + 1, tt)) / tt.pointsPerValue
+                val pieces = later.map { k -> Triple<PickAsset?, Int?, Float>(null, k, PickValue.points(k + 1, tt) / tt.pointsPerValue) } +
                     held.filter { it.owner == buyer.v && it.year > ctx.newYear }
-                        .map { Triple<PickAsset?, Int?, Float>(it, null, PickValue.value(it, ctx.newYear, order, 0.5f)) }
+                        .map { Triple<PickAsset?, Int?, Float>(it, null, PickValue.value(it, ctx.newYear, order, 0.5f, tt)) }
                 val pay = (pieces.map { listOf(it) } +
                     pieces.indices.flatMap { x -> (x + 1 until pieces.size).map { y -> listOf(pieces[x], pieces[y]) } })
                     .filter { pkg -> pkg.sumOf { it.third.toDouble() } >= gap }
@@ -1249,7 +1250,7 @@ object OffseasonEngine {
         state: OffseasonState,
     ): OffseasonState {
         val result = FifthYearOptions.decide(
-            state.players, ctx.newYear, ctx.scheme, state.requirePricer(), state.depthRank)
+            state.players, ctx.newYear, ctx.scheme, state.requirePricer(), state.depthRank, ctx.league.tuning.ai)
         return state.copy(
             players = result.players,
             optionsExercised = result.exercised,

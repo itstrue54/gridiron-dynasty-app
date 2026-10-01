@@ -69,7 +69,7 @@ class ContractsPause internal constructor(
                 Expiring(
                     player = p,
                     market = market,
-                    asking = Extensions.asking(p, market),
+                    asking = Extensions.asking(p, market, ctx.league.tuning.ai),
                     years = MarketValue.termFor(p.age(year), depth = 0),
                     franchise = FranchiseTag.price(p, FranchiseTag.FRANCHISE, franchise, transition),
                     transition = FranchiseTag.price(p, FranchiseTag.TRANSITION, franchise, transition),
@@ -251,7 +251,7 @@ class ContractsPause internal constructor(
                 ContractChoice.RESIGN -> {
                     val deal = deal(e, d)
                     if (deal.capNow > space) return@forEach
-                    byId[p.id.v] = Extensions.kept(p, userTeam, deal.annual, year).copy(contract = deal.contract)
+                    byId[p.id.v] = Extensions.kept(p, userTeam, deal.annual, year, ctx.league.tuning.ai).copy(contract = deal.contract)
                     space -= deal.capNow
                     signings += Signing(p.id.v, p.name, p.position.label, userTeam.v,
                         deal.annual, deal.years, e.market, suitors = 1)

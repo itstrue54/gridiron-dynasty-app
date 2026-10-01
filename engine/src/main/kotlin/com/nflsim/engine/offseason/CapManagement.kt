@@ -108,19 +108,19 @@ object CapManagement {
             var restructured = 0
             while (committed(roster, year) + dead > cap && restructured < (restructures ?: team.gm.restructures)) {
                 val target = roster
-                    .filter { it.contract?.isActive(year) == true && it.capHit(year) > BIG_DEAL }
+                    .filter { it.contract?.isActive(year) == true && it.capHit(year) > league.tuning.ai.capBigDeal }
                     .maxByOrNull { it.capHit(year) } ?: break
                 val room = (target.contract!!.baseSalary
                     .getOrElse(target.contract!!.yearIndex(year)) { 0 } - Contract.MIN_BASE_SALARY)
                 if (room <= 0) break
-                val moved = (room * RESTRUCTURE_SHARE).toInt()
+                val moved = (room * league.tuning.ai.restructureShare).toInt()
                 if (moved <= 0) break
                 roster[roster.indexOf(target)] = target.copy(
                     contract = target.contract!!.restructure(year, moved))
                 restructured++
             }
 
-            while (committed(roster, year) + dead > cap && roster.size > MIN_ROSTER && guard < 60) {
+            while (committed(roster, year) + dead > cap && roster.size > league.tuning.ai.capMinRoster && guard < 60) {
                 guard++
                 val candidate = roster
                     .filter { canRelease(it, roster, scheme, team.id) }
@@ -191,15 +191,15 @@ object CapManagement {
             val roster = (byTeam[team.id] ?: emptyList()).toMutableList()
             var cuts = 0
 
-            while (cuts < MAX_VALUE_CUTS) {
+            while (cuts < league.tuning.ai.capMaxValueCuts) {
                 val candidate = roster
                     .filter { p ->
                         val worth = price(p, scheme(team.id, p.position))
                         val hit = p.capHit(year)
                         val saving = hit - (p.contract?.deadCap(year)?.thisYear ?: 0)
                         hit > worth * team.gm.patience &&
-                            hit > BIG_DEAL &&
-                            saving > MEANINGFUL_SAVING &&
+                            hit > league.tuning.ai.capBigDeal &&
+                            saving > league.tuning.ai.capMeaningfulSaving &&
                             roster.count { it.position == p.position } >
                                 TeamNeeds.requiredStarters(p.position)
                     }
@@ -225,17 +225,4 @@ object CapManagement {
         val untouched = players.filter { it.teamId == null }
         return Triple(kept + released + untouched, dead, notes)
     }
-
-    private const val MIN_ROSTER = 46
-
-    /** Cap hit worth restructuring or cutting over, in thousands. */
-    private const val BIG_DEAL = 6_000
-
-    /** How much of a restructurable base salary gets converted. */
-    /** Of the base salary a club may move into bonus, how much it moves. */
-    const val RESTRUCTURE_SHARE = 0.6f
-
-    private const val MEANINGFUL_SAVING = 2_500
-
-    private const val MAX_VALUE_CUTS = 3
 }

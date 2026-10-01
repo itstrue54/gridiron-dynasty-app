@@ -581,7 +581,7 @@ class OffseasonTest {
             rostered = listOf(star, bust), scheme = { offense }, year = year,
             payroll = 100_000L, cap = CapManagement.capFor(year))
 
-        val result = FifthYearOptions.decide(listOf(star, bust) + veterans, year, scheme, pricer, emptyMap())
+        val result = FifthYearOptions.decide(listOf(star, bust) + veterans, year, scheme, pricer, emptyMap(), com.nflsim.engine.tuning.TuningTable.REALISTIC.ai)
         val starDeal = result.players.first { it.id == star.id }.contract!!
         val bustDeal = result.players.first { it.id == bust.id }.contract!!
 
@@ -611,10 +611,11 @@ class OffseasonTest {
 
     @Test
     fun `picks are valued by the Johnson chart`() {
-        assertEquals(3000f, PickValue.points(1))
-        assertEquals(590f, PickValue.points(32))
-        assertEquals(2f, PickValue.points(224))
-        assertEquals(1f, PickValue.points(250), "past the chart a pick is worth a point")
+        val t = com.nflsim.engine.tuning.TuningTable.REALISTIC.trades
+        assertEquals(3000f, PickValue.points(1, t))
+        assertEquals(590f, PickValue.points(32, t))
+        assertEquals(2f, PickValue.points(224, t))
+        assertEquals(1f, PickValue.points(250, t), "past the chart a pick is worth a point")
 
         val order = league.teams.map { it.id }
         val fifth = order[4]
@@ -623,8 +624,8 @@ class OffseasonTest {
         assertEquals(48, PickValue.slot(pick(2028, 1), 2027, order), "next year's first is valued mid-second")
 
         val nowFirst = pick(2027, 1)
-        assertEquals(1700f / PickValue.POINTS_PER_VALUE, PickValue.value(nowFirst, 2027, order, 0.5f), 0.001f)
-        assertTrue(PickValue.value(nowFirst, 2027, order, 0f) > PickValue.value(nowFirst, 2027, order, 1f),
+        assertEquals(1700f / t.pointsPerValue, PickValue.value(nowFirst, 2027, order, 0.5f, t), 0.001f)
+        assertTrue(PickValue.value(nowFirst, 2027, order, 0f, t) > PickValue.value(nowFirst, 2027, order, 1f, t),
             "a rebuilding club prizes a pick more than an all-in one")
     }
 

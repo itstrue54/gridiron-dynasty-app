@@ -32,6 +32,8 @@ data class TuningTable(
     val fourthDown: FourthDown = FourthDown(),
     val weather: Weather = Weather(),
     val adaptation: Adaptation = Adaptation(),
+    val trades: Trades = Trades(),
+    val intent: Intent = Intent(),
 ) {
     @Serializable
     data class Passing(
@@ -605,6 +607,85 @@ data class TuningTable(
         val faReserveOfCap: Float = 0.4f,
         /** Swaps a full roster makes in free agency by releasing a worse player. */
         val faMaxUpgrades: Int = 3,
+        /** Rating points a free agent has to clear a full roster's weakest player by. */
+        val faUpgradeMargin: Float = 4f,
+        /** A veteran worth this share of the biggest deal allowed is a key signing a losing club pays extra for. */
+        val faKeyVeteranShare: Float = 0.10f,
+        /** Opening ask, as a multiple of market, and how much of it is left each day he goes unsigned. */
+        val faOpeningPremium: Float = 1.20f,
+        val faDailyDecay: Float = 0.955f,
+        /** A club only looks at positions it needs past this, and a need is worth this many rating points on its board. */
+        val faNeedFloor: Float = 0.20f,
+        val faNeedWeight: Float = 14f,
+        /** How far a club's board, and its read of an upgrade, varies from the numbers. */
+        val faBoardSpread: Float = 4f,
+        val faUpgradeSpread: Float = 2f,
+        /** Players a club bids on a day. */
+        val faTargetsPerDay: Int = 4,
+        /** A club with less than this many minimum salaries of room past its reserve bids on nobody new. */
+        val faMinSpace: Int = 3,
+        /** Players worth this much a year let the market form for this many days, unless an offer beats the ask by [faHoldoutOverride]. */
+        val faHoldoutValue: Int = 12_000,
+        val faHoldoutDays: Int = 3,
+        val faHoldoutOverride: Float = 1.25f,
+        /** What scheme fit and a winning club are worth to a free agent against money. */
+        val faFitAppeal: Float = 0.30f,
+        val faWinningAppeal: Float = 0.35f,
+        /** Loyalty to the club he played for: loyalty over this adds to its offer's appeal. */
+        val faHomeLoyalty: Float = 400f,
+        /** The guaranteed share of a market deal: this, plus this much for each other suitor, up to this many. */
+        val faGuaranteeBase: Float = 0.40f,
+        val faGuaranteePerSuitor: Float = 0.04f,
+        val faGuaranteeSuitors: Int = 4,
+        /**
+         * Keeping one's own before the market (offseason.Extensions). Room on
+         * the roster left for the draft and the market: at 46 rosters filled
+         * to 53 before the market opened.
+         */
+        val extRosterTarget: Int = 40,
+        /** What a player asks to stay, as a share of market: 1.06 for the least loyal down to 0.90 for the most. */
+        val extPlayerAsk: Float = 1.06f,
+        val extPlayerLoyalty: Float = 0.16f,
+        /** How far a club goes to keep its own: 0.94 of market up to 1.08 with loyalty. */
+        val extClubLimit: Float = 0.94f,
+        val extClubLoyalty: Float = 0.14f,
+        /** Most that a starter the market cannot replace adds to the limit, and the rating gap that makes him so. */
+        val extIrreplaceable: Float = 0.12f,
+        val extIrreplaceableGap: Float = 10f,
+        /** From this age win now moves the limit, by up to this much either way; and how far aggression stretches it. */
+        val extPrimeAge: Int = 27,
+        val extWinNowKeep: Float = 0.08f,
+        val extAggressionKeep: Float = 0.06f,
+        /** Below this multiple of the minimum, let him hit the market. */
+        val extKeepThreshold: Float = 1.6f,
+        /** How a club ranks its own: need in rating points, loyalty (over this), and how much it varies. */
+        val extNeedWeight: Float = 10f,
+        val extLoyaltyWeight: Float = 25f,
+        val extSpread: Float = 5f,
+        /** A club with no more than this many minimum salaries of room extends nobody. */
+        val extMinSpace: Int = 4,
+        /** The guaranteed share of a re-signing. */
+        val extGuarantee: Float = 0.50f,
+        /**
+         * A club tags a player worth at least this many times the tag. The
+         * transition tag needs more: it only buys the right to match. Swept
+         * over five seeds: franchise 0.9 gave 13.6 tags a year, 1.15 gave 8.3,
+         * 1.3 gave 6.5-7.2 (the NFL's five to eight); transition 1.3 gave 4.2,
+         * 1.6 gave 0.5 (the NFL's 0-1).
+         */
+        val tagWorth: Float = 1.3f,
+        val tagTransitionWorth: Float = 1.6f,
+        /** Cap compliance: a club cuts to get under the cap no further than this many men. */
+        val capMinRoster: Int = 46,
+        /** A cap hit worth restructuring or cutting over, in thousands. */
+        val capBigDeal: Int = 6_000,
+        /** A release worth making for value saves at least this much, and a club makes at most this many. */
+        val capMeaningfulSaving: Int = 2_500,
+        val capMaxValueCuts: Int = 3,
+        /** Of the base salary a club may move into bonus, how much it moves. */
+        val restructureShare: Float = 0.6f,
+        /** A club takes a fifth-year option when the player is worth at least this share of it. */
+        val optionBar: Float = 0.9f,
         /** Contender trades: the record that makes a club think it is close, and the win-now bars to buy and to sell. */
         val contenderWinPct: Float = 0.55f,
         val buyerWinNow: Float = 0.6f,
@@ -808,6 +889,114 @@ data class TuningTable(
             perSnapSecondary = perSnapSecondary * k, perSnapQuarterback = perSnapQuarterback * k,
         )
     }
+
+    /**
+     * Trades between clubs (SPEC 8.4): what a draft pick is worth, and how a
+     * contender buys a star (offseason.ContenderTrades, at the deadline too).
+     */
+    @Serializable
+    data class Trades(
+        /**
+         * The Johnson chart, points by overall pick 1-224; past the end a pick
+         * is worth 1. Clubs trade by it as NFL front offices do.
+         */
+        val pickChart: List<Float> = listOf(
+            3000f, 2600f, 2200f, 1800f, 1700f, 1600f, 1500f, 1400f,
+            1350f, 1300f, 1250f, 1200f, 1150f, 1100f, 1050f, 1000f,
+            950f, 900f, 875f, 850f, 800f, 780f, 760f, 740f,
+            720f, 700f, 680f, 660f, 640f, 620f, 600f, 590f,
+            580f, 560f, 550f, 540f, 530f, 520f, 510f, 500f,
+            490f, 480f, 470f, 460f, 450f, 440f, 430f, 420f,
+            410f, 400f, 390f, 380f, 370f, 360f, 350f, 340f,
+            330f, 320f, 310f, 300f, 292f, 284f, 276f, 270f,
+            265f, 260f, 255f, 250f, 245f, 240f, 235f, 230f,
+            225f, 220f, 215f, 210f, 205f, 200f, 195f, 190f,
+            185f, 180f, 175f, 170f, 165f, 160f, 155f, 150f,
+            145f, 140f, 136f, 132f, 128f, 124f, 120f, 116f,
+            112f, 108f, 104f, 100f, 96f, 92f, 88f, 86f,
+            84f, 82f, 80f, 78f, 76f, 74f, 72f, 70f,
+            68f, 66f, 64f, 62f, 60f, 58f, 56f, 54f,
+            52f, 50f, 49f, 48f, 47f, 46f, 45f, 44f,
+            43f, 42f, 41f, 40f, 39.5f, 39f, 38.5f, 38f,
+            37.5f, 37f, 36.5f, 36f, 35.5f, 35f, 34.5f, 34f,
+            33.5f, 33f, 32.6f, 32.3f, 31.8f, 31.4f, 31f, 30.6f,
+            30.2f, 29.8f, 29.4f, 29f, 28.6f, 28.2f, 27.8f, 27.4f,
+            27f, 26.6f, 26.2f, 25.8f, 25.4f, 25f, 24.6f, 24.2f,
+            23.8f, 23.4f, 23f, 22.6f, 22.2f, 21.8f, 21.4f, 21f,
+            20.6f, 20.2f, 19.8f, 19.4f, 19f, 18.6f, 18.2f, 17.8f,
+            17.4f, 17f, 16.6f, 16.2f, 15.8f, 15.4f, 15f, 14.6f,
+            14.2f, 13.8f, 13.4f, 13f, 12.6f, 12.2f, 11.8f, 11.4f,
+            11f, 10.6f, 10.2f, 9.8f, 9.4f, 9f, 8.6f, 8.2f,
+            7.8f, 7.4f, 7f, 6.6f, 6.2f, 5.8f, 5.4f, 5f,
+            4.6f, 4.2f, 3.8f, 3.4f, 3f, 2.6f, 2.3f, 2f,
+        ),
+        /** Chart points per point of player value (rating above replacement), measured from this league's drafts. */
+        val pointsPerValue: Float = 59f,
+        /** How far a club's timeline tilts what a pick is worth: at win now 0 a quarter more, at 1 a quarter less. */
+        val pickTimeline: Float = 0.5f,
+        /** Need at a position that counts as a real hole, and how many a contender can have and still be close. */
+        val holeNeed: Float = 0.35f,
+        val maxHoles: Int = 2,
+        /** A star: this good, and old enough to be proven. */
+        val starOverall: Int = 78,
+        val starMinAge: Int = 27,
+        /** The oldest star a contender takes: [starMinAge] plus this, plus up to [starAgeRisk] years for risk tolerance. */
+        val starAgeSpan: Int = 3,
+        val starAgeRisk: Float = 4f,
+        /** Young enough to be the future a rebuilding club is buying. */
+        val youngAge: Int = 25,
+        /** How many of the pieces a seller wants most a contender builds its package from. */
+        val packagePool: Int = 6,
+        /** Aggression from which a contender goes back for a second player. */
+        val secondDealAggression: Float = 0.75f,
+        /** Under this win percentage a club sells whatever its GM's timeline. */
+        val sellerWinPct: Float = 0.5f,
+    )
+
+    /**
+     * What players tell their clubs in the spring (offseason.PlayerIntent):
+     * who has a voice, what makes him unhappy, when he asks out, and who
+     * takes a man who asked.
+     */
+    @Serializable
+    data class Intent(
+        /** Below this rating a player has no leverage and knows it. */
+        val voice: Int = 68,
+        /** Good enough to start somewhere, if not here. */
+        val starterQuality: Int = 72,
+        /** Unhappy enough to say something, and to ask out. */
+        val grumble: Float = 0.30f,
+        val demand: Float = 0.62f,
+        /** How much less a money grievance pushes a player out the door. */
+        val moneyPatience: Float = 0.42f,
+        /** What a refused in-season demand adds to his nerve in the spring; it has to clear [moneyPatience]. */
+        val refusedNerve: Float = 0.95f,
+        /** Losing: the share of games lost past which it grates, scaled, and weighted by age from [losingAgeFrom] over [losingAgeYears]. */
+        val losingFrom: Float = 0.45f,
+        val losingScale: Float = 2f,
+        val losingAgeFrom: Int = 26,
+        val losingAgeYears: Float = 6f,
+        val losingAgeMin: Float = 0.25f,
+        val losingAgeMax: Float = 1.4f,
+        /** Buried: a starter-quality man behind somebody, and more for each place further down. */
+        val buriedBase: Float = 0.35f,
+        val buriedPerRank: Float = 0.22f,
+        /** Underpaid: his market past this many times his cap hit, up to [underpaidMax]. */
+        val underpaidFrom: Float = 1.35f,
+        val underpaidMax: Float = 1.2f,
+        /** Loyalty quiets him: loyalty over this comes off his nerve; and how much nerve varies man to man. */
+        val loyaltyQuiet: Float = 160f,
+        val nerveSpread: Float = 0.18f,
+        /** A suitor has to value him above what he costs by this much. */
+        val suitorWorth: Float = 1.15f,
+        /** Win rate that reads as a contender to a player who wants to win. */
+        val contenderWinPct: Float = 0.55f,
+        /** How a suitor is chosen: scheme fit, winning, surplus over his cost (per this many thousand), and chance. */
+        val suitorFit: Float = 6f,
+        val suitorWinning: Float = 10f,
+        val suitorSurplus: Float = 1_500f,
+        val suitorSpread: Float = 2f,
+    )
 
     companion object {
         val REALISTIC = TuningTable()

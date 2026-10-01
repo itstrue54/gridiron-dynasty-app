@@ -45,10 +45,10 @@ object FreeAgency {
     data class Offer(val player: Int, val annual: Int, val years: Int)
 
     /** What a free agent opens asking, against what he is worth. */
-    fun openingAsk(market: Int): Int = (market * OPENING_PREMIUM).roundToInt()
+    fun openingAsk(market: Int, t: TuningTable.Ai): Int = (market * t.faOpeningPremium).roundToInt()
 
     /** How far his ask falls each day he goes unsigned, as a share. */
-    val dailyCut: Float get() = 1f - DAILY_DECAY
+    fun dailyCut(t: TuningTable.Ai): Float = 1f - t.faDailyDecay
 
     data class Result(
         val players: List<Player>,
@@ -105,13 +105,14 @@ object FreeAgency {
         val dead = deadMoney.toMutableMap()
         val upgradeCuts = mutableListOf<Release>()
         val upgrades = mutableMapOf<Int, Int>()
+        val t = league.tuning.ai
 
         // What each player is asking, and what he is actually worth. The gap
         // between them is the negotiation.
         val market = pool.associate { p ->
             p.id.v to pricer.annual(p, scheme(null, p.position), year)
         }.toMutableMap()
-        val asking = market.mapValues { (_, v) -> v * OPENING_PREMIUM }.toMutableMap()
+        val asking = market.mapValues { (_, v) -> v * t.faOpeningPremium }.toMutableMap()
         val needBar = TeamNeeds.bar(roster) { id, pos -> scheme(id, pos) }
 
         repeat(DAYS) { day ->
@@ -132,7 +133,7 @@ object FreeAgency {
                         space -= o.annual
                         bids.getOrPut(o.player) { mutableListOf() } += Bid(
                             team = team.id, annual = o.annual, years = o.years,
-                            appeal = appealOf(p, team.id, o.annual, worth, scheme, winPct),
+                            appeal = appealOf(p, team.id, o.annual, worth, scheme, winPct, t),
                         )
                     }
                     return@forEach
@@ -166,7 +167,7 @@ object FreeAgency {
                 }
 
                 val space = rawSpace - reserve(front.spendShare, year, league.tuning.ai.faReserveOfCap)
-                if (space < Contract.MIN_BASE_SALARY * 3) return@forEach
+                if (space < Contract.MIN_BASE_SALARY * t.faMinSpace) return@forEach
 
                 val needs = TeamNeeds.assess(current, { pos -> scheme(team.id, pos) }, year, needBar)
                 val dayRng = rng.split("bid|${team.id.v}|$day")
@@ -180,14 +181,14 @@ object FreeAgency {
                 // is not a stable ordering: TimSort notices and throws
                 // "comparison method violates its general contract".
                 val board = pool
-                    .filter { (needs[it.position] ?: 0f) > NEED_FLOOR }
+                    .filter { (needs[it.position] ?: 0f) > t.faNeedFloor }
                     .map { p ->
                         p to rosterValue(p, scheme(team.id, p.position), year, front.winNowVsFuture) +
-                            (needs[p.position] ?: 0f) * NEED_WEIGHT +
-                            dayRng.gaussian(0f, 4f)
+                            (needs[p.position] ?: 0f) * t.faNeedWeight +
+                            dayRng.gaussian(0f, t.faBoardSpread)
                     }
                     .sortedByDescending { it.second }
-                    .take(TARGETS_PER_DAY)
+                    .take(t.faTargetsPerDay)
                     .map { it.first }
 
                 board.forEach { p ->
@@ -196,7 +197,7 @@ object FreeAgency {
                     val willing = (worth *
                         (1f + need * league.tuning.ai.faNeedPremium) *
                         front.premium *
-                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, league.tuning.ai.faLosingPremium)).roundToInt()
+                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, t.faLosingPremium, t.faKeyVeteranShare)).roundToInt()
                         .coerceAtMost((space * front.singleDealShare).toInt()
                             .coerceAtLeast(Contract.MIN_BASE_SALARY))
                         .coerceAtMost(pricer.maxAnnual)
@@ -207,7 +208,7 @@ object FreeAgency {
                         team = team.id,
                         annual = willing,
                         years = MarketValue.termFor(p.age(year), depth = 0),
-                        appeal = appealOf(p, team.id, willing, worth, scheme, winPct),
+                        appeal = appealOf(p, team.id, willing, worth, scheme, winPct, t),
                     )
                 }
             }
@@ -247,19 +248,19 @@ object FreeAgency {
                         }
                     } ?: 0
                     val hit = Contract.of(years = b.years, totalValue = b.annual * b.years, signedYear = year,
-                        guaranteedShare = 0.40f + (offers.size - 1).coerceAtMost(4) * 0.04f).capHit(year)
+                        guaranteedShare = t.faGuaranteeBase + (offers.size - 1).coerceAtMost(t.faGuaranteeSuitors) * t.faGuaranteePerSuitor).capHit(year)
                     room + freed >= hit
                 }
                 // A loyal player gives his old club the benefit of the doubt.
                 val best = live.maxByOrNull { b ->
-                    b.appeal + if (previousTeam[id] == b.team) player.traits.loyalty / 400f else 0f
+                    b.appeal + if (previousTeam[id] == b.team) player.traits.loyalty / t.faHomeLoyalty else 0f
                 } ?: return@forEach
                 val ask = asking[id] ?: return@forEach
 
                 // The best players let the market form before they sign. It is
                 // also the only way a bidding war ever gets a second round.
-                val holdout = (market[id] ?: 0) >= HOLDOUT_VALUE && day < HOLDOUT_DAYS
-                if (holdout && best.annual < ask * HOLDOUT_OVERRIDE) return@forEach
+                val holdout = (market[id] ?: 0) >= t.faHoldoutValue && day < t.faHoldoutDays
+                if (holdout && best.annual < ask * t.faHoldoutOverride) return@forEach
                 if (best.annual < ask) return@forEach
 
                 // A transition tag: his old club may match the offer he takes (CBA).
@@ -275,7 +276,7 @@ object FreeAgency {
                     years = best.years,
                     totalValue = best.annual * best.years,
                     signedYear = year,
-                    guaranteedShare = 0.40f + (live.size - 1).coerceAtMost(4) * 0.04f,
+                    guaranteedShare = t.faGuaranteeBase + (live.size - 1).coerceAtMost(t.faGuaranteeSuitors) * t.faGuaranteePerSuitor,
                 )
                 val hired = player.copy(
                     teamId = team,
@@ -312,7 +313,7 @@ object FreeAgency {
 
             pool.removeAll { it.id.v in signed }
             // Everyone still unsigned comes down a little.
-            pool.forEach { p -> asking[p.id.v] = (asking[p.id.v] ?: 0f) * DAILY_DECAY }
+            pool.forEach { p -> asking[p.id.v] = (asking[p.id.v] ?: 0f) * t.faDailyDecay }
             // Released today, on the market tomorrow at what he is worth.
             pool += released
         }
@@ -361,33 +362,32 @@ object FreeAgency {
             val out = weakest[p.position] ?: return@mapNotNull null
             val sch = scheme(team.id, p.position)
             val gain = rosterValue(p, sch, year, winNow) - rosterValue(out, sch, year, winNow)
-            if (gain < UPGRADE_MARGIN) return@mapNotNull null
+            if (gain < ai.faUpgradeMargin) return@mapNotNull null
             val worth = market[p.id.v] ?: return@mapNotNull null
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
             val budget = rawSpace + freed - reserve(front.spendShare, year, ai.faReserveOfCap)
             if (budget < Contract.MIN_BASE_SALARY) return@mapNotNull null
             val willing = (worth * front.premium *
-                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, ai.faLosingPremium)).roundToInt()
+                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, ai.faLosingPremium, ai.faKeyVeteranShare)).roundToInt()
                 .coerceAtMost((budget * front.singleDealShare).toInt()
                     .coerceAtLeast(Contract.MIN_BASE_SALARY))
                 .coerceAtMost(pricer.maxAnnual)
             if (willing < worth * ai.faLowballFloor) return@mapNotNull null
-            Upgrade(p, out, worth, willing, gain + rng.gaussian(0f, 2f))
+            Upgrade(p, out, worth, willing, gain + rng.gaussian(0f, ai.faUpgradeSpread))
         }
             .sortedByDescending { it.score }
-            .take(TARGETS_PER_DAY)
+            .take(ai.faTargetsPerDay)
             .forEach { u ->
                 bids.getOrPut(u.player.id.v) { mutableListOf() } += Bid(
                     team = team.id,
                     annual = u.willing,
                     years = MarketValue.termFor(u.player.age(year), depth = 0),
-                    appeal = appealOf(u.player, team.id, u.willing, u.worth, scheme, winPct),
+                    appeal = appealOf(u.player, team.id, u.willing, u.worth, scheme, winPct, ai),
                     replaces = u.out.id.v,
                 )
             }
     }
 
-    /** Rating points a free agent has to clear a full roster's weakest player by. */
     /**
      * The cap a front office keeps free through the market, in money. Spend
      * share used to scale whatever space was left each day, and ten days of
@@ -397,24 +397,20 @@ object FreeAgency {
     private fun reserve(spendShare: Float, year: Int, reserveOfCap: Float): Int =
         (CapManagement.capFor(year) * (1f - spendShare) * reserveOfCap).toInt()
 
-
-    private const val UPGRADE_MARGIN = 4f
-
-
     /**
      * What a losing club adds to win a key veteran. Free agents prefer a
      * winner - it is in how they rank offers - so a bad club that wants a
      * proven starter has to pay for being bad. A .500 club adds nothing.
      */
-    internal fun losingPremium(player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int, premium: Float = TuningTable.REALISTIC.ai.faLosingPremium): Float {
-        val key = player.age(year) >= AGE_CLIFF && worth >= maxAnnual * KEY_VETERAN_SHARE
+    internal fun losingPremium(
+        player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int,
+        premium: Float = TuningTable.REALISTIC.ai.faLosingPremium,
+        keyShare: Float = TuningTable.REALISTIC.ai.faKeyVeteranShare,
+    ): Float {
+        val key = player.age(year) >= AGE_CLIFF && worth >= maxAnnual * keyShare
         if (!key) return 1f
         return 1f + ((0.5f - winPct) * 2f).coerceAtLeast(0f) * premium
     }
-
-    /** A veteran worth this share of the biggest deal allowed is a key signing. */
-    private const val KEY_VETERAN_SHARE = 0.10f
-
 
     /**
      * What a player thinks of an offer. Money leads by a distance, but not so
@@ -428,14 +424,15 @@ object FreeAgency {
         worth: Int,
         scheme: (TeamId?, Position) -> Scheme,
         winPct: (TeamId) -> Float,
+        t: TuningTable.Ai,
     ): Float {
         val money = annual.toFloat() / worth.coerceAtLeast(1)
         val fit = com.nflsim.engine.ratings.schemeFit(player, scheme(team, player.position))
         // Players notice who wins, and the ones running out of seasons notice
         // hardest. It is not enough to outbid a contender for a thirty-three
         // year old - which is the whole reason a good team can sign anyone.
-        val winning = winPct(team) * WINNING_APPEAL
-        return money + fit * FIT_APPEAL + winning
+        val winning = winPct(team) * t.faWinningAppeal
+        return money + fit * t.faFitAppeal + winning
     }
 
     /**
@@ -445,32 +442,4 @@ object FreeAgency {
      */
     private const val ROSTER_TARGET = League.ROSTER_SIZE - DraftRunner.ROUNDS
 
-    /** Opening ask, as a multiple of market. */
-    private const val OPENING_PREMIUM = 1.20f
-
-    /** How fast an unsigned player's price falls, per day. */
-    private const val DAILY_DECAY = 0.955f
-
-    /** A team only looks at positions it actually needs. */
-    private const val NEED_FLOOR = 0.20f
-
-    /** Rating points a need is worth when ranking the board. */
-    private const val NEED_WEIGHT = 14f
-
-
-
-    private const val TARGETS_PER_DAY = 4
-
-    /** Players worth this much let the market form before signing. */
-    private const val HOLDOUT_VALUE = 12_000
-
-    private const val HOLDOUT_DAYS = 3
-
-    /** Unless somebody blows them away on day one. */
-    private const val HOLDOUT_OVERRIDE = 1.25f
-
-    private const val FIT_APPEAL = 0.30f
-
-    /** How much a winning team is worth against money. */
-    private const val WINNING_APPEAL = 0.35f
 }

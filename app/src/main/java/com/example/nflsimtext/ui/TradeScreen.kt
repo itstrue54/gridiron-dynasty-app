@@ -279,7 +279,7 @@ private fun PickPieces(picks: List<PickAsset>, chosen: List<PickAsset>, label: (
 private fun shortfall(book: TradeDesk.Book, winNow: Float, short: Float): String {
     val mid = book.order.getOrNull(book.order.size / 2)?.v ?: 0
     val cover = (7 downTo 1).firstOrNull { round ->
-        PickValue.value(PickAsset(book.draftYear, round, mid, mid), book.draftYear, book.order, winNow) >= short
+        PickValue.value(PickAsset(book.draftYear, round, mid, mid), book.draftYear, book.order, winNow, book.league.tuning.trades) >= short
     }
     return if (cover == null) "They'd want more than a first-round pick besides."
         else "About a round $cover pick short of what they'd want."
