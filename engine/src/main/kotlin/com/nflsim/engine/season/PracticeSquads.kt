@@ -90,7 +90,7 @@ object PracticeSquads {
         }
         fun value(team: Team, p: Player): Float {
             val (off, def) = schemes.getValue(team.id)
-            return rosterValue(p, if (p.position.isOffense) off else def, year, team.gm.winNowVsFuture)
+            return rosterValue(p, if (p.position.isOffense) off else def, year, team.gm.winNowVsFuture, tuning.ai)
         }
 
         var nextId = (players.maxOfOrNull { it.id.v } ?: 0) + 1

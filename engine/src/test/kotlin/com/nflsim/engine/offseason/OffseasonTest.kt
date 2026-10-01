@@ -180,7 +180,7 @@ class OffseasonTest {
         val own = league.roster(team.id)
         val receivers = own.filter { it.position == Position.WR }
         val roster = receivers + own.filter { it.position != Position.WR }.take(target - receivers.size)
-        val weakest = receivers.minBy { rosterValue(it, offense, year) }
+        val weakest = receivers.minBy { rosterValue(it, offense, year, t = league.tuning.ai) }
 
         val star = league.players
             .filter { it.position == Position.WR && it.teamId != team.id }
@@ -359,7 +359,7 @@ class OffseasonTest {
             ratings = com.nflsim.engine.model.Ratings.uniform(42),
             contract = Contract.of(years = 1, totalValue = 900, signedYear = year,
                 bonusShare = 0f, guaranteedShare = 0f))
-        assertTrue(rosterValue(veteran, offense, year) > rosterValue(rookie, offense, year),
+        assertTrue(rosterValue(veteran, offense, year, t = league.tuning.ai) > rosterValue(rookie, offense, year, t = league.tuning.ai),
             "the veteran should be the better player on ability alone")
 
         val after = OffseasonEngine.enforceRosterLimit(
@@ -377,12 +377,12 @@ class OffseasonTest {
         val veteran = template.copy(birthYear = year - 32)
         val prime = template.copy(birthYear = year - 27)
         val rookie = template.copy(birthYear = year - 22)
-        fun value(p: com.nflsim.engine.model.Player, winNow: Float) = rosterValue(p, scheme, year, winNow)
+        fun value(p: com.nflsim.engine.model.Player, winNow: Float) = rosterValue(p, scheme, year, winNow, league.tuning.ai)
 
         assertTrue(value(veteran, 1f) > value(veteran, 0f), "an all-in club should discount a veteran less")
         assertTrue(value(rookie, 0f) > value(rookie, 1f), "a rebuilding club should pay for youth")
         // The middle of the scale is the ranking the league was tuned with.
-        assertEquals(value(prime, 0.5f) - (32 - AGE_CLIFF) * AGE_PENALTY, value(veteran, 0.5f), 0.01f)
+        assertEquals(value(prime, 0.5f) - (32 - league.tuning.ai.valueAgeCliff) * league.tuning.ai.valueAgePenalty, value(veteran, 0.5f), 0.01f)
         assertEquals(value(prime, 0.5f), value(rookie, 0.5f), 0.01f)
     }
 

@@ -238,7 +238,7 @@ object PlayerIntent {
             // valued on that club's timeline by the Johnson chart, as in
             // ContenderTrades. A player worth nothing to them fetches nothing.
             val winNow = league.teams.first { it.id == from }.gm.winNowVsFuture
-            val value = (rosterValue(player, ctx.scheme(from, player.position), ctx.year, winNow) -
+            val value = (rosterValue(player, ctx.scheme(from, player.position), ctx.year, winNow, league.tuning.ai) -
                 com.nflsim.engine.econ.MarketValue.REPLACEMENT).coerceAtLeast(0f)
             held.filter { it.owner == suitor.v }
                 .map { it to PickValue.value(it, ctx.year, order, winNow, league.tuning.trades) }

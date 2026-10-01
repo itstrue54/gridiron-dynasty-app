@@ -75,7 +75,7 @@ object Extensions {
             val mine = free
                 .filter { previousTeam[it.id.v] == team.id }
                 .map { p ->
-                    p to rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
+                    p to rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture, t) +
                         (needs[p.position] ?: 0f) * t.extNeedWeight +
                         p.traits.loyalty / t.extLoyaltyWeight +
                         teamRng.gaussian(0f, t.extSpread)
@@ -141,10 +141,10 @@ object Extensions {
         year: Int,
         t: com.nflsim.engine.tuning.TuningTable.Ai,
     ): Float {
-        val value = rosterValue(player, scheme, year, gm.winNowVsFuture)
+        val value = rosterValue(player, scheme, year, gm.winNowVsFuture, t)
         val alternative = market
             .filter { it.position == player.position && it.id != player.id }
-            .maxOfOrNull { rosterValue(it, scheme, year, gm.winNowVsFuture) }
+            .maxOfOrNull { rosterValue(it, scheme, year, gm.winNowVsFuture, t) }
         val gap = if (alternative == null) t.extIrreplaceableGap else value - alternative
         val irreplaceable = (needs[player.position] ?: 0f) *
             (gap / t.extIrreplaceableGap).coerceIn(0f, 1f) * t.extIrreplaceable

@@ -58,7 +58,7 @@ object PlaySimulator {
         val discipline = (ctx.offense.line + listOf(ctx.offense.quarterback))
             .averageRating(RatingId.DISCIPLINE, offScheme)
         val falseStart = (t.perPlayBase * t.falseStartShare) *
-            (1.5f - discipline / 99f) *
+            (t.disciplineFactor - discipline / t.disciplineRange) *
             (1f + (ctx.crowdNoise / 100f) * t.crowdNoiseScale)
 
         if (rng.nextFloat() < falseStart) {
@@ -72,7 +72,7 @@ object PlaySimulator {
         }
 
         val defDiscipline = ctx.defense.passRushers.averageRating(RatingId.DISCIPLINE, ctx.defense.scheme)
-        val offside = (t.perPlayBase * t.offsideShare) * (1.5f - defDiscipline / 99f) *
+        val offside = (t.perPlayBase * t.offsideShare) * (t.disciplineFactor - defDiscipline / t.disciplineRange) *
             (if (def.isBlitz) t.offsideBlitz else 1f)
         if (rng.nextFloat() < offside) {
             val guilty = ctx.defense.passRushers.minByOrNull { rate(it, RatingId.DISCIPLINE, ctx.defense.scheme) }
@@ -99,8 +99,8 @@ object PlaySimulator {
         // Holding gets called when a lineman is losing. That is not a
         // coincidence in real football and it should not be here either.
         if (call is OffensivePlayCall.Pass && result.outcome != PlayOutcome.SACK) {
-            val protectionStress = result.log["pressureChance"] ?: 0.3f
-            val holding = t.perPlayBase * t.passHoldingShare * (0.5f + protectionStress)
+            val protectionStress = result.log["pressureChance"] ?: t.defaultPressure
+            val holding = t.perPlayBase * t.passHoldingShare * (t.holdingBase + protectionStress)
             if (rng.nextFloat() < holding) {
                 val guilty = ctx.offense.line.minByOrNull { rate(it, RatingId.PASS_BLOCK, offScheme) }
                 return result.copy(
@@ -115,14 +115,14 @@ object PlaySimulator {
         // Pass interference on a contested throw downfield.
         if (call is OffensivePlayCall.Pass &&
             result.outcome == PlayOutcome.INCOMPLETE &&
-            call.concept.airYards >= 12
+            call.concept.airYards >= t.passInterferenceAirYards
         ) {
             val routeWin = result.log["routeWin"] ?: 0f
-            val dpiChance = t.perPlayBase * t.passInterferenceShare * (1f + (routeWin / t.passInterferenceSeparation).coerceIn(-0.5f, 1.2f))
+            val dpiChance = t.perPlayBase * t.passInterferenceShare * (1f + (routeWin / t.passInterferenceSeparation).coerceIn(t.passInterferenceMin, t.passInterferenceMax))
             if (rng.nextFloat() < dpiChance) {
                 // coerceIn(min, max) throws when min exceeds max, and inside the
                 // six yard line it would. Cap at the goal line first.
-                val spot = (call.concept.airYards + rng.gaussian(0f, 2f)).roundToInt()
+                val spot = (call.concept.airYards + rng.gaussian(0f, t.passInterferenceSpotSpread)).roundToInt()
                     .coerceAtMost(ctx.state.yardsToGoal)
                     .coerceAtLeast(1)
                 return result.copy(

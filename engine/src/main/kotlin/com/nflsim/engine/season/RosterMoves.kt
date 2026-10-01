@@ -98,7 +98,7 @@ object RosterMoves {
         val offence = SchemeCatalog.tuned(club.offenseScheme, tuning)
         val defence = SchemeCatalog.tuned(club.defenseScheme, tuning)
         fun value(p: Player) = rosterValue(
-            p, if (p.position.isOffense) offence else defence, league.year, club.gm.winNowVsFuture)
+            p, if (p.position.isOffense) offence else defence, league.year, club.gm.winNowVsFuture, tuning.ai)
         fun apply(outcome: Transactions.Outcome): Boolean {
             if (outcome is Transactions.Outcome.Done) league = outcome.league
             return outcome is Transactions.Outcome.Done

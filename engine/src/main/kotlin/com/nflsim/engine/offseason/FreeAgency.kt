@@ -183,7 +183,7 @@ object FreeAgency {
                 val board = pool
                     .filter { (needs[it.position] ?: 0f) > t.faNeedFloor }
                     .map { p ->
-                        p to rosterValue(p, scheme(team.id, p.position), year, front.winNowVsFuture) +
+                        p to rosterValue(p, scheme(team.id, p.position), year, front.winNowVsFuture, t) +
                             (needs[p.position] ?: 0f) * t.faNeedWeight +
                             dayRng.gaussian(0f, t.faBoardSpread)
                     }
@@ -197,7 +197,7 @@ object FreeAgency {
                     val willing = (worth *
                         (1f + need * league.tuning.ai.faNeedPremium) *
                         front.premium *
-                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, t.faLosingPremium, t.faKeyVeteranShare)).roundToInt()
+                        losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, t.faLosingPremium, t.faKeyVeteranShare, t.valueAgeCliff)).roundToInt()
                         .coerceAtMost((space * front.singleDealShare).toInt()
                             .coerceAtLeast(Contract.MIN_BASE_SALARY))
                         .coerceAtMost(pricer.maxAnnual)
@@ -353,7 +353,7 @@ object FreeAgency {
         val front = team.gm
         val winNow = front.winNowVsFuture
         val weakest = current.groupBy { it.position }.mapValues { (pos, group) ->
-            group.minByOrNull { rosterValue(it, scheme(team.id, pos), year, winNow) }
+            group.minByOrNull { rosterValue(it, scheme(team.id, pos), year, winNow, ai) }
         }
         // Affordability is checked before ranking. Ranking by gain first put
         // the best players on the market - none within one deal's share of
@@ -361,14 +361,14 @@ object FreeAgency {
         pool.mapNotNull { p ->
             val out = weakest[p.position] ?: return@mapNotNull null
             val sch = scheme(team.id, p.position)
-            val gain = rosterValue(p, sch, year, winNow) - rosterValue(out, sch, year, winNow)
+            val gain = rosterValue(p, sch, year, winNow, ai) - rosterValue(out, sch, year, winNow, ai)
             if (gain < ai.faUpgradeMargin) return@mapNotNull null
             val worth = market[p.id.v] ?: return@mapNotNull null
             val freed = out.capHit(year) - (out.contract?.deadCap(year)?.thisYear ?: 0)
             val budget = rawSpace + freed - reserve(front.spendShare, year, ai.faReserveOfCap)
             if (budget < Contract.MIN_BASE_SALARY) return@mapNotNull null
             val willing = (worth * front.premium *
-                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, ai.faLosingPremium, ai.faKeyVeteranShare)).roundToInt()
+                losingPremium(p, worth, winPct(team.id), year, pricer.maxAnnual, ai.faLosingPremium, ai.faKeyVeteranShare, ai.valueAgeCliff)).roundToInt()
                 .coerceAtMost((budget * front.singleDealShare).toInt()
                     .coerceAtLeast(Contract.MIN_BASE_SALARY))
                 .coerceAtMost(pricer.maxAnnual)
@@ -406,8 +406,9 @@ object FreeAgency {
         player: Player, worth: Int, winPct: Float, year: Int, maxAnnual: Int,
         premium: Float = TuningTable.REALISTIC.ai.faLosingPremium,
         keyShare: Float = TuningTable.REALISTIC.ai.faKeyVeteranShare,
+        ageCliff: Int = TuningTable.REALISTIC.ai.valueAgeCliff,
     ): Float {
-        val key = player.age(year) >= AGE_CLIFF && worth >= maxAnnual * keyShare
+        val key = player.age(year) >= ageCliff && worth >= maxAnnual * keyShare
         if (!key) return 1f
         return 1f + ((0.5f - winPct) * 2f).coerceAtLeast(0f) * premium
     }

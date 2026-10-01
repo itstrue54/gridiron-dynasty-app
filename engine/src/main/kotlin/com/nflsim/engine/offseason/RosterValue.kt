@@ -4,6 +4,7 @@ import com.nflsim.engine.model.Player
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * How a front office ranks a player for a roster spot: what he is now, how
@@ -20,23 +21,12 @@ import com.nflsim.engine.ratings.schemeFit
  * [winNow] is the club's GmProfile.winNowVsFuture. An all-in front office
  * discounts age at half the usual rate and a rebuilding one at one and a
  * half, and a rebuilder pays for youth that an all-in club counts slightly
- * against. At 0.5 this is exactly the ranking ADR-004 was tuned with.
+ * against. At 0.5 this is exactly the ranking ADR-004 was tuned with. The
+ * age curve and fit weight are tuning (ai.value*).
  */
-fun rosterValue(player: Player, scheme: Scheme, year: Int, winNow: Float = 0.5f): Float {
+fun rosterValue(player: Player, scheme: Scheme, year: Int, winNow: Float = 0.5f, t: TuningTable.Ai): Float {
     val age = player.age(year)
-    val decline = (age - AGE_CLIFF).coerceAtLeast(0) * AGE_PENALTY * (1.5f - winNow)
-    val youth = (YOUTH_AGE - age).coerceAtLeast(0) * YOUTH_WEIGHT * (1f - 2f * winNow)
-    return overall(player, scheme) + schemeFit(player, scheme) * 8f - decline + youth
+    val decline = (age - t.valueAgeCliff).coerceAtLeast(0) * t.valueAgePenalty * (1.5f - winNow)
+    val youth = (t.valueYouthAge - age).coerceAtLeast(0) * t.valueYouthWeight * (1f - 2f * winNow)
+    return overall(player, scheme) + schemeFit(player, scheme) * t.valueFitWeight - decline + youth
 }
-
-/** Age past which a team starts discounting a player. */
-const val AGE_CLIFF = 29
-
-/** Rating points of discount per year past the cliff, for a club in the middle. */
-const val AGE_PENALTY = 2.2f
-
-/** Age below which a rebuilding club pays for upside. */
-const val YOUTH_AGE = 26
-
-/** Rating points per year under YOUTH_AGE that a full rebuild adds and an all-in club subtracts. */
-const val YOUTH_WEIGHT = 1f

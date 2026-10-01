@@ -1,6 +1,7 @@
 package com.nflsim.engine.ratings
 
 import com.nflsim.engine.rng.SplitMixRng
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * What a club can see of a hidden trait (SPEC 4.5, 4.6). Never a number: a
@@ -15,16 +16,16 @@ import com.nflsim.engine.rng.SplitMixRng
  */
 object TraitScouting {
 
-    fun confidence(yearsWithClub: Int, scoutingDept: Int): Float =
-        ScoutingLens.ownPlayer(yearsWithClub, scoutingDept)
+    fun confidence(yearsWithClub: Int, scoutingDept: Int, t: TuningTable.Scouting): Float =
+        ScoutingLens.ownPlayer(yearsWithClub, scoutingDept, t)
 
-    fun grade(trueValue: Int, confidence: Float, playerId: Int, trait: String): String {
-        if (confidence < RANGE_AT) return "?"
-        if (confidence >= EXACT_AT) return letter(trueValue.toFloat())
+    fun grade(trueValue: Int, confidence: Float, playerId: Int, trait: String, t: TuningTable.Scouting): String {
+        if (confidence < t.rangeAt) return "?"
+        if (confidence >= t.exactAt) return letter(trueValue.toFloat())
         val miss = SplitMixRng(playerId.toLong() * 31 + trait.hashCode()).gaussian()
-        val half = BAND * (1f - confidence)
+        val half = t.traitBand * (1f - confidence)
         val estimate = trueValue + miss * half
-        if (confidence >= GRADE_AT) return letter(estimate)
+        if (confidence >= t.gradeAt) return letter(estimate)
         val low = letter(estimate - half)
         val high = letter(estimate + half)
         return if (low == high) low else "$low-$high"
@@ -37,12 +38,4 @@ object TraitScouting {
         value >= 35f -> "D"
         else -> "F"
     }
-
-    /** SPEC 4.6's thresholds, shared with the ratings lens. */
-    private const val RANGE_AT = ScoutingLens.RANGE_AT
-    private const val GRADE_AT = ScoutingLens.GRADE_AT
-    private const val EXACT_AT = ScoutingLens.EXACT_AT
-
-    /** Half-width of the band in trait points at zero confidence; traits span wider than ratings. */
-    private const val BAND = 30f
 }

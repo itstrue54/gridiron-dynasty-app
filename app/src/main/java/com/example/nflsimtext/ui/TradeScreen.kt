@@ -75,7 +75,7 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     // How the user's club reads a man: his own as his staff knows them, theirs as a newcomer would.
     fun read(p: Player): String {
         val lens = if (p.teamId == user) lensFor(dynasty, p)
-            else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, dynasty.team.staff.scoutingDept))
+            else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, dynasty.team.staff.scoutingDept, book.league.tuning.scouting), book.league.tuning.scouting)
         return lens.view(overall(p, book.scheme(user, p.position))).text
     }
     fun label(p: Player): String {

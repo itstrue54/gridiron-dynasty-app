@@ -61,13 +61,13 @@ object ContractDisputes {
     fun pending(league: League, team: TeamId, stats: Map<Int, StatLine> = emptyMap()): List<Ask> {
         val waiting = league.roster(team).filter { it.demand == DemandState.PENDING }
         if (waiting.isEmpty()) return emptyList()
-        val pricer = pricer(league, Production.index(league.players, stats))
+        val pricer = pricer(league, Production.index(league.players, stats, league.tuning.ai))
         return waiting.map { ask(league, it, pricer) }.sortedByDescending { it.market }
     }
 
     fun ask(league: League, player: Player, stats: Map<Int, StatLine> = emptyMap()): Ask? {
         if (player.contract == null) return null
-        return ask(league, player, pricer(league, Production.index(league.players, stats)))
+        return ask(league, player, pricer(league, Production.index(league.players, stats, league.tuning.ai)))
     }
 
     /** A named figure is his market from then on, at least: he was told it, and so was the club. */
@@ -93,7 +93,7 @@ object ContractDisputes {
         if (week < t.disputeFirstWeek || week > t.disputeLastWeek) {
             return Result(pressure(league, userTeam), emptyList())
         }
-        val pricer = pricer(league, Production.index(league.players, stats))
+        val pricer = pricer(league, Production.index(league.players, stats, league.tuning.ai))
         val news = mutableListOf<NewsEvent>()
         var out = league
         // The wording has its own stream, so how a story is told never moves
@@ -198,7 +198,7 @@ object ContractDisputes {
         rng: Rng,
     ): Result {
         val t = league.tuning.ai
-        val pricer = pricer(league, Production.index(league.players, stats))
+        val pricer = pricer(league, Production.index(league.players, stats, league.tuning.ai))
         val words = rng.split("headlines")
         val news = mutableListOf<NewsEvent>()
         var out = league
@@ -298,7 +298,7 @@ object ContractDisputes {
         share: Float,
         week: Int = 0,
         stats: Map<Int, StatLine> = emptyMap(),
-    ): Transactions.Outcome = offer(league, team, playerId, share, week, pricer(league, Production.index(league.players, stats)))
+    ): Transactions.Outcome = offer(league, team, playerId, share, week, pricer(league, Production.index(league.players, stats, league.tuning.ai)))
 
     private fun offer(
         league: League,
@@ -400,7 +400,7 @@ object ContractDisputes {
         val man = league.playersById[playerId] ?: return Transactions.Outcome.Refused("There is no such player.")
         val asking = ask(league, man, stats) ?: return Transactions.Outcome.Refused("${man.name} has no contract to fix.")
         return if (canAfford(league, team, asking)) {
-            haggle(league, league.team(team), playerId, week, pricer(league, Production.index(league.players, stats)))
+            haggle(league, league.team(team), playerId, week, pricer(league, Production.index(league.players, stats, league.tuning.ai)))
         } else refuse(league, team, playerId, week)
     }
 
@@ -414,7 +414,7 @@ object ContractDisputes {
         years: Int? = null,
         structure: com.nflsim.engine.offseason.ContractOptions.Structure? = null,
     ): Transactions.Outcome = extend(
-        league, team, playerId, week, pricer(league, Production.index(league.players, stats)), years, structure)
+        league, team, playerId, week, pricer(league, Production.index(league.players, stats, league.tuning.ai)), years, structure)
 
     private fun extend(
         league: League,

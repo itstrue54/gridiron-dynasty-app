@@ -95,7 +95,7 @@ object TradeDesk {
 
     /** What [club] makes of [p]: his worth to its roster on its timeline, past a replacement's. */
     fun value(book: Book, p: Player, club: Team): Float =
-        (rosterValue(p, book.scheme(club.id, p.position), book.year, club.gm.winNowVsFuture) - MarketValue.REPLACEMENT)
+        (rosterValue(p, book.scheme(club.id, p.position), book.year, club.gm.winNowVsFuture, book.league.tuning.ai) - MarketValue.REPLACEMENT)
             .coerceAtLeast(0f)
 
     fun value(book: Book, pick: PickAsset, club: Team): Float =

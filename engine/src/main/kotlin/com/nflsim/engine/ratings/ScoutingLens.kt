@@ -1,6 +1,7 @@
 package com.nflsim.engine.ratings
 
 import com.nflsim.engine.rng.SplitMixRng
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * What a club believes a rating is (docs/SPEC.md 4.6).
@@ -10,10 +11,14 @@ import com.nflsim.engine.rng.SplitMixRng
  * 12 points wide at no confidence and closes to a point or two for a
  * well-known veteran, without ever reaching certainty.
  */
-data class RatingView(val point: Int, val low: Int, val high: Int, val confidence: Float) {
-
+data class RatingView(
+    val point: Int,
+    val low: Int,
+    val high: Int,
+    val confidence: Float,
     /** True once a club has seen enough that the estimate is the rating. */
-    val exact: Boolean get() = confidence >= ScoutingLens.EXACT_AT
+    val exact: Boolean,
+) {
 
     /** "82" for a player a club knows, "78-86" for one it is still guessing at. */
     val text: String get() = if (exact || low == high) "$point" else "$low-$high"
@@ -30,49 +35,43 @@ data class RatingView(val point: Int, val low: Int, val high: Int, val confidenc
 class ScoutingLens private constructor(
     val confidence: Float,
     private val bias: Float,
+    private val t: TuningTable.Scouting,
 ) {
 
     /** The club's estimate of [trueRating], with the band it would show. */
     fun view(trueRating: Int): RatingView {
-        val half = (BAND * (1f - confidence)).coerceAtLeast(0f)
-        if (confidence >= EXACT_AT) {
-            return RatingView(trueRating, trueRating, trueRating, confidence)
+        val half = (t.band * (1f - confidence)).coerceAtLeast(0f)
+        if (confidence >= t.exactAt) {
+            return RatingView(trueRating, trueRating, trueRating, confidence, exact = true)
         }
         // The band has to be worth reading: the miss is half of it, so the
         // rating sits inside the band the club is shown about nineteen times
         // in twenty. A club can still be badly wrong about a man - that is
         // the whole point of a draft - but not so wrong that the band it
         // published meant nothing.
-        val point = (trueRating + bias.coerceIn(-2f, 2f) * half * 0.5f).toInt().coerceIn(0, 99)
+        val point = (trueRating + bias.coerceIn(-t.biasClamp, t.biasClamp) * half * t.missShare).toInt().coerceIn(0, 99)
         return RatingView(
             point = point,
             low = (point - half).toInt().coerceIn(0, 99),
             high = (point + half).toInt().coerceIn(0, 99),
             confidence = confidence,
+            exact = false,
         )
     }
 
     companion object {
-        /** Band half-width at no confidence at all (docs/SPEC.md 4.6). */
-        const val BAND = 12f
-
-        /** A trait shows a range from here, a grade from here, the truth from here. */
-        const val RANGE_AT = 0.4f
-        const val GRADE_AT = 0.7f
-        const val EXACT_AT = 0.9f
-
-        /** Confidence never reaches 1: a club is never quite certain. */
-        const val CEILING = 0.95f
+        // The band, the thresholds and the ceiling are tuning: TuningTable.Scouting.
 
         /**
          * How well [viewer] reads [player]. The same pair always reads the same
          * way, and a different club reads him differently.
          */
-        fun of(playerId: Int, viewerId: Int, confidence: Float): ScoutingLens {
+        fun of(playerId: Int, viewerId: Int, confidence: Float, t: TuningTable.Scouting): ScoutingLens {
             val seed = playerId.toLong() * 1_000_003L + viewerId.toLong() * 31L
             return ScoutingLens(
-                confidence = confidence.coerceIn(0f, CEILING),
+                confidence = confidence.coerceIn(0f, t.ceiling),
                 bias = SplitMixRng(seed).gaussian(),
+                t = t,
             )
         }
 
@@ -84,24 +83,18 @@ class ScoutingLens private constructor(
          * a rookie. One model serves ratings and traits alike; only the band
          * differs.
          */
-        fun ownPlayer(yearsWithClub: Int, scoutingDept: Int): Float =
-            (OWN_BASE + OWN_DEPT * ((scoutingDept - 40) / 40f).coerceIn(0f, 1f) +
-                OWN_PER_YEAR * yearsWithClub).coerceAtMost(CEILING)
+        fun ownPlayer(yearsWithClub: Int, scoutingDept: Int, t: TuningTable.Scouting): Float =
+            (t.ownBase + t.ownDept * ((scoutingDept - t.ownDeptFrom) / t.ownDeptRange).coerceIn(0f, 1f) +
+                t.ownPerYear * yearsWithClub).coerceAtMost(t.ceiling)
 
         /**
          * A club's confidence in a prospect before it spends anything: a man
          * from a big program has been watched for years, one from a small
          * school has barely been seen. Stable per prospect, like the miss.
          */
-        fun prospectExposure(playerId: Int): Float {
+        fun prospectExposure(playerId: Int, t: TuningTable.Scouting): Float {
             val draw = SplitMixRng(playerId.toLong() * 7_919L).nextFloat()
-            return EXPOSURE_FLOOR + draw * (EXPOSURE_CEILING - EXPOSURE_FLOOR)
+            return t.exposureFloor + draw * (t.exposureCeiling - t.exposureFloor)
         }
-
-        private const val OWN_BASE = 0.35f
-        private const val OWN_DEPT = 0.2f
-        private const val OWN_PER_YEAR = 0.25f
-        private const val EXPOSURE_FLOOR = 0.10f
-        private const val EXPOSURE_CEILING = 0.45f
     }
 }

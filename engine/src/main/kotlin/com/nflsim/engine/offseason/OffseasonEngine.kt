@@ -258,7 +258,7 @@ object OffseasonEngine {
         }
 
         // ---- context, fixed for the whole run -----------------------
-        val production = Production.index(league.players, dynasty.playerStats)
+        val production = Production.index(league.players, dynasty.playerStats, league.tuning.ai)
 
         val ctx = OffseasonContext(
             dynasty = dynasty,
@@ -581,7 +581,7 @@ object OffseasonEngine {
         val moneyByTeam = league.teams.associate { t ->
             val id = t.id.v
             val fa = auction.signings.filter { it.team == id }
-            val vets = fa.filter { (ageById[it.player] ?: 0) >= AGE_CLIFF }
+            val vets = fa.filter { (ageById[it.player] ?: 0) >= league.tuning.ai.valueAgeCliff }
             val kept = extendedSignings.filter { it.team == id }
             val big = bigByTeam[id] ?: emptyList()
             id to TeamMoney(
@@ -986,7 +986,7 @@ object OffseasonEngine {
                     draftTrades += PickTrade(ctx.newYear, 1, slotOriginal[from], buyer.v, seller.v, DraftRunner.TRADE_UP_REASON)
                 }
                 pay?.mapNotNull { it.second }
-            }, ai = ctx.league.tuning.ai,
+            }, ai = ctx.league.tuning.ai, scoutingTuning = ctx.league.tuning.scouting,
             userPick = { overall, _ -> userPicks[overall] },
             stopBefore = stopBefore,
         )
@@ -1454,7 +1454,7 @@ object OffseasonEngine {
             if (roster.size <= ROSTER_LIMIT) { kept += roster; return@forEach }
 
             fun keepValue(p: Player) =
-                rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture) +
+                rosterValue(p, scheme(team.id, p.position), year, team.gm.winNowVsFuture, league.tuning.ai) +
                 (p.contract?.deadCap(year)?.thisYear ?: 0) / 1_000f * league.tuning.ai.cutDeadMoneyWeight
 
             // Protect the positional minimums first, then keep the best of the
@@ -1602,7 +1602,7 @@ object OffseasonEngine {
                     }
                     val best = candidates.maxByOrNull { p ->
                         rosterValue(p, scheme(teamId, position), year,
-                            league.team(teamId).gm.winNowVsFuture) + rng.gaussian(0f, 3f)
+                            league.team(teamId).gm.winNowVsFuture, league.tuning.ai) + rng.gaussian(0f, league.tuning.ai.fillSpread)
                     }
 
                     // A league genuinely runs out of long snappers - only 32

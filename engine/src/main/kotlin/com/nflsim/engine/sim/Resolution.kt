@@ -91,10 +91,10 @@ internal object RunResolution {
         // Extra blockers help by how much BETTER than replacement they are, not
         // by their raw rating. Multiplying a 78-rated tight end by 0.12 handed
         // the offence nine points of advantage just for having him on the field.
-        val teHelp = (ctx.offense.tightEnds.averageRating(RatingId.RUN_BLOCK, offScheme) - BLOCKER_BASELINE) *
+        val teHelp = (ctx.offense.tightEnds.averageRating(RatingId.RUN_BLOCK, offScheme) - t.blocking.blockerBaseline) *
             t.blocking.tightEndHelp * ctx.offense.tightEnds.size
         val backHelp = if (ctx.offense.backs.size > 1)
-            (ctx.offense.backs.drop(1).averageRating(RatingId.LEAD_BLOCK, offScheme) - BLOCKER_BASELINE) * t.blocking.leadBlockScale
+            (ctx.offense.backs.drop(1).averageRating(RatingId.LEAD_BLOCK, offScheme) - t.blocking.blockerBaseline) * t.blocking.leadBlockScale
         else 0f
 
         val boxDefenders = (ctx.defense.frontSeven + ctx.defense.safeties)
@@ -115,7 +115,7 @@ internal object RunResolution {
 
         val rawAdvantage = (lineBlock + teHelp + backHelp) - frontStrength + gap + numbers -
             redZone - noiseCost
-        val advantage = rawAdvantage / ADVANTAGE_DIVISOR
+        val advantage = rawAdvantage / t.blocking.advantageDivisor
 
         // Backs rotate. A lead back takes most of the work but not all of it,
         // which is why a depth chart matters and why RB2 is worth rostering.
@@ -149,7 +149,7 @@ internal object RunResolution {
         // yards per carry has the tail it has.
         val breakChance = (t.rushing.breakawayBase +
             t.rushing.breakawayAdvantageScale * advantage +
-            (elusiveness - 70) * t.rushing.breakawayElusiveness).coerceIn(0.004f, 0.42f)
+            (elusiveness - 70) * t.rushing.breakawayElusiveness).coerceIn(t.rushing.breakawayMin, t.rushing.breakawayMax)
         val broke = rng.nextFloat() < breakChance
         if (broke) {
             val extra = rng.exponential(t.rushing.breakawayYards) *
@@ -278,8 +278,4 @@ internal object RunResolution {
         return if (pick === backs[0] && carries(pick.id.v) >= rushing.leadBackCarryCap) backs[1] else pick
     }
 
-    private const val ADVANTAGE_DIVISOR = 26f
-
-    /** A replacement-level blocker. Help above this counts; below it hurts. */
-    private const val BLOCKER_BASELINE = 68f
 }

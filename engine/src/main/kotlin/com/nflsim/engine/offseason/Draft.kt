@@ -166,6 +166,8 @@ object DraftRunner {
         stopBefore: ((overall: Int, team: TeamId) -> Boolean)? = null,
         /** The league's AI tuning: need, fit and scouting error on the board, and trade-ups. */
         ai: TuningTable.Ai = TuningTable.REALISTIC.ai,
+        /** How well its scouts read the board. */
+        scoutingTuning: TuningTable.Scouting = TuningTable.REALISTIC.scouting,
     ): Result {
         val available = prospects.toMutableList()
         val picks = mutableListOf<DraftPick>()
@@ -226,8 +228,9 @@ object DraftRunner {
                 val lens = ScoutingLens.of(
                     playerId = p.id.v,
                     viewerId = team.v,
-                    confidence = Scouting.prospect(p.id.v, p.position, dept, focus) *
+                    confidence = Scouting.prospect(p.id.v, p.position, dept, focus, scoutingTuning) *
                         ai.draftScoutingConfidence,
+                    t = scoutingTuning,
                 )
                 val talent = lens.view(overall(p)).point.toFloat()
                 val fit = schemeFit(p, scheme)
