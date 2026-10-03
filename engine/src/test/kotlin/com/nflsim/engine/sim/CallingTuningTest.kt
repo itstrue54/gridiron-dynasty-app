@@ -104,5 +104,25 @@ class CallingTuningTest {
         for (s in listOf(PlayState(down = 3, distance = 4, yardLine = 40), PlayState(down = 1, distance = 4, yardLine = 96)))
             assertEquals(screens(never, s), screens(always, s), "$s")
     }
+
+    @Test
+    fun `fourth down's field lines and the fronts' distances are the table's`() {
+        val t = TuningTable.REALISTIC
+        val kicker = league.roster(league.teams.first().id).first { it.position == com.nflsim.engine.model.Position.K }
+        val scheme = SchemeCatalog[league.teams.first().offenseScheme]
+        // Fourth and six at the 25: easy range, so always the kick - unless the table draws easy range closer.
+        val s = GameState(TeamId(1), TeamId(2), quarter = 2, secondsLeft = 600, yardLine = 75, down = 4, distance = 6)
+        fun goes(tuning: TuningTable.FourthDown) = (0 until 400).count {
+            FourthDown.decide(s, kicker, scheme, 0, 0.5f, SplitMixRng(it.toLong()), tuning) == FourthDownChoice.GO_FOR_IT
+        }
+        assertEquals(0, goes(t.fourthDown))
+        assertTrue(goes(t.fourthDown.copy(easyKickYards = 20)) > 0)
+
+        // Second and two at the opponent's two: a goal-line front, unless the table says otherwise.
+        val atTheTwo = PlayState(down = 2, distance = 2, yardLine = 98)
+        fun front(tuning: TuningTable) = PlayCaller.defense(ctx(tuning, atTheTwo), SplitMixRng(1L)).front
+        assertEquals(DefensiveFront.GOAL_LINE, front(t))
+        assertTrue(front(t.copy(calling = t.calling.copy(goalLineFrontYards = 1))) != DefensiveFront.GOAL_LINE)
+    }
 }
 

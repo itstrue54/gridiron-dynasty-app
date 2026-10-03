@@ -93,19 +93,20 @@ object PlayCaller {
         // opposite directions, from one cause.
         val targetDepth = when (s.down) {
             1 -> ctx.tuning.calling.firstDownDepthMin + rng.nextInt(ctx.tuning.calling.firstDownDepthRange)
-            2 -> (s.distance * ctx.tuning.calling.secondDownDepthPerYard).toInt().coerceIn(5, 17)
-            else -> (s.distance + 1).coerceIn(5, 25)
+            2 -> (s.distance * ctx.tuning.calling.secondDownDepthPerYard).toInt()
+                .coerceIn(ctx.tuning.calling.secondDownDepthMinYards, ctx.tuning.calling.secondDownDepthMaxYards)
+            else -> (s.distance + 1).coerceIn(ctx.tuning.calling.thirdDownDepthMinYards, ctx.tuning.calling.thirdDownDepthMaxYards)
         }
 
         // Shot plays. Uncommon, and they are what makes a defence respect the
         // deep third - without them coverage sits on everything underneath.
         val paRate = ctx.offPlan.playActionRate ?: ctx.offense.scheme.playActionRate
         val shot = rng.nextFloat() < (ctx.offPlan.deepShotRate ?: paRate * GamePlan.DEEP_SHOT_SHARE)
-        val depth = if (shot) targetDepth + 10 else targetDepth
+        val depth = if (shot) targetDepth + ctx.tuning.calling.shotExtraDepth else targetDepth
 
         val available = PassConcept.entries.filter { it.airYards <= s.yardsToGoal + 2 }
         val pool = available
-            .filter { it.airYards >= depth - 6 && it.airYards <= depth + 6 }
+            .filter { kotlin.math.abs(it.airYards - depth) <= ctx.tuning.calling.conceptDepthWindow }
             .ifEmpty { available.sortedBy { kotlin.math.abs(it.airYards - depth) }.take(3) }
             .ifEmpty { listOf(PassConcept.FLAT) }
 
@@ -113,7 +114,7 @@ object PlayCaller {
         // of him. Too short for the depth pool, so it is called on its own.
         val calling = ctx.tuning.calling
         val screenDown = s.down <= 2 || s.distance >= calling.screenThirdDistance
-        val screen = calling.screenRate > 0f && screenDown && !shot && s.yardsToGoal > 5 &&
+        val screen = calling.screenRate > 0f && screenDown && !shot && s.yardsToGoal > calling.screenMinYardsToGoal &&
             rng.nextFloat() < calling.screenRate
         val concept = if (screen) PassConcept.SCREEN else pool[rng.nextInt(pool.size)]
 
@@ -158,9 +159,9 @@ object PlayCaller {
         // deep third to protect, so those bodies come into the box. This is the
         // real reason the red zone is hard, more than coverage tightening.
         val front = when {
-            s.yardsToGoal <= 3 -> DefensiveFront.GOAL_LINE
-            s.down == 3 && s.distance >= 8 -> DefensiveFront.DIME_FOUR_ONE
-            s.distance >= 7 -> DefensiveFront.NICKEL_FOUR_TWO
+            s.yardsToGoal <= ctx.tuning.calling.goalLineFrontYards -> DefensiveFront.GOAL_LINE
+            s.down == 3 && s.distance >= ctx.tuning.calling.dimeThirdDistance -> DefensiveFront.DIME_FOUR_ONE
+            s.distance >= ctx.tuning.calling.nickelDistance -> DefensiveFront.NICKEL_FOUR_TWO
             scheme.id.contains("34_TWO") -> DefensiveFront.THREE_FOUR_TWO_GAP
             scheme.id.contains("34_ONE") -> DefensiveFront.THREE_FOUR_ONE_GAP
             scheme.id.contains("335") -> DefensiveFront.THREE_THREE_FIVE
@@ -178,18 +179,18 @@ object PlayCaller {
         }.let { it[rng.nextInt(it.size)] }
 
         var blitzRate = ctx.defPlan.blitzRate ?: scheme.blitzRate
-        if (s.down == 3 && s.distance >= 6) blitzRate += ctx.tuning.calling.blitzThirdLong
+        if (s.down == 3 && s.distance >= ctx.tuning.calling.blitzThirdLongDistance) blitzRate += ctx.tuning.calling.blitzThirdLong
         if (s.goalToGo) blitzRate += ctx.tuning.calling.blitzGoalToGo
         blitzRate += ctx.adaptBlitz
         val extraRushers = if (rng.nextFloat() < blitzRate) 1 + rng.nextInt(2) else 0
 
         // Selling out against the run when it is obviously coming.
         var boxAdd = when {
-            s.down <= 2 && s.distance <= 3 -> 1
-            s.distance >= 12 -> -1
+            s.down <= 2 && s.distance <= ctx.tuning.calling.boxLoadDistance -> 1
+            s.distance >= ctx.tuning.calling.boxLightDistance -> -1
             else -> 0
         }
-        if (s.yardsToGoal <= 12) boxAdd += 1
+        if (s.yardsToGoal <= ctx.tuning.calling.boxGoalYards) boxAdd += 1
         // Adapting to what the offence has shown: a man more in the box
         // against the run, one fewer against the pass.
         if (ctx.adaptBox != 0f && rng.nextFloat() < kotlin.math.abs(ctx.adaptBox)) boxAdd += if (ctx.adaptBox > 0f) 1 else -1

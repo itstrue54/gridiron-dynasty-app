@@ -77,6 +77,7 @@ object Migrations {
         Step(35, "screens, a deeper-only throw tail, and completion falling faster with depth (SPEC 5.7); nothing to move") { it },
         // Box scores already saved keep the possession they were played with.
         Step(36, "a quarter ends when its clock does, possession counts the kicks, run runoff 37 s (SPEC 5.10); nothing to move") { it },
+        Step(37, "the tuning table holds the kick runoffs, fourth down's field lines, the play caller's depth and front lines and the punter's aim (SPEC 12); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

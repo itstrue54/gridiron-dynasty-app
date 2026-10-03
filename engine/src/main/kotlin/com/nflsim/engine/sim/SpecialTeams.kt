@@ -89,9 +89,9 @@ object SpecialTeams {
         var gross = (st.puntBase + (power - 70) * st.puntPowerScale + rng.gaussian(0f, st.puntVariance)).roundToInt()
 
         // Inside the fifty a punter aims for the coffin corner rather than distance.
-        if (yardsToGoal < 45) {
-            val aim = (yardsToGoal - 6 - (99 - placement) * st.puntPlacementScale).roundToInt()
-            gross = minOf(gross, aim.coerceAtLeast(12))
+        if (yardsToGoal < st.puntAimYards) {
+            val aim = (yardsToGoal - st.puntAimMargin - (99 - placement) * st.puntPlacementScale).roundToInt()
+            gross = minOf(gross, aim.coerceAtLeast(st.puntAimMin))
         }
 
         if (yardLine + gross >= 100) {
