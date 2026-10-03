@@ -2,6 +2,7 @@ package com.example.nflsimtext.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import com.example.nflsimtext.ui.components.Chip
 import com.example.nflsimtext.ui.components.ColumnSpec
@@ -305,10 +308,10 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                         DataTable(
                             columns = listOf(
                                 ColumnSpec("Pos", 0.7f),
-                                ColumnSpec("Player", 2.4f),
-                                ColumnSpec("Age", 0.6f, numeric = true),
-                                ColumnSpec("Ovr", 1.1f, numeric = true, tier = true),
-                                ColumnSpec("Cap", 1.3f, numeric = true),
+                                ColumnSpec("Player", 2.2f),
+                                ColumnSpec("Age", 0.55f, numeric = true),
+                                ColumnSpec("Ovr", 1.05f, numeric = true, tier = true),
+                                ColumnSpec("Cap", 1.6f, numeric = true),
                             ),
                             rows = men.map { p ->
                                 RowData(
@@ -358,16 +361,26 @@ private fun ViewTabs(view: TradeView, calls: Int, block: Int, onSelect: (TradeVi
     }
 }
 
-/** The pinned bar: where the deal stands, and the button that makes it. */
+/**
+ * The pinned bar: where the deal stands, and the button that makes it. It
+ * takes every touch that lands on it: the list scrolls underneath, and a tap
+ * on the bar - its button turned off - must not reach a row hidden below.
+ */
 @Composable
 private fun AnswerBar(status: String, accepted: Boolean, busy: Boolean, onTrade: () -> Unit) {
     val c = NdTheme.colors
-    Column(
-        Modifier.fillMaxWidth().background(c.turf).padding(vertical = NdTheme.spacing.s),
-        verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs),
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(c.turf)
+            .pointerInput(Unit) { detectTapGestures { } }
+            .padding(vertical = NdTheme.spacing.s),
+        horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(status, style = NdTheme.type.body, color = if (accepted) c.chalk else c.chalkDim)
-        PrimaryButton("Make the trade", onTrade, Modifier.fillMaxWidth(), enabled = accepted && !busy)
+        Text(status, style = NdTheme.type.body, color = if (accepted) c.chalk else c.chalkDim,
+            modifier = Modifier.weight(1f))
+        PrimaryButton("Make the trade", onTrade, enabled = accepted && !busy)
     }
 }
 
