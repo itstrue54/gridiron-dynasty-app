@@ -1391,6 +1391,11 @@ Run 1,000 seasons in `engine-cli` and assert league-wide means fall in these ban
 
 Also check **distribution shape**, not just means: a league where every team goes 8-9 is broken even if the mean is right. Assert the standard deviation of team wins is 2.6–3.4.
 
+The season bands are measured as means over seasons, because one season is noisy:
+- **`SeasonShapeTest`** holds a new league's first season to the best-record, four-wins-or-fewer and spread bands, over eight leagues.
+- **Ten-year dynasties** (`docs/CALIBRATION.md` pass 7) show the league settling after its first offseason and staying in band, repeat division winners included.
+- **The generator** draws team strength with a spread of `LeagueGenerator.TEAM_STRENGTH_SPREAD` (2.4 overall points), narrow enough that the first season is no wider than the league settles to.
+
 ### 13.3 The calibration workflow
 
 1. `./gradlew :engine-cli:run --args="calibrate --seasons 1000"`

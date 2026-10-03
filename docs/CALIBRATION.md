@@ -469,9 +469,40 @@ It also has to keep total yards in band. No single value does it.
 - The run-play runoff goes 36 → 37 s to pay for it. With that, plays are 65.4 and yards 356, and every band is within 0.25 of where it was.
 - League 99 improves slightly: attempts 36.2, yards 361.
 
+## Pass 7 — October 2026 (season shape, over ten years)
+
+SPEC 13.2's season-level bands had only been checked loosely, one season at a time, by `SeasonTest` (best record 12–17, spread of wins 2.0–4.0). Teams at four wins or fewer, and repeat division winners, were never measured: repeat winners waited on the offseason (M7).
+
+**Measured:** four generated leagues, each played through ten seasons with every offseason (40 seasons):
+
+| Year | Spread of wins | Clubs at ≤4 wins | Best record |
+|---|---|---|---|
+| 2026 (first) | **3.56** | 4.2 | 15.8 |
+| 2027 | 2.86 | 2.8 | 14.8 |
+| 2028 | 2.90 | 2.5 | 15.0 |
+| 2029 | 2.72 | 2.0 | 15.0 |
+| 2030–2035 | 2.64–2.92 | 1.8–3.2 | 13.8–14.5 |
+
+Over all 40 seasons:
+- best record 14.6, mode 14 (13–17);
+- 2.6 clubs at four wins or fewer (2–5);
+- spread of wins 2.87 (2.6–3.4);
+- repeat division winners 42% (40–55%).
+
+**Findings:**
+- **The league holds its shape.** It settles after the first offseason and stays there for a decade, without drifting toward everyone going 8–9.
+- **The first season was out.** Its spread of wins ran 3.4–3.6, wider than the league settles to and past the band, because the generator's team-strength draw was wider than the offseason sustains. That first season is the one every new dynasty plays.
+
+**Change:**
+- The generator's team-strength draw narrows from 2.9 to 2.4 overall points (`LeagueGenerator.TEAM_STRENGTH_SPREAD`).
+- Twelve fresh leagues' first seasons go from 3.40 to 3.23 spread, 4.2 to 3.9 clubs at ≤4 wins, and 15.4 to 14.6 best record. Their next two seasons stay in band.
+
+**Per-game bands** (2,000 games): close games 0.217 → 0.232 (league 2026) and 0.204 → 0.225 (league 99). Everything else moves by less than 0.01, or 1 yard. All 23 bands pass on leagues 2026 and 7; league 99 misses attempts (36.4) and yards (362) as before.
+
+**`SeasonShapeTest`** holds the first season of eight new leagues to the mean bands: best record, clubs at four wins or fewer, and the spread of wins. At the old spread it fails at 3.45.
+
 ## Still unmeasured
 
-Multi-season shape, which needs the offseason (M7) before it means anything:
+Measured in pass 7: season shape over ten years, including repeat division winners.
 
-repeat division winners year over year · how fast a rebuild turns around ·
-whether a dynasty can sustain itself · draft class quality drift
+Still unmeasured: how fast a rebuild turns around · whether a dynasty can sustain itself · draft class quality drift.
