@@ -17,9 +17,14 @@ class DemandFloorTest {
 
     private val base: League by lazy { LeagueGenerator.generate(2026, 21L) }
 
-    /** A club's best-paid man, asking to be paid, a little proud. */
+    /**
+     * A club's best-paid man, asking to be paid, a little proud. The club is
+     * one whose man's market, after the snub, dips below the figure named:
+     * the case the floor exists for. Most men's markets stay above it, so a
+     * change to how the league is generated can move which club that is.
+     */
     private fun asking(): Pair<League, Player> {
-        val club = base.teams[3]
+        val club = base.teams[2]
         val man = base.roster(club.id).filter { it.contract != null }.maxBy { it.capHit(2026) }
         val set = man.copy(traits = man.traits.copy(ego = 60, loyalty = 40), demand = DemandState.PENDING)
         return base.copy(players = base.players.map { if (it.id == man.id) set else it }) to set

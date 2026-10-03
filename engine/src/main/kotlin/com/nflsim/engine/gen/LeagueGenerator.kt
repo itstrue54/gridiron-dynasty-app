@@ -23,6 +23,10 @@ import kotlinx.serialization.json.Json
  */
 object LeagueGenerator {
 
+    /** A club's quality: overall points off average, a normal draw this wide, held within the limit. */
+    const val TEAM_STRENGTH_SPREAD = 2.4f
+    const val TEAM_STRENGTH_LIMIT = 6.5f
+
     private val json = Json { ignoreUnknownKeys = true }
 
     val teamSeeds: List<TeamSeed> by lazy {
@@ -54,7 +58,10 @@ object LeagueGenerator {
             // of games finished within a field goal against a real 18-26%. A
             // league where the gap between best and worst is enormous is not
             // more dramatic, it is less: every result is known in advance.
-            val strength = teamRng.gaussian(0f, 2.9f).coerceIn(-6.5f, 6.5f)
+            // At 2.9 the first season still ran wider than the league settles
+            // to once the offseason has had its say (SPEC 13.2's spread of
+            // wins, CALIBRATION.md pass 7).
+            val strength = teamRng.gaussian(0f, TEAM_STRENGTH_SPREAD).coerceIn(-TEAM_STRENGTH_LIMIT, TEAM_STRENGTH_LIMIT)
 
             val roster = RosterGenerator.generate(
                 teamId = teamId,
