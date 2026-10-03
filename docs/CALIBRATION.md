@@ -501,8 +501,47 @@ Over all 40 seasons:
 
 **`SeasonShapeTest`** holds the first season of eight new leagues to the mean bands: best record, clubs at four wins or fewer, and the spread of wins. At the old spread it fails at 3.45.
 
+## Pass 8 — October 2026 (stars over a decade)
+
+**What was wrong:** over a ten-year dynasty, players rated 90+ multiplied fourfold, from about 14 to about 60, then levelled off. The average starter barely moved (80.1 → 79.8), so the league didn't get better; the top just got crowded. Measured on four leagues:
+
+| Year | 2026 | 2028 | 2030 | 2032 | 2034 | 2035 |
+|---|---|---|---|---|---|---|
+| Players 90+ | 14 | 26 | 43 | 56 | 63 | 59 |
+| Players 85+ | 106 | 125 | 145 | 156 | 151 | 141 |
+
+**Where the stars came from:** tracking every player's year-to-year change (two leagues, eight seasons):
+- of 212 players who reached 90, 146 rose from 88–89;
+- a player at 88+ aged 25–27 changes +0.26 a year on average, so these were mostly a lucky year of noise, not development.
+
+Progression's growth didn't depend on how good a player already was, so nothing stopped a crowd of 88s drifting over 90 a point at a time.
+
+**Target** (decided October 2026): meet in the middle, about 30–40 players at 90+ throughout.
+
+**Changes:**
+- **Progression:** above `progression.growthTaperFrom` (80) overall, a year's rise (the age curve and the noise together, never a breakout) is scaled down in a straight line to `growthAtCeiling` (0) at 99. A player at 88 keeps 58% of a year's rise, and one at 92 keeps 37%. Decline is untouched.
+  - Tapering only the age curve was tried first (at 0.5 and 0.3) and changed little: at peak age the curve is almost nothing, and the noise did the climbing.
+- **Generator:** a player's target overall spreads 4.5 either side of his slot's target (`RosterGenerator.PLAYER_SPREAD`, was 3.0). A new league has about 29–31 players at 90+ (was 12–14). The league mean is unchanged (71.6).
+
+**Measured after:** spread 4.5 with the taper, four leagues, ten years:
+
+| Year | 2026 | 2027 | 2028 | 2029 | 2030 | 2031 | 2032 | 2033 | 2034 | 2035 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Players 90+ | 31 | 29 | 28 | 32 | 38 | 41 | 42 | 38 | 39 | 36 |
+| Players 85+ | 144 | 140 | 152 | 150 | 156 | 160 | 155 | 152 | 146 | 134 |
+| Average starter | 80.6 | 80.6 | 80.6 | 80.5 | 80.5 | 80.4 | 80.3 | 80.1 | 79.8 | 79.5 |
+
+**Cost:** the average starter eases about a point over the decade, against 0.3 before: the taper takes a little off the top that nothing puts back. `StabilityTest`'s thirty-year bands (league mean within −2 to +3 of where it started, the top not drained) still pass.
+
+**Per-game bands** (2,000 games, the generator's spread):
+- Moved: close games 0.232 → 0.217 (league 2026), passing touchdowns 1.54 → 1.51; the rest move by less than 0.03.
+- All 23 pass on leagues 2026 and 7.
+- League 99 misses attempts (36.5) and yards (365), as before, inside the tolerance.
+
 ## Still unmeasured
 
 Measured in pass 7: season shape over ten years, including repeat division winners.
 
-Still unmeasured: how fast a rebuild turns around · whether a dynasty can sustain itself · draft class quality drift.
+Measured in pass 8: talent at the top over ten years.
+
+Still unmeasured: how fast a rebuild turns around · whether a dynasty can sustain itself.

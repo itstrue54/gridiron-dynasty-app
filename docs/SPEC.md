@@ -754,6 +754,8 @@ Key behaviors this produces, all of which you want:
 
 **Breakout / bust events.** Small probability of a discrete jump or collapse, gated by `consistency` and `workEthic`, surfaced as news. These are the stories a dynasty game is made of.
 
+**Growth slows near the top.** Above `progression.growthTaperFrom` (80) overall, a year's rise (the age curve and the noise, never a breakout) is scaled down in a straight line to `growthAtCeiling` (0) at 99. A player at 88 keeps 58% of it, and one at 92 keeps 37%. Decline is untouched. Without it the count of players rated 90+ climbed from about 14 to about 60 over a dynasty's first decade, mostly 88s drifting over on a lucky year. With it, and a generator whose players spread 4.5 either side of their slot's target (`RosterGenerator.PLAYER_SPREAD`), a league keeps about 30–40 at 90+ from its first season to its tenth (`docs/CALIBRATION.md` pass 8).
+
 ---
 
 ## 8. Money & AI general managers

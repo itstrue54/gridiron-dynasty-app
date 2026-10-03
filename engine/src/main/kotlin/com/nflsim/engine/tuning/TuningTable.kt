@@ -665,6 +665,14 @@ data class TuningTable(
         val ageWorkScale: Float = 0.20f,
         /** Year-to-year noise in rating points. */
         val noise: Float = 1.5f,
+        /**
+         * Growth slows near the top: above [growthTaperFrom] overall, a
+         * year's rise (the age curve and the noise, not a breakout) is scaled
+         * down in a straight line to [growthAtCeiling] at 99. At 1 nothing
+         * tapers.
+         */
+        val growthTaperFrom: Int = 80,
+        val growthAtCeiling: Float = 0f,
         /** A breakout adds breakoutBase plus up to breakoutRange; a collapse takes collapseBase plus up to collapseRange. */
         val breakoutBase: Float = 4f,
         val breakoutRange: Float = 5f,
