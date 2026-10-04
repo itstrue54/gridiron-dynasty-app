@@ -1348,6 +1348,13 @@ Every coefficient in the sim lives in one serializable `TuningTable`, saved with
 
 Ship 3 presets: **Realistic** (matches §13.2 bands), **Arcade** (higher scoring, more explosives), **Grinder** (lower scoring, run-heavy, more injuries). You will spend happy hours here.
 
+The presets are offsets from Realistic (`TuningTable.ARCADE`, `GRINDER`), so they keep their character as Realistic is retuned. `PresetCharacterTest` holds them to it. On league 2026 (October 2026):
+- **Realistic:** 22.0 points, 27.3 carries, 34.3 attempts and 2.30 sacks a team.
+- **Arcade:** 26.0 points, more completions (0.71) and long plays (3.0 of 20+).
+- **Grinder:** 18.6 points, 29.3 carries to 31.3 attempts, 2.65 sacks, and more close games (0.245).
+
+Grinder had once leant on `pressureScale` for pressure, which only makes protection matter more, and so gave fewer sacks. Its pressure now comes from `sackGivenPressure`, and its lean to the run from the early-down pass rates. A league saved with the old Grinder keeps those values until its user picks a preset again.
+
 ---
 
 ## 13. Testing & calibration

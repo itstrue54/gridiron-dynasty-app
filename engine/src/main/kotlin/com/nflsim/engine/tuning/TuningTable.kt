@@ -1358,13 +1358,23 @@ data class TuningTable(
             )
         }
 
-        /** The defence's game: tighter windows, more pressure, shorter runs, more bodies hurt. */
+        /**
+         * The defence's game: tighter windows, more sacks, shorter runs, more
+         * bodies hurt, and clubs that run first. Pressure comes from sacks
+         * given pressure: a smaller pressureScale (as this once had) makes
+         * protection matter more, and since the line usually wins, that meant
+         * fewer sacks, not more.
+         */
         val GRINDER = REALISTIC.let { r ->
             r.copy(
                 passing = r.passing.copy(
                     baseCompletion = r.passing.baseCompletion - 0.04f,
                     yacScale = r.passing.yacScale * 0.85f,
-                    pressureScale = r.passing.pressureScale * 0.75f,
+                    sackGivenPressure = r.passing.sackGivenPressure * 1.25f,
+                ),
+                calling = r.calling.copy(
+                    passFirstDown = r.calling.passFirstDown - 0.06f,
+                    passSecondDown = r.calling.passSecondDown - 0.06f,
                 ),
                 rushing = r.rushing.copy(
                     baseYards = r.rushing.baseYards - 0.35f,
