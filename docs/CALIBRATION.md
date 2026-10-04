@@ -557,6 +557,81 @@ Measured on six leagues, ten seasons each, with pass 8's changes (192 club-decad
 
 A run of seven happens, about once in a hundred club-decades: a dynasty can sustain itself, and one usually doesn't.
 
+## Pass 10 — October 2026 (every league, not just two)
+
+**What was wrong:** league 99 had missed pass attempts and yards in every pass since pass 4, inside the test's tolerance. The cause was its draw, not the sim:
+- each club's scheme was rolled on its own, and league 99 drew six Air Raids and seven West Coasts;
+- its average base pass rate was 0.583, above every one of 40 other leagues (0.520–0.578).
+
+**Change:** schemes are dealt, as evenly as 32 clubs allow, and shuffled onto the clubs. Every league has the same mix, with an average base pass rate of 0.56. Rosters are unchanged: the team streams take the same draws as before.
+
+**Measured** (2,000 games each, with pass 8's generator):
+
+| League | Carries | Attempts | Points | Yards | Close games | Home wins | Bands out |
+|---|---|---|---|---|---|---|---|
+| 2026 | 27.3 | 34.8 | 22.1 | 354 | 0.227 | 0.567 | none |
+| 7 | 27.3 | 34.4 | 22.3 | 358 | 0.210 | 0.576 | none |
+| 99 | 27.0 | 34.8 | 22.6 | 358 | 0.232 | 0.561 | none (was attempts 36.5, yards 365) |
+| 11 | 27.3 | 34.6 | 22.1 | 353 | 0.222 | 0.552 | none |
+| 12 | 27.2 | 34.9 | 22.1 | 354 | 0.221 | 0.564 | none |
+| 13 | 27.1 | 35.1 | 22.1 | 354 | 0.219 | 0.576 | none |
+
+**All 23 bands pass on all six leagues.** That's the first time a league other than 2026 and 7 has been in band.
+
+**Tests:**
+- `SchemeDealTest` (new): every league holds each scheme to within one of every other; leagues differ in who runs what, not the mix; rosters don't depend on the deal.
+- `TradeOffersTest`'s block test assumed every one of the user's ten best would be an upgrade somewhere. In the new league one wasn't: no club's best edge rusher was worse than him. It now asks the question for the men some club would take, and requires at least eight of the ten to be such men.
+- Two more tests moved onto older weaknesses:
+  - curls gaining about 16 yards a catch;
+  - adaptation barely measurable.
+  Passes 11 and 12 fix them.
+
+## Pass 11 — October 2026 (stop routes)
+
+**What was wrong:**
+- **Curls ran far.** A curl gained about 16 yards a catch (NFL ~11), and a curl-only diet averaged 11.4 yards an attempt in `PlaySimulatorTest`'s matchup.
+- **The cause was pass 6.** Its throw past the route and its catch breakaways applied to every route. A curl, stick, out, flat or screen is caught standing, facing the quarterback, with the defender closing: there is no "behind his man", and less room to run.
+
+**Change:**
+- Routes carry a `stop` flag: the curl, stick, out, flat and screen.
+- A stop route never draws the throw past the route. Its breakaway chance is `stopRouteBreakaway` of the in-stride chance.
+- Passing was re-searched around pass 6's values (50 candidates, 2,000 games each), with curl yards a catch added to the score.
+
+**New values:**
+- `stopRouteBreakaway` 0.42 (new);
+- `airYardsTail` 0.19 → 0.26;
+- `yacBreakawayBase` 0.11 → 0.12, `yacBreakawayYards` 24 → 28;
+- `baseCompletion` 0.88 → 0.888, `depthPenaltyPerYard` 0.0216 → 0.0203;
+- `yacMean` 1.73 → 1.96.
+
+**Measured:**
+- **The curl:** 12.5 yards a catch and 9.6 an attempt in the test's matchup.
+- **League 2026 against pass 10:**
+  - completion 0.645 → 0.661;
+  - yards per attempt 7.18 → 7.15;
+  - plays of 20+ 2.71 → 2.68, and of 40+ 0.343 → 0.332;
+  - touchdowns from 20+ yards 0.258 → 0.274;
+  - field goals 2.15 → 2.10.
+- **Bands:** all 23 pass on all six leagues.
+
+## Pass 12 — October 2026 (a staff that notices)
+
+**What was wrong:** SPEC 5.4 says a predictable coordinator gets punished, but against an offence that ran nine times in ten, a staff rated 100 for adjustments took only about 0.05 yards a carry off it compared with one rated 0. That's inside the noise even over 600 games, and it went the wrong way in one of three matchups.
+
+The box shift shared the pass and blitz window (±0.12). For the box that window is a chance of a man more on a snap, so the sharpest staff in the league loaded the box on one snap in eight against a team that only ran.
+
+**Change:** the box gets its own window, `adaptation.boxWindow`, 0.12 → 0.6. The pass and blitz windows are unchanged.
+
+**Measured** (yards a carry a staff rated 100 takes off a run-90% offence, against one rated 0, 300 games each, three matchups):
+
+| Box window | 0.12 | 0.4 | 0.6 |
+|---|---|---|---|
+| Matchup 1 | −0.02 | 0.08 | 0.19 |
+| Matchup 2 | 0.06 | 0.22 | 0.34 |
+| Matchup 3 | −0.03 | 0.15 | 0.26 |
+
+**Effect on the league:** most offences sit near the neutral pass rate, so the league barely moves. On league 2026: carries 27.1 → 27.3, attempts 34.6 → 34.3, yards 351 → 350, YPC 4.42 → 4.42, third down 0.380 → 0.383. All 23 bands pass on all six leagues: attempts 34.0–34.7, yards 349–353, points 21.7–22.2.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

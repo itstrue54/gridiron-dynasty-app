@@ -52,9 +52,9 @@ data class TuningTable(
          * weather. Raised from 0.83 with the depth penalty when the league was
          * set to throw more and complete shorter (SPEC 13.2's attempts band).
          */
-        val baseCompletion: Float = 0.88f,
+        val baseCompletion: Float = 0.888f,
         /** Completion penalty per yard of intended air distance. */
-        val depthPenaltyPerYard: Float = 0.0216f,
+        val depthPenaltyPerYard: Float = 0.0203f,
         /** Multiplier on completion when the quarterback is pressured. */
         val pressureCompletionMult: Float = 0.62f,
         val interceptionBase: Float = 0.021f,
@@ -98,7 +98,7 @@ data class TuningTable(
         val interceptionPressure: Float = 1.7f,
         val airYardsSpread: Float = 2.2f,
         /** Yards after catch: the exponential mean, per point over the tackler, and extras. */
-        val yacMean: Float = 1.73f,
+        val yacMean: Float = 1.96f,
         val yacTackling: Float = 0.055f,
         val screenYac: Float = 4.2f,
         val zoneYac: Float = 0.8f,
@@ -124,7 +124,7 @@ data class TuningTable(
          * A throw's extra depth past the route, outside the red zone: an
          * exponential with a mean of this share of the route's depth.
          */
-        val airYardsTail: Float = 0.19f,
+        val airYardsTail: Float = 0.26f,
         /**
          * A catch broken open for a long gain: a chance from [yacBreakawayBase],
          * up with the receiver's elusiveness and speed, down with the
@@ -132,12 +132,14 @@ data class TuningTable(
          * run of mean [yacBreakawayYards]. One of [catchAndRunYards] or more is
          * called a catch and run.
          */
-        val yacBreakawayBase: Float = 0.11f,
+        val yacBreakawayBase: Float = 0.12f,
         val yacBreakawayElusiveness: Float = 0.0015f,
         val yacBreakawayTackling: Float = 0.0015f,
-        val yacBreakawayYards: Float = 24f,
+        val yacBreakawayYards: Float = 28f,
         val yacBreakawayMax: Float = 0.25f,
         val catchAndRunYards: Int = 20,
+        /** A stop route's breakaway chance, as a share of an in-stride catch's. */
+        val stopRouteBreakaway: Float = 0.42f,
     )
 
     @Serializable
@@ -529,7 +531,10 @@ data class TuningTable(
     data class Adaptation(
         /** Snaps a side has to have seen before it moves at all. */
         val minSnaps: Int = 8,
+        /** How far the pass and blitz rates move, at most, scaled by the head coach's adjustments rating. */
         val window: Float = 0.12f,
+        /** The most a defence's chance of a man more (or fewer) in the box moves, scaled the same way. */
+        val boxWindow: Float = 0.6f,
         /** The pass share a defence treats as neither run nor pass heavy, and how hard it reads a lean either way. */
         val neutralPassRate: Float = 0.57f,
         val passGain: Float = 5f,

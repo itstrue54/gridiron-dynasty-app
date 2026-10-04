@@ -125,12 +125,20 @@ class TradeOffersTest {
         val d = d0.copy(league = d0.league.copy(tuning = tuning))
         val book = TradeDesk.inSeason(d)
         val user = d.league.team(d.userTeamId)
-        // Each of his ten best, one at a time: every one draws a call from
-        // somebody. (Building offers from only the six pieces the user's club
-        // would want most left one of them with none: the pieces that fit a
-        // club's budget were never among them.)
+        // Each of his ten best that some club would count an upgrade, one at
+        // a time: every one draws a call from somebody. (Building offers from
+        // only the six pieces the user's club would want most left one of them
+        // with none: the pieces that fit a club's budget were never among
+        // them.) A man no club would take over its own best at his position
+        // draws no call, rightly, and is not what this asks about.
+        fun wanted(man: com.nflsim.engine.model.Player) = d.league.teams.filter { it.id != d.userTeamId }.any { club ->
+            val theirBest = book.players.filter { it.teamId == club.id && it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE && it.position == man.position }
+                .maxOfOrNull { TradeDesk.value(book, it, club) } ?: 0f
+            TradeDesk.value(book, man, club) > theirBest
+        }
         val best = d.league.roster(d.userTeamId).filter { it.status == com.nflsim.engine.model.PlayerStatus.ACTIVE }
-            .sortedByDescending { TradeDesk.value(book, it, user) }.take(10)
+            .sortedByDescending { TradeDesk.value(book, it, user) }.take(10).filter(::wanted)
+        assertTrue(best.size >= 8, "only ${best.size} of his ten best would upgrade anybody")
         val called = best.count { man ->
             TradeOffers.thisWeek(TradeOffers.setOnBlock(d, man.id.v, true)).any { it.onBlock && it.target == man.id.v }
         }

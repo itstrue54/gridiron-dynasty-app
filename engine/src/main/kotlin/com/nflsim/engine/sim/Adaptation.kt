@@ -32,9 +32,12 @@ object Adaptation {
         var blitz = 0f; var box = 0f; var pass = 0f
         if (calls >= t.minSnaps && defenseAdjustments > 0) {
             val lean = ((passes.toFloat() / calls - t.neutralPassRate) * t.passGain).coerceIn(-1f, 1f)
-            val reach = t.window * defenseAdjustments / 100f
-            blitz = lean * reach
-            box = -lean * reach
+            val reach = defenseAdjustments / 100f
+            blitz = lean * t.window * reach
+            // The box is a chance of a man more on a snap, not a rate nudged a
+            // few points: against an offence that only runs, a staff that
+            // notices loads it on most snaps, not one in eight.
+            box = -lean * t.boxWindow * reach
         }
         if (defSnaps >= t.minSnaps && offenseAdjustments > 0) {
             val loaded = (boxSum.toFloat() / defSnaps * t.boxGain).coerceIn(-1f, 1f)

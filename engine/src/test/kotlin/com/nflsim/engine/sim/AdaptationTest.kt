@@ -25,8 +25,10 @@ class AdaptationTest {
         assertTrue(runHeavy.box > 0f && runHeavy.blitz < 0f, "$runHeavy")
         val passHeavy = Adaptation.of(runs = 4, passes = 16, boxSum = 0, defSnaps = 0, 50, 100, t)
         assertTrue(passHeavy.blitz > 0f && passHeavy.box < 0f, "$passHeavy")
-        // Never past the window, and nothing at all from a staff that never adjusts.
-        assertTrue(kotlin.math.abs(runHeavy.box) <= t.window && kotlin.math.abs(passHeavy.blitz) <= t.window)
+        // Never past its window - the box's own, the blitz's the rates' - and
+        // nothing at all from a staff that never adjusts.
+        assertTrue(kotlin.math.abs(runHeavy.box) <= t.boxWindow && kotlin.math.abs(passHeavy.blitz) <= t.window)
+        assertTrue(kotlin.math.abs(runHeavy.box) > kotlin.math.abs(runHeavy.blitz), "the box moves further than the rates: $runHeavy")
         assertEquals(Adaptation.Shift(), Adaptation.of(16, 4, 0, 0, 0, 0, t))
         // Half the rating, half the reach.
         assertEquals(runHeavy.box / 2, Adaptation.of(16, 4, 0, 0, 50, 50, t).box, 1e-6f)
