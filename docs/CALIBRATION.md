@@ -559,6 +559,4 @@ A run of seven happens, about once in a hundred club-decades: a dynasty can sust
 
 ## Still unmeasured
 
-Measured in pass 7: season shape over ten years, including repeat division winners.
-
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
