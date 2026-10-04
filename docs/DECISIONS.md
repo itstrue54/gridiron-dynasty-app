@@ -2396,3 +2396,17 @@ nothing else moves more than 0.006.
 - **DemandFloorTest's fixture** now finds its case, a star whose market dips after a snub, instead of naming a club, so tuning the generator doesn't break it.
 - **Saves:** existing leagues keep their rosters and take the new progression from their next offseason. Save step 38, version 39.
 
+## ADR-0xx — The editor reads true ratings
+
+**Context.** The user asked to edit player attributes, as a setting chosen when a dynasty starts. Everything the player sees about ratings goes through the ScoutingLens (SPEC 4.6, AGENTS.md rule 7): a club knows its own men as its scouts do, and other clubs' men less well. An editor can't work that way. To set a rating to 85 you have to see that it's 70.
+
+**Decision.**
+- **One exception:** the player editor shows and sets true ratings and traits.
+- **Nowhere else:** the roster, the player card, the draft and the editor's own finder (which shows no ratings at all) still read through the scouts. The user chose this over showing true ratings everywhere while editing is on.
+- **Off unless chosen:** editing is chosen on the club picker and can be switched in Settings, so a dynasty played straight never meets it.
+
+**Consequences.**
+- **A known exception:** a user with editing on can learn any man's true ratings by opening him in the editor. That's the point of the feature, and it's opt-in.
+- **Rule 7 is unchanged for every other screen.** AGENTS.md notes the exception.
+- **Saves:** a dynasty saved before this reads with editing off. Save step 41, version 42.
+

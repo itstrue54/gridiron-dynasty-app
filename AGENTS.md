@@ -13,7 +13,7 @@ Read `docs/SPEC.md` before making architectural changes. It is the source of tru
 4. **All simulation coefficients live in `TuningTable`** (SPEC §12). No magic numbers inside sim functions. If you need a new constant, add a named field to the tuning table.
 5. **Model classes are immutable `data class`es with `val` only.** State transitions return new objects.
 6. **`overall` is derived, never stored.** It depends on scheme; computing it requires a scheme context.
-7. **Ratings are never read raw in the UI.** Everything the player sees goes through `ScoutingLens` (SPEC §4.6).
+7. **Ratings are never read raw in the UI.** Everything the player sees goes through `ScoutingLens` (SPEC §4.6). The one exception is the opt-in player editor (SPEC §10.5), which has to show what it sets.
 8. **Scheme, narrative, and name data live in JSON resources**, not in Kotlin source. Adding a scheme must not require a recompile.
 
 ## Testing

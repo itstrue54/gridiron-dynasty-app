@@ -81,6 +81,8 @@ object Migrations {
         Step(38, "growth slows near the top (SPEC 7.1): a saved league takes it from its next offseason; nothing to move") { it },
         Step(39, "stop routes are caught standing, and passing is re-tuned around them (SPEC 5.7); nothing to move") { it },
         Step(40, "a defence loads the box against a predictable run offence far more readily (SPEC 5.4); nothing to move") { it },
+        // A dynasty saved before player editing existed reads with it off.
+        Step(41, "a dynasty chooses whether its players may be edited (SPEC 10.5); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

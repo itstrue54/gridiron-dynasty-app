@@ -39,6 +39,8 @@ fun TeamPickerScreen(
     val c = NdTheme.colors
     val outlook = remember(league) { Outlook.of(league) }
     var picked by remember(league) { mutableStateOf<String?>(null) }
+    // SPEC 10.5: chosen here, and switchable later in Settings.
+    var editPlayers by remember(league) { mutableStateOf(false) }
 
     ScreenList {
         // What his roster file did, before he picks a club from it.
@@ -63,6 +65,20 @@ fun TeamPickerScreen(
             }
         }
 
+        item {
+            SituationBlock("Dynasty options") {
+                com.example.nflsimtext.ui.components.Chip(
+                    if (editPlayers) "Player editing: on" else "Player editing: off", editPlayers,
+                    role = androidx.compose.ui.semantics.Role.Switch,
+                ) { editPlayers = !editPlayers }
+                Text(
+                    "Lets you rewrite any player's position, ratings and hidden traits. " +
+                        "Off plays it straight. You can change it later in Settings.",
+                    style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.s),
+                )
+            }
+        }
+
         picked?.let { abbrev ->
             val team = league.teams.first { it.abbrev == abbrev }
             item {
@@ -82,7 +98,7 @@ fun TeamPickerScreen(
                     )
                     PrimaryButton(
                         "Take over the ${team.nickname}",
-                        { scope.launch { store.startWith(abbrev); onStarted() } },
+                        { scope.launch { store.startWith(abbrev, editPlayers); onStarted() } },
                         Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
                         enabled = !store.busy,
                     )
@@ -114,7 +130,7 @@ fun TeamPickerScreen(
 
         item {
             SecondaryButton(
-                "Surprise me", { scope.launch { store.startWith(null); onStarted() } },
+                "Surprise me", { scope.launch { store.startWith(null, editPlayers); onStarted() } },
                 Modifier.fillMaxWidth(), enabled = !store.busy,
             )
         }
