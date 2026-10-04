@@ -202,7 +202,7 @@ internal object PassResolution {
         // A receiver who gets behind his man is thrown to where he is: only
         // ever further, and further on a deeper route. Not in the red zone,
         // where there is no behind.
-        if (t.passing.airYardsTail > 0f && call.concept.airYards > 0 && ctx.state.yardsToGoal > 20)
+        if (t.passing.airYardsTail > 0f && call.concept.airYards > 0 && !call.concept.stop && ctx.state.yardsToGoal > 20)
             thrown += rng.exponential(call.concept.airYards * t.passing.airYardsTail)
         val air = thrown.roundToInt()
         val tackling = ctx.defense.secondary.averageRating(RatingId.TACKLE, dfs)
@@ -215,7 +215,8 @@ internal object PassResolution {
         val openField = (rate(receiver, RatingId.ELUSIVENESS, off) + rate(receiver, RatingId.SPEED, off)) / 2f
         val breakChance = (t.passing.yacBreakawayBase +
             (openField - 70f) * t.passing.yacBreakawayElusiveness -
-            (tackling - 70f) * t.passing.yacBreakawayTackling).coerceIn(0f, t.passing.yacBreakawayMax)
+            (tackling - 70f) * t.passing.yacBreakawayTackling).coerceIn(0f, t.passing.yacBreakawayMax) *
+            (if (call.concept.stop) t.passing.stopRouteBreakaway else 1f)
         val broke = t.passing.yacBreakawayBase > 0f && rng.nextFloat() < breakChance
         if (broke) {
             val extra = rng.exponential(t.passing.yacBreakawayYards)

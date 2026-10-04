@@ -586,6 +586,34 @@ A run of seven happens, about once in a hundred club-decades: a dynasty can sust
   - adaptation barely measurable.
   Passes 11 and 12 fix them.
 
+## Pass 11 — October 2026 (stop routes)
+
+**What was wrong:**
+- **Curls ran far.** A curl gained about 16 yards a catch (NFL ~11), and a curl-only diet averaged 11.4 yards an attempt in `PlaySimulatorTest`'s matchup.
+- **The cause was pass 6.** Its throw past the route and its catch breakaways applied to every route. A curl, stick, out, flat or screen is caught standing, facing the quarterback, with the defender closing: there is no "behind his man", and less room to run.
+
+**Change:**
+- Routes carry a `stop` flag: the curl, stick, out, flat and screen.
+- A stop route never draws the throw past the route. Its breakaway chance is `stopRouteBreakaway` of the in-stride chance.
+- Passing was re-searched around pass 6's values (50 candidates, 2,000 games each), with curl yards a catch added to the score.
+
+**New values:**
+- `stopRouteBreakaway` 0.42 (new);
+- `airYardsTail` 0.19 → 0.26;
+- `yacBreakawayBase` 0.11 → 0.12, `yacBreakawayYards` 24 → 28;
+- `baseCompletion` 0.88 → 0.888, `depthPenaltyPerYard` 0.0216 → 0.0203;
+- `yacMean` 1.73 → 1.96.
+
+**Measured:**
+- **The curl:** 12.5 yards a catch and 9.6 an attempt in the test's matchup.
+- **League 2026 against pass 10:**
+  - completion 0.645 → 0.661;
+  - yards per attempt 7.18 → 7.15;
+  - plays of 20+ 2.71 → 2.68, and of 40+ 0.343 → 0.332;
+  - touchdowns from 20+ yards 0.258 → 0.274;
+  - field goals 2.15 → 2.10.
+- **Bands:** all 23 pass on all six leagues.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

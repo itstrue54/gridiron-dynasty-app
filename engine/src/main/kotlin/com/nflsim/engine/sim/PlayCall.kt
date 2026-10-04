@@ -25,15 +25,21 @@ enum class PassConcept(
     val quick: Boolean,
     /** Thrown to the sideline, where a catch can end out of bounds (SPEC 5.10). */
     val sideline: Boolean = false,
+    /**
+     * A route that stops or works back to the ball: caught standing, facing
+     * the quarterback, with the defender closing. No throw past it, and
+     * fewer catches broken open (SPEC 5.7).
+     */
+    val stop: Boolean = false,
 ) {
-    SCREEN("screen", -2, true),
-    FLAT("flat", 2, true, sideline = true),
+    SCREEN("screen", -2, true, stop = true),
+    FLAT("flat", 2, true, sideline = true, stop = true),
     SLANT("slant", 5, true),
-    STICK("stick", 6, true),
+    STICK("stick", 6, true, stop = true),
     CROSSER("crosser", 11, false),
-    CURL("curl", 12, false),
+    CURL("curl", 12, false, stop = true),
     DIG("dig", 15, false),
-    OUT("out", 14, false, sideline = true),
+    OUT("out", 14, false, sideline = true, stop = true),
     CORNER("corner", 20, false, sideline = true),
     POST("post", 22, false),
     GO("go", 28, false),
