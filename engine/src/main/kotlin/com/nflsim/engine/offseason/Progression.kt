@@ -75,6 +75,9 @@ object Progression {
 
         val noise = rng.gaussian(0f, tn.noise)
         var delta = raw + noise
+        // Near the top a year's rise comes harder, the noise's included: most
+        // players who reached 90 had drifted up from 88 a point at a time.
+        if (delta > 0f) delta *= taper(player, tn)
 
         // Breakouts and collapses. These are the stories a dynasty is made of,
         // so they are discrete events rather than a wider spread on the noise.
@@ -114,6 +117,21 @@ object Progression {
         age < peak -> ((peak - age) / (peak - 20f)).coerceIn(0f, 1f) * tn.youthGrowth
         age == peak -> tn.peakGrowth
         else -> -((age - peak).toFloat().pow(tn.declineExponent)) * tn.declineScale
+    }
+
+    /**
+     * Near the top, a year's rise comes harder: a good player gets better,
+     * but nobody drifts from 88 to 95 on the age curve and a few lucky
+     * years. Without it the count of players rated 90+ climbed fourfold
+     * over a dynasty's first decade (CALIBRATION.md pass 8). Breakouts are
+     * left whole: they are the stories.
+     */
+    private fun taper(player: Player, tn: TuningTable.Progression): Float {
+        if (tn.growthAtCeiling >= 1f) return 1f
+        val ovr = com.nflsim.engine.ratings.overall(player)
+        if (ovr <= tn.growthTaperFrom) return 1f
+        val share = ((ovr - tn.growthTaperFrom).toFloat() / (99 - tn.growthTaperFrom)).coerceIn(0f, 1f)
+        return 1f - (1f - tn.growthAtCeiling) * share
     }
 
     /** Playing time drives growth. A rookie who sits does not develop. */

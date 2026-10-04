@@ -2380,3 +2380,19 @@ the one is the smallest correct-in-kind fix.
 (`FumbleDriveTest`). All 23 SPEC 13.2 bands still pass on leagues 2026 and
 7. Points per team move 22.48 -> 22.45 and touchdown drives 2.441 -> 2.436;
 nothing else moves more than 0.006.
+
+## ADR-0xx — About 30–40 stars, from the first season to the tenth
+
+**Context.** Over a ten-year dynasty the count of players rated 90+ went from about 14 to about 60 and stayed there, while the average starter held still. Progression's growth didn't depend on a player's current rating, and the yearly noise carried a crowd of 88s over 90 a point at a time. Nothing in the spec set a density for the top, and neither end was obviously right: about 14 is sparse beside a sports-game scale, and about 60 is crowded. The drift between them was the problem: a dynasty's stars got four times as common as it went on.
+
+**Decision.** Meet in the middle, at about 30–40 at 90+ throughout:
+- **Progression tapers a year's rise near the top,** the noise's included, from 80 overall down to nothing at 99. Breakouts stay whole: they are the stories. Tapering only the age curve was tried first and did little, because at peak age the curve is almost nothing.
+- **The generator spreads players wider around their slot's target** (4.5 rather than 3.0), so a new league starts at about 30 rather than about 13. The league mean is unchanged.
+
+**Consequences.**
+- **The top holds:** 28–42 at 90+ across ten years in four test leagues.
+- **The league mean eases** about a point over a decade (0.3 before), inside StabilityTest's thirty-year bounds.
+- **The first season** has more stars and a few more weak players at the bottom of rosters. The per-game bands hold.
+- **DemandFloorTest's fixture** now finds its case, a star whose market dips after a snub, instead of naming a club, so tuning the generator doesn't break it.
+- **Saves:** existing leagues keep their rosters and take the new progression from their next offseason. Save step 38, version 39.
+

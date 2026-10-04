@@ -20,6 +20,9 @@ import kotlin.math.roundToInt
  */
 object RosterGenerator {
 
+    /** How far a generated player lands either side of his slot's target overall, as a normal draw. */
+    const val PLAYER_SPREAD = 4.5f
+
     /** Position, then the target overall for each depth slot. Sums to 53. */
     // Rotational players - the next ones in behind the starters at positions
     // that rotate - sit a few points behind them rather than a dozen: they
@@ -71,7 +74,7 @@ object RosterGenerator {
                     else -> 0.35f
                 }
                 val target = (slotTarget + strength * strengthWeight +
-                    rng.gaussian(0f, 3.0f)).roundToInt().coerceIn(40, 99)
+                    rng.gaussian(0f, PLAYER_SPREAD)).roundToInt().coerceIn(40, 99)
 
                 // Starters skew older, depth skews younger.
                 val ageBias = when (depth) {

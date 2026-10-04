@@ -7,4 +7,4 @@ package com.nflsim.data
  * when a version has no step. A dynasty game that eats saves on update is a
  * dead game.
  */
-const val CURRENT_SAVE_VERSION: Int = 38
+const val CURRENT_SAVE_VERSION: Int = 39

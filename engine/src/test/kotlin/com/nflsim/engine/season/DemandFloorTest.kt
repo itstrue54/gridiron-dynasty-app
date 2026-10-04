@@ -17,36 +17,51 @@ class DemandFloorTest {
 
     private val base: League by lazy { LeagueGenerator.generate(2026, 21L) }
 
-    /**
-     * A club's best-paid man, asking to be paid, a little proud. The club is
-     * one whose man's market, after the snub, dips below the figure named:
-     * the case the floor exists for. Most men's markets stay above it, so a
-     * change to how the league is generated can move which club that is.
-     */
-    private fun asking(): Pair<League, Player> {
-        val club = base.teams[2]
-        val man = base.roster(club.id).filter { it.contract != null }.maxBy { it.capHit(2026) }
+    /** [club]'s best-paid man, asking to be paid, a little proud. */
+    private fun asking(club: Int): Pair<League, Player> {
+        val man = base.roster(base.teams[club].id).filter { it.contract != null }.maxBy { it.capHit(2026) }
         val set = man.copy(traits = man.traits.copy(ego = 60, loyalty = 40), demand = DemandState.PENDING)
         return base.copy(players = base.players.map { if (it.id == man.id) set else it }) to set
     }
 
+    /** His market with no figure named: what the pricer alone says after the snub. */
+    private fun rawMarket(league: League, man: Player): Int = ContractDisputes.ask(league.copy(players = league.players.map {
+        if (it.id == man.id) it.copy(demandFloor = 0) else it
+    }), man.copy(demandFloor = 0))!!.market
+
+    /**
+     * The case the floor exists for: a man whose market, after the snub,
+     * dips below the figure his agent named. Most men's markets do not move,
+     * so the first club in league order whose star dips is the fixture; a
+     * change to how leagues are generated moves which club that is, not
+     * whether one exists.
+     */
+    private val dipping: Int by lazy {
+        base.teams.indices.firstOrNull { club ->
+            val (league, man) = snubbed(asking(club))
+            rawMarket(league, man) < man.demandFloor
+        } ?: error("no club's star has a market that dips below the figure named")
+    }
+
+    private fun asking(): Pair<League, Player> = asking(dipping)
+
     /** The user's lowball, turned down: the league after, and the figure named. */
-    private fun snubbed(): Triple<League, Player, Int> {
-        val (league, man) = asking()
+    private fun snubbed(): Triple<League, Player, Int> = snubbed(asking()).let { (l, m) -> Triple(l, m, m.demandFloor) }
+
+    private fun snubbed(asked: Pair<League, Player>): Pair<League, Player> {
+        val (league, man) = asked
         val floor = ContractDisputes.reservation(man, league.tuning)
         val out = ContractDisputes.offer(league, man.teamId!!, man.id, floor - 0.1f) as Transactions.Outcome.Done
         val after = out.league.playersById.getValue(man.id)
         assertEquals(DemandState.PENDING, after.demand, "a lowball does not settle him")
         assertTrue(after.demandFloor > 0, "his agent named a figure: ${out.note}")
-        return Triple(out.league, after, after.demandFloor)
+        return out.league to after
     }
 
     @Test
     fun `the snub is real - his raw market dips below the figure named`() {
         val (league, man, named) = snubbed()
-        val raw = ContractDisputes.ask(league.copy(players = league.players.map {
-            if (it.id == man.id) it.copy(demandFloor = 0) else it
-        }), man.copy(demandFloor = 0))!!.market
+        val raw = rawMarket(league, man)
         assertTrue(raw < named, "the dip this guards against: market $raw, named $named")
     }
 
