@@ -614,6 +614,24 @@ A run of seven happens, about once in a hundred club-decades: a dynasty can sust
   - field goals 2.15 → 2.10.
 - **Bands:** all 23 pass on all six leagues.
 
+## Pass 12 — October 2026 (a staff that notices)
+
+**What was wrong:** SPEC 5.4 says a predictable coordinator gets punished, but against an offence that ran nine times in ten, a staff rated 100 for adjustments took only about 0.05 yards a carry off it compared with one rated 0. That's inside the noise even over 600 games, and it went the wrong way in one of three matchups.
+
+The box shift shared the pass and blitz window (±0.12). For the box that window is a chance of a man more on a snap, so the sharpest staff in the league loaded the box on one snap in eight against a team that only ran.
+
+**Change:** the box gets its own window, `adaptation.boxWindow`, 0.12 → 0.6. The pass and blitz windows are unchanged.
+
+**Measured** (yards a carry a staff rated 100 takes off a run-90% offence, against one rated 0, 300 games each, three matchups):
+
+| Box window | 0.12 | 0.4 | 0.6 |
+|---|---|---|---|
+| Matchup 1 | −0.02 | 0.08 | 0.19 |
+| Matchup 2 | 0.06 | 0.22 | 0.34 |
+| Matchup 3 | −0.03 | 0.15 | 0.26 |
+
+**Effect on the league:** most offences sit near the neutral pass rate, so the league barely moves. On league 2026: carries 27.1 → 27.3, attempts 34.6 → 34.3, yards 351 → 350, YPC 4.42 → 4.42, third down 0.380 → 0.383. All 23 bands pass on all six leagues: attempts 34.0–34.7, yards 349–353, points 21.7–22.2.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

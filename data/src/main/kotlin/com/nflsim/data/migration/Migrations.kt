@@ -80,6 +80,7 @@ object Migrations {
         Step(37, "the tuning table holds the kick runoffs, fourth down's field lines, the play caller's depth and front lines and the punter's aim (SPEC 12); nothing to move") { it },
         Step(38, "growth slows near the top (SPEC 7.1): a saved league takes it from its next offseason; nothing to move") { it },
         Step(39, "stop routes are caught standing, and passing is re-tuned around them (SPEC 5.7); nothing to move") { it },
+        Step(40, "a defence loads the box against a predictable run offence far more readily (SPEC 5.4); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

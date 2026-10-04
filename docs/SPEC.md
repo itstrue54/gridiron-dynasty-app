@@ -436,12 +436,12 @@ data class Tendencies(
 )
 ```
 
-**Adaptation.** Each game, both coordinators track the opponent's realized tendencies and shift within a bounded window (±0.12) based on the HC's `adjustments` rating. A predictable coordinator gets punished. This is where your CFB slider-tuning instincts translate directly.
+**Adaptation.** Each game, both coordinators track the opponent's realized tendencies and shift within a bounded window based on the HC's `adjustments` rating. The pass and blitz rates move at most ±0.12 (`adaptation.window`). The box, a chance of a man more or fewer on a snap, moves at most ±0.6 (`boxWindow`): against an offence that only runs, a staff rated 100 loads the box on most snaps. A predictable coordinator gets punished: a staff rated 100 takes 0.2–0.35 yards a carry off an offence that runs nine times in ten, against one rated 0. This is where your CFB slider-tuning instincts translate directly.
 Built (`sim.Adaptation`, `TuningTable.adaptation`):
 - Each side watches what the other has shown this game: the offense's runs and passes, and the defense's boxes.
 - A defense facing an offense that leans to the pass (against a neutral 0.57) sends more. Facing one that leans to the run, it loads the box.
 - An offense facing loaded boxes throws more; facing light boxes, it runs.
-- Nothing moves until a side has seen 8 snaps. The shift reaches ±0.12 at most, times the head coach's adjustments rating over 100.
+- Nothing moves until a side has seen 8 snaps. The pass and blitz shifts reach ±0.12 at most, and the box ±0.6, times the head coach's adjustments rating over 100.
 - The user's own calls count as his club's tendencies like any other, and the coordinators' suggestions to him already carry the adaptation.
 
 **The end of a game.** Coordinators play the last minutes the way NFL coaches do:

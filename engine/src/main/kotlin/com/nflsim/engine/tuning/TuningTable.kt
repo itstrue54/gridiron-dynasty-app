@@ -531,7 +531,10 @@ data class TuningTable(
     data class Adaptation(
         /** Snaps a side has to have seen before it moves at all. */
         val minSnaps: Int = 8,
+        /** How far the pass and blitz rates move, at most, scaled by the head coach's adjustments rating. */
         val window: Float = 0.12f,
+        /** The most a defence's chance of a man more (or fewer) in the box moves, scaled the same way. */
+        val boxWindow: Float = 0.6f,
         /** The pass share a defence treats as neither run nor pass heavy, and how hard it reads a lean either way. */
         val neutralPassRate: Float = 0.57f,
         val passGain: Float = 5f,
