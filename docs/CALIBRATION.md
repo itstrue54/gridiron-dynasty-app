@@ -557,6 +557,35 @@ Measured on six leagues, ten seasons each, with pass 8's changes (192 club-decad
 
 A run of seven happens, about once in a hundred club-decades: a dynasty can sustain itself, and one usually doesn't.
 
+## Pass 10 — October 2026 (every league, not just two)
+
+**What was wrong:** league 99 had missed pass attempts and yards in every pass since pass 4, inside the test's tolerance. The cause was its draw, not the sim:
+- each club's scheme was rolled on its own, and league 99 drew six Air Raids and seven West Coasts;
+- its average base pass rate was 0.583, above every one of 40 other leagues (0.520–0.578).
+
+**Change:** schemes are dealt, as evenly as 32 clubs allow, and shuffled onto the clubs. Every league has the same mix, with an average base pass rate of 0.56. Rosters are unchanged: the team streams take the same draws as before.
+
+**Measured** (2,000 games each, with pass 8's generator):
+
+| League | Carries | Attempts | Points | Yards | Close games | Home wins | Bands out |
+|---|---|---|---|---|---|---|---|
+| 2026 | 27.3 | 34.8 | 22.1 | 354 | 0.227 | 0.567 | none |
+| 7 | 27.3 | 34.4 | 22.3 | 358 | 0.210 | 0.576 | none |
+| 99 | 27.0 | 34.8 | 22.6 | 358 | 0.232 | 0.561 | none (was attempts 36.5, yards 365) |
+| 11 | 27.3 | 34.6 | 22.1 | 353 | 0.222 | 0.552 | none |
+| 12 | 27.2 | 34.9 | 22.1 | 354 | 0.221 | 0.564 | none |
+| 13 | 27.1 | 35.1 | 22.1 | 354 | 0.219 | 0.576 | none |
+
+**All 23 bands pass on all six leagues.** That's the first time a league other than 2026 and 7 has been in band.
+
+**Tests:**
+- `SchemeDealTest` (new): every league holds each scheme to within one of every other; leagues differ in who runs what, not the mix; rosters don't depend on the deal.
+- `TradeOffersTest`'s block test assumed every one of the user's ten best would be an upgrade somewhere. In the new league one wasn't: no club's best edge rusher was worse than him. It now asks the question for the men some club would take, and requires at least eight of the ten to be such men.
+- Two more tests moved onto older weaknesses:
+  - curls gaining about 16 yards a catch;
+  - adaptation barely measurable.
+  Passes 11 and 12 fix them.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

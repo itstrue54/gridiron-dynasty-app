@@ -44,12 +44,23 @@ object LeagueGenerator {
         var nextPlayerId = 1
         var nextCoachId = 1
 
+        // Schemes are dealt, not rolled: every scheme as evenly as the clubs
+        // allow, shuffled onto them. Rolled one club at a time, a league could
+        // draw six Air Raids and run past SPEC 13.2's pass attempts before a
+        // snap had anything to do with it (CALIBRATION.md pass 10).
+        val offenses = deal(SchemeCatalog.offensive, teamSeeds.size, root.split("schemes=offense"))
+        val defenses = deal(SchemeCatalog.defensive, teamSeeds.size, root.split("schemes=defense"))
+
         teamSeeds.forEachIndexed { index, teamSeed ->
             val teamId = TeamId(index + 1)
             val teamRng = root.split("team=${teamSeed.abbrev}")
 
-            val offense = SchemeCatalog.offensive[teamRng.nextInt(SchemeCatalog.offensive.size)]
-            val defense = SchemeCatalog.defensive[teamRng.nextInt(SchemeCatalog.defensive.size)]
+            // The team's stream still takes the two draws the schemes once
+            // came from, so its roster and staff come out as they always did.
+            teamRng.nextInt(SchemeCatalog.offensive.size)
+            teamRng.nextInt(SchemeCatalog.defensive.size)
+            val offense = offenses[index]
+            val defense = defenses[index]
 
             // Team quality. Most teams cluster near average; a few are genuinely
             // good or genuinely bad, which is what makes a league worth watching.
@@ -121,4 +132,15 @@ object LeagueGenerator {
         var id = 1
         return RosterGenerator.generate(teamId, 0f, year, rng) { PlayerId(id++) }
     }
+
+    /** [schemes] repeated in turn to [count], then shuffled: each one as evenly as [count] allows. */
+    internal fun <T> deal(schemes: List<T>, count: Int, rng: com.nflsim.engine.rng.Rng): List<T> {
+        val deck = List(count) { schemes[it % schemes.size] }.toMutableList()
+        for (i in deck.indices.reversed()) {
+            val j = rng.nextInt(i + 1)
+            val x = deck[i]; deck[i] = deck[j]; deck[j] = x
+        }
+        return deck
+    }
 }
+
