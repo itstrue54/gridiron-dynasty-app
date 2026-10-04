@@ -538,10 +538,27 @@ Progression's growth didn't depend on how good a player already was, so nothing 
 - All 23 pass on leagues 2026 and 7.
 - League 99 misses attempts (36.5) and yards (365), as before, inside the tolerance.
 
+## Pass 9 — October 2026 (rebuilds and dynasties)
+
+Measured on six leagues, ten seasons each, with pass 8's changes (192 club-decades). No change was needed.
+
+| | Sim | NFL (approx.) |
+|---|---|---|
+| Year-to-year correlation of a club's wins | 0.35 (1,728 season pairs) | 0.3–0.4 |
+| Clubs at ≤4 wins that reach 10 within the decade | 85% | most |
+| Median years from ≤4 wins to 10 | 3 | 3–4 |
+| From ≤4 wins to 10 the next year | 15 of 116 (13%) | about one club a year |
+
+**Longest run of 11-win seasons, per club:**
+
+| Run | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| Clubs | 21 | 92 | 43 | 25 | 4 | 4 | 1 | 2 |
+
+A run of seven happens, about once in a hundred club-decades: a dynasty can sustain itself, and one usually doesn't.
+
 ## Still unmeasured
 
 Measured in pass 7: season shape over ten years, including repeat division winners.
 
-Measured in pass 8: talent at the top over ten years.
-
-Still unmeasured: how fast a rebuild turns around · whether a dynasty can sustain itself.
+Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
