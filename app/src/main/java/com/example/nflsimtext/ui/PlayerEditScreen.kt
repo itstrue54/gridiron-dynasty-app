@@ -236,28 +236,33 @@ fun PlayerEditScreen(dynasty: Dynasty, playerId: Int?, store: DynastyStore, scop
     }
 }
 
-/** A value with steps either side: by one, and by five where the range is wide. */
+/**
+ * A value with steps either side: by one, and by five where the range is
+ * wide. The name and the value on one line, the steps across the width
+ * under them - beside four buttons, "Acceleration" had to wrap.
+ */
 @Composable
 private fun Stepper(label: String, value: Int, range: IntRange, small: Boolean = false, onChange: (Int) -> Unit) {
     val c = NdTheme.colors
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 2.dp).semantics { contentDescription = "$label $value" },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs),
-    ) {
-        Text(label, style = NdTheme.type.body, color = c.chalk, modifier = Modifier.weight(1f))
-        if (!small) StepButton("−5", "$label down five") { onChange((value - 5).coerceIn(range)) }
-        StepButton("−1", "$label down one") { onChange((value - 1).coerceIn(range)) }
-        Text("$value", style = NdTheme.type.data, color = c.chalk, textAlign = TextAlign.End, modifier = Modifier.width(36.dp))
-        StepButton("+1", "$label up one") { onChange((value + 1).coerceIn(range)) }
-        if (!small) StepButton("+5", "$label up five") { onChange((value + 5).coerceIn(range)) }
+    Column(Modifier.fillMaxWidth().padding(vertical = NdTheme.spacing.xs).semantics(mergeDescendants = false) { contentDescription = "$label $value" }) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = NdTheme.type.body, color = c.chalk, modifier = Modifier.weight(1f))
+            Text("$value", style = NdTheme.type.data, color = c.chalk, textAlign = TextAlign.End)
+        }
+        Row(Modifier.fillMaxWidth().padding(top = NdTheme.spacing.xs), horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
+            if (!small) StepButton("−5", "$label down five", Modifier.weight(1f)) { onChange((value - 5).coerceIn(range)) }
+            StepButton("−1", "$label down one", Modifier.weight(1f)) { onChange((value - 1).coerceIn(range)) }
+            StepButton("+1", "$label up one", Modifier.weight(1f)) { onChange((value + 1).coerceIn(range)) }
+            if (!small) StepButton("+5", "$label up five", Modifier.weight(1f)) { onChange((value + 5).coerceIn(range)) }
+        }
     }
 }
 
 @Composable
-private fun StepButton(text: String, description: String, onClick: () -> Unit) {
-    Box(Modifier.semantics { contentDescription = description }) {
-        Chip(text, selected = false, modifier = Modifier.defaultMinSize(minWidth = NdTheme.spacing.minTouch), role = Role.Button, onClick = onClick)
+private fun StepButton(text: String, description: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.semantics { contentDescription = description }) {
+        Chip(text, selected = false, modifier = Modifier.fillMaxWidth().defaultMinSize(minWidth = NdTheme.spacing.minTouch),
+            role = Role.Button, onClick = onClick)
     }
 }
 
