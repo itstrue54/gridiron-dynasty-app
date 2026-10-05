@@ -42,7 +42,7 @@ rejects a code it has seen) and set `versionName`.
 1. Create the app. Default language English, app not free-to-play-with-ads,
    no ads.
 2. **App content**
-   - Privacy policy: paste the public URL of `site/index.html` (see
+   - Privacy policy: https://itstrue54.github.io/gridiron-dynasty/ (see
      *Hosting the privacy policy* below).
    - Contact email: amfootballsimtext@gmail.com.
    - Data safety: **no data collected, no data shared.** The app declares no
@@ -66,17 +66,16 @@ rejects a code it has seen) and set `versionName`.
 
 ## Hosting the privacy policy
 
-This repository is private, so the policy is served from a small public one:
+This repository is private, so the policy is served from a small public one,
+[itstrue54/gridiron-dynasty](https://github.com/itstrue54/gridiron-dynasty),
+by GitHub Pages:
 
-1. Create a public repository on GitHub, for example `gridiron-dynasty`.
-2. Add `docs/play-store/site/index.html` to it, at the top level, as `index.html`.
-3. In that repository's **Settings → Pages**, publish from the `main` branch,
-   folder `/ (root)`.
-4. The policy is then at `https://itstrue54.github.io/gridiron-dynasty/` (with
-   your repository's name). Paste that URL into Play Console.
+**https://itstrue54.github.io/gridiron-dynasty/**
 
-`privacy-policy.md` and `site/index.html` say the same thing; change both
-together, and update the date.
+That is the URL for Play Console. The page there is `site/index.html`. To
+change the policy, change `privacy-policy.md` and `site/index.html` together,
+update the date, and copy `site/index.html` over `index.html` in that
+repository.
 
 ## Save compatibility
 
