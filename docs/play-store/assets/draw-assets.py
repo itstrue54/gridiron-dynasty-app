@@ -103,7 +103,9 @@ def main():
         round_mask(legacy).save(os.path.join(md, "ic_launcher_round.webp"), quality=95)
 
     # Play Store icon: the mark on navy, full square (the store masks it).
-    on_navy(placed(m, 512, 0.62)).convert("RGB").save(os.path.join(HERE, "icon-512.png"))
+    # Play asks for a 32-bit PNG for the store icon (the feature graphic is
+    # the opposite: 24-bit, no alpha). Opaque, but with the channel.
+    on_navy(placed(m, 512, 0.62)).convert("RGBA").save(os.path.join(HERE, "icon-512.png"))
 
     # Title screen art for the app, as WebP so it stays small.
     bg = Image.open(os.path.join(HERE, "source/title-background.png")).convert("RGB")
