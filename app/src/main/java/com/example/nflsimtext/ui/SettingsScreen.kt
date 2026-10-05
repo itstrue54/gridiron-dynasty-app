@@ -23,6 +23,8 @@ fun SettingsScreen(
     onTheme: (ThemeSetting) -> Unit,
     haptics: Boolean,
     onHaptics: (Boolean) -> Unit,
+    editPlayers: Boolean,
+    onEditPlayers: (Boolean) -> Unit,
     onNavigate: (Tab) -> Unit,
     onTitle: () -> Unit,
     onBack: () -> Unit,
@@ -41,6 +43,13 @@ fun SettingsScreen(
             SituationBlock("Your dynasty") {
                 SecondaryButton("Saves", { onNavigate(Tab.SAVES) }, Modifier.fillMaxWidth())
                 SecondaryButton("Glossary", { onNavigate(Tab.GLOSSARY) }, wide)
+                SecondaryButton(if (editPlayers) "Player editing: on" else "Player editing: off",
+                    { onEditPlayers(!editPlayers) }, wide)
+                if (editPlayers) SecondaryButton("Edit players", { onNavigate(Tab.EDIT_FIND) }, wide)
+                Text(
+                    "With editing on, you can rewrite any player's position, ratings and hidden traits.",
+                    style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                )
                 SecondaryButton("Back to the title screen", onTitle, wide)
             }
         }

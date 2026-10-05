@@ -155,16 +155,16 @@ class DynastyStore(private val saveDir: File) {
     fun cancelPreview() { pendingLeague = null; importSummary = null }
 
     /** Starts the dynasty with the club the user chose, or a random one with null. */
-    suspend fun startWith(teamAbbrev: String?) {
+    suspend fun startWith(teamAbbrev: String?, editPlayers: Boolean = false) {
         val league = pendingLeague ?: return
-        start(league, pendingSeed, teamAbbrev, pendingSlot)
+        start(league, pendingSeed, teamAbbrev, pendingSlot, editPlayers)
         pendingLeague = null
         importSummary = null
     }
 
-    suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime(), into: Int = slot) {
+    suspend fun newDynasty(teamAbbrev: String? = null, seed: Long = System.nanoTime(), into: Int = slot, editPlayers: Boolean = false) {
         val league = withContext(Dispatchers.Default) { LeagueGenerator.generate(YEAR, seed) }
-        start(league, seed, teamAbbrev, into)
+        start(league, seed, teamAbbrev, into, editPlayers)
     }
 
     private suspend fun start(
@@ -172,6 +172,7 @@ class DynastyStore(private val saveDir: File) {
         seed: Long,
         teamAbbrev: String?,
         into: Int,
+        editPlayers: Boolean = false,
     ) {
         busy = true
         slot = into
@@ -180,7 +181,7 @@ class DynastyStore(private val saveDir: File) {
                 val team = teamAbbrev
                     ?.let { a -> league.teams.firstOrNull { it.abbrev == a } }
                     ?: league.teams.random()
-                DynastyEngine.start(league, YEAR, seed, TeamId(team.id.v))
+                DynastyEngine.start(league, YEAR, seed, TeamId(team.id.v)).copy(editPlayers = editPlayers)
             }
             dynasty = fresh
             persist(fresh)
@@ -629,6 +630,26 @@ class DynastyStore(private val saveDir: File) {
             com.nflsim.engine.season.ContractDisputes.offer(
                 league, team, com.nflsim.engine.model.PlayerId(playerId), share, wireWeek(), stats)
         }
+    }
+
+    /** Lets the user edit any player in the league (SPEC 10.5), or stops him. */
+    suspend fun setEditPlayers(on: Boolean) {
+        val current = dynasty ?: return
+        val next = current.copy(editPlayers = on)
+        dynasty = next
+        persist(next)
+        message = if (on) "Player editing is on: Settings, Edit players, or Edit on a player's card."
+            else "Player editing is off."
+    }
+
+    /** One player rewritten, as the editor hands it back. */
+    suspend fun editPlayer(playerId: Int, edit: com.nflsim.engine.season.PlayerEdits.Edit) {
+        val current = dynasty ?: return
+        if (!current.editPlayers) return
+        val next = com.nflsim.engine.season.PlayerEdits.apply(current, playerId, edit)
+        dynasty = next
+        persist(next)
+        message = "${next.league.playersById[com.nflsim.engine.model.PlayerId(playerId)]?.name ?: "He"} is saved as you edited him."
     }
 
     /** Hands the in-season roster moves to the front office, or takes them back. */

@@ -50,6 +50,8 @@ fun PlayerCardScreen(
     playerId: Int?,
     store: DynastyStore? = null,
     scope: kotlinx.coroutines.CoroutineScope? = null,
+    /** With player editing on (SPEC 10.5), opens the editor for this man. */
+    onEdit: ((Int) -> Unit)? = null,
     onBack: () -> Unit = {},
 ) {
     val c = NdTheme.colors
@@ -343,6 +345,9 @@ fun PlayerCardScreen(
             }
         }
 
+        if (dynasty.editPlayers && onEdit != null) item {
+            SecondaryButton("Edit player", { onEdit(player.id.v) })
+        }
         item { SecondaryButton("Back to the roster", onBack) }
     }
 }

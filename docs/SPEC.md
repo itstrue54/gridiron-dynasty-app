@@ -1158,6 +1158,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Draft room** | Big board, your board vs consensus, needs, live picks, trade offers |
 | **Camp** | Offseason: the camp roster with dead money if cut, the street to sign from, suggested cuts and why, the 46–53 bounds (§7) |
 | **Trades** | Three views, one at a time: **Calls** (clubs' offers, with a count), **Build a deal** and **Your block**. It opens on Calls when a club has called. Building a deal: the club as one line (Change club opens the list), then *On the table*, which lists every piece both ways (tap one to take it off) with the other club's answer and how far short it is (§8.4). Below that is one roster at a time, yours or theirs, as a table filtered by position (tap a row to add or remove him), then the picks. The answer and Make the trade stay pinned at the top while the rosters scroll. Open to the deadline and at the draft room before the first pick. |
+| **Edit players** | With player editing on (§10.5): a finder by club, position group and name over the whole league, and an editor with the player's position, true ratings by group and hidden traits. Behind Settings, and *Edit player* on the user's own players' cards. |
 | **Staff** | Hire/fire, coach cards with scheme + dev ratings, coordinator tree |
 | **Free agents (in season)** | The street and other clubs' practice squads to sign from, the user's squad and IR, releases with their dead money, the front office roster toggle (§6.1) |
 | **Contract demands** | Demands from the user's own men: every way to pay, 90%/80% offers, refuse, or let the front office answer (§10.4) |
@@ -1293,6 +1294,21 @@ a replayed game reads the same; a snap played on its own words itself from
 turnover by reading the line.
 
 ---
+
+
+### 10.5 Player editing
+
+A dynasty can let its user rewrite players (`Dynasty.editPlayers`):
+- **When it's set:** chosen on the club picker when the dynasty starts (off unless chosen), and switchable any time in Settings. A dynasty saved before the setting existed reads with it off.
+- **Who:** any player in the league, from Settings → *Edit players*, a finder by club, position group and name. That covers every club's roster, the practice squads and the free agents. Draft prospects become editable once drafted. On the user's own players the card has *Edit player* too.
+- **What:**
+  - his **position**: a move to another group takes that group's first archetype, and takes him off his club's depth-chart pins at other positions;
+  - all 53 **ratings**, 1–99;
+  - his **hidden traits**: development curve, peak-age offset (−3 to +3), and the twelve 0–100 traits.
+- **What doesn't change:** his age, contract and club. Overall is derived, so it follows the ratings.
+- **True ratings, inside the editor only.** The editor shows and sets true ratings, the one exception to §4.6's lens (ADR: *The editor reads true ratings*). The roster, the card, the draft and the finder still read through the club's scouts.
+
+The engine side is `season.PlayerEdits`: `current` reads a player as an edit, and `apply` writes one back, held to the ranges above, and only with editing on.
 
 ## 11. Accessibility & polish (non-optional)
 

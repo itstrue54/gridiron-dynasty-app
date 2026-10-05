@@ -62,6 +62,12 @@ data class Dynasty(
      * the club is no longer on it, whatever the set says ([TradeOffers.block]).
      */
     val tradeBlock: Set<Int> = emptySet(),
+    /**
+     * Whether the user may edit any player's position, ratings and hidden
+     * traits (SPEC 10.5). Chosen when the dynasty starts, switchable in
+     * Settings; off for every dynasty saved before it existed.
+     */
+    val editPlayers: Boolean = false,
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)

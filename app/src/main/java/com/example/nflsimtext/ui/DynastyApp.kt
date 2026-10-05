@@ -89,6 +89,10 @@ enum class Tab(val label: String) {
     CUTDOWN("Camp"),
     /** SPEC 5.4: the user's game, with the user calling it. */
     LIVE("Live"),
+    /** SPEC 10.5: every player in the league, to pick one to edit, behind Settings. */
+    EDIT_FIND("Edit players"),
+    /** SPEC 10.5: one player's true ratings, traits and position. */
+    EDIT_PLAYER("Edit player"),
 }
 
 @Composable
@@ -106,6 +110,9 @@ fun DynastyApp(
     var started by rememberSaveable { mutableStateOf(false) }
     val begin = { started = true; tab = Tab.HUB }
     var player by remember { mutableStateOf<Int?>(null) }
+    // The player being edited, and the screen the editor goes back to.
+    var editing by remember { mutableStateOf<Int?>(null) }
+    var editFrom by remember { mutableStateOf(Tab.EDIT_FIND) }
     // A game opened from the schedule; null is the one just played.
     var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }
     val scope = rememberCoroutineScope()
@@ -125,7 +132,8 @@ fun DynastyApp(
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
             Tab.TRADES -> if (store.draftRoom != null) Tab.DRAFT else Tab.HUB
-            Tab.TUNING, Tab.GALLERY, Tab.SAVES -> Tab.SETTINGS
+            Tab.TUNING, Tab.GALLERY, Tab.SAVES, Tab.EDIT_FIND -> Tab.SETTINGS
+            Tab.EDIT_PLAYER -> editFrom
             else -> Tab.HUB
         }
     }
@@ -161,7 +169,11 @@ fun DynastyApp(
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.GALLERY -> DesignGallery { tab = Tab.SETTINGS }
-                    Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope) { tab = Tab.ROSTER }
+                    Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope,
+                        onEdit = { editing = it; editFrom = Tab.PLAYER; tab = Tab.EDIT_PLAYER }) { tab = Tab.ROSTER }
+                    Tab.EDIT_FIND -> PlayerFinderScreen(dynasty,
+                        onEdit = { editing = it; editFrom = Tab.EDIT_FIND; tab = Tab.EDIT_PLAYER }) { tab = Tab.SETTINGS }
+                    Tab.EDIT_PLAYER -> PlayerEditScreen(dynasty, editing, store, scope) { tab = editFrom }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
                     Tab.STAFF -> StaffScreen(dynasty) { tab = Tab.HUB }
@@ -172,6 +184,8 @@ fun DynastyApp(
                     Tab.SAVES -> SavesScreen(store, scope) { tab = Tab.SETTINGS }
                     Tab.GLOSSARY -> GlossaryScreen { tab = Tab.HUB }
                     Tab.SETTINGS -> SettingsScreen(theme, onTheme, haptics, onHaptics,
+                        editPlayers = dynasty.editPlayers,
+                        onEditPlayers = { on -> scope.launch { store.setEditPlayers(on) } },
                         onNavigate = { tab = it }, onTitle = { started = false }, onBack = { tab = Tab.HUB })
                     Tab.CONTRACTS -> ContractsScreen(
                         dynasty, store, scope,
@@ -264,7 +278,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
-                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY,
+                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY, Tab.EDIT_FIND, Tab.EDIT_PLAYER,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
