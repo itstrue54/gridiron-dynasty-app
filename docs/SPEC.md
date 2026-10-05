@@ -980,7 +980,7 @@ skew young because of decisions, not because players spontaneously retire.
 ### 9.1 v1 — single serialized save **[LOCKED for v1]**
 
 - The `League` object serializes with `kotlinx.serialization` to **CBOR**, gzipped, written to app internal storage.
-- Estimated size: ~2–4 MB per save at year 1; grows ~200 KB/season with the history policy below.
+- Size, measured (October 2026, one dynasty played thirty seasons): 0.3 MB at the start, 1.2 MB after five seasons, 1.5 MB after ten, 2.0 MB after twenty and 2.5 MB after thirty. Past the first few seasons it grows about 55 KB a season under the history policy below; the league holds about 2,470 players, because the retired are pruned. Encoding took up to 0.36 s and decoding 0.11 s on a laptop at year thirty.
 - Save slots: 5 user slots + rolling autosave (keep last 3, autosave on every phase advance).
 - Every save carries `saveVersion: Int`. Migration is a chain of `(n) -> (n+1)` functions in `data/migration/`. **Write the migration in the same commit as the model change.** A dynasty game that eats saves on update is a dead dynasty game.
 
