@@ -42,8 +42,9 @@ rejects a code it has seen) and set `versionName`.
 1. Create the app. Default language English, app not free-to-play-with-ads,
    no ads.
 2. **App content**
-   - Privacy policy: host `privacy-policy.md` somewhere public (a GitHub Pages
-     page is enough) and paste the URL.
+   - Privacy policy: paste the public URL of `site/index.html` (see
+     *Hosting the privacy policy* below).
+   - Contact email: amfootballsimtext@gmail.com.
    - Data safety: **no data collected, no data shared.** The app declares no
      permissions and makes no network requests.
    - Ads: none. Target audience: 13+ (a sports management game; no content
@@ -53,8 +54,8 @@ rejects a code it has seen) and set `versionName`.
 3. **Store listing**: copy from `listing.md`. Assets needed:
    - app icon: `assets/icon-512.png`
    - feature graphic: `assets/feature-graphic-1024x500.png`
-   - at least two phone screenshots, which only you can take (Power +
-     Volume Down on the app's own screens)
+   - phone screenshots: the eight `store-*.png` files in
+     `assets/screenshots/` (see `listing.md`)
 
    Both images are drawn by `assets/draw-assets.py`, which reuses the
    launcher icon's mark. Run `python3 assets/draw-assets.py assets` to
@@ -62,6 +63,20 @@ rejects a code it has seen) and set `versionName`.
 4. **Testing** -> Internal testing: upload the `.aab`, add yourself as a
    tester, install from the opt-in link, and play a season through before
    promoting to production.
+
+## Hosting the privacy policy
+
+This repository is private, so the policy is served from a small public one:
+
+1. Create a public repository on GitHub, for example `gridiron-dynasty`.
+2. Add `docs/play-store/site/index.html` to it, at the top level, as `index.html`.
+3. In that repository's **Settings → Pages**, publish from the `main` branch,
+   folder `/ (root)`.
+4. The policy is then at `https://itstrue54.github.io/gridiron-dynasty/` (with
+   your repository's name). Paste that URL into Play Console.
+
+`privacy-policy.md` and `site/index.html` say the same thing; change both
+together, and update the date.
 
 ## Save compatibility
 
