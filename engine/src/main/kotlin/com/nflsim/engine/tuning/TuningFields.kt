@@ -24,8 +24,20 @@ object TuningFields {
         val default: Double,
         val isInt: Boolean,
     ) {
-        /** Sliders run from zero to twice the Realistic value. */
-        val max: Double get() = if (default > 0.0) default * 2 else 1.0
+        /**
+         * The slider's range. A positive value runs from zero to twice the
+         * Realistic value. A negative one - a cut, a floor, a minimum - runs
+         * from twice it to as far the other side: a goal-line cut of -0.12 may
+         * be taken to -0.24 or turned into a lean of +0.12. A zero runs to one.
+         * The range once started at zero for every value, so a negative one
+         * showed as zero and could only be set positive.
+         */
+        val min: Double get() = if (default < 0.0) default * 2 else 0.0
+        val max: Double get() = when {
+            default > 0.0 -> default * 2
+            default < 0.0 -> -default
+            else -> 1.0
+        }
     }
 
     private val json = Json { encodeDefaults = true }
