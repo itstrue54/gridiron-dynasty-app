@@ -69,6 +69,17 @@ class TuningTableTest {
     }
 
     @Test
+    fun `every value's slider holds its own value, negatives included`() {
+        val fields = TuningFields.list(TuningTable.REALISTIC)
+        fields.forEach { f -> assertTrue(f.default in f.min..f.max, "${f.group}.${f.name} ${f.default} outside ${f.min}..${f.max}") }
+        val cut = fields.first { it.group == "calling" && it.name == "passGoalLineCut" }
+        assertTrue(cut.min < cut.default && cut.max > 0.0, "the goal-line cut can go further either way")
+        // Its slider's ends, set and read back.
+        assertEquals(cut.min.toFloat(), TuningFields.set(TuningTable.REALISTIC, "calling", "passGoalLineCut", cut.min).calling.passGoalLineCut, 1e-6f)
+        assertEquals(cut.max.toFloat(), TuningFields.set(TuningTable.REALISTIC, "calling", "passGoalLineCut", cut.max).calling.passGoalLineCut, 1e-6f)
+    }
+
+    @Test
     fun `scheme-fit tuning travels with the scheme`() {
         val scheme = SchemeCatalog[league.teams.first().offenseScheme]
         val player = league.players.first { it.position.isOffense && it.teamId != null }

@@ -135,11 +135,11 @@ private fun FieldSlider(f: TuningFields.Field, onChange: (Double) -> Unit, onDon
             )
         }
         NdSlider(
-            value = f.value.toFloat().coerceIn(0f, f.max.toFloat()),
+            value = f.value.toFloat().coerceIn(f.min.toFloat(), f.max.toFloat()),
             onValueChange = { onChange(it.toDouble()) },
             onValueChangeFinished = onDone,
-            valueRange = 0f..f.max.toFloat(),
-            steps = if (f.isInt) (f.max.toInt() - 1).coerceIn(0, 200) else 0,
+            valueRange = f.min.toFloat()..f.max.toFloat(),
+            steps = if (f.isInt) ((f.max - f.min).toInt() - 1).coerceIn(0, 200) else 0,
         )
     }
 }
