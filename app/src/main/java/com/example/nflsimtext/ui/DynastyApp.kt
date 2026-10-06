@@ -384,8 +384,20 @@ private fun TitleScreen(store: DynastyStore, scope: kotlinx.coroutines.Coroutine
             // Each slot loads with a tap, and can be deleted from here too - no need
             // to open a dynasty just to reach the Saves screen.
             var deleting by remember { mutableStateOf<Saves.Card?>(null) }
+            // Big type: Delete goes under its save. Beside it, the save's name
+            // had a word a line.
+            val stackSlots = androidx.compose.ui.platform.LocalConfiguration.current.fontScale >
+                com.example.nflsimtext.ui.components.STACK_FONT_SCALE
             cards.filterNot { it.auto }.forEach { card ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (stackSlots) {
+                    SecondaryButton(
+                        "Slot ${card.slot}: ${card.summary}",
+                        { scope.launch { if (store.load(card.slot)) onStarted() } },
+                        Modifier.fillMaxWidth(),
+                        enabled = !store.busy,
+                    )
+                    SecondaryButton("Delete", { deleting = card }, Modifier.padding(top = 4.dp), enabled = !store.busy)
+                } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     SecondaryButton(
                         "Slot ${card.slot}: ${card.summary}",
                         { scope.launch { if (store.load(card.slot)) onStarted() } },

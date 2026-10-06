@@ -369,15 +369,19 @@ private fun ViewTabs(view: TradeView, calls: Int, block: Int, onSelect: (TradeVi
 @Composable
 private fun AnswerBar(status: String, accepted: Boolean, busy: Boolean, onTrade: () -> Unit) {
     val c = NdTheme.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(c.turf)
-            .pointerInput(Unit) { detectTapGestures { } }
-            .padding(vertical = NdTheme.spacing.s),
-        horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    val bar = Modifier
+        .fillMaxWidth()
+        .background(c.turf)
+        .pointerInput(Unit) { detectTapGestures { } }
+        .padding(vertical = NdTheme.spacing.s)
+    // Big type: the line over a full-width button. Beside the button, the
+    // line had a word a line, broken mid-word, a third of the screen tall.
+    if (androidx.compose.ui.platform.LocalConfiguration.current.fontScale > com.example.nflsimtext.ui.components.STACK_FONT_SCALE) {
+        Column(bar, verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs)) {
+            Text(status, style = NdTheme.type.body, color = if (accepted) c.chalk else c.chalkDim)
+            PrimaryButton("Make the trade", onTrade, Modifier.fillMaxWidth(), enabled = accepted && !busy)
+        }
+    } else Row(bar, horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s), verticalAlignment = Alignment.CenterVertically) {
         Text(status, style = NdTheme.type.body, color = if (accepted) c.chalk else c.chalkDim,
             modifier = Modifier.weight(1f))
         PrimaryButton("Make the trade", onTrade, enabled = accepted && !busy)
