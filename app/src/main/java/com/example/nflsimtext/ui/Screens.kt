@@ -262,6 +262,16 @@ fun HubScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !store.busy,
                 )
+                // The spring window for the staff (offseason.Staffing): it
+                // closes when the offseason starts.
+                if (store.staffingOpen) {
+                    SecondaryButton(
+                        "Hire and fire your staff first",
+                        { onNavigate(Tab.STAFF) },
+                        Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
+                        enabled = !store.busy,
+                    )
+                }
                 // Calling the plays himself (SPEC 5.4): the same week, with his
                 // game waiting on him at each snap - or in the postseason, each
                 // of his playoff games in turn. Only with a game to play.

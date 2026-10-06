@@ -83,6 +83,9 @@ object Migrations {
         Step(40, "a defence loads the box against a predictable run offence far more readily (SPEC 5.4); nothing to move") { it },
         // A dynasty saved before player editing existed reads with it off.
         Step(41, "a dynasty chooses whether its players may be edited (SPEC 10.5); nothing to move") { it },
+        // An old save's general managers read as in the chair since before
+        // the league began, which is what they were, and nobody is out of work.
+        Step(42, "the user hires and fires coaches and general managers, and owners fire theirs (SPEC 4.7); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

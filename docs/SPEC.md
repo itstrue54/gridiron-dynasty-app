@@ -295,6 +295,46 @@ data class Coach(
 )
 ```
 
+**Hiring and firing (save version 43).** The user's club changes its own
+staff, every job on it - head coach, the three coordinators, the eleven
+position coaches - and its general manager, in a spring window: after the
+last playoff game, before the user starts the offseason
+(`offseason.Staffing`). Nobody else fires the user's coaches. The
+carousel (§7 phase 2) still warms and cools his head coach's seat, which
+the Staff screen shows as advice against the bar a club like his fires
+at, and a contract that runs out is extended; letting a coach go is the
+user's call.
+
+Each job is filled from a pool: the coaches out of work in that role (the
+league's fired head coaches, the coordinators who left with them, anyone
+the user lets go) and six fresh candidates a spring, drawn from the
+league's seed, the year and the job, so the same spring always offers the
+same men. Fresh candidates are drawn as the carousel draws its outside
+ones, below the league's coaching mean, because the user chooses the best
+of several. The pool lists them best first by what the job uses: a head
+coach's development and in-game adjustments, a position coach's
+development, and for a coordinator - whose scheme and tendencies are what
+he brings - his ratings overall. A head coach or coordinator candidate may
+run any scheme on his side of the ball (a head coach, either side); a
+special teams or position coach works in the club's.
+
+Firing a coordinator leaves the club's scheme alone; hiring one brings his,
+and if it is new the players on his side start learning it again, as after
+the carousel. A job still open when the offseason starts, the front
+office fills from the same pool with the best man, and for a coordinator
+the best who runs the club's current scheme if any does, so no scheme
+changes that the user did not choose. A new hire's contract is
+`newContractYears`.
+
+The general manager is hired the same way, from the general managers out
+of work (`League.gmPool`, newest first, the most recent 24) and six fresh
+candidates a spring. The user makes the calls; his general manager runs
+what the user hands the front office - injured places and the practice
+squad, answering demands, and the user's club's side of any offseason
+decision left to "the front office" - with his own `GmProfile`. An empty
+chair runs on neutral values until it is filled; the owner fills it when
+the offseason starts.
+
 ### 4.8 Schemes **[LOCKED — data-driven, not hardcoded]**
 
 Schemes live in `data/src/main/resources/schemes.json`, not in Kotlin source. Adding a scheme must not require a recompile.
@@ -659,7 +699,7 @@ The offseason is an explicit enum. Each phase has an `advance()` that returns a 
 | # | Phase | What happens |
 |---|---|---|
 | 1 | `POST_SEASON_AWARDS` | Awards, All-Pro, retirements announced |
-| 2 | `COACHING_CARROUSEL` | Firings, HC/OC/DC hires, coordinator poaching, scheme changes cascade |
+| 2 | `COACHING_CARROUSEL` | The jobs the user left open filled (§4.7); firings, HC/OC/DC hires, scheme changes cascade; owners replace general managers (§8.2). Never the user's club |
 | 3 | `RETIREMENTS` | Age + decline + contract + `loyalty` driven; stars can hang on |
 | 4 | `CONTRACT_DECISIONS` | Team options, restructures, cuts (pre/post June 1), cap compliance deadline |
 | 5 | `FRANCHISE_TAG` | Tag/transition window |
@@ -824,8 +864,18 @@ data class GmProfile(
 `loyaltyToOwnPlayers`, `riskTolerance` and the GM's `name` - generated in a
 generated league (from a stream of its own, so naming GMs moved no other
 draw), the real one from a roster file (9.4). The user is his own club's GM;
-the name shows in the club picker and, for his club, as the man whose chair
-he took (save version 18).
+the name shows in the club picker (save version 18). The user's club has a
+general manager of its own, whom the user hires and fires (§4.7).
+
+**Owners replace general managers** (`GmCarousel`, save version 43). After
+the coaching carousel, an owner fires a general manager after two losing
+seasons in a row - under .350 this year and under .450 the last - once he
+has had two seasons in the chair (`GmProfile.since`), and hires one of
+three outside candidates or two general managers out of work, by lot.
+Nobody knows in March which front office will work, and an owner who
+always hired one kind would turn the league into it. The fired man joins
+the pool the user's club hires from. The offseason report lists the
+changes under "Front offices".
 
 `teamNeed(team, position)` = f(starter quality, depth quality, contracts expiring, age, scheme fit). Needs drive FA targets and the draft board. **The AI evaluates prospects through its own `ScoutingLens`** — AI teams miss on players too, and differently from you. That is what makes the draft feel alive.
 
@@ -1159,7 +1209,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Camp** | Offseason: the camp roster with dead money if cut, the street to sign from, suggested cuts and why, the 46–53 bounds (§7) |
 | **Trades** | Three views, one at a time: **Calls** (clubs' offers, with a count), **Build a deal** and **Your block**. It opens on Calls when a club has called. Building a deal: the club as one line (Change club opens the list), then *On the table*, which lists every piece both ways (tap one to take it off) with the other club's answer and how far short it is (§8.4). Below that is one roster at a time, yours or theirs, as a table filtered by position (tap a row to add or remove him), then the picks. The answer and Make the trade stay pinned at the top while the rosters scroll. Open to the deadline and at the draft room before the first pick. |
 | **Edit players** | With player editing on (§10.5): a finder by club, position group and name over the whole league, and an editor with the player's position, true ratings by group and hidden traits. Behind Settings, and *Edit player* on the user's own players' cards. |
-| **Staff** | Hire/fire, coach cards with scheme + dev ratings, coordinator tree |
+| **Staff** | The general manager and his style, the head coach and his hot seat (advice: nobody fires him but the user), the coordinators with their schemes and tendencies, the position coaches. In the spring window (§4.7), each job opens to let its man go or, when it is open, to hire from the pool, tap a candidate to look closer; a coordinator who would change the scheme says so. The hub offers *Hire and fire your staff first* beside *Start the offseason* |
 | **Free agents (in season)** | The street and other clubs' practice squads to sign from, the user's squad and IR, releases with their dead money, the front office roster toggle (§6.1) |
 | **Contract demands** | Demands from the user's own men: every way to pay, 90%/80% offers, refuse, or let the front office answer (§10.4) |
 | **Transactions** | The league's wire by season, the user's club or everyone, filtered by kind (§4.7, §9.2) |
@@ -1355,7 +1405,7 @@ Every coefficient in the sim lives in one serializable `TuningTable`, saved with
 `ai` (FA aggression, trade frequency, draft BPA-vs-need weighting; how a front office values a player (the age curve) and prices production; the free-agency market, keeping one's own, tags, cap compliance, restructures, fifth-year options, contract demands and holdouts)
 `trades` (the Johnson pick chart and its exchange rate, how a contender buys a star)
 `intent` (what makes a player unhappy in the spring, when he asks out, and who takes him)
-`staff` (the coaching carousel: the hot seat, firing, candidates and hiring)
+`staff` (the coaching carousel: the hot seat, firing, candidates and hiring; the spring pool; owners replacing general managers)
 `needs` (what a club reads as a need at a position, for the draft, the market, extensions and trades)
 `honours` (the Hall of Fame vote and the comeback award)
 `scouting` (what a club knows of a player: the band, the trait thresholds, how its own men become known, and how a draft budget is spread)

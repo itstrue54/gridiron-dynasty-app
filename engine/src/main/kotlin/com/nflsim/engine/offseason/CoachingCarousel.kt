@@ -55,13 +55,19 @@ data class CoachingChange(
  * whose scheme changed start learning it again. Position coaches stay, and
  * nobody is poached. Coaches out of work age, and leave the pool at 68.
  *
+ * The user's club is the exception: nobody fires its coach but the user. Its
+ * seat still warms and cools, for the Staff screen's advice, and a contract
+ * that runs out is extended - the user lets a coach go in the spring window
+ * before this runs (Staffing), or keeps him.
+ *
  * Candidates are drawn below the league's coaching mean on purpose. The
  * best of several is hired, and drawn at the mean the league's coaching
  * would climb every year and take development with it (SPEC 7.1).
  */
 object CoachingCarousel {
 
-    data class Result(val league: League, val changes: List<CoachingChange>)
+    /** [gmChanges] rides along from GmCarousel, which runs straight after, to the offseason's report. */
+    data class Result(val league: League, val changes: List<CoachingChange>, val gmChanges: List<GmChange> = emptyList())
 
     fun run(
         league: League,
@@ -69,6 +75,8 @@ object CoachingCarousel {
         playoffClubs: Set<Int>,
         previousWinPct: Map<Int, Float>,
         rng: Rng,
+        /** The user's club: its seat still warms, as advice, but its staffing is the user's (offseason.Staffing). */
+        userTeam: TeamId? = null,
     ): Result {
         val t = league.tuning.staff
         val coaches = league.coaches.toMutableMap()
@@ -90,7 +98,7 @@ object CoachingCarousel {
             val seat = (hc.hotSeat * t.seatCooling + (0.5f - now) * t.seatBelow500 + (before - now) * t.seatWorseThanLast -
                 (if (team.id.v in playoffClubs) t.seatPlayoffRelief else 0f)).roundToInt().coerceIn(0, 100)
             val contractLeft = hc.contractYearsLeft - 1
-            if (seat < fireBar(team, t) && !(contractLeft <= 0 && now < 0.5f)) {
+            if (team.id == userTeam || seat < fireBar(team, t) && !(contractLeft <= 0 && now < 0.5f)) {
                 coaches[hc.id] = hc.copy(
                     hotSeat = seat, age = hc.age + 1,
                     contractYearsLeft = if (contractLeft <= 0) t.extensionYears else contractLeft,

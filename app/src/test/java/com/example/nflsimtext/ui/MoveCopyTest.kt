@@ -34,6 +34,6 @@ class MoveCopyTest {
         assertTrue(jobSecurity(12, 44).startsWith("His job is safe."))
         assertTrue(jobSecurity(25, 44).startsWith("Losing has put some pressure on him."))
         assertTrue(jobSecurity(40, 44).startsWith("He is on the hot seat"))
-        assertTrue(jobSecurity(12, 44).endsWith("Pressure 12; this club fires a coach at 44."))
+        assertTrue(jobSecurity(12, 44).endsWith("Pressure 12; a club like yours fires a coach at 44."))
     }
 }

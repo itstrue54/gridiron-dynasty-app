@@ -20,6 +20,10 @@ import com.example.nflsimtext.ui.components.StatusTag
 import com.example.nflsimtext.ui.components.TagTone
 import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.model.Coach
+import com.nflsim.engine.model.CoachRole
+import com.nflsim.engine.model.GmProfile
+import com.nflsim.engine.model.PositionGroup
+import com.nflsim.engine.offseason.StaffJob
 import com.nflsim.engine.model.GamePlan
 import com.nflsim.engine.offseason.CoachingCarousel
 import com.nflsim.engine.ratings.SchemeCatalog
@@ -30,10 +34,18 @@ import kotlin.math.roundToInt
  * Who coaches the club (SPEC 4.7). A staff is not decoration: the head coach's
  * development rating is what makes young players improve, his coordinators'
  * tendencies are what the play caller reads when the club has set no game plan
- * of its own, and a hot seat is what gets him fired in the spring.
+ * of its own. The hot seat is advice: the user hires and fires, in the spring
+ * window before the offseason starts (offseason.Staffing).
  */
 @Composable
-fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
+fun StaffScreen(
+    dynasty: Dynasty,
+    /** The spring window is open (DynastyStore.staffingOpen): each job can be changed. */
+    open: Boolean = false,
+    /** Opens one job to change it; null is the general manager's chair. */
+    onJob: (StaffJob?) -> Unit = {},
+    onBack: () -> Unit = {},
+) {
     val c = NdTheme.colors
     val team = dynasty.team
     val staff = team.staff
@@ -51,17 +63,46 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
             Column {
                 Text("Staff", style = NdTheme.type.display, color = c.chalk)
                 Text(
-                    "Your coaches develop the players, call the games off their own " +
-                        "tendencies, and keep or lose their jobs by the results.",
+                    "Your coaches develop the players and call the games off their own " +
+                        "tendencies. Who coaches is your call: nobody fires them but you.",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
-                // The user is the general manager; the club's own is the man he replaced.
-                if (team.gm.name.isNotBlank()) {
+            }
+        }
+
+        item {
+            if (open) {
+                SituationBlock("The hiring window is open", situation = Situation.THIRD_DOWN) {
                     Text(
-                        "You run the front office in ${team.gm.name}'s place.",
-                        style = NdTheme.type.caption, color = c.chalkDim,
+                        "Until you start the offseason, you can let anyone here go and hire " +
+                            "from the pool: the coaches out of work and this spring's candidates. " +
+                            "A job you leave open, the front office fills when the offseason starts.",
+                        style = NdTheme.type.body, color = c.chalk,
                     )
                 }
+            } else {
+                Text(
+                    "You hire and fire after the season, before you start the offseason.",
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                )
+            }
+        }
+
+        item {
+            SituationBlock("General manager", meta = team.gm.since.takeIf { it > 0 }?.let { "since $it" }) {
+                if (team.gm.name.isBlank()) {
+                    Text("Vacant.", style = NdTheme.type.body, color = c.chalkDim)
+                } else {
+                    Text(team.gm.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
+                    Text(
+                        "You make the calls. He runs what you hand him - injured places, " +
+                            "the practice squad, answering demands - in his own style:",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+                    )
+                    gmStyle(team.gm).forEach { Text("· $it", style = NdTheme.type.caption, color = c.chalk) }
+                }
+                if (open) ChangeButton(if (team.gm.name.isBlank()) "Hire a general manager" else "Change the general manager") { onJob(null) }
             }
         }
 
@@ -102,42 +143,54 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
                         )
                     }
                 }
+                if (open) ChangeButton(if (head == null) "Hire a head coach" else "Change the head coach") { onJob(StaffJob.HEAD) }
             }
         }
 
         item {
             SituationBlock("Offensive coordinator", meta = SchemeCatalog[team.offenseScheme].name) {
                 Coordinator(offence, offenceLines(offence?.tendencies))
+                if (open) ChangeButton(if (offence == null) "Hire an offensive coordinator" else "Change the offensive coordinator") { onJob(StaffJob.OFFENCE) }
             }
         }
 
         item {
             SituationBlock("Defensive coordinator", meta = SchemeCatalog[team.defenseScheme].name) {
                 Coordinator(defence, defenceLines(defence?.tendencies))
+                if (open) ChangeButton(if (defence == null) "Hire a defensive coordinator" else "Change the defensive coordinator") { onJob(StaffJob.DEFENCE) }
             }
         }
 
         item {
             SituationBlock("Special teams", meta = special?.let { "${it.age}" } ?: "vacant") {
                 Coordinator(special, emptyList())
+                if (open) ChangeButton(if (special == null) "Hire a special teams coordinator" else "Change the special teams coordinator") { onJob(StaffJob.SPECIAL) }
             }
         }
 
-        val position = staff.positionCoaches.entries
-            .mapNotNull { (group, id) -> coach(id)?.let { group to it } }
-            .sortedBy { it.first.name }
-        if (position.isNotEmpty()) {
-            item {
-                SituationBlock("Position coaches", meta = "${position.size} of them") {
-                    DataTable(
-                        columns = listOf(
-                            ColumnSpec("Group", 0.9f),
-                            ColumnSpec("Coach", 2.2f),
-                            ColumnSpec("Develops", 1.1f, numeric = true, tier = true),
-                        ),
-                        rows = position.map { (group, man) ->
-                            RowData(listOf(group.name, man.name, "${man.ratings.development}"))
-                        },
+        // Every group, open or filled, in the order the roster lists them.
+        val position = PositionGroup.entries.map { group -> group to staff.positionCoaches[group]?.let(::coach) }
+        item {
+            SituationBlock("Position coaches", meta = "${position.count { it.second != null }} of ${position.size}") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("Group", 0.9f),
+                        ColumnSpec("Coach", 2.2f, wrap = true),
+                        ColumnSpec("Develops", 1.1f, numeric = true, tier = true),
+                    ),
+                    rows = position.map { (group, man) ->
+                        RowData(
+                            listOf(group.name, man?.name ?: "Vacant", man?.ratings?.development?.toString() ?: "-"),
+                            highlight = open && man == null,
+                            onClick = if (open) ({ onJob(StaffJob(CoachRole.POSITION_COACH, group)) }) else null,
+                        )
+                    },
+                )
+                if (open) {
+                    Text(
+                        "Tap a group to change its coach.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
                     )
                 }
             }
@@ -162,7 +215,7 @@ fun StaffScreen(dynasty: Dynasty, onBack: () -> Unit = {}) {
 
 /** A coordinator: who he is, and what he calls when the club leaves him to it. */
 @Composable
-private fun Coordinator(coach: Coach?, lines: List<String>) {
+internal fun Coordinator(coach: Coach?, lines: List<String>) {
     val c = NdTheme.colors
     if (coach == null) {
         Text("Vacant.", style = NdTheme.type.body, color = c.chalkDim)
@@ -191,7 +244,7 @@ private fun Coordinator(coach: Coach?, lines: List<String>) {
 
 /** The six things a coach is rated on (SPEC 4.7). */
 @Composable
-private fun Ratings(coach: Coach) {
+internal fun Ratings(coach: Coach) {
     AttributeBar("Develops players", coach.ratings.development)
     AttributeBar("Game plan", coach.ratings.gameplan)
     AttributeBar("Adjustments", coach.ratings.adjustments)
@@ -201,7 +254,7 @@ private fun Ratings(coach: Coach) {
 }
 
 /** What he calls on offence, left to himself. */
-private fun offenceLines(plan: GamePlan?): List<String> = if (plan == null) emptyList() else listOfNotNull(
+internal fun offenceLines(plan: GamePlan?): List<String> = if (plan == null) emptyList() else listOfNotNull(
     plan.passRate?.let { "Throws it ${percent(it)} of the time." },
     plan.playActionRate?.let { "Play action on ${percent(it)} of early downs." },
     plan.deepShotRate?.let { "Takes a deep shot ${percent(it)} of the time." },
@@ -209,7 +262,7 @@ private fun offenceLines(plan: GamePlan?): List<String> = if (plan == null) empt
 )
 
 /** And on defence. */
-private fun defenceLines(plan: GamePlan?): List<String> = if (plan == null) emptyList() else listOfNotNull(
+internal fun defenceLines(plan: GamePlan?): List<String> = if (plan == null) emptyList() else listOfNotNull(
     plan.blitzRate?.let { "Blitzes ${percent(it)} of the time." },
     plan.manZoneSplit?.let { "Plays man on ${percent(it)} of snaps." },
     plan.doubleTeamRate?.let { "Doubles the best receiver ${percent(it)} of the time." },
@@ -217,25 +270,54 @@ private fun defenceLines(plan: GamePlan?): List<String> = if (plan == null) empt
 
 private fun percent(value: Float) = "${(value * 100).roundToInt()}%"
 
-private fun contract(coach: Coach) = when (coach.contractYearsLeft) {
+internal fun contract(coach: Coach) = when (coach.contractYearsLeft) {
     0 -> "out of contract"
     1 -> "last year of his deal"
     else -> "${coach.contractYearsLeft} years left"
 }
+
+/** The button that opens a job to change it, under its block. */
+@Composable
+private fun ChangeButton(text: String, onClick: () -> Unit) =
+    SecondaryButton(text, onClick, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
+
+/** A general manager's style, in words: what he does with what you hand him. */
+internal fun gmStyle(gm: GmProfile): List<String> = listOfNotNull(
+    when {
+        gm.winNowVsFuture >= 0.66f -> "Builds to win now: keeps veterans and spends ahead."
+        gm.winNowVsFuture <= 0.33f -> "Builds for later: favours youth and keeps room."
+        else -> "Weighs this season against the next few."
+    },
+    when {
+        gm.aggression >= 0.66f -> "Will put a big share of the cap on one star."
+        gm.aggression <= 0.33f -> "Spreads the money: no huge contracts."
+        else -> "Pays stars, within reason."
+    },
+    when {
+        gm.loyaltyToOwnPlayers >= 0.66f -> "Fights to keep his own players off the market."
+        gm.loyaltyToOwnPlayers <= 0.33f -> "Lets his own walk rather than overpay."
+        else -> null
+    },
+    when {
+        gm.riskTolerance >= 0.66f -> "Carries dead money and bets on bounce-backs."
+        gm.riskTolerance <= 0.33f -> "Cuts his losses quickly."
+        else -> null
+    },
+)
 
 /** Within this much of the club's firing bar is worth saying out loud. */
 private const val WARNING = 10
 
 /**
  * Where a head coach stands, in words, with the numbers behind it: the
- * pressure losing seasons build, and the level at which this club lets a
- * coach go.
+ * pressure losing seasons build, and the level at which a club like this
+ * one lets a coach go. Advice only: nobody fires the user's coaches but him.
  */
 internal fun jobSecurity(pressure: Int, bar: Int): String {
     val standing = when {
-        pressure >= bar - WARNING -> "He is on the hot seat: another bad season and he is gone."
+        pressure >= bar - WARNING -> "He is on the hot seat: another bad season and most clubs would let him go."
         pressure * 2 >= bar -> "Losing has put some pressure on him."
         else -> "His job is safe."
     }
-    return "$standing Pressure $pressure; this club fires a coach at $bar."
+    return "$standing Pressure $pressure; a club like yours fires a coach at $bar."
 }

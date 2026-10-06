@@ -21,7 +21,7 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 - Re-sign your stars, use the franchise tag, and bid in free agency under a real salary cap. Cut a bad contract and you still pay for it.
 
 **Run the team**
-- Hire and fire coaches; their schemes and tendencies shape how your club plays.
+- Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. A new coordinator brings his own scheme and tendencies.
 - Set your depth chart and a game plan: how often you pass, when you blitz, how often you go for it on fourth down.
 - Watch every game play by play, call the plays yourself, or skip straight to the final.
 
