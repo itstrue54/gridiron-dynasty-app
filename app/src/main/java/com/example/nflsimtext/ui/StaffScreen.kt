@@ -82,7 +82,9 @@ fun StaffScreen(
                 }
             } else {
                 Text(
-                    "You hire and fire after the season, before you start the offseason.",
+                    if (dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON)
+                        "The offseason is under way. You can hire and fire again after next season."
+                    else "You hire and fire after the season, before you start the offseason.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )
             }

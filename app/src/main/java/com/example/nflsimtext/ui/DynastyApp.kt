@@ -184,7 +184,15 @@ fun DynastyApp(
                     Tab.ABOUT -> AboutScreen { tab = Tab.SETTINGS }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
-                    Tab.STAFF -> StaffScreen(dynasty, store.staffingOpen, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
+                    Tab.STAFF -> {
+                        // Once the offseason is under way, its first step has
+                        // filled the jobs left open (offseason.Staffing): show
+                        // the staff as that run has it, not the save's vacancies.
+                        val shown = if (dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON && !store.staffingOpen)
+                            dynasty.copy(league = com.nflsim.engine.offseason.Staffing.fillVacancies(dynasty.league, dynasty.userTeamId, dynasty.year))
+                        else dynasty
+                        StaffScreen(shown, store.staffingOpen, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
+                    }
                     Tab.STAFF_JOB -> StaffJobScreen(dynasty, staffJob, store, scope) { tab = Tab.STAFF }
                     Tab.MARKET -> FreeAgentsScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.WIRE -> TransactionsScreen(dynasty) { tab = Tab.HUB }

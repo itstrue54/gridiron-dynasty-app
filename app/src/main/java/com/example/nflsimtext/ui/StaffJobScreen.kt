@@ -125,17 +125,26 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     else -> "Develops" to "Rating"
                 }
                 DataTable(
-                    columns = listOf(
+                    // A scheme reads as text, so it goes before the numbers:
+                    // after a right-aligned age it runs into it.
+                    columns = if (third == "Scheme") listOf(
+                        ColumnSpec("Coach", 2.0f, wrap = true),
+                        ColumnSpec(third, 1.7f, wrap = true),
+                        ColumnSpec("Age", 0.7f, numeric = true),
+                        ColumnSpec(fourth, 1.0f, numeric = true, tier = true),
+                    ) else listOf(
                         ColumnSpec("Coach", 2.2f, wrap = true),
                         ColumnSpec("Age", 0.7f, numeric = true),
-                        if (third == "Scheme") ColumnSpec(third, 1.7f, wrap = true) else ColumnSpec(third, 1.1f, numeric = true, tier = true),
+                        ColumnSpec(third, 1.1f, numeric = true, tier = true),
                         ColumnSpec(fourth, 1.0f, numeric = true, tier = true),
                     ),
                     rows = pool.take(POOL_SHOWN).map { man ->
                         RowData(
-                            listOf(
-                                man.name, "${man.age}",
-                                if (third == "Scheme") SchemeCatalog[man.scheme].name else "${man.ratings.development}",
+                            if (third == "Scheme") listOf(
+                                man.name, SchemeCatalog[man.scheme].name, "${man.age}",
+                                "${Staffing.quality(man).roundToInt()}",
+                            ) else listOf(
+                                man.name, "${man.age}", "${man.ratings.development}",
                                 if (fourth == "Adjusts") "${man.ratings.adjustments}" else "${Staffing.quality(man).roundToInt()}",
                             ),
                             highlight = side != null && man.scheme == side.second,
