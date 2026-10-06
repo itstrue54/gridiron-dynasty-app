@@ -93,6 +93,8 @@ enum class Tab(val label: String) {
     EDIT_FIND("Edit players"),
     /** SPEC 10.5: one player's true ratings, traits and position. */
     EDIT_PLAYER("Edit player"),
+    /** The version, the privacy policy in short, and support: behind Settings. */
+    ABOUT("About"),
 }
 
 @Composable
@@ -132,7 +134,7 @@ fun DynastyApp(
             Tab.DEPTH, Tab.PLAYER -> Tab.ROSTER
             Tab.BOX -> if (boxGame != null) Tab.SCHEDULE else Tab.HUB
             Tab.TRADES -> if (store.draftRoom != null) Tab.DRAFT else Tab.HUB
-            Tab.TUNING, Tab.GALLERY, Tab.SAVES, Tab.EDIT_FIND -> Tab.SETTINGS
+            Tab.TUNING, Tab.GALLERY, Tab.SAVES, Tab.EDIT_FIND, Tab.ABOUT -> Tab.SETTINGS
             Tab.EDIT_PLAYER -> editFrom
             else -> Tab.HUB
         }
@@ -174,6 +176,7 @@ fun DynastyApp(
                     Tab.EDIT_FIND -> PlayerFinderScreen(dynasty,
                         onEdit = { editing = it; editFrom = Tab.EDIT_FIND; tab = Tab.EDIT_PLAYER }) { tab = Tab.SETTINGS }
                     Tab.EDIT_PLAYER -> PlayerEditScreen(dynasty, editing, store, scope) { tab = editFrom }
+                    Tab.ABOUT -> AboutScreen { tab = Tab.SETTINGS }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
                     Tab.STAFF -> StaffScreen(dynasty) { tab = Tab.HUB }
@@ -278,7 +281,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
                     Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
-                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY, Tab.EDIT_FIND, Tab.EDIT_PLAYER,
+                    Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY, Tab.EDIT_FIND, Tab.EDIT_PLAYER, Tab.ABOUT,
                 )
             }.forEach { t ->
                 TextButton(onClick = { onSelect(t) }) {
