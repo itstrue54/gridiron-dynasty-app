@@ -632,6 +632,48 @@ The box shift shared the pass and blitz window (±0.12). For the box that window
 
 **Effect on the league:** most offences sit near the neutral pass rate, so the league barely moves. On league 2026: carries 27.1 → 27.3, attempts 34.6 → 34.3, yards 351 → 350, YPC 4.42 → 4.42, third down 0.380 → 0.383. All 23 bands pass on all six leagues: attempts 34.0–34.7, yards 349–353, points 21.7–22.2.
 
+## Pass 13 — October 2026 (the shape of a catch; tried, not shipped)
+
+**Measured:** 40,000 snaps called by the play caller from first and ten at a club's own 30, across 40 matchups.
+
+| | Sim | NFL (approx.) |
+|---|---|---|
+| Completion: median, 90th percentile | 8, 20 | ~8, ~20+ |
+| Completions of 20+ | 10.2% | ~15% |
+| Yards after the catch: median, mean, 90th percentile | **0**, 3.4, 4 | ~3, ~5, ~11 |
+| Runs: median, 20+ | 4, 2.2% | ~3, ~2.7% |
+
+**The run game is close; the catch isn't.** `yacScale` (0.35) shrinks an ordinary catch's run to under a yard. Every long catch-and-run comes from a breakaway roll, with nothing between them.
+
+**Tried:** two searches of 50 candidates each, scored on the bands plus the catch's shape:
+- ordinary YAC scale 0.8–1.0 and mean 3.5–6;
+- shorter routes, fewer breakaways;
+- the run game.
+
+**Results** (league 2026, 2,000 games):
+
+| | Now | Best in band | Best for long plays |
+|---|---|---|---|
+| YAC median / mean | 0 / 3.4 | 2.7 / 5.2 | 3.7 / 5.7 |
+| Plays of 20+ | 2.64 | 2.90 | 3.96 |
+| Plays of 40+ | 0.33 | 0.27 | 0.31 |
+| Yards per team | 350 | 359 | **395** |
+| Bands out | none | none | five (yards, YPA, points, passing TDs, red zone) |
+
+**Why it stops there:**
+- A realistic catch only fits the yards band with shorter throws, and shorter throws take the deep catches under 20 yards.
+- Keeping throws deep reaches the NFL's long plays, but at 370–395 yards a team, with red-zone touchdowns and points out of band.
+- The NFL gets about 3.5 plays of 20+ on about 330 yards. The sim's ordinary plays gain too much for the long ones to fit on top.
+
+**Not shipped:** the best in-band candidate traded a fifth of the 40-yard plays for its realistic catch.
+
+**Next time:** make ordinary plays less productive, not long plays more common:
+- more short throws defended;
+- more tackles at the catch on underneath routes;
+- more runs stopped near the line.
+
+Then add the realistic catch on top. This is a structural change to how plays resolve, not a retune.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
