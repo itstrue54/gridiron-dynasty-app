@@ -46,7 +46,11 @@ rejects a code it has seen) and set `versionName`.
      *Hosting the privacy policy* below).
    - Contact email: amfootballsimtext@gmail.com.
    - Data safety: **no data collected, no data shared.** The app declares no
-     permissions and makes no network requests.
+     permissions and makes no network requests. Android's own backup may copy
+     the saves and settings to the player's Google account
+     (`res/xml/data_extraction_rules.xml`), but that goes to the player, not
+     to the developer. Check the form's help text on backups when you fill it
+     in.
    - Ads: none. Target audience: 13+ (a sports management game; no content
      concerns, but it is not designed for children).
    - Content rating: complete the questionnaire. No violence beyond sport, no

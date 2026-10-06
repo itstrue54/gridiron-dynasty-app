@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   What Android's own backup may copy, on Android 11 and older (Android 12
+   and newer read data_extraction_rules.xml). Only the dynasty saves and the
+   app's settings: nothing else the app or its libraries keep. The backup
+   goes to the player's own Google account, if they have turned backup on;
+   the privacy policy says so (docs/play-store/privacy-policy.md).
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <include domain="file" path="saves/" />
+    <include domain="sharedpref" path="call_sheet.xml" />
 </full-backup-content>

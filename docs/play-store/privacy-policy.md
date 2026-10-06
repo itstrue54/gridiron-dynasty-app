@@ -1,6 +1,6 @@
 # Privacy policy
 
-_Gridiron Dynasty. Last updated: October 2026._
+_Gridiron Dynasty. Last updated: 6 October 2026._
 
 This app does not collect, store, transmit or share any personal information.
 
@@ -10,6 +10,11 @@ This app does not collect, store, transmit or share any personal information.
 - **No analytics, advertising or tracking.** None are included.
 - **Your saves stay on your device.** Your league is saved in the app's own
   private storage and is removed if you uninstall the app.
+- **Your phone's own backup may include them.** If you have turned on your
+  phone's backup, Android may copy your saves and the app's settings (its
+  theme and similar choices) to your own Google account, and bring them to a
+  new phone. That backup is Android's and yours: the app's developer never
+  receives or sees it.
 - **Files you choose stay on your device.** If you start a league from your
   own roster file, the app reads the file you pick and nothing else.
 - **Exports are yours.** If you export a roster, a roster template or a

@@ -1,19 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   What Android's own backup and phone-to-phone transfer may copy, on
+   Android 12 and newer: only the dynasty saves and the app's settings, so a
+   dynasty survives a new phone. backup_rules.xml says the same for older
+   versions. The privacy policy says so (docs/play-store/privacy-policy.md).
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <include domain="file" path="saves/" />
+        <include domain="sharedpref" path="call_sheet.xml" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="file" path="saves/" />
+        <include domain="sharedpref" path="call_sheet.xml" />
     </device-transfer>
-    -->
 </data-extraction-rules>
