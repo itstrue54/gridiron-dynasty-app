@@ -1,5 +1,7 @@
 package com.example.nflsimtext.ui.components
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -66,13 +68,24 @@ fun SituationBlock(
             .padding(start = EDGE),
     ) {
         Column(Modifier.padding(NdTheme.spacing.l)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(title.uppercase(), style = NdTheme.type.blockTitle, color = c.chalk)
-                if (meta != null) Text(meta, style = NdTheme.type.label, color = c.chalkDim)
+            // Big type: the meta goes under the title. Beside it, at twice
+            // the size, a long meta ran into the title.
+            if (LocalConfiguration.current.fontScale > STACK_FONT_SCALE) {
+                Column {
+                    Text(title.uppercase(), style = NdTheme.type.blockTitle, color = c.chalk)
+                    if (meta != null) Text(meta, style = NdTheme.type.label, color = c.chalkDim)
+                }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(title.uppercase(), style = NdTheme.type.blockTitle, color = c.chalk,
+                        modifier = Modifier.weight(1f, fill = false))
+                    if (meta != null) Text(meta, style = NdTheme.type.label, color = c.chalkDim,
+                        textAlign = TextAlign.End, modifier = Modifier.padding(start = NdTheme.spacing.s))
+                }
             }
             if (divider) {
                 // The lower-third rule: a short cyan bar over the hairline.
@@ -93,6 +106,13 @@ fun SituationBlock(
 
 /** The situation edge's width. */
 private val EDGE = 4.dp
+
+/**
+ * Past this font scale, rows that put two things side by side stack them
+ * instead (docs/DESIGN.md 5): a block's title and meta, a table's cells,
+ * the hub's club and record, a save and its Delete, the trade bar.
+ */
+const val STACK_FONT_SCALE = 1.3f
 
 @Preview(name = "Night")
 @Composable

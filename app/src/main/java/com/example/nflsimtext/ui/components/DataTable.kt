@@ -95,7 +95,7 @@ fun DataTable(
     onSort: ((Int) -> Unit)? = null,
 ) {
     val c = NdTheme.colors
-    val stacked = LocalConfiguration.current.fontScale > 1.3f
+    val stacked = LocalConfiguration.current.fontScale > STACK_FONT_SCALE
     // A table, to a screen reader: this many rows of this many columns.
     Column(modifier.fillMaxWidth().semantics {
         collectionInfo = CollectionInfo(rowCount = rows.size, columnCount = columns.size)

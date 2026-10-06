@@ -68,13 +68,18 @@ Broadcast angles: panels are cut on the diagonal.
 
 - **SituationBlock** is the core pattern: a raised block with a 4dp situation
   edge on the left, a capitalised italic title, meta on the right, and a
-  lower-third rule - a hairline with a short cyan bar at its start.
+  lower-third rule - a hairline with a short cyan bar at its start. At large
+  font sizes the meta goes under the title instead.
 - **DataTable:** numbers right-aligned in tabular figures, names left, 1dp
   rules, no rounding. A highlighted row (the user's club, a choice) is a
   rowHighlight tint with a 3dp accent edge and ordinary text - a flood of
   cyan was tried and shouted. At large font sizes (over 1.3) rows stack: names on one
   line, labelled numbers wrapping beneath. Each row is one screen-reader item
   with every number named (SPEC 11).
+- **Large text:** past `STACK_FONT_SCALE` (1.3), anything laid out side by
+  side stacks: a block's title and meta, a table's cells, the hub's club and
+  record, a save and its Delete, the trade screen's pinned line and its
+  button. Checked on a phone at the system maximum (2.0) in October 2026.
 - **Scoreboard:** the broadcast line, one semantics node.
 - **Buttons:** Primary is pylon fill with navy text; Secondary is a chalkDim
   outline. Both at least the minimum touch height.

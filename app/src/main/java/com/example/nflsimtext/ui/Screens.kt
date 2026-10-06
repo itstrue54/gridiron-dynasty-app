@@ -129,7 +129,7 @@ fun HubScreen(
         item {
             // Big type: the record drops under the club rather than fighting
             // its name for the line.
-            val stacked = LocalConfiguration.current.fontScale > 1.3f
+            val stacked = LocalConfiguration.current.fontScale > com.example.nflsimtext.ui.components.STACK_FONT_SCALE
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Mark(team.abbrev)
                 Column(Modifier.padding(start = NdTheme.spacing.m).weight(1f)) {
