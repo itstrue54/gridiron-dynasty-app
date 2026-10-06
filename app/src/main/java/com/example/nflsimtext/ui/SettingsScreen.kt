@@ -50,6 +50,7 @@ fun SettingsScreen(
                     "With editing on, you can rewrite any player's position, ratings and hidden traits.",
                     style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs),
                 )
+                SecondaryButton("About Gridiron Dynasty", { onNavigate(Tab.ABOUT) }, wide)
                 SecondaryButton("Back to the title screen", onTitle, wide)
             }
         }
