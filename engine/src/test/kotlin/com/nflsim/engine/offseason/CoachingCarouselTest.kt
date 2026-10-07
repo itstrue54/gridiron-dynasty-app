@@ -102,11 +102,16 @@ class CoachingCarouselTest {
         val stayed = r.league.coaches.filterKeys { it in league.coaches && it !in old }
         assertTrue(stayed.isNotEmpty())
         stayed.forEach { (id, c) -> assertEquals(league.coach(id).age + 1, c.age, c.name) }
+        // And a year on in his contract: one that runs out is extended.
+        val t = league.tuning.staff
+        stayed.forEach { (id, c) ->
+            val left = league.coach(id).contractYearsLeft - 1
+            assertEquals(if (left <= 0) t.extensionYears else left, c.contractYearsLeft, c.name)
+        }
         // The old are gone, and listed.
         old.forEach { assertTrue(it !in r.league.coaches, "${league.coach(it).name} retired") }
         assertTrue(r.retirements.map { it.name }.containsAll(old.map { league.coach(it).name }))
         // Anyone else who retired is a generated man who reached a retirement age.
-        val t = league.tuning.staff
         r.retirements.forEach { ret ->
             val was = league.coaches.values.first { it.name == ret.name }
             assertTrue(was.age + 1 >= t.retireFrom, "${ret.name} retired at ${was.age + 1}")
