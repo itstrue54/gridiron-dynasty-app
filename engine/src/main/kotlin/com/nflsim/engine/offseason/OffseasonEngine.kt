@@ -247,6 +247,22 @@ object OffseasonEngine {
         )
     }
 
+    /**
+     * SPEC 7 phase 2's owners, as this spring's offseason will run them over
+     * [league] - the coaching carousel's result - for the user's window to
+     * see which general managers the league lets go (Staffing.gmMarket).
+     */
+    fun springGms(season: Dynasty, league: League, rng: Rng = SplitMixRng(season.seed + season.year)): GmCarousel.Result {
+        val newYear = season.year + 1
+        val standings = Standings(season.league, season.results, rng.split("order|$newYear"))
+        val previousWinPct = season.lastOffseason?.moneyByTeam?.mapValues { it.value.winPermille / 1000f }
+            ?: emptyMap()
+        return GmCarousel.run(
+            league, { id -> standings.record(id).winPct.toFloat() }, previousWinPct, season.userTeamId, newYear,
+            rng.split("gms|$newYear"), reserved = setOfNotNull(season.pendingGm),
+        )
+    }
+
     fun runToContracts(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): ContractsPause {
         val oldYear = season.year
         val newYear = oldYear + 1
@@ -266,8 +282,9 @@ object OffseasonEngine {
         // left open - so everything after this sees a full staff.
         val carousel = springCarousel(season, rng)
         val staffed = Staffing.settle(carousel.league, season)
-        val owners = GmCarousel.run(
-            staffed, winPct, previousWinPct, season.userTeamId, newYear, rng.split("gms|$newYear"))
+        // Then the owners, and then the user's own chair: the man he agreed
+        // to hire as his club lets him go, else the owner's first choice.
+        val owners = springGms(season, staffed, rng).let { it.copy(league = Staffing.settleGm(it.league, season)) }
         // Last year's unused room joins next year's cap (SPEC 8.1). It is
         // read from the books as the season closed and written before any
         // phase counts money, so every cap check this spring includes it.

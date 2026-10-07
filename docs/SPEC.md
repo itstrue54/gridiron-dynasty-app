@@ -949,6 +949,17 @@ always hired one kind would turn the league into it. The fired man joins
 the pool the user's club hires from. The offseason report lists the
 changes under "Front offices".
 
+**This spring's general managers (save version 49).** As with coaches
+(§4.7), the user's window previews the owners (`OffseasonEngine.springGms`,
+after the coaching carousel), so the general manager pool holds the men
+the owners let go this spring, marked with the club. Hiring one is
+`Dynasty.pendingGm`: he takes the chair when the offseason starts, and no
+owner takes him first. An owner's shortlist and his choice are drawn for
+that owner and each man by name, not from a shared stream, so the user's
+moves change an owner's spring only if he wanted the man the user took. A
+chair still empty after the owners have run gets the first name on the
+owner's list, as before.
+
 `teamNeed(team, position)` = f(starter quality, depth quality, contracts expiring, age, scheme fit). Needs drive FA targets and the draft board. **The AI evaluates prospects through its own `ScoutingLens`** — AI teams miss on players too, and differently from you. That is what makes the draft feel alive.
 
 ### 8.3 Free agency auction

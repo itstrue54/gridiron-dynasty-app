@@ -1,9 +1,9 @@
 package com.nflsim.engine.offseason
 
+import com.nflsim.engine.model.GmProfile
 import com.nflsim.engine.model.League
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.rng.Rng
-import com.nflsim.engine.rng.shuffled
 import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
@@ -42,6 +42,8 @@ object GmCarousel {
         userTeam: TeamId?,
         newYear: Int,
         rng: Rng,
+        /** General managers the user's club has agreed to hire (Dynasty.pendingGm): no owner takes them. */
+        reserved: Set<String> = emptySet(),
     ): Result {
         val t = league.tuning.staff
         var pool = league.gmPool
@@ -54,14 +56,17 @@ object GmCarousel {
             val gm = team.gm
             if (now >= t.gmFireWinPct || before >= t.gmFirePreviousWinPct || newYear - gm.since < t.gmTenure) return@map team
 
-            val hireRng = rng.split("gm|${team.id.v}")
             val taken = league.teams.map { it.gm.name }.toSet() + pool.map { it.name } + hired
             val outside = Staffing.freshGms(league, newYear - 1, t.gmCandidates, "gm-hire|$newYear|${team.id.v}")
                 .filter { it.name !in taken }
-            val outOfWork = pool.shuffled(hireRng).take(t.gmRehireLook)
-            val candidates = outside + outOfWork
-            if (candidates.isEmpty()) return@map team
-            val chosen = candidates[hireRng.nextInt(candidates.size)]
+            // The shortlist and the lot are drawn for this owner and each man
+            // by name, not from a shared stream, so a man more or less in the
+            // pool changes an owner's choice only if he is the one it drew -
+            // and the user's agreed man is passed over only at the choice.
+            fun lot(label: String, gm: GmProfile) = rng.split("$label|${team.id.v}|${gm.name}").nextFloat()
+            val outOfWork = pool.sortedBy { lot("gm-look", it) }.take(t.gmRehireLook)
+            val chosen = (outside + outOfWork).filter { it.name !in reserved }
+                .minByOrNull { lot("gm-pick", it) } ?: return@map team
             hired += chosen.name
             pool = (listOf(gm) + pool.filterNot { it.name == chosen.name }).take(t.gmPoolLimit)
             changes += GmChange(team.id.v, gm.name, chosen.name, (now * 1000).roundToInt(), rehired = chosen in outOfWork)

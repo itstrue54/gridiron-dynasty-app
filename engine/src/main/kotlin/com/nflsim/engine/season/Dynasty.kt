@@ -74,6 +74,12 @@ data class Dynasty(
      * offseason starts and their club has let them go.
      */
     val pendingHires: List<com.nflsim.engine.offseason.PendingHire> = emptyList(),
+    /**
+     * The general manager the user agreed to hire in the spring window from
+     * among those the league's owners are letting go: he takes the chair
+     * when the offseason starts.
+     */
+    val pendingGm: String? = null,
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)

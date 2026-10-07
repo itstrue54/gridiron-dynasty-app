@@ -95,20 +95,24 @@ fun StaffScreen(
         }
 
         item {
-            SituationBlock("General manager", meta = team.gm.since.takeIf { it > 0 }?.let { "since $it" }) {
-                if (team.gm.name.isBlank()) {
+            // The man agreed to take the chair when the offseason starts, shown in it.
+            val agreedGm = if (open) com.nflsim.engine.offseason.Staffing.pendingGm(dynasty) else null
+            val gm = agreedGm ?: team.gm
+            SituationBlock("General manager", meta = gm.since.takeIf { it > 0 && agreedGm == null }?.let { "since $it" }) {
+                if (gm.name.isBlank()) {
                     Text("Vacant.", style = NdTheme.type.body, color = c.chalkDim)
                 } else {
-                    Text(team.gm.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
+                    Text(gm.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
+                    if (agreedGm != null) Text("Takes the chair when the offseason starts.", style = NdTheme.type.caption, color = c.chalkDim)
                     Text(
                         "You make the calls. He runs what you hand him - injured places, " +
                             "the practice squad, answering demands - in his own style:",
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
-                    gmStyle(team.gm).forEach { Text("· $it", style = NdTheme.type.caption, color = c.chalk) }
+                    gmStyle(gm).forEach { Text("· $it", style = NdTheme.type.caption, color = c.chalk) }
                 }
-                if (open) ChangeButton(if (team.gm.name.isBlank()) "Hire a general manager" else "Change the general manager") { onJob(null) }
+                if (open) ChangeButton(if (gm.name.isBlank()) "Hire a general manager" else "Change the general manager") { onJob(null) }
             }
         }
 

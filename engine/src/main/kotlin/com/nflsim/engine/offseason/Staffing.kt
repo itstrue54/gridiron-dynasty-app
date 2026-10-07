@@ -324,7 +324,8 @@ object Staffing {
             }
             out = place(out, user, p.job, coach)
         }
-        return fillVacancies(out, user, dynasty.year)
+        // The general manager's chair waits for the owners (settleGm).
+        return fillVacancies(out, user, dynasty.year, gm = false)
     }
 
     /** A club whose coordinator the user promoted away hires his replacement (CoachingCarousel.replacement). */
@@ -446,7 +447,7 @@ object Staffing {
      * scheme changes unless the user chose it. An open general manager's
      * chair goes to the first name on the owner's list.
      */
-    fun fillVacancies(league: League, team: TeamId, year: Int): League {
+    fun fillVacancies(league: League, team: TeamId, year: Int, gm: Boolean = true): League {
         var out = league
         for (job in vacancies(league, team)) {
             val pool = pool(out, year, team, job)
@@ -458,7 +459,7 @@ object Staffing {
             val chosen = pool.firstOrNull { current != null && it.scheme == current } ?: pool.firstOrNull() ?: continue
             out = place(out, team, job, chosen)
         }
-        if (out.team(team).gm.name.isBlank()) {
+        if (gm && out.team(team).gm.name.isBlank()) {
             gmPool(out, year).firstOrNull()?.let { out = placeGm(out, team, it, year + 1) }
         }
         return out
@@ -467,6 +468,43 @@ object Staffing {
     // ---- the general manager ----------------------------------------
 
     /** Who a club can hire as general manager this spring: those out of work, newest first, then the year's candidates. */
+    /**
+     * The league as this spring's owners will leave it, after the coaching
+     * carousel (OffseasonEngine.springGms): which general managers are let
+     * go. The user's window hires from it.
+     */
+    fun gmMarket(dynasty: Dynasty, market: League = market(dynasty)): League =
+        OffseasonEngine.springGms(dynasty, market).league
+
+    /** The general manager the user agreed to hire as his club lets him go, as he is now. */
+    fun pendingGm(dynasty: Dynasty): GmProfile? =
+        dynasty.pendingGm?.let { name -> dynasty.league.teams.firstOrNull { it.gm.name == name }?.gm }
+
+    /** The club a general manager in the user's pool still works for, which lets him go this spring. */
+    fun gmLeaving(dynasty: Dynasty, gm: GmProfile): com.nflsim.engine.model.Team? =
+        dynasty.league.teams.firstOrNull { it.id != dynasty.userTeamId && it.gm.name == gm.name }
+
+    /**
+     * Who the user's club can hire as general manager this spring: those out
+     * of work as the owners will leave it - the men let go this spring among
+     * them - and the year's candidates, less the man already agreed.
+     */
+    fun gmPool(dynasty: Dynasty, gmMarket: League = gmMarket(dynasty)): List<GmProfile> =
+        gmPool(gmMarket, dynasty.year).filter { it.name != dynasty.pendingGm }
+
+    /**
+     * The user's chair once the owners have run ([league] is their result):
+     * the man he agreed to hire, if his club let him go, else the first name
+     * on the owner's list.
+     */
+    fun settleGm(league: League, dynasty: Dynasty): League {
+        val user = dynasty.userTeamId
+        if (league.team(user).gm.name.isNotBlank()) return league
+        val agreed = dynasty.pendingGm?.let { name -> league.gmPool.firstOrNull { it.name == name } }
+        val gm = agreed ?: gmPool(league, dynasty.year).firstOrNull() ?: return league
+        return placeGm(league, user, gm, dynasty.year + 1)
+    }
+
     fun gmPool(league: League, year: Int): List<GmProfile> {
         val taken = (league.teams.map { it.gm.name } + league.gmPool.map { it.name }).toSet()
         return league.gmPool + freshGms(league, year, league.tuning.staff.poolCandidates, "gm-pool|$year")
@@ -486,6 +524,7 @@ object Staffing {
     fun fireGm(dynasty: Dynasty): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
         val gm = dynasty.team.gm
+        if (gm.name.isBlank() && dynasty.pendingGm != null) return dynasty.copy(pendingGm = null)
         require(gm.name.isNotBlank()) { "the club has no general manager" }
         val league = dynasty.league
         return dynasty.copy(league = league.copy(
@@ -494,10 +533,16 @@ object Staffing {
         ))
     }
 
-    fun hireGm(dynasty: Dynasty, gm: GmProfile): Dynasty {
+    /**
+     * The user hires a general manager from this spring's [gmPool]. A man his
+     * club is letting go takes the chair when the offseason starts; anyone
+     * else, now.
+     */
+    fun hireGm(dynasty: Dynasty, gm: GmProfile, gmMarket: League = gmMarket(dynasty)): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
-        require(dynasty.team.gm.name.isBlank()) { "the general manager's chair is not open" }
-        require(gm in gmPool(dynasty.league, dynasty.year)) { "${gm.name} is not available" }
+        require(dynasty.team.gm.name.isBlank() && dynasty.pendingGm == null) { "the general manager's chair is not open" }
+        require(gmPool(dynasty, gmMarket).any { it.name == gm.name }) { "${gm.name} is not available" }
+        if (gmLeaving(dynasty, gm) != null) return dynasty.copy(pendingGm = gm.name)
         return dynasty.copy(league = placeGm(dynasty.league, dynasty.userTeamId, gm, dynasty.year + 1))
     }
 

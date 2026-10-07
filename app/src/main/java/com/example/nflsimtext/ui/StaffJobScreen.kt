@@ -286,9 +286,13 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
 private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, onBack: () -> Unit) {
     val c = NdTheme.colors
     val open = store.staffingOpen
-    val gm = dynasty.team.gm
+    // The man agreed to take the chair when the offseason starts, if any, in it.
+    val agreed = remember(dynasty) { Staffing.pendingGm(dynasty) }
+    val gm = agreed ?: dynasty.team.gm
     val vacant = gm.name.isBlank()
-    val pool = remember(dynasty) { if (vacant) Staffing.gmPool(dynasty.league, dynasty.year) else emptyList() }
+    // The owners' spring, previewed (Staffing.gmMarket): the men they let go are in the pool.
+    val pool = remember(dynasty) { if (vacant) Staffing.gmPool(dynasty) else emptyList() }
+    val leaving = remember(pool) { pool.associate { it.name to Staffing.gmLeaving(dynasty, it) } }
     var firing by remember { mutableStateOf(false) }
     var looking by remember { mutableStateOf<GmProfile?>(null) }
 
@@ -305,10 +309,19 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
         }
         if (!vacant) {
             item {
-                SituationBlock("In the chair", meta = gm.since.takeIf { it > 0 }?.let { "since $it" }) {
+                SituationBlock(if (agreed != null) "Hired" else "In the chair",
+                    meta = gm.since.takeIf { it > 0 && agreed == null }?.let { "since $it" }) {
                     Text(gm.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
+                    Staffing.gmLeaving(dynasty, gm)?.takeIf { agreed != null }?.let {
+                        Text("Takes the chair when the offseason starts, once the ${it.name} let him go.",
+                            style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(bottom = NdTheme.spacing.xs))
+                    }
                     gmStyle(gm).forEach { Text("· $it", style = NdTheme.type.body, color = c.chalk) }
-                    if (open) {
+                    if (open && agreed != null) {
+                        // Nothing to confirm: he never took the chair.
+                        SecondaryButton("Change your mind", { scope.launch { store.fireGm() } },
+                            Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
+                    } else if (open) {
                         SecondaryButton("Let him go", { firing = true },
                             Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
                     } else {
@@ -322,11 +335,13 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
             }
         } else if (open) {
             item {
-                val outOfWork = dynasty.league.gmPool.size
+                val letGo = leaving.values.count { it != null }
+                val outOfWork = pool.count { man -> leaving[man.name] == null && dynasty.league.gmPool.any { it.name == man.name } }
                 Column {
                     Text("Candidates", style = NdTheme.type.headline, color = c.chalk)
                     Text(
-                        "$outOfWork out of work and ${pool.size - outOfWork} new this spring. Tap one to look closer.",
+                        "$outOfWork out of work, $letGo let go this spring and ${pool.size - outOfWork - letGo} new. " +
+                            "A club in brackets is letting him go: he takes the chair when the offseason starts. Tap one to look closer.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                     )
                 }
@@ -341,7 +356,7 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
                     rows = pool.map { man ->
                         RowData(
                             listOf(
-                                man.name,
+                                leaving[man.name]?.let { "${man.name} (${it.abbrev})" } ?: man.name,
                                 when {
                                     man.winNowVsFuture >= 0.66f -> "Now"
                                     man.winNowVsFuture <= 0.33f -> "Later"
@@ -384,7 +399,8 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
     looking?.let { man ->
         ActionDialog(man.name, onDismiss = { looking = null }) {
             Text(
-                if (dynasty.league.gmPool.any { it.name == man.name }) "Out of work." else "A candidate this spring.",
+                leaving[man.name]?.let { "The ${it.name} are letting him go: he takes the chair when the offseason starts." }
+                    ?: if (dynasty.league.gmPool.any { it.name == man.name }) "Out of work." else "A candidate this spring.",
                 style = NdTheme.type.caption, color = c.chalkDim,
                 modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
             )
