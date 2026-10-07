@@ -348,6 +348,17 @@ every other club's shortlist, so nobody takes him first, and the user can
 change his mind. Who the league lets go never depends on the user; whom it
 hires can, since a coach the user lets go is one more man out of work.
 
+**Age and retirement (save version 48).** Every coach is a year older
+each spring, in a job or out of one. A man out of work leaves the pool at
+68, as before; a man in a job retires at an age of his own, drawn once for
+him from 66 to 72 (`retireFrom`, `retireSpread`). A retiring head coach
+goes whatever his record, and his club hires as if it had fired him; a
+retiring coordinator is replaced by the best of three, as when one is
+promoted away; anyone else by a man drawn from the spread a new league's
+staffs are, so the league's coaching - and the development that comes
+with it - holds where it started. The user's club fills its own: the
+window says who is retiring, and the user can hire his replacement then.
+
 **Promotions, under the NFL's rules (save version 47).** The NFL's
 anti-tampering policy lets no club stop an assistant taking a promotion -
 to head coach anywhere, and since 2020 to a coordinator's job - while a

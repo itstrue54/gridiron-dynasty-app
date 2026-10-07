@@ -63,6 +63,23 @@ object StaffGenerator {
     }
 
     /**
+     * A man a club hires when one of its assistants retires: drawn from the
+     * spread a new league's staffs are, so a league's coaching - and the
+     * development that comes with it (SPEC 7.1) - holds where it started over
+     * a long dynasty, instead of drifting with whoever happened to retire.
+     */
+    fun assistant(id: CoachId, role: CoachRole, scheme: String, rng: Rng): Coach {
+        val (first, last) = NameGenerator.fullName(rng)
+        return Coach(
+            id = id, name = "$first $last", age = 32 + rng.nextInt(20),
+            role = role, scheme = scheme,
+            ratings = randomRatings(rng),
+            contractYearsLeft = 1 + rng.nextInt(4),
+            tendencies = Tendencies.draw(role, scheme, rng.split("tendencies|${id.v}")),
+        )
+    }
+
+    /**
      * Spread wide enough that some staffs are genuinely good developers and
      * some are not, centred where SPEC 7.1 was calibrated.
      *

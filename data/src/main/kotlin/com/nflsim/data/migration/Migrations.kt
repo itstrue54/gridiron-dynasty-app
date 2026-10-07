@@ -94,6 +94,8 @@ object Migrations {
         Step(45, "the user can hire the coaches the league lets go this spring (SPEC 4.7); nothing to move") { it },
         // An old agreement names a man by id, as it always did; old reports promoted nobody.
         Step(46, "clubs promote other clubs' coordinators to head coach, under the NFL's rules (SPEC 4.7); nothing to move") { it },
+        // Every coach has always carried an age; from this spring on it counts.
+        Step(47, "every coach ages, and coaches in jobs retire (SPEC 4.7); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

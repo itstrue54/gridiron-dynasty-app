@@ -36,7 +36,20 @@ data class CoachingChange(
     val keptDefense: Boolean = false,
     /** The club whose coordinator he was, when the new head coach was promoted from another club's staff. */
     val promotedFrom: Int? = null,
+    /** The head coach retired rather than being fired. */
+    val retired: Boolean = false,
 )
+
+/** A coach who retired from a club's staff this spring. */
+@Serializable
+data class CoachRetirement(
+    val team: Int,
+    val name: String,
+    val role: CoachRole,
+    val group: com.nflsim.engine.model.PositionGroup? = null,
+) {
+    val job: StaffJob get() = StaffJob(role, group)
+}
 
 /**
  * A coordinator another club hired away to be its head coach - a promotion,
@@ -93,6 +106,8 @@ object CoachingCarousel {
         val changes: List<CoachingChange>,
         val gmChanges: List<GmChange> = emptyList(),
         val promotions: List<Promotion> = emptyList(),
+        /** Every coach who retired from a club's staff. */
+        val retirements: List<CoachRetirement> = emptyList(),
     )
 
     fun run(
@@ -126,8 +141,50 @@ object CoachingCarousel {
         }.toMutableSet()
         // Men hired this spring are nobody's to promote until next spring.
         val newThisSpring = mutableSetOf<CoachId>()
-        coaches.replaceAll { id, c -> if (id in employed) c else c.copy(age = c.age + 1) }
+        // Everyone is a year older. The out of work leave the pool at the age
+        // they always did; a man in a job retires at an age of his own.
+        coaches.replaceAll { _, c -> c.copy(age = c.age + 1) }
         coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= t.retireAge }
+        fun retiring(c: Coach) = c.age >= t.retireFrom + (rng.split("retire|${c.id.v}").nextFloat() * t.retireSpread).toInt()
+        val retirements = mutableListOf<CoachRetirement>()
+
+        // Assistants who retire leave first, and their clubs fill the jobs:
+        // a coordinator from the best of a few, as when one is promoted away,
+        // and anyone else from the spread a new league's staffs are drawn
+        // from. The user's are his to fill (Staffing.settle).
+        for (teamId in league.teams.map { it.id }) {
+            var club = clubs.getValue(teamId)
+            val fillRng = rng.split("retired|${teamId.v}")
+            for (job in StaffJob.ALL - StaffJob.HEAD) {
+                val id = Staffing.holder(club.staff, job)
+                val man = coaches[id] ?: continue
+                if (!retiring(man)) continue
+                retirements += CoachRetirement(teamId.v, man.name, job.role, job.group)
+                coaches.remove(id)
+                employed -= id
+                if (teamId == userTeam) {
+                    club = club.copy(staff = Staffing.staffWith(club.staff, job, Staffing.VACANT))
+                    continue
+                }
+                if (job == StaffJob.OFFENCE || job == StaffJob.DEFENCE) {
+                    val fill = replacement(league, club, job, t, fillRng) { role, scheme -> newCoach(CoachId(nextId++), role, scheme, t, fillRng) }
+                    coaches[fill.id] = fill
+                    employed += fill.id
+                    newThisSpring += fill.id
+                    val before = club
+                    club = withCoordinator(club, job, fill)
+                    relearned(teamId, club.offenseScheme != before.offenseScheme, club.defenseScheme != before.defenseScheme)
+                } else {
+                    val scheme = if (job.role == CoachRole.POSITION_COACH && job.group !in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS)
+                        club.defenseScheme else club.offenseScheme
+                    val fill = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), job.role, scheme, fillRng)
+                    coaches[fill.id] = fill
+                    employed += fill.id
+                    club = club.copy(staff = Staffing.staffWith(club.staff, job, fill.id))
+                }
+            }
+            clubs[teamId] = club
+        }
 
         for (teamId in league.teams.map { it.id }) {
             val team = clubs.getValue(teamId)
@@ -137,9 +194,19 @@ object CoachingCarousel {
             val seat = (hc.hotSeat * t.seatCooling + (0.5f - now) * t.seatBelow500 + (before - now) * t.seatWorseThanLast -
                 (if (team.id.v in playoffClubs) t.seatPlayoffRelief else 0f)).roundToInt().coerceIn(0, 100)
             val contractLeft = hc.contractYearsLeft - 1
-            if (team.id == userTeam || seat < fireBar(team, t) && !(contractLeft <= 0 && now < 0.5f)) {
+            // A head coach who retires goes whatever his record: the user's
+            // club fills his job itself, another club hires as if it had fired him.
+            val retiringHead = retiring(hc)
+            if (retiringHead) retirements += CoachRetirement(team.id.v, hc.name, CoachRole.HEAD_COACH)
+            if (team.id == userTeam && retiringHead) {
+                coaches.remove(hc.id)
+                employed -= hc.id
+                clubs[team.id] = team.copy(staff = Staffing.staffWith(team.staff, StaffJob.HEAD, Staffing.VACANT))
+                continue
+            }
+            if (team.id == userTeam || !retiringHead && seat < fireBar(team, t) && !(contractLeft <= 0 && now < 0.5f)) {
                 coaches[hc.id] = hc.copy(
-                    hotSeat = seat, age = hc.age + 1,
+                    hotSeat = seat,
                     contractYearsLeft = if (contractLeft <= 0) t.extensionYears else contractLeft,
                 )
                 continue
@@ -226,8 +293,8 @@ object CoachingCarousel {
                     best(CoachRole.DEFENSIVE_COORDINATOR, StaffJob.DEFENCE, defFit) { head.scheme }
             }
             listOf(head, oc, dc).forEach { coaches[it.id] = it }
-            // Out of work, and a candidate for the next club that fires someone.
-            coaches[hc.id] = hc.copy(hotSeat = 0, age = hc.age + 1, contractYearsLeft = 0)
+            // Out of work, and a candidate for the next club that fires someone - or retired.
+            if (retiringHead) coaches.remove(hc.id) else coaches[hc.id] = hc.copy(hotSeat = 0, contractYearsLeft = 0)
             employed -= hc.id
             employed += listOf(head.id, oc.id, dc.id)
             newThisSpring += listOf(head.id, oc.id, dc.id)
@@ -240,6 +307,7 @@ object CoachingCarousel {
                 oc.scheme, dc.scheme, offChanged || defChanged, rehired = chosen in outOfWork,
                 keptOffense = !offChanged, keptDefense = !defChanged,
                 promotedFrom = fromClub[chosen.id]?.first?.v,
+                retired = retiringHead,
             )
             // The club runs its coordinators' schemes: his own is one of them.
             // Its staff is read again, in case its own coordinator was the one promoted.
@@ -256,7 +324,8 @@ object CoachingCarousel {
             if (if (p.position.isOffense) off else def) p.copy(yearsInSystem = 0, yearsWithClub = p.clubYears) else p
         }
         val teams = league.teams.map { clubs.getValue(it.id) }
-        return Result(league.copy(teams = teams, coaches = coaches, players = players), changes, promotions = promotions)
+        return Result(league.copy(teams = teams, coaches = coaches, players = players), changes,
+            promotions = promotions, retirements = retirements)
     }
 
     /**

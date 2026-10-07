@@ -2459,3 +2459,16 @@ nothing else moves more than 0.006.
 - **The user can lose a coordinator** he didn't choose to, with no way to refuse, as in the NFL. The window says so before the offseason starts.
 - **Saves:** an agreement can carry a fresh candidate, a change can name the club its new coach was promoted from, and the report lists promotions. All read as before from an old save. Save step 46, version 47.
 
+## ADR-0xx — Coaches age and retire
+
+**Context.** Only head coaches and coaches out of work aged. A league's coordinators and position coaches stayed the age they were generated for its whole life, and nobody in a job ever retired: a head coach who kept winning coached at 80, and the Staff screen showed the same assistants at the same ages for decades.
+
+**Decision.**
+- **Everyone ages each spring.** A man in a job retires at an age of his own, drawn once from 66 to 72, so a staff turns over gradually and the same man always retires at the same age.
+- **Retirees are replaced from the generator's spread** for position coaches and the special teams coordinator, not from the carousel's below-mean candidates or by picking the best. Either of those would drift player development over a long dynasty, down or up. Coordinators are replaced as when one is promoted away (best of three on game plan), which keeps the two sides of the ball level.
+- **The user's club fills its own,** through the spring window like any other opening.
+
+**Consequences.**
+- **A long dynasty's staffs turn over,** and the user's window shows retirements coming. Measured effects are in CALIBRATION.md pass 18.
+- **Saves:** ages were always saved; old saves start counting from their next spring. Save step 47, version 48.
+

@@ -1261,6 +1261,12 @@ data class TuningTable(
         val poachLook: Int = 9,
         /** Coaches out of work leave the pool at this age. */
         val retireAge: Int = 68,
+        /**
+         * A coach in a job retires at an age of his own, drawn once from
+         * these: from [retireFrom] to [retireFrom] + [retireSpread] - 1.
+         */
+        val retireFrom: Int = 66,
+        val retireSpread: Int = 7,
         /** Fresh candidates for each job the user's club can fill in the spring, and for its general manager (offseason.Staffing). */
         val poolCandidates: Int = 6,
         /**
