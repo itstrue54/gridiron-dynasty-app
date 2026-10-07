@@ -36,4 +36,12 @@ class StaffCopyTest {
         assertEquals("Hire and fire your staff first (1 job open)", staffButton(1))
         assertEquals("Hire and fire your staff first (3 jobs open)", staffButton(3))
     }
+
+    @Test
+    fun `the over-the-cap warning names both ways out and what happens otherwise`() {
+        val note = overCapNote()
+        assertTrue(note.contains("restructure") && note.contains("release") && note.contains("front office restructures"))
+        assertEquals("$2.4M", capMoney(2_400))
+        assertEquals("$850k", capMoney(850))
+    }
 }

@@ -129,4 +129,32 @@ class TransactionsTest {
         assertEquals(3, line.week)
         assertEquals(spare.contract?.deadCap(2026)?.thisYear ?: 0, line.amount)
     }
+
+    /** The league with [club] put [over] thousands over the cap, as a release's dead money would. */
+    private fun overBy(over: Int): League {
+        val room = Transactions.spaceFor(league, club)
+        return league.copy(teams = league.teams.map {
+            if (it.id == club) it.copy(finances = it.finances.copy(deadMoney = it.finances.deadMoney + room + over)) else it
+        })
+    }
+
+    @Test
+    fun `a club over the cap restructures until it is under, and a club under it is left alone`() {
+        val over = overBy(3_000)
+        assertTrue(Transactions.spaceFor(over, club) < 0)
+        val fixed = Transactions.comply(over, club, week = 4)
+        assertTrue(Transactions.spaceFor(fixed, club) >= 0, "under the cap after: ${Transactions.spaceFor(fixed, club)}")
+        assertTrue(fixed.transactions.drop(over.transactions.size).all { it.kind == com.nflsim.engine.model.TransactionKind.RESTRUCTURED },
+            "by restructures, which add no dead money")
+        assertEquals(over.team(club).finances.deadMoney, fixed.team(club).finances.deadMoney)
+        assertEquals(league, Transactions.comply(league, club), "a club under the cap is untouched")
+    }
+
+    @Test
+    fun `a club still over the cap when its week is played gets under first`() {
+        val start = DynastyEngine.start(overBy(2_000), 2026, 4L, club)
+        val after = DynastyEngine.advance(start)
+        assertTrue(Transactions.spaceFor(after.league, club) >= 0, "under the cap once the week is played")
+        assertTrue(after.league.transactions.any { it.kind == com.nflsim.engine.model.TransactionKind.RESTRUCTURED && it.team == club.v })
+    }
 }

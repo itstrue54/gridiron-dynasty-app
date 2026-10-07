@@ -185,6 +185,21 @@ fun HubScreen(
             }
         }
 
+        // Over the cap, from a release's dead money: the CBA gives a club a
+        // week to get under it, and no signings until it does (Transactions.comply).
+        val capSpace = com.nflsim.engine.season.Transactions.spaceFor(dynasty.league, team.id)
+        if (capSpace < 0 && dynasty.phase == DynastyPhase.REGULAR_SEASON) {
+            item {
+                SituationBlock(
+                    "Over the cap by ${capMoney(-capSpace)}",
+                    situation = Situation.RED_ZONE,
+                    onClick = { onNavigate(Tab.MARKET) },
+                ) {
+                    Text(overCapNote(), style = NdTheme.type.body, color = c.chalkDim)
+                }
+            }
+        }
+
         // Injured reserve opens places the league's clubs fill on their own;
         // the user's are left open until the user fills them.
         val open = com.nflsim.engine.season.Transactions.ROSTER_LIMIT -
@@ -1061,3 +1076,14 @@ internal fun staffButton(open: Int): String = "Hire and fire your staff first" +
     1 -> " (1 job open)"
     else -> " ($open jobs open)"
 }
+
+/** What being over the cap in season means, and what happens if nothing is done (CBA Art. 13). */
+internal fun overCapNote(): String =
+    "A release's dead money put you over. You can't sign anyone until you're under, and you have " +
+        "until your next game to get there: restructure a contract from a player's card, or release " +
+        "someone in Free agents. If you're still over " +
+        "when you play the week, your front office restructures to get you under."
+
+/** Cap figures are in thousands. */
+internal fun capMoney(thousands: Int): String =
+    if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)

@@ -887,6 +887,7 @@ Model it properly — the cap *is* the strategy game.
 - Rookie wage scale by draft slot; 5th-year option for 1st-rounders.
 - Franchise tag = max(top-5 average at position, 120% of prior cap hit). Transition tag = top-10.
 - Restructure = convert base to bonus, pushing cap into the future. Let the player dig their own grave.
+- **Over the cap in season** (CBA Article 13): a release's dead money can put a club over. It may not sign anyone until it is under (`Transactions.sign` checks the room), and it has seven days - a week here - to get there. A club still over when its week is played restructures, whatever moves the most room first, until it is under (`Transactions.comply`). The hub warns the user's club, with the two ways out and what happens otherwise.
 
 **Implemented (M7 stage 1).** `engine/econ/MarketValue` is the single price
 curve — free agency, roster generation, and release decisions all read it, so
