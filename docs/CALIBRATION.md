@@ -710,6 +710,24 @@ Then add the realistic catch on top. This is a structural change to how plays re
 
 **Result:** no band moves, and every league stays within about 0.2 points and 2 yards of its old figures.
 
+## Pass 16 — October 2026 (the carousel hires for the job)
+
+**What changed:** AI clubs read a coaching candidate the way the user's pool does (`Staffing.worth`): a head coach by his ratings other than game plan, a coordinator by his game plan. A new head coach's own coordinator is now the best of three from his tree, like the other side's, rather than the first one drawn.
+
+**Why both:** reading coordinators by game plan alone made the side that chooses pull away from the side that takes whoever comes. After ten seasons, defensive coordinators averaged a 72.9 game plan and offensive coordinators 62.2, which is an edge for every defence on every snap. `main` already leaned that way (66.4 against 61.3) once game plans counted (pass 15).
+
+**Measured:** six leagues, ten seasons each, AI clubs' staffs at the end:
+
+| | main | Reading by game plan only | Shipped |
+|---|---|---|---|
+| Offensive coordinators' game plan | 61.3 | 62.2 | 75.5 |
+| Defensive coordinators' game plan | 66.4 | 72.9 | 73.3 |
+| Head coaches (worth) | 66.3 | 66.6 | 66.9 |
+| Year-to-year correlation of wins | 0.35 | 0.37 | 0.34 |
+| Coaching changes per offseason | 5.43 | 5.47 | 5.58 |
+
+**Result:** both sides' game plans rise together and cancel, within about 2 points (an eighth of a rating point on a snap). Head coaches, and the development they bring, hold where they were. The per-game bands are measured on new leagues before any carousel, so they don't move. Clubs that hire well now get coordinators worth hiring, and the user's club has to as well.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
