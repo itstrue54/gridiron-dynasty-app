@@ -2472,3 +2472,15 @@ nothing else moves more than 0.006.
 - **A long dynasty's staffs turn over,** and the user's window shows retirements coming. Measured effects are in CALIBRATION.md pass 18.
 - **Saves:** ages were always saved; old saves start counting from their next spring. Save step 47, version 48.
 
+## ADR-0xx — Coaches have careers, and a young hire starts young
+
+**Context.** Coaches aged and retired, but their ratings never moved. The SPEC's open question - do coaches have career arcs? - was answered yes, with the decline very slow.
+
+**Decision.**
+- **One curve by age,** as an offset from a coach's prime: up 1.2 a rating a year to 45, level to 58, down 0.4 a year after, plus a point of noise a year of his own (drawn for him by name, so it is the same in the window's preview and the offseason).
+- **A new coach is drawn where his age puts him on it.** Otherwise every young hire, drawn at the old flat mean, would grow past the man he replaced, and the league's coaching - and the player development and in-game edges that read it - would climb dynasty by dynasty. `careerPeakLift` sets a prime above the old flat mean by as much as the young and old fall below it, so the league holds.
+- **The generated league is left as it was** (every age at the flat mean): changing it would move the per-game bands, which read the first season's coaches. Its young coaches grow and its old ones slip from the first spring, which settles within a few seasons.
+- **Position coaches can become coordinators,** at the AI's clubs and the user's, read with a discount for never having run a side so they don't crowd out every outside candidate.
+
+**Consequences.** Measured in CALIBRATION.md pass 19. Save step 50, version 51.
+

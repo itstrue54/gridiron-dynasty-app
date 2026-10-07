@@ -1267,6 +1267,22 @@ data class TuningTable(
          */
         val retireFrom: Int = 66,
         val retireSpread: Int = 7,
+        /**
+         * A coach's career (offseason.CoachCareer): ratings rise this much a
+         * year until [careerPeakFrom], hold to [careerPeakTo], and fall this
+         * much a year after - slowly - with [careerNoise] of his own each year.
+         * A new man is drawn where his age puts him, and [careerPeakLift] is
+         * how far a prime sits above the old flat level, so the league's
+         * coaching averages where it was calibrated.
+         */
+        val careerPeakFrom: Int = 45,
+        val careerPeakTo: Int = 58,
+        val careerGrowth: Float = 1.2f,
+        val careerDecline: Float = 0.4f,
+        val careerNoise: Float = 1.0f,
+        val careerPeakLift: Float = 1.5f,
+        /** What a position coach who has never run a side gives away against outside candidates for a coordinator's job. */
+        val promoteFromWithinDiscount: Float = 8f,
         /** Fresh candidates for each job the user's club can fill in the spring, and for its general manager (offseason.Staffing). */
         val poolCandidates: Int = 6,
         /**

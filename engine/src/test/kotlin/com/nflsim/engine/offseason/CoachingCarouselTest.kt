@@ -104,7 +104,8 @@ class CoachingCarouselTest {
         stayed.forEach { (id, c) -> assertEquals(league.coach(id).age + 1, c.age, c.name) }
         // And a year on in his contract: one that runs out is extended.
         val t = league.tuning.staff
-        stayed.forEach { (id, c) ->
+        // (A position coach promoted from within has a new contract in a new job.)
+        stayed.filter { (id, c) -> c.role == league.coach(id).role }.forEach { (id, c) ->
             val left = league.coach(id).contractYearsLeft - 1
             assertEquals(if (left <= 0) t.extensionYears else left, c.contractYearsLeft, c.name)
         }

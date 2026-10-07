@@ -350,6 +350,22 @@ hires can, since a coach the user lets go is one more man out of work.
 A finished offseason clears every agreement, kept or not (save version 50
 clears any an older offseason left behind).
 
+**Careers (save version 51).** A coach's ratings move with his age
+(`offseason.CoachCareer`): each spring he improves `careerGrowth` (1.2) a
+rating a year until 45, holds through 58, and slips `careerDecline` (0.4) a
+year after - slowly, as the user asked: experience doesn't leave a coach
+the way legs leave a player - with a point of his own either way. A new
+coach is drawn where his age puts him on that curve, so a young assistant
+is still learning and grows into his prime rather than climbing past the
+man he replaced; `careerPeakLift` sets a prime's level so the league's
+coaching, young and old together, holds where it was calibrated. A club
+that needs a coordinator looks at its own position coaches on that side of
+the ball as well, less `promoteFromWithinDiscount` for never having run a
+side, and the user can promote his own: at once if the job is open, or as
+it opens when the offseason starts, his old job then filled. The Staff
+screen says where each coach is: still improving, in his prime, or
+slowing down.
+
 **Age and retirement (save version 48).** Every coach is a year older
 each spring, in a job or out of one, and a man who stays in his job is a
 year on in his contract - extended when it runs out, as a head coach who
@@ -1620,7 +1636,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 
 - ~~**[OPEN]** Room in v1 or defer to v2?~~ **Resolved Sept 2026: not in v1.** A 30-season save is 2.8 MB and loads in 0.09 s on a desktop JVM (§9.3).
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
-- **[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.
+- ~~**[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.~~ **Resolved Oct 2026: yes** (§4.7 Careers): ratings rise to a prime, hold, and decline very slowly; position coaches can be promoted to coordinator.
 - ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. Gameday inactives are still open: every healthy man on the 53 dresses.
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
 

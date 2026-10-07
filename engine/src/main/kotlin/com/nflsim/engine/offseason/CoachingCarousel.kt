@@ -143,7 +143,8 @@ object CoachingCarousel {
         val newThisSpring = mutableSetOf<CoachId>()
         // Everyone is a year older. The out of work leave the pool at the age
         // they always did; a man in a job retires at an age of his own.
-        coaches.replaceAll { _, c -> c.copy(age = c.age + 1) }
+        // A year older, and a year further along his career (CoachCareer).
+        coaches.replaceAll { _, c -> CoachCareer.older(c, t, rng) }
         coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= t.retireAge }
         fun retiring(c: Coach) = c.age >= t.retireFrom + (rng.split("retire|${c.id.v}").nextFloat() * t.retireSpread).toInt()
         val retirements = mutableListOf<CoachRetirement>()
@@ -175,17 +176,25 @@ object CoachingCarousel {
                     continue
                 }
                 if (job == StaffJob.OFFENCE || job == StaffJob.DEFENCE) {
-                    val fill = replacement(league, club, job, t, fillRng) { role, scheme -> newCoach(CoachId(nextId++), role, scheme, t, fillRng) }
+                    val (fill, from) = replacement(league, club, job, t, fillRng, { coaches[it] }) { role, scheme -> newCoach(CoachId(nextId++), role, scheme, t, fillRng) }
                     coaches[fill.id] = fill
                     employed += fill.id
                     newThisSpring += fill.id
                     val before = club
                     club = withCoordinator(club, job, fill)
+                    // Promoted from within: his old job goes to a new man.
+                    if (from != null) {
+                        val scheme = if (from.group in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) club.offenseScheme else club.defenseScheme
+                        val assistant = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), from.role, scheme, fillRng, t)
+                        coaches[assistant.id] = assistant
+                        employed += assistant.id
+                        club = club.copy(staff = Staffing.staffWith(club.staff, from, assistant.id))
+                    }
                     relearned(teamId, club.offenseScheme != before.offenseScheme, club.defenseScheme != before.defenseScheme)
                 } else {
                     val scheme = if (job.role == CoachRole.POSITION_COACH && job.group !in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS)
                         club.defenseScheme else club.offenseScheme
-                    val fill = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), job.role, scheme, fillRng)
+                    val fill = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), job.role, scheme, fillRng, t)
                     coaches[fill.id] = fill
                     employed += fill.id
                     club = club.copy(staff = Staffing.staffWith(club.staff, job, fill.id))
@@ -275,11 +284,19 @@ object CoachingCarousel {
                     // The user's club fills its own (Staffing.settle).
                     clubs[sourceId] = source.copy(staff = Staffing.staffWith(source.staff, job, Staffing.VACANT))
                 } else {
-                    val fill = replacement(league, source, job, t, hireRng) { role, scheme -> candidate(role, scheme) }
+                    val (fill, from) = replacement(league, source, job, t, hireRng, { coaches[it] }) { role, scheme -> candidate(role, scheme) }
                     coaches[fill.id] = fill
                     employed += fill.id
                     newThisSpring += fill.id
-                    clubs[sourceId] = withCoordinator(source, job, fill)
+                    var after = withCoordinator(source, job, fill)
+                    if (from != null) {
+                        val scheme = if (from.group in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) after.offenseScheme else after.defenseScheme
+                        val assistant = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), from.role, scheme, hireRng, t)
+                        coaches[assistant.id] = assistant
+                        employed += assistant.id
+                        after = after.copy(staff = Staffing.staffWith(after.staff, from, assistant.id))
+                    }
+                    clubs[sourceId] = after
                     relearned(sourceId, job == StaffJob.OFFENCE && fill.scheme != source.offenseScheme,
                         job == StaffJob.DEFENCE && fill.scheme != source.defenseScheme)
                 }
@@ -347,14 +364,34 @@ object CoachingCarousel {
         job: StaffJob,
         t: com.nflsim.engine.tuning.TuningTable.Staff,
         rng: Rng,
+        /** The coaches as they stand now, for the club's own position coaches. */
+        coachOf: (CoachId) -> Coach?,
         candidate: (CoachRole, String) -> Coach,
-    ): Coach {
+    ): Fill {
         val offence = job == StaffJob.OFFENCE
         val fit = fits(league, club.id, if (offence) SchemeCatalog.offensive else SchemeCatalog.defensive, offence)
         val current = if (offence) club.offenseScheme else club.defenseScheme
-        return (1..t.coordinatorCandidates).map { candidate(job.role, drawScheme(fit, current, t, rng)) }
-            .maxBy { Staffing.worth(it, job) + t.fitWeight * (fit[it.scheme] ?: 0f) + rng.gaussian(0f, t.evalNoise) }
+        val outside = (1..t.coordinatorCandidates).map { null to candidate(job.role, drawScheme(fit, current, t, rng)) }
+        // The club's own position coaches on that side of the ball, as a
+        // coach's career goes (CoachCareer): read like anyone else, less what
+        // a man who has never run a side has yet to learn.
+        val groups = com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS
+        val own = club.staff.positionCoaches
+            .filterKeys { g -> g != com.nflsim.engine.model.PositionGroup.ST && (g in groups) == offence }
+            .mapNotNull { (g, id) -> coachOf(id)?.let { StaffJob(CoachRole.POSITION_COACH, g) to it } }
+        val (from, chosen) = (outside + own).maxBy { (from, c) ->
+            Staffing.worth(c, job) + t.fitWeight * (fit[c.scheme] ?: 0f) + rng.gaussian(0f, t.evalNoise) -
+                (if (from != null) t.promoteFromWithinDiscount else 0f)
+        }
+        if (from == null) return Fill(chosen, null)
+        return Fill(chosen.copy(
+            role = job.role, hotSeat = 0, contractYearsLeft = t.newContractYears,
+            tendencies = com.nflsim.engine.gen.Tendencies.draw(job.role, chosen.scheme, rng.split("promoted|${chosen.id.v}")),
+        ), from)
     }
+
+    /** A club's new coordinator, and the position coach's job he leaves if he was promoted from within. */
+    internal data class Fill(val coach: Coach, val from: StaffJob?)
 
     /** A club with [coach] as its coordinator for [job], running his scheme on that side. */
     internal fun withCoordinator(club: Team, job: StaffJob, coach: Coach): Team =
@@ -364,9 +401,12 @@ object CoachingCarousel {
     /** An outside candidate, drawn below the league's coaching mean (see the class notes). */
     internal fun newCoach(id: CoachId, role: CoachRole, scheme: String, t: com.nflsim.engine.tuning.TuningTable.Staff, rng: Rng): Coach {
         val (first, last) = NameGenerator.fullName(rng)
-        fun stat() = (t.candidateMean + rng.gaussian(0f, t.candidateSpread)).roundToInt().coerceIn(t.candidateFloor, 100)
+        val age = 38 + rng.nextInt(20)
+        // Drawn where his age puts him on a career (CoachCareer).
+        val mean = CoachCareer.hireMean(t.candidateMean, age, t)
+        fun stat() = (mean + rng.gaussian(0f, t.candidateSpread)).roundToInt().coerceIn(t.candidateFloor, 100)
         return Coach(
-            id = id, name = "$first $last", age = 38 + rng.nextInt(20),
+            id = id, name = "$first $last", age = age,
             role = role, scheme = scheme,
             ratings = CoachRatings(stat(), stat(), stat(), stat(), stat(), stat()),
             tendencies = com.nflsim.engine.gen.Tendencies.draw(role, scheme, rng.split("tendencies|${id.v}")),
