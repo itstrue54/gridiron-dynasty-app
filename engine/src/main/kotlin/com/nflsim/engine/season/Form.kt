@@ -36,10 +36,18 @@ object Form {
         return if (points == 0) player else player.copy(ratings = player.ratings.shifted(points))
     }
 
-    /** The form a man carries into next week, given the week he just had. */
-    fun next(player: Player, line: StatLine?, tuning: TuningTable): Int {
+    /**
+     * The form a man carries into next week, given the week he just had.
+     * [motivation] is his head coach's (SPEC 4.7): under a good motivator a
+     * slump fades faster, under a poor one it lingers. A hot streak fades the
+     * same either way. Null is a league-average coach.
+     */
+    fun next(player: Player, line: StatLine?, tuning: TuningTable, motivation: Int? = null): Int {
         val f = tuning.form
-        val decayed = player.form * f.decay
+        val slump = if (player.form < 0 && motivation != null)
+            (1f - tuning.staff.motivationSlump * (motivation - tuning.staff.coachMean) / 100f).coerceIn(0f, 1f / f.decay)
+        else 1f
+        val decayed = player.form * f.decay * slump
         val week = line?.let { surprise(player.position, it, f) } ?: return decayed.toInt()
         return (decayed + week * f.gain * volume(player.position, line, f))
             .coerceIn(-100f, 100f)

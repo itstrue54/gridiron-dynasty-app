@@ -44,7 +44,7 @@ fun ScoutingScreen(
 ) {
     val c = NdTheme.colors
     val team = dynasty.team
-    val dept = team.staff.scoutingDept
+    val dept = com.nflsim.engine.ratings.Scouting.department(team, dynasty.league)
     var focus by remember { mutableStateOf(team.scoutingFocus) }
     fun save(next: Set<Position>) {
         focus = next

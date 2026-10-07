@@ -82,7 +82,7 @@ internal fun signed(value: Int) = if (value >= 0) "+$value" else "−${-value}"
 internal fun lensFor(dynasty: Dynasty, player: Player): ScoutingLens = ScoutingLens.of(
     playerId = player.id.v,
     viewerId = dynasty.userTeamId.v,
-    confidence = ScoutingLens.ownPlayer(player.clubYears, dynasty.team.staff.scoutingDept, dynasty.league.tuning.scouting),
+    confidence = ScoutingLens.ownPlayer(player.clubYears, com.nflsim.engine.ratings.Scouting.department(dynasty.team, dynasty.league), dynasty.league.tuning.scouting),
     t = dynasty.league.tuning.scouting,
 )
 

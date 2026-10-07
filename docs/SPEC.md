@@ -295,6 +295,25 @@ data class Coach(
 )
 ```
 
+**What each rating does (save version 45).** Every coach rating has a
+job, and every one but development is measured from the league's coaching
+mean (`coachMean`, 65, the generated average), so a league's staffs as a
+whole play as calibrated and only the gap between two clubs shows:
+
+| Rating | Whose | What it does |
+|---|---|---|
+| development | head coach and position coaches | Players' growth in the offseason (§7.1) |
+| adjustments | head coach | How far his staff adapts during a game (§5.4) |
+| discipline | head coach | His side's flags (§5.8) |
+| gameplan | offensive and defensive coordinators | Rating points of edge on every snap on his side of the ball - a pass's separation, a run's blocking - `gameplanPoints` (6) per 100 over the mean; the other side's coordinator takes his off it |
+| gameplan | special teams coordinator | Yards on every kickoff and punt return, his club's and the other's: `returnYards` (6) per 100 points between the two coordinators |
+| motivation | head coach | How fast a slump fades (§10.1's form): `motivationSlump` (0.5) of its weekly decay faster per 100 over the mean, as much slower under it. A hot streak fades the same either way |
+| evaluation | head coach | His eye for talent, added to the scouting department everywhere the club reads how well it knows a player (`Scouting.department`): `evaluationScouting` (0.5) points a point over the mean |
+
+A head coach's game plan is his coordinators' job, and a position coach's
+only rating that matters is development. An empty chair is a league-average
+coach.
+
 **Hiring and firing (save version 43).** The user's club changes its own
 staff, every job on it - head coach, the three coordinators, the eleven
 position coaches - and its general manager, in a spring window: after the
@@ -312,9 +331,8 @@ league's seed, the year and the job, so the same spring always offers the
 same men. Fresh candidates are drawn as the carousel draws its outside
 ones, below the league's coaching mean, because the user chooses the best
 of several. The pool lists them best first by what the job uses: a head
-coach's development, in-game adjustments and discipline (§5.8), a position
-coach's development, and for a coordinator - whose scheme and tendencies are what
-he brings - his ratings overall. A head coach or coordinator candidate may
+coach's ratings other than game plan, a coordinator's game plan, a
+position coach's development (see the table above). A head coach or coordinator candidate may
 run any scheme on his side of the ball (a head coach, either side); a
 special teams or position coach works in the club's.
 
@@ -572,7 +590,7 @@ Either is a turnover where the play ended, it ends the drive as a fumble, and it
 
 Sampled per play from a base rate modified by `discipline`, `penaltyProne`, coach `discipline`, home/road, and play type (holding on pass pro, false start on the road with crowd noise, DPI on deep routes contested by a low-`manCoverage` defender). Target ~6.2 accepted penalties per team per game.
 
-**Coach discipline (implemented).** The head coach's `discipline` scales his side's flags: false starts and holding on offence, offside and pass interference on defence. The scale is 1 + `coachDisciplineScale` × (`coachDisciplineMean` − his discipline) / 100, which at 0.5 is half a percent a point, so the range runs from about 17% more flags for a 30 to 17% fewer for a 100. It is centred on the generated coaching mean (65), so the league's rate stays where it was calibrated. A club with nobody in the chair flags at the league rate. It is the one coach rating hiring weighs beyond development and adjustments (§4.7).
+**Coach discipline (implemented).** The head coach's `discipline` scales his side's flags: false starts and holding on offence, offside and pass interference on defence. The scale is 1 + `coachDisciplineScale` × (`coachDisciplineMean` − his discipline) / 100, which at 0.5 is half a percent a point, so the range runs from about 17% more flags for a 30 to 17% fewer for a 100. It is centred on the generated coaching mean (65), so the league's rate stays where it was calibrated. A club with nobody in the chair flags at the league rate. Hiring weighs it with the head coach's other ratings (§4.7).
 
 ### 5.9 Injuries
 

@@ -60,7 +60,7 @@ fun DraftRoomScreen(
     }
 
     val team = dynasty.team
-    val dept = team.staff.scoutingDept
+    val dept = com.nflsim.engine.ratings.Scouting.department(team, dynasty.league)
     val focus = team.scoutingFocus
     val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
     val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)

@@ -72,7 +72,7 @@ fun PlayerCardScreen(
         dynasty.league.tuning,
     )
     val fit = schemeFit(player, scheme)
-    val seen = TraitScouting.confidence(player.clubYears, team.staff.scoutingDept, dynasty.league.tuning.scouting)
+    val seen = TraitScouting.confidence(player.clubYears, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
     val lens = lensFor(dynasty, player)
     val ovr = lens.view(overall(player))
 

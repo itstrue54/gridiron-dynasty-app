@@ -1269,6 +1269,28 @@ data class TuningTable(
         val gmCandidates: Int = 3,
         val gmRehireLook: Int = 2,
         val gmPoolLimit: Int = 24,
+        /**
+         * What the coaches' other ratings do (SPEC 4.7), each measured from
+         * this mean - the generated coaching average - so a league's staffs
+         * as a whole play as calibrated.
+         */
+        val coachMean: Float = 65f,
+        /**
+         * A coordinator's game plan: rating points of edge on his side's
+         * plays - a pass's separation, a run's blocking - per 100 points over
+         * [coachMean]. The other side's coordinator takes his off it.
+         */
+        val gameplanPoints: Float = 6f,
+        /** A special teams coordinator's game plan: yards on a return per 100 points between the two clubs' coordinators. */
+        val returnYards: Float = 6f,
+        /**
+         * A head coach's motivation: a slump fades this much faster per 100
+         * points over [coachMean], as a share of its weekly decay, and
+         * lingers as much longer under a coach below it.
+         */
+        val motivationSlump: Float = 0.5f,
+        /** A head coach's evaluation: points on the club's scouting department per point over [coachMean]. */
+        val evaluationScouting: Float = 0.5f,
     )
 
     /** What a club reads as a need at a position (offseason.TeamNeeds), for the draft, the market, extensions and trades. */

@@ -2426,3 +2426,19 @@ nothing else moves more than 0.006.
 - **The user's club plays differently** in any run that reaches an offseason: its coach is never fired. AI clubs' general managers now change, which moves the money and roster metrics a little; the game's calibration bands hold (commit message).
 - **Coordinators' and the special teams coordinator's ratings still do nothing in the sim.** The pool ranks coordinators by ratings overall, but what they bring is their scheme and tendencies. Making those ratings count is a separate change.
 - **Saves:** `League.gmPool` and `GmProfile.since` read as empty and 0 from an old save, which is true of it. Save step 42, version 43.
+
+## ADR-0xx — Every coach rating does something, measured from the mean
+
+**Context.** Coaches had six ratings and the sim read two: development and adjustments. With the user hiring from a pool that shows all six, a coordinator's "game plan" or a head coach's "evaluation" read as a reason to hire him and did nothing. The user chose to give the other ratings jobs.
+
+**Decision.**
+- **One job each, where the rating's name points** (SPEC 4.7's table): discipline on flags, a coordinator's game plan on his side's plays, the special teams coordinator's on returns, motivation on how long a slump lasts, and evaluation on the club's scouting.
+- **Measured from the league's coaching mean (65),** as an edge or a shift, never as a new baseline. A league of average staffs plays exactly as it was calibrated, and only the gap between two clubs shows.
+- **No new randomness.** Each effect is a deterministic term on something the sim already rolls, so with its coefficient at zero a game plays exactly as before, and the calibration A/B compares the same draws.
+- **Small.** A coordinator at 100 against an average one is a fraction of a yard a snap; the range of a staff is a nudge, not a roster.
+
+**Consequences.**
+- **The AI's carousel still reads a candidate by his six ratings averaged,** not by what each job now uses. Changing how AI clubs hire would move the league's coaching over a dynasty, which is a change of its own.
+- **The pool shows the rating the job uses:** a head coach's other five together, a coordinator's game plan, a position coach's development.
+- **Saves:** the new coefficients take their defaults in an old save. Save step 44, version 45.
+

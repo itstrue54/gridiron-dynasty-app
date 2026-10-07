@@ -15,6 +15,18 @@ import com.nflsim.engine.tuning.TuningTable
 object Scouting {
 
     /**
+     * What a club's scouting is worth, 0..100: its department, and its head
+     * coach's eye for talent (SPEC 4.7) - points on the department for each
+     * point of evaluation over the league's coaching mean, as many off under
+     * it. Everything that reads how well a club knows a player reads this.
+     */
+    fun department(team: com.nflsim.engine.model.Team, league: com.nflsim.engine.model.League): Int {
+        val t = league.tuning.staff
+        val eye = league.coaches[team.staff.headCoach]?.ratings?.evaluation ?: return team.staff.scoutingDept
+        return Math.round(team.staff.scoutingDept + t.evaluationScouting * (eye - t.coachMean)).coerceIn(0, 100)
+    }
+
+    /**
      * A club's confidence in a prospect: what the man's exposure gave it for
      * free, plus what the club spent looking at his position.
      */

@@ -691,6 +691,25 @@ Then add the realistic catch on top. This is a structural change to how plays re
 
 **Result:** the league moves with its coaches' average discipline, between −0.09 and +0.08 a team, and averages 6.32 → 6.34. No band moves.
 
+## Pass 15 — October 2026 (every coach rating has a job)
+
+**What changed:** each coordinator's game plan is an edge in rating points on his side's snaps (a pass's separation, a run's blocking): 6 per 100 points over the coaching mean of 65, with the other side's coordinator's taken off it. The special teams coordinators' game plans move returns by 6 yards per 100 points between them. Motivation and evaluation work between games (form and scouting), so a single game doesn't see them.
+
+**Measured:** six leagues, 2,000 games each, game plans and returns off and on:
+
+| League | Bands off / on | Points per team | Yards per team |
+|---|---|---|---|
+| 2026 | 23 / 23 | 21.89 → 21.68 | 348.8 → 347.5 |
+| 7 | 23 / 23 | 21.85 → 21.85 | 347.8 → 349.9 |
+| 99 | 23 / 23 | 21.88 → 22.05 | 352.5 → 352.0 |
+| 11 | 23 / 23 | 22.03 → 21.96 | 350.7 → 350.6 |
+| 12 | 23 / 23 | 21.75 → 21.96 | 349.0 → 350.2 |
+| 13 | 23 / 23 | 21.85 → 21.63 | 349.9 → 349.9 |
+
+**One coordinator's worth:** 60,000 snaps from one matchup against an average opposite number. An offensive coordinator at 30 gets 5.54 yards a snap, one at 65 gets 5.67, and one at 100 gets 5.80: about ±0.13 a snap, or 8 yards a game.
+
+**Result:** no band moves, and every league stays within about 0.2 points and 2 yards of its old figures.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

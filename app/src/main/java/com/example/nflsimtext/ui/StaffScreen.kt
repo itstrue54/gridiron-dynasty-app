@@ -200,11 +200,12 @@ fun StaffScreen(
 
         item {
             SituationBlock("The building", meta = "What the club spends on") {
-                AttributeBar("Scouting", staff.scoutingDept)
+                AttributeBar("Scouting", com.nflsim.engine.ratings.Scouting.department(team, dynasty.league))
                 AttributeBar("Training", staff.trainingStaff)
                 AttributeBar("Medical", staff.medicalStaff)
                 Text(
-                    "Scouting narrows what you know about players; training and " +
+                    "Scouting is the department and your head coach's eye for talent " +
+                        "together: it narrows what you know about players. Training and " +
                         "medical work on development and injuries.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )

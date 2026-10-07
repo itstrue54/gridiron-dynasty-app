@@ -53,6 +53,9 @@ data class PlayContext(
     /** Each head coach's discipline on his side's flags (GameSimulator.coachFlags): 1 is a league-average staff. */
     val offFlags: Float = 1f,
     val defFlags: Float = 1f,
+    /** Each coordinator's game plan as rating points on his side's plays (GameSimulator.coachEdge): 0 is a league-average coordinator. */
+    val offEdge: Float = 0f,
+    val defEdge: Float = 0f,
     /** A player's carries so far this game, for the lead back's workload. */
     val carries: (Int) -> Int = { 0 },
     /**
@@ -117,7 +120,7 @@ internal object RunResolution {
         val noiseCost = (ctx.crowdNoise / 100f) * t.blocking.crowdNoiseRunCost
 
         val rawAdvantage = (lineBlock + teHelp + backHelp) - frontStrength + gap + numbers -
-            redZone - noiseCost
+            redZone - noiseCost + ctx.offEdge - ctx.defEdge
         val advantage = rawAdvantage / t.blocking.advantageDivisor
 
         // Backs rotate. A lead back takes most of the work but not all of it,
