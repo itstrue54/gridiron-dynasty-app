@@ -123,8 +123,14 @@ class DynastyStore(private val saveDir: File) {
     suspend fun previewImport(text: String, seed: Long = System.nanoTime(), into: Int = slot) {
         busy = true
         try {
-            val result = withContext(Dispatchers.Default) {
-                com.nflsim.data.roster.LeagueImport.build(text, YEAR, seed)
+            // A file is the user's, and anything can be in it: a reader that
+            // throws says so rather than taking the app down with it. 1,240
+            // mangled files found none that do, which is no promise about the next.
+            val result = try {
+                withContext(Dispatchers.Default) { com.nflsim.data.roster.LeagueImport.build(text, YEAR, seed) }
+            } catch (e: Exception) {
+                message = "That roster file would not load: ${e.message ?: e::class.simpleName}"
+                return
             }
             val league = result.league
             if (league == null) {
