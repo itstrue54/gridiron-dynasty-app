@@ -57,7 +57,7 @@ object PlaySimulator {
         // stadium shows up in a single snap, and it should stay that way.
         val discipline = (ctx.offense.line + listOf(ctx.offense.quarterback))
             .averageRating(RatingId.DISCIPLINE, offScheme)
-        val falseStart = (t.perPlayBase * t.falseStartShare) *
+        val falseStart = (t.perPlayBase * t.falseStartShare) * ctx.offFlags *
             (t.disciplineFactor - discipline / t.disciplineRange) *
             (1f + (ctx.crowdNoise / 100f) * t.crowdNoiseScale)
 
@@ -72,7 +72,7 @@ object PlaySimulator {
         }
 
         val defDiscipline = ctx.defense.passRushers.averageRating(RatingId.DISCIPLINE, ctx.defense.scheme)
-        val offside = (t.perPlayBase * t.offsideShare) * (t.disciplineFactor - defDiscipline / t.disciplineRange) *
+        val offside = (t.perPlayBase * t.offsideShare) * ctx.defFlags * (t.disciplineFactor - defDiscipline / t.disciplineRange) *
             (if (def.isBlitz) t.offsideBlitz else 1f)
         if (rng.nextFloat() < offside) {
             val guilty = ctx.defense.passRushers.minByOrNull { rate(it, RatingId.DISCIPLINE, ctx.defense.scheme) }
@@ -100,7 +100,7 @@ object PlaySimulator {
         // coincidence in real football and it should not be here either.
         if (call is OffensivePlayCall.Pass && result.outcome != PlayOutcome.SACK) {
             val protectionStress = result.log["pressureChance"] ?: t.defaultPressure
-            val holding = t.perPlayBase * t.passHoldingShare * (t.holdingBase + protectionStress)
+            val holding = t.perPlayBase * t.passHoldingShare * ctx.offFlags * (t.holdingBase + protectionStress)
             if (rng.nextFloat() < holding) {
                 val guilty = ctx.offense.line.minByOrNull { rate(it, RatingId.PASS_BLOCK, offScheme) }
                 return result.copy(
@@ -118,7 +118,7 @@ object PlaySimulator {
             call.concept.airYards >= t.passInterferenceAirYards
         ) {
             val routeWin = result.log["routeWin"] ?: 0f
-            val dpiChance = t.perPlayBase * t.passInterferenceShare * (1f + (routeWin / t.passInterferenceSeparation).coerceIn(t.passInterferenceMin, t.passInterferenceMax))
+            val dpiChance = t.perPlayBase * t.passInterferenceShare * ctx.defFlags * (1f + (routeWin / t.passInterferenceSeparation).coerceIn(t.passInterferenceMin, t.passInterferenceMax))
             if (rng.nextFloat() < dpiChance) {
                 // coerceIn(min, max) throws when min exceeds max, and inside the
                 // six yard line it would. Cap at the goal line first.
@@ -135,7 +135,7 @@ object PlaySimulator {
         }
 
         if (call is OffensivePlayCall.Run) {
-            val holding = t.perPlayBase * t.runHoldingShare
+            val holding = t.perPlayBase * t.runHoldingShare * ctx.offFlags
             if (rng.nextFloat() < holding) {
                 val guilty = ctx.offense.line.minByOrNull { rate(it, RatingId.RUN_BLOCK, offScheme) }
                 return result.copy(

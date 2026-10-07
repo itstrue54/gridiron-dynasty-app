@@ -86,6 +86,9 @@ object Migrations {
         // An old save's general managers read as in the chair since before
         // the league began, which is what they were, and nobody is out of work.
         Step(42, "the user hires and fires coaches and general managers, and owners fire theirs (SPEC 4.7); nothing to move") { it },
+        // A save stores only the tuning its user moved, so an old one takes the
+        // new coefficients at their defaults.
+        Step(43, "the tuning table learned how a head coach's discipline moves his side's flags (SPEC 5.8); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */

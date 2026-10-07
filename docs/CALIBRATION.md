@@ -674,6 +674,23 @@ The box shift shared the pass and blitz window (±0.12). For the box that window
 
 Then add the realistic catch on top. This is a structural change to how plays resolve, not a retune.
 
+## Pass 14 — October 2026 (a head coach's discipline)
+
+**What changed:** the head coach's `discipline` now scales his side's flags (SPEC 5.8): false starts and holding on offence, offside and pass interference on defence. The scale is 1 + 0.5 × (65 − discipline) / 100, centred on the generated coaching mean, so a league's coaching as a whole flags at the old rate. A coach rated 30 draws about 17% more flags, and one rated 100 about 17% fewer.
+
+**Measured:** six leagues, 2,000 games each, with the effect off (`coachDisciplineScale` 0, as before) and on:
+
+| League | Bands, off / on | Penalties per team per game, off → on |
+|---|---|---|
+| 2026 | 23 / 23 | 6.35 → 6.41 |
+| 7 | 23 / 23 | 6.19 → 6.18 |
+| 99 | 23 / 23 | 6.29 → 6.19 |
+| 11 | 23 / 23 | 6.43 → 6.48 |
+| 12 | 23 / 23 | 6.30 → 6.29 |
+| 13 | 23 / 23 | 6.38 → 6.46 |
+
+**Result:** the league moves with its coaches' average discipline, between −0.09 and +0.08 a team, and averages 6.32 → 6.34. No band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

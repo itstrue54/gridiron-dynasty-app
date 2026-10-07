@@ -97,12 +97,13 @@ object Staffing {
 
     /**
      * What a man is worth in [job], as the sim uses him: a head coach's
-     * development and in-game adjustments, a position coach's development,
+     * development, in-game adjustments and discipline (his side's flags,
+     * SPEC 5.8), a position coach's development,
      * and for the rest - whose scheme and tendencies are what they bring -
      * his ratings overall.
      */
     fun worth(c: Coach, job: StaffJob): Float = when (job.role) {
-        CoachRole.HEAD_COACH -> (c.ratings.development + c.ratings.adjustments) / 2f
+        CoachRole.HEAD_COACH -> (c.ratings.development + c.ratings.adjustments + c.ratings.discipline) / 3f
         CoachRole.POSITION_COACH -> c.ratings.development.toFloat()
         else -> quality(c)
     }

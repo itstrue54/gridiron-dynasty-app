@@ -50,6 +50,9 @@ data class PlayContext(
     /** Each side's game plan: the tendencies its coordinator calls from. */
     val offPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     val defPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
+    /** Each head coach's discipline on his side's flags (GameSimulator.coachFlags): 1 is a league-average staff. */
+    val offFlags: Float = 1f,
+    val defFlags: Float = 1f,
     /** A player's carries so far this game, for the lead back's workload. */
     val carries: (Int) -> Int = { 0 },
     /**

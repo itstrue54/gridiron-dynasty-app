@@ -166,6 +166,7 @@ object DynastyEngine {
                 aggression = com.nflsim.engine.model.GamePlan.defaultAggression(team.id.v),
                 staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
+                discipline = league.coaches[team.staff.headCoach]?.ratings?.discipline,
             )
         }
 

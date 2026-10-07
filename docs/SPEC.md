@@ -312,8 +312,8 @@ league's seed, the year and the job, so the same spring always offers the
 same men. Fresh candidates are drawn as the carousel draws its outside
 ones, below the league's coaching mean, because the user chooses the best
 of several. The pool lists them best first by what the job uses: a head
-coach's development and in-game adjustments, a position coach's
-development, and for a coordinator - whose scheme and tendencies are what
+coach's development, in-game adjustments and discipline (§5.8), a position
+coach's development, and for a coordinator - whose scheme and tendencies are what
 he brings - his ratings overall. A head coach or coordinator candidate may
 run any scheme on his side of the ball (a head coach, either side); a
 special teams or position coach works in the club's.
@@ -571,6 +571,8 @@ Either is a turnover where the play ended, it ends the drive as a fumble, and it
 ### 5.8 Penalties
 
 Sampled per play from a base rate modified by `discipline`, `penaltyProne`, coach `discipline`, home/road, and play type (holding on pass pro, false start on the road with crowd noise, DPI on deep routes contested by a low-`manCoverage` defender). Target ~6.2 accepted penalties per team per game.
+
+**Coach discipline (implemented).** The head coach's `discipline` scales his side's flags: false starts and holding on offence, offside and pass interference on defence. The scale is 1 + `coachDisciplineScale` × (`coachDisciplineMean` − his discipline) / 100, which at 0.5 is half a percent a point, so the range runs from about 17% more flags for a 30 to 17% fewer for a 100. It is centred on the generated coaching mean (65), so the league's rate stays where it was calibrated. A club with nobody in the chair flags at the league rate. It is the one coach rating hiring weighs beyond development and adjustments (§4.7).
 
 ### 5.9 Injuries
 

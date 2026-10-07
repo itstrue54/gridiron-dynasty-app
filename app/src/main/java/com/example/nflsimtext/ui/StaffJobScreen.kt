@@ -118,47 +118,41 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 }
             }
             item {
-                // The two figures that matter in this job (Staffing.worth).
-                val (third, fourth) = when (job.role) {
-                    CoachRole.HEAD_COACH -> "Develops" to "Adjusts"
-                    CoachRole.OFFENSIVE_COORDINATOR, CoachRole.DEFENSIVE_COORDINATOR -> "Scheme" to "Rating"
-                    else -> "Develops" to "Rating"
-                }
+                // What the job uses (Staffing.worth), as columns: a
+                // coordinator's scheme, and the rating the pool is sorted by.
+                // A scheme reads as text, so it goes before the numbers:
+                // after a right-aligned age it runs into it.
+                val schemes = side != null
+                val develops = job.role == CoachRole.HEAD_COACH || job.role == CoachRole.POSITION_COACH
                 DataTable(
-                    // A scheme reads as text, so it goes before the numbers:
-                    // after a right-aligned age it runs into it.
-                    columns = if (third == "Scheme") listOf(
+                    columns = listOfNotNull(
                         ColumnSpec("Coach", 2.0f, wrap = true),
-                        ColumnSpec(third, 1.7f, wrap = true),
+                        if (schemes) ColumnSpec("Scheme", 1.7f, wrap = true) else null,
                         ColumnSpec("Age", 0.7f, numeric = true),
-                        ColumnSpec(fourth, 1.0f, numeric = true, tier = true),
-                    ) else listOf(
-                        ColumnSpec("Coach", 2.2f, wrap = true),
-                        ColumnSpec("Age", 0.7f, numeric = true),
-                        ColumnSpec(third, 1.1f, numeric = true, tier = true),
-                        ColumnSpec(fourth, 1.0f, numeric = true, tier = true),
+                        if (develops) ColumnSpec("Develops", 1.1f, numeric = true, tier = true) else null,
+                        if (job.role != CoachRole.POSITION_COACH) ColumnSpec("Rating", 1.0f, numeric = true, tier = true) else null,
                     ),
                     rows = pool.take(POOL_SHOWN).map { man ->
                         RowData(
-                            if (third == "Scheme") listOf(
-                                man.name, SchemeCatalog[man.scheme].name, "${man.age}",
-                                "${Staffing.quality(man).roundToInt()}",
-                            ) else listOf(
-                                man.name, "${man.age}", "${man.ratings.development}",
-                                if (fourth == "Adjusts") "${man.ratings.adjustments}" else "${Staffing.quality(man).roundToInt()}",
+                            listOfNotNull(
+                                man.name,
+                                if (schemes) SchemeCatalog[man.scheme].name else null,
+                                "${man.age}",
+                                if (develops) "${man.ratings.development}" else null,
+                                if (job.role != CoachRole.POSITION_COACH) "${Staffing.worth(man, job).roundToInt()}" else null,
                             ),
                             highlight = side != null && man.scheme == side.second,
                             onClick = { looking = man },
                         )
                     },
                 )
-                if (side != null) {
-                    Text(
-                        "Highlighted: runs the ${side.first} you run now, ${SchemeCatalog[side.second].name}.",
-                        style = NdTheme.type.caption, color = c.chalkDim,
-                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
-                    )
-                }
+                Text(
+                    ratingNote(job) + (side?.let { (name, scheme) ->
+                        " Highlighted: runs the $name you run now, ${SchemeCatalog[scheme].name}."
+                    } ?: ""),
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                    modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                )
             }
         } else {
             item {
@@ -345,11 +339,18 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
 
 /** What a job does, in a line, so the user knows what he is choosing. */
 internal fun duties(job: StaffJob): String = when (job.role) {
-    CoachRole.HEAD_COACH -> "Develops every player alongside his position coach, adjusts during games, and decides fourth downs."
+    CoachRole.HEAD_COACH -> "Develops every player alongside his position coach, adjusts during games, keeps his men's flags down, and decides fourth downs."
     CoachRole.OFFENSIVE_COORDINATOR -> "Brings the offence's scheme, and calls its plays when you set no game plan of your own."
     CoachRole.DEFENSIVE_COORDINATOR -> "Brings the defence's scheme, and calls its blitzes and coverages when you set no game plan of your own."
     CoachRole.SPECIAL_TEAMS_COORDINATOR -> "Coaches the kicking units."
     CoachRole.POSITION_COACH -> "Develops the ${job.group!!.name} players, alongside the head coach."
+}
+
+/** What the pool's Rating column means for this job (Staffing.worth). */
+internal fun ratingNote(job: StaffJob): String = when (job.role) {
+    CoachRole.HEAD_COACH -> "Rating: his development, adjustments and discipline together."
+    CoachRole.POSITION_COACH -> "Sorted by how well he develops players."
+    else -> "Rating: his six ratings together. What he brings is his scheme and how he calls it."
 }
 
 /** What a coach calls left to himself, for the job he would do. */

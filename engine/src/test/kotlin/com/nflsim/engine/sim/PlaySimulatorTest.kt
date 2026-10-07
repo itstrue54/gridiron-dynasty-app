@@ -244,6 +244,31 @@ class PlaySimulatorTest {
     }
 
     @Test
+    fun `a disciplined head coach's side is flagged less, and an average one as before`() {
+        val t = com.nflsim.engine.tuning.TuningTable.REALISTIC.penalties
+        assertEquals(1f, coachFlags(null, t))
+        assertEquals(1f, coachFlags(t.coachDisciplineMean.toInt(), t))
+        assertTrue(coachFlags(30, t) > 1f && coachFlags(100, t) < 1f)
+        // Centred: two coaches the same distance either side average out.
+        assertEquals(1f, (coachFlags(45, t) + coachFlags(85, t)) / 2f, 1e-6f)
+
+        fun flags(offFlags: Float, defFlags: Float, onOffence: Boolean): Int {
+            val ctx = context().copy(offFlags = offFlags, defFlags = defFlags)
+            val rng = SplitMixRng(16L)
+            var n = 0
+            repeat(20_000) {
+                val p = PlaySimulator.simPlay(ctx, PlayCaller.offense(ctx, rng), PlayCaller.defense(ctx, rng), rng).penalty
+                if (p != null && p.type.onOffense == onOffence) n++
+            }
+            return n
+        }
+        val loose = coachFlags(30, t)
+        val tight = coachFlags(100, t)
+        assertTrue(flags(loose, 1f, true) > flags(tight, 1f, true), "a loose offence jumps and holds more")
+        assertTrue(flags(1f, loose, false) > flags(1f, tight, false), "a loose defence jumps and interferes more")
+    }
+
+    @Test
     fun `a stacked box makes running harder`() {
         val ctx = context()
         fun meanYards(boxAdd: Int): Double {
