@@ -29,4 +29,11 @@ class StaffCopyTest {
         StaffJob.ALL.forEach { assertTrue(it.label, duties(it).isNotBlank()) }
         assertTrue(duties(StaffJob.ALL.last()).contains(StaffJob.ALL.last().group!!.name))
     }
+
+    @Test
+    fun `the hub's staff button counts the jobs open`() {
+        assertEquals("Hire and fire your staff first", staffButton(0))
+        assertEquals("Hire and fire your staff first (1 job open)", staffButton(1))
+        assertEquals("Hire and fire your staff first (3 jobs open)", staffButton(3))
+    }
 }

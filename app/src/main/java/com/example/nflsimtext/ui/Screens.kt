@@ -265,12 +265,24 @@ fun HubScreen(
                 // The spring window for the staff (offseason.Staffing): it
                 // closes when the offseason starts.
                 if (store.staffingOpen) {
+                    // Jobs that will be empty when the offseason starts - let go,
+                    // promoted away, retiring - and nobody agreed for them: the
+                    // front office fills them unless the user does first.
+                    val spring = remember(dynasty) { com.nflsim.engine.offseason.Staffing.spring(dynasty) }
+                    val open = remember(dynasty, spring) {
+                        val shown = com.nflsim.engine.offseason.Staffing.withPending(dynasty, spring.league)
+                        com.nflsim.engine.offseason.Staffing.vacancies(shown.league, dynasty.userTeamId)
+                    }
+                    val notes = remember(dynasty, spring) { com.nflsim.engine.offseason.Staffing.leavingNotes(dynasty, spring) }
                     SecondaryButton(
-                        "Hire and fire your staff first",
+                        staffButton(open.size),
                         { onNavigate(Tab.STAFF) },
                         Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s),
                         enabled = !store.busy,
                     )
+                    open.mapNotNull { notes[it] }.forEach {
+                        Text(it, style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs))
+                    }
                 }
                 // Calling the plays himself (SPEC 5.4): the same week, with his
                 // game waiting on him at each snap - or in the postseason, each
@@ -1041,4 +1053,11 @@ internal fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
 internal fun coachabilityGrade(player: Player, scoutingDept: Int, t: com.nflsim.engine.tuning.TuningTable.Scouting): Pair<String, Boolean> {
     val seen = TraitScouting.confidence(player.clubYears, scoutingDept, t)
     return TraitScouting.grade(player.traits.coachability, seen, player.id.v, "coachability", t) to (seen >= t.gradeAt)
+}
+
+/** The hub's way into the spring window, with the jobs that will be empty when the offseason starts. */
+internal fun staffButton(open: Int): String = "Hire and fire your staff first" + when (open) {
+    0 -> ""
+    1 -> " (1 job open)"
+    else -> " ($open jobs open)"
 }
