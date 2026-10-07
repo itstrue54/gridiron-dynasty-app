@@ -24,6 +24,7 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 - Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. A new coordinator brings his own scheme and tendencies.
 - Set your depth chart and a game plan: how often you pass, when you blitz, how often you go for it on fourth down.
 - Watch every game play by play, call the plays yourself, or skip straight to the final.
+- Want to play commissioner? Turn on player editing and rewrite any player's position, ratings and traits. Or leave it off and play it straight.
 
 **Live with the consequences**
 - Agents haggle over every contract. Underpaid stars hold out of camp. Fans want the rookie quarterback when the veteran struggles.
