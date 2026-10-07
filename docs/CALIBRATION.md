@@ -771,6 +771,30 @@ The first six leagues alone gave 0.32 against 0.27 for the correlation, and the 
 
 **Result:** staffs turn over, at about one man in forty a spring. Position coaches' development stays where a new league starts it, so talent holds. About half a head coach a spring more changes hands, from retirements. No band moves.
 
+## Pass 19 — October 2026 (coach careers)
+
+**What changed:** a coach's ratings move with his age. He rises 1.2 a year to 45, holds to 58, and slips 0.4 a year after, with a point of noise of his own. A new coach is drawn where his age puts him on the curve, and `careerPeakLift` sets how far a prime sits above the old flat mean. Clubs may promote their own position coaches to coordinator, less an 8-point discount.
+
+**Measured:** six leagues, twenty seasons; staffs and talent at year 20:
+
+| | main | Lift 3 | **Lift 1.5 (shipped)** |
+|---|---|---|---|
+| Position coaches' development | 65.35 | 66.86 | 65.84 |
+| Head coaches' development | 68.91 | 71.71 | 70.18 |
+| Head coaches' discipline | 69.16 | 70.14 | 72.90 |
+| Coordinators' game plans (off / def) | 75.3 / 75.0 | 78.2 / 79.6 | 75.6 / 74.9 |
+| Mean of each club's top 22 | 76.60 | 76.83 | 76.48 |
+| Players at 90+ a league | 14.0 | 14.2 | 10.8 |
+
+**Lift 3 drifted:** coaching climbed about a point and a half a decade and was still rising at year 20.
+
+**Lift 1.5 holds:**
+- **Coaches:** position coaches and coordinators end within half a point of main, and head coaches' development within 1.3.
+- **Talent:** the top-22 mean holds. The count at 90+ is lower, but it moved 13-17 between runs of main alone, while the steadier top-22 mean doesn't move.
+- **Discipline:** head coaches' discipline ends 3.7 higher, which is about 2% fewer flags league-wide by year 20.
+
+The per-game bands are measured on new leagues, whose coaches are generated as before, so they don't move.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

@@ -165,9 +165,11 @@ object Staffing {
                     if (job.group in StaffGenerator.OFFENSIVE_GROUPS) club.offenseScheme else club.defenseScheme
             }
             val (first, last) = NameGenerator.fullName(rng)
-            fun stat() = (t.candidateMean + rng.gaussian(0f, t.candidateSpread)).roundToInt().coerceIn(t.candidateFloor, 100)
+            val age = 38 + rng.nextInt(20)
+            val mean = CoachCareer.hireMean(t.candidateMean, age, t)
+            fun stat() = (mean + rng.gaussian(0f, t.candidateSpread)).roundToInt().coerceIn(t.candidateFloor, 100)
             Coach(
-                id = CoachId(-i), name = "$first $last", age = 38 + rng.nextInt(20),
+                id = CoachId(-i), name = "$first $last", age = age,
                 role = job.role, scheme = scheme,
                 ratings = CoachRatings(stat(), stat(), stat(), stat(), stat(), stat()),
                 contractYearsLeft = 0,
@@ -255,10 +257,20 @@ object Staffing {
             .flatMap { listOf(it.staff.offCoordinator, it.staff.defCoordinator) }
             .mapNotNull { dynasty.league.coaches[it] }
             .filter { c -> open.none { it.id == c.id } }
+        // A coordinator's job, from the club's own position coaches on that
+        // side of the ball: a coach's career (CoachCareer), from within.
+        val groups = when (job) {
+            StaffJob.OFFENCE -> StaffGenerator.OFFENSIVE_GROUPS
+            StaffJob.DEFENCE -> PositionGroup.entries.toSet() - StaffGenerator.OFFENSIVE_GROUPS - PositionGroup.ST
+            StaffJob.SPECIAL -> setOf(PositionGroup.ST)
+            else -> emptySet()
+        }
+        val ownAssistants = dynasty.team.staff.positionCoaches.filterKeys { it in groups }.values
+            .mapNotNull { dynasty.league.coaches[it] }
         // A man the carousel hires and lets go again in the same spring exists
         // only in its preview: the offseason makes him again under another id,
         // so he is nobody the user can agree to hire.
-        return (open + coordinators)
+        return (open + coordinators + ownAssistants)
             .filter { it.id !in promised && (it.id.v <= 0 || it.id in dynasty.league.coaches) }
             .sortedByDescending { worth(it, job) }
     }
@@ -275,6 +287,8 @@ object Staffing {
         val id = CoachId(p.coach)
         if (id !in market.coaches) return false
         if (id !in employed(market)) return true
+        // One of the user's own, moving up into a job that opens.
+        if (jobOf(market.team(dynasty.userTeamId).staff, id) != null) return true
         return p.job == StaffJob.HEAD && market.teams.any { it.id != dynasty.userTeamId &&
             (it.staff.offCoordinator == id || it.staff.defCoordinator == id) }
     }
@@ -308,6 +322,7 @@ object Staffing {
         for (p in dynasty.pendingHires) {
             if (!holds(p, dynasty, market)) continue
             val coach = p.candidate ?: market.coaches[CoachId(p.coach)] ?: continue
+            league = moveUp(league, dynasty.userTeamId, coach.id)
             league = place(league, dynasty.userTeamId, p.job, coach)
         }
         return dynasty.copy(league = league)
@@ -323,15 +338,20 @@ object Staffing {
         var out = league
         val user = dynasty.userTeamId
         val rng = SplitMixRng(dynasty.seed + dynasty.year).split("settle")
-        for (p in dynasty.pendingHires) {
+        // The user's own moving up go first, so the jobs they leave are open
+        // for anyone he agreed to hire into them.
+        val agreements = dynasty.pendingHires.sortedBy { p -> if (jobOf(out.team(user).staff, CoachId(p.coach)) != null) 0 else 1 }
+        for (p in agreements) {
             if (out.coaches[holder(out.team(user).staff, p.job)] != null) continue
             val coach = p.candidate ?: out.coaches[CoachId(p.coach)] ?: continue
             if (p.candidate == null) {
                 val club = out.teams.firstOrNull { jobOf(it.staff, coach.id) != null }
-                if (club != null) {
+                if (club != null && club.id == user) {
+                    out = moveUp(out, user, coach.id)
+                } else if (club != null) {
                     val left = jobOf(club.staff, coach.id)!!
                     // Only a promotion takes a man from his club: a coordinator to head coach.
-                    if (club.id == user || p.job != StaffJob.HEAD || left !in setOf(StaffJob.OFFENCE, StaffJob.DEFENCE)) continue
+                    if (p.job != StaffJob.HEAD || left !in setOf(StaffJob.OFFENCE, StaffJob.DEFENCE)) continue
                     out = replaceAway(out, club.id, left, rng.split("replace|${coach.id.v}"))
                 }
             }
@@ -346,15 +366,23 @@ object Staffing {
         val t = league.tuning.staff
         val club = league.team(clubId)
         var next = (league.coaches.keys.maxOfOrNull { it.v } ?: 0) + 1
-        val fill = CoachingCarousel.replacement(league, club, job, t, rng) { role, scheme ->
+        val (fill, from) = CoachingCarousel.replacement(league, club, job, t, rng, { league.coaches[it] }) { role, scheme ->
             CoachingCarousel.newCoach(CoachId(next++), role, scheme, t, rng)
         }
-        val after = CoachingCarousel.withCoordinator(club, job, fill)
+        var after = CoachingCarousel.withCoordinator(club, job, fill)
+        var coaches = league.coaches + (fill.id to fill)
+        // Promoted from within: his old job goes to a new man.
+        if (from != null) {
+            val scheme = if (from.group in StaffGenerator.OFFENSIVE_GROUPS) after.offenseScheme else after.defenseScheme
+            val assistant = StaffGenerator.assistant(CoachId(next++), from.role, scheme, rng, t)
+            coaches = coaches + (assistant.id to assistant)
+            after = after.copy(staff = after.staff.with(from, assistant.id))
+        }
         val offChanged = after.offenseScheme != club.offenseScheme
         val defChanged = after.defenseScheme != club.defenseScheme
         return league.copy(
             teams = league.teams.map { if (it.id == clubId) after else it },
-            coaches = league.coaches + (fill.id to fill),
+            coaches = coaches,
             players = if (!offChanged && !defChanged) league.players else league.players.map { p ->
                 if (p.teamId == clubId && (if (p.position.isOffense) offChanged else defChanged))
                     p.copy(yearsInSystem = 0, yearsWithClub = p.clubYears) else p
@@ -408,19 +436,23 @@ object Staffing {
             return tidy(next, after)
         }
         return when (val from = source(dynasty, candidate, market)) {
-            is Source.Own -> {
-                require(openNow) { "the ${job.label} job is not open" }
+            is Source.Own -> if (openNow) {
+                // Promoted from within, now: his old job is open for the user to fill.
                 val league = dynasty.league
-                val freed = league.copy(teams = league.teams.map {
-                    if (it.id == dynasty.userTeamId) it.copy(staff = it.staff.with(from.job, VACANT)) else it
-                })
-                tidy(dynasty.copy(league = place(freed, dynasty.userTeamId, job, league.coach(candidate.id))))
-            }
+                tidy(dynasty.copy(league = place(moveUp(league, dynasty.userTeamId, candidate.id), dynasty.userTeamId, job,
+                    league.coach(candidate.id))))
+            } else agreed()   // into a job that opens when the offseason starts, as he moves up then
             is Source.LetGo, is Source.Promotion -> agreed()
             // A man out of work now joins as he is, not as the spring will have aged him.
             else -> if (openNow) tidy(dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job,
                 dynasty.league.coaches[candidate.id] ?: candidate))) else agreed()
         }
+    }
+
+    /** [id] leaves his job on [team]'s staff to move up: the job he leaves is open. */
+    private fun moveUp(league: League, team: TeamId, id: CoachId): League {
+        val from = jobOf(league.team(team).staff, id) ?: return league
+        return league.copy(teams = league.teams.map { if (it.id == team) it.copy(staff = it.staff.with(from, VACANT)) else it })
     }
 
     /**

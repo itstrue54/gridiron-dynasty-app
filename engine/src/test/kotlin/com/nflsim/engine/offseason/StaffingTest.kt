@@ -361,6 +361,30 @@ class StaffingTest {
     }
 
     @Test
+    fun `the user can promote one of his own position coaches to coordinator, now or as a job opens`() {
+        // Now: the offensive coordinator's job open, and his quarterbacks coach moves up.
+        val open = Staffing.fire(played, StaffJob.OFFENCE)
+        val qb = open.league.coach(open.team.staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.QB))
+        assertTrue(Staffing.pool(open, StaffJob.OFFENCE).any { it.id == qb.id }, "his own position coaches are candidates")
+        val promoted = Staffing.hire(open, StaffJob.OFFENCE, qb)
+        assertEquals(qb.id, promoted.team.staff.offCoordinator)
+        assertEquals(CoachRole.OFFENSIVE_COORDINATOR, promoted.league.coach(qb.id).role)
+        assertEquals(Staffing.VACANT, promoted.team.staff.positionCoaches[com.nflsim.engine.model.PositionGroup.QB])
+
+        // As a job opens: the defensive coordinator retiring, his linebackers coach agreed to move up.
+        val dc = played.league.coach(played.team.staff.defCoordinator)
+        val d = played.copy(league = played.league.copy(coaches = played.league.coaches + (dc.id to dc.copy(age = 80))))
+        val lb = d.league.coach(d.team.staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.LB))
+        val agreed = Staffing.hire(d, StaffJob.DEFENCE, lb)
+        assertEquals(lb.id, agreed.team.staff.positionCoaches[com.nflsim.engine.model.PositionGroup.LB], "he coaches linebackers until then")
+        val (next, _) = OffseasonEngine.run(agreed)
+        val staff = next.league.team(user).staff
+        assertEquals(lb.id, staff.defCoordinator)
+        val newLb = staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.LB)
+        assertTrue(newLb != lb.id && newLb in next.league.coaches, "his old job filled")
+    }
+
+    @Test
     fun `the offseason fills the jobs the user left open before anything reads the staff`() {
         var d = played
         d = Staffing.fire(Staffing.fire(d, StaffJob.HEAD), StaffJob.SPECIAL)

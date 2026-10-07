@@ -104,7 +104,8 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 SituationBlock(if (agreed != null) "Hired" else "In the job", meta = "${holder.age}, ${contract(holder)}") {
                     Text(holder.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
                     Text(
-                        (agreedNote ?: "") + "Comes from ${SchemeCatalog[holder.scheme].name}.",
+                        (agreedNote ?: "") + "Comes from ${SchemeCatalog[holder.scheme].name}. " +
+                            com.nflsim.engine.offseason.CoachCareer.stage(holder.age, dynasty.league.tuning.staff),
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -252,7 +253,7 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                         is Staffing.Source.Own -> "Your ${from.job.label.lowercase()}. Promote him now, and his job is open for you to fill. "
                         is Staffing.Source.OutOfWork -> "Out of work. "
                         else -> "A candidate this spring. "
-                    } +
+                    } + com.nflsim.engine.offseason.CoachCareer.stage(man.age, dynasty.league.tuning.staff) + " " +
                         "Comes from ${SchemeCatalog[man.scheme].name}.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                     modifier = Modifier.padding(bottom = NdTheme.spacing.xs),

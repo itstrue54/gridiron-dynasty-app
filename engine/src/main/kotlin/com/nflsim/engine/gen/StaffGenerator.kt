@@ -68,12 +68,15 @@ object StaffGenerator {
      * development that comes with it (SPEC 7.1) - holds where it started over
      * a long dynasty, instead of drifting with whoever happened to retire.
      */
-    fun assistant(id: CoachId, role: CoachRole, scheme: String, rng: Rng): Coach {
+    fun assistant(id: CoachId, role: CoachRole, scheme: String, rng: Rng,
+                  t: com.nflsim.engine.tuning.TuningTable.Staff = com.nflsim.engine.tuning.TuningTable.REALISTIC.staff): Coach {
         val (first, last) = NameGenerator.fullName(rng)
+        val age = 32 + rng.nextInt(20)
         return Coach(
-            id = id, name = "$first $last", age = 32 + rng.nextInt(20),
+            id = id, name = "$first $last", age = age,
             role = role, scheme = scheme,
-            ratings = randomRatings(rng),
+            // The generator's spread, drawn where his age puts him on a career (offseason.CoachCareer).
+            ratings = randomRatings(rng, com.nflsim.engine.offseason.CoachCareer.hireMean(GENERATED_MEAN, age, t)),
             contractYearsLeft = 1 + rng.nextInt(4),
             tendencies = Tendencies.draw(role, scheme, rng.split("tendencies|${id.v}")),
         )
@@ -93,10 +96,14 @@ object StaffGenerator {
      * coach with the head coach, and a team's staff is eleven such draws: at
      * sd 12 team ratings bunched into 53-74 and staffs barely differed.
      */
-    private fun randomRatings(rng: Rng): CoachRatings {
+    /** The generated league's coaching mean, which progression was calibrated to (SPEC 7.1). */
+    const val GENERATED_MEAN = 65f
+
+    private fun randomRatings(rng: Rng, mean: Float = GENERATED_MEAN): CoachRatings {
         // Rounded, and clamped the same distance either side of 65, so the
         // generated mean is the 65 that progression.defaultCoaching and SPEC 7.1 assume.
-        fun stat() = (65 + rng.gaussian(0f, 20f)).roundToInt().coerceIn(30, 100)
+        // A hire's [mean] moves with his age (offseason.CoachCareer); the clamp does not.
+        fun stat() = (mean + rng.gaussian(0f, 20f)).roundToInt().coerceIn(30, 100)
         return CoachRatings(
             development = stat(),
             gameplan = stat(),

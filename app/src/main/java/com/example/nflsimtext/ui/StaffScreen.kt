@@ -138,7 +138,9 @@ fun StaffScreen(
                     }
                     Text(
                         (if (head.id in joining) "Joins when the offseason starts. " else "") +
-                            "Runs ${SchemeCatalog[head.scheme].name}. " + jobSecurity(head.hotSeat, bar),
+                            "Runs ${SchemeCatalog[head.scheme].name}. " +
+                            com.nflsim.engine.offseason.CoachCareer.stage(head.age, dynasty.league.tuning.staff) + " " +
+                            jobSecurity(head.hotSeat, bar),
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -248,7 +250,8 @@ internal fun Coordinator(coach: Coach?, lines: List<String>, joining: Boolean = 
     )
     Text(
         (if (joining) "Joins when the offseason starts. " else "") +
-            "${coach.age}, ${contract(coach)}. Comes from ${SchemeCatalog[coach.scheme].name}.",
+            "${coach.age}, ${contract(coach)}. Comes from ${SchemeCatalog[coach.scheme].name}. " +
+            com.nflsim.engine.offseason.CoachCareer.stage(coach.age, com.nflsim.engine.tuning.TuningTable.REALISTIC.staff),
         style = NdTheme.type.caption, color = c.chalkDim,
         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
     )

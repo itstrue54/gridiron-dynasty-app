@@ -99,6 +99,8 @@ object Migrations {
         // A dynasty saved in the spring window had agreed to hire no general manager yet.
         Step(48, "the user can hire the general managers the owners let go this spring (SPEC 8.2); nothing to move") { it },
         Step(49, "a finished offseason clears the spring's agreements (SPEC 4.7)", ::clearStaleAgreements),
+        // A coach keeps the ratings he has; his career moves them from his next spring on.
+        Step(50, "coaches have careers, and position coaches can be promoted to coordinator (SPEC 4.7); nothing to move") { it },
     )
 
     /**
