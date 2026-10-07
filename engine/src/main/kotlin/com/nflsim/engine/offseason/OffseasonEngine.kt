@@ -224,6 +224,25 @@ object OffseasonEngine {
      * the league's clubs decide theirs. Like the draft, the pause lives in
      * memory and everything before it is deterministic.
      */
+    /**
+     * SPEC 7 phase 2's coaching carousel, exactly as this spring's offseason
+     * will run it. The user's staffing window reads it to see which coaches
+     * the league is about to let go (Staffing.market); it is deterministic,
+     * so what the window shows is what happens.
+     */
+    fun springCarousel(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): CoachingCarousel.Result {
+        val newYear = season.year + 1
+        val standings = Standings(season.league, season.results, rng.split("order|$newYear"))
+        val previousWinPct = season.lastOffseason?.moneyByTeam?.mapValues { it.value.winPermille / 1000f }
+            ?: emptyMap()
+        return CoachingCarousel.run(
+            season.league, { id -> standings.record(id).winPct.toFloat() },
+            season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
+            previousWinPct, rng.split("carousel|$newYear"), season.userTeamId,
+            reserved = season.pendingHires.map { com.nflsim.engine.model.CoachId(it.coach) }.toSet(),
+        )
+    }
+
     fun runToContracts(season: Dynasty, rng: Rng = SplitMixRng(season.seed + season.year)): ContractsPause {
         val oldYear = season.year
         val newYear = oldYear + 1
@@ -238,14 +257,13 @@ object OffseasonEngine {
 
         // SPEC 7 phase 2, ahead of everything that reads a staff or a scheme.
         // The awards (phase 1) read the season as it finished - see below.
-        // The jobs the user left open in the spring window are filled first,
-        // so the carousel and everything after it see a full staff.
-        val staffed = Staffing.fillVacancies(season.league, season.userTeamId, oldYear)
-        val carousel = CoachingCarousel.run(
-            staffed, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
-            previousWinPct, rng.split("carousel|$newYear"), season.userTeamId)
+        // The league's clubs first, then the user's: the men he agreed to hire
+        // as their clubs let them go, then the front office for any job he
+        // left open - so everything after this sees a full staff.
+        val carousel = springCarousel(season, rng)
+        val staffed = Staffing.settle(carousel.league, season)
         val owners = GmCarousel.run(
-            carousel.league, winPct, previousWinPct, season.userTeamId, newYear, rng.split("gms|$newYear"))
+            staffed, winPct, previousWinPct, season.userTeamId, newYear, rng.split("gms|$newYear"))
         // Last year's unused room joins next year's cap (SPEC 8.1). It is
         // read from the books as the season closed and written before any
         // phase counts money, so every cap check this spring includes it.

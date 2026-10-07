@@ -88,14 +88,19 @@ class StaffingTest {
 
     @Test
     fun `a job is filled only when it is open, and only from the pool`() {
-        val d = spring()
+        // A real season, so the spring's carousel lets go only the clubs that lost.
+        val d = played
         val candidate = Staffing.pool(d.league, 2026, user, StaffJob.HEAD).first()
         assertFailsWith<IllegalArgumentException> { Staffing.hire(d, StaffJob.HEAD, candidate) }
         val open = Staffing.fire(d, StaffJob.HEAD)
         val stranger = candidate.copy(id = CoachId(-99), name = "Nobody Atall")
         assertFailsWith<IllegalArgumentException> { Staffing.hire(open, StaffJob.HEAD, stranger) }
-        val employed = d.league.coach(d.league.teams[1].staff.headCoach)
-        assertFailsWith<IllegalArgumentException> { Staffing.hire(open, StaffJob.HEAD, employed) }
+        // A head coach his club keeps this spring - one it lets go can be
+        // hired, to join when the offseason starts.
+        val market = Staffing.market(open)
+        val kept = open.league.teams.filter { it.id != user }
+            .first { market.team(it.id).staff.headCoach == it.staff.headCoach }
+        assertFailsWith<IllegalArgumentException> { Staffing.hire(open, StaffJob.HEAD, open.league.coach(kept.staff.headCoach)) }
     }
 
     @Test
@@ -189,10 +194,48 @@ class StaffingTest {
         assertTrue(again.changes.isEmpty())
     }
 
-    @Test
-    fun `the offseason fills the jobs the user left open before anything reads the staff`() {
+    /** A season played to its end, once for the tests that need a real spring. */
+    private val played: Dynasty by lazy {
         var d = DynastyEngine.start(base, 2026, 5L, user)
         while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
+        d
+    }
+
+    @Test
+    fun `the pool has the coaches the league lets go this spring, and hiring one waits for the offseason`() {
+        val spring = OffseasonEngine.springCarousel(played)
+        assertTrue(spring.changes.isNotEmpty(), "somebody is fired this spring")
+        val open = Staffing.fire(played, StaffJob.HEAD)
+        val pool = Staffing.pool(open, StaffJob.HEAD)
+        val letGo = pool.filter { Staffing.leaving(open, it) != null }
+        assertEquals(spring.changes.map { it.fired }.filter { name -> name in pool.map { it.name } }.sorted(), letGo.map { it.name }.sorted(),
+            "every head coach let go and not hired straight back is in the pool, marked by his club")
+        assertTrue(letGo.isNotEmpty())
+
+        val pick = letGo.first()
+        val agreed = Staffing.hire(open, StaffJob.HEAD, pick)
+        assertEquals(Staffing.VACANT, agreed.team.staff.headCoach, "he still works for his club until it lets him go")
+        assertEquals(pick.name, Staffing.pending(agreed, StaffJob.HEAD)?.name)
+        assertEquals(pick.name, agreed.league.coach(Staffing.withPending(agreed).team.staff.headCoach).name, "the Staff screen shows him")
+        assertTrue(Staffing.pool(agreed, StaffJob.HEAD).none { it.id == pick.id }, "he is not offered twice")
+        assertFailsWith<IllegalArgumentException> { Staffing.hire(agreed, StaffJob.HEAD, pool.last()) }
+
+        // Changing his mind before the offseason undoes it.
+        assertTrue(Staffing.fire(agreed, StaffJob.HEAD).pendingHires.isEmpty())
+
+        // And the offseason makes it so: what the window showed is what happens.
+        val (next, report) = OffseasonEngine.run(agreed)
+        assertEquals(pick.id, next.league.team(user).staff.headCoach)
+        assertEquals(OffseasonEngine.springCarousel(agreed).changes, report.coachingChanges,
+            "the carousel the window shows, after the user's moves, is the offseason's")
+        assertEquals(spring.changes.map { it.fired }, report.coachingChanges.map { it.fired },
+            "who is let go never depends on what the user does")
+        assertTrue(next.league.teams.count { it.staff.headCoach == pick.id } == 1, "no other club took him")
+    }
+
+    @Test
+    fun `the offseason fills the jobs the user left open before anything reads the staff`() {
+        var d = played
         d = Staffing.fire(Staffing.fire(d, StaffJob.HEAD), StaffJob.SPECIAL)
         val (next, _) = OffseasonEngine.run(d)
         assertTrue(Staffing.vacancies(next.league, user).isEmpty())

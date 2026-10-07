@@ -664,7 +664,8 @@ class DynastyStore(private val saveDir: File) {
     private suspend fun staffMove(say: (Dynasty) -> String, move: (Dynasty) -> Dynasty) {
         val current = dynasty ?: return
         if (!staffingOpen) return
-        val next = try { move(current) } catch (e: IllegalArgumentException) {
+        // A move reads this spring's carousel (Staffing.market): off the main thread.
+        val next = try { withContext(Dispatchers.Default) { move(current) } } catch (e: IllegalArgumentException) {
             message = e.message ?: "That move is not open."
             return
         }
@@ -674,16 +675,22 @@ class DynastyStore(private val saveDir: File) {
     }
 
     suspend fun fireCoach(job: com.nflsim.engine.offseason.StaffJob) {
-        val name = dynasty?.let { d -> d.league.coaches[com.nflsim.engine.offseason.Staffing.holder(d.team.staff, job)]?.name }
-        staffMove({ "${name ?: "He"} is gone. The ${job.label.lowercase()} job is open." }) {
-            com.nflsim.engine.offseason.Staffing.fire(it, job)
-        }
+        val d = dynasty ?: return
+        val agreed = com.nflsim.engine.offseason.Staffing.pending(d, job)
+        val name = agreed?.name ?: d.league.coaches[com.nflsim.engine.offseason.Staffing.holder(d.team.staff, job)]?.name
+        staffMove({
+            if (agreed != null) "${name ?: "He"} won't be joining. The ${job.label.lowercase()} job is open."
+            else "${name ?: "He"} is gone. The ${job.label.lowercase()} job is open."
+        }) { com.nflsim.engine.offseason.Staffing.fire(it, job) }
     }
 
-    suspend fun hireCoach(job: com.nflsim.engine.offseason.StaffJob, coach: com.nflsim.engine.model.Coach) =
-        staffMove({ "${coach.name} is your ${job.label.lowercase()}." }) {
-            com.nflsim.engine.offseason.Staffing.hire(it, job, coach)
-        }
+    suspend fun hireCoach(job: com.nflsim.engine.offseason.StaffJob, coach: com.nflsim.engine.model.Coach) {
+        val club = dynasty?.let { com.nflsim.engine.offseason.Staffing.leaving(it, coach) }
+        staffMove({
+            if (club != null) "${coach.name} will be your ${job.label.lowercase()} once the ${club.nickname} let him go, when the offseason starts."
+            else "${coach.name} is your ${job.label.lowercase()}."
+        }) { com.nflsim.engine.offseason.Staffing.hire(it, job, coach) }
+    }
 
     suspend fun fireGm() {
         val name = dynasty?.team?.gm?.name

@@ -68,6 +68,12 @@ data class Dynasty(
      * Settings; off for every dynasty saved before it existed.
      */
     val editPlayers: Boolean = false,
+    /**
+     * Coaches the user agreed to hire in the spring window from among the
+     * men another club is letting go (SPEC 4.7): they join when the
+     * offseason starts and their club has let them go.
+     */
+    val pendingHires: List<com.nflsim.engine.offseason.PendingHire> = emptyList(),
 ) {
     val userTeamId: TeamId get() = TeamId(userTeam)
     val team get() = league.team(userTeamId)
