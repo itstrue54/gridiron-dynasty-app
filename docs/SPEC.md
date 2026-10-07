@@ -1161,8 +1161,10 @@ else its head coach's on his side of the ball. A head coach can come from
 either side: a defensive scheme is his, and runs the club's defense when
 neither the club nor its defensive coordinator names one. When the
 carousel hires a head coach, his scheme goes to his side of the ball
-through a coordinator from his tree, and the club finds the best
-coordinator it can for the other side. Generated head coaches all come
+through the best of a few coordinators from his tree who run it, and the
+club finds the best coordinator it can for the other side. The carousel
+reads candidates as the user's pool does (§4.7): a head coach by his
+ratings other than game plan, a coordinator by his game plan. Generated head coaches all come
 from the offense. Any other unknown scheme, a scheme on the
 wrong side of the ball, or a rating, age, contract length or hot seat out of range is an
 import error, never a guess.

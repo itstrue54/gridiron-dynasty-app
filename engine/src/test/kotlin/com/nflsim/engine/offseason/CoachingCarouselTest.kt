@@ -42,6 +42,22 @@ class CoachingCarouselTest {
     }
 
     @Test
+    fun `a new staff's coordinators are both chosen for their game plans`() {
+        val league = LeagueGenerator.generate(2026, 5L)
+        val t = league.tuning.staff
+        // Everyone fired, so every club hires a whole new staff.
+        val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
+            previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(4L))
+        val hired = r.changes.map { c -> r.league.teams.first { it.id.v == c.team } }
+        assertTrue(hired.size >= 20, "most clubs changed staffs: ${hired.size}")
+        val oc = hired.map { r.league.coach(it.staff.offCoordinator).ratings.gameplan }.average()
+        val dc = hired.map { r.league.coach(it.staff.defCoordinator).ratings.gameplan }.average()
+        // The best of a few, read for their game plans, beat the candidates' mean on both sides alike.
+        assertTrue(oc > t.candidateMean + 5 && dc > t.candidateMean + 5, "offence $oc, defence $dc")
+        assertTrue(kotlin.math.abs(oc - dc) < 6, "neither side falls behind: offence $oc, defence $dc")
+    }
+
+    @Test
     fun `a generated league's head coaches are all from the offense, as before`() {
         val league = LeagueGenerator.generate(2026, 5L)
         val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),

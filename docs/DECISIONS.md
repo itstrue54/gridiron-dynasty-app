@@ -2438,7 +2438,7 @@ nothing else moves more than 0.006.
 - **Small.** A coordinator at 100 against an average one is a fraction of a yard a snap; the range of a staff is a nudge, not a roster.
 
 **Consequences.**
-- **The AI's carousel still reads a candidate by his six ratings averaged,** not by what each job now uses. Changing how AI clubs hire would move the league's coaching over a dynasty, which is a change of its own.
+- **The AI's carousel reads a candidate the same way** (`Staffing.worth`), since the change after this one: a head coach by everything but a game plan, a coordinator by his game plan. It was a change of its own because it moves the league's coaching over a dynasty (CALIBRATION.md pass 16).
 - **The pool shows the rating the job uses:** a head coach's other five together, a coordinator's game plan, a position coach's development.
 - **Saves:** the new coefficients take their defaults in an old save. Save step 44, version 45.
 
