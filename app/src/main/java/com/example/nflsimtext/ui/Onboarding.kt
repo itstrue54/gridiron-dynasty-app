@@ -100,6 +100,8 @@ private val GLOSSARY: List<Pair<String, List<Term>>> = listOf(
         Term("Holdout", "A player who wants paying stays away from camp, and comes back out of form."),
         Term("Trade block", "Players you have said you would trade. Clubs that could use them call."),
         Term("Hot seat", "A head coach under pressure after losing seasons. Past his club's limit, other clubs fire theirs after the season; yours stays until you let him go."),
+        Term("Hiring window", "After the season, before you start the offseason: the time to hire and fire your staff. Staff screen."),
+        Term("Promotion", "No club can stop its coordinator becoming a head coach elsewhere. You can hire other clubs' coordinators that way, and they can hire yours."),
     ),
     "The game" to listOf(
         Term("Downs", "An offense has four tries (downs) to gain 10 yards. Make it and the count starts again."),
