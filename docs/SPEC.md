@@ -348,6 +348,32 @@ every other club's shortlist, so nobody takes him first, and the user can
 change his mind. Who the league lets go never depends on the user; whom it
 hires can, since a coach the user lets go is one more man out of work.
 
+**Promotions, under the NFL's rules (save version 47).** The NFL's
+anti-tampering policy lets no club stop an assistant taking a promotion -
+to head coach anywhere, and since 2020 to a coordinator's job - while a
+move sideways, or a head coach under contract leaving, is the club's to
+refuse. The interview calendar's limits (after a club's season, playoff
+clubs' assistants later) are all met by a window that opens after the
+Super Bowl. So:
+- **A club hiring a head coach** looks at a few other clubs' offensive and
+  defensive coordinators (`poachLook`, 9) beside its outside candidates and
+  the head coaches out of work, read the same way. A coordinator it
+  promotes takes a head coach's levers; his club hires the best of three
+  replacements, as likely as any to keep its scheme. A coordinator hired
+  this spring is nobody's to promote until next spring. The offseason
+  report marks a promoted head coach with the club he left.
+- **The user's club** can promote any club's coordinator to head coach,
+  his own included. Another club's man joins when the offseason starts
+  (his club cannot refuse, and hires his replacement); the user's own moves
+  up at once and leaves his job open. Other clubs' coordinators are not
+  offered for coordinator jobs: that move is sideways.
+- **The user's coordinators can be promoted away** like anyone's. The
+  window shows who is leaving and for which club, and the user can hire his
+  replacement then: whoever he picks joins when the offseason starts.
+- Not modelled: promoting another club's position coach to coordinator,
+  which the rules also allow, and the draft-pick compensation the NFL gives
+  a club that loses a minority coach to a head coaching job.
+
 Firing a coordinator leaves the club's scheme alone; hiring one brings his,
 and if it is new the players on his side start learning it again, as after
 the carousel. A job still open once the carousel has run and the user's
@@ -732,7 +758,7 @@ The offseason is an explicit enum. Each phase has an `advance()` that returns a 
 | # | Phase | What happens |
 |---|---|---|
 | 1 | `POST_SEASON_AWARDS` | Awards, All-Pro, retirements announced |
-| 2 | `COACHING_CARROUSEL` | The jobs the user left open filled (§4.7); firings, HC/OC/DC hires, scheme changes cascade; owners replace general managers (§8.2). Never the user's club |
+| 2 | `COACHING_CARROUSEL` | Firings; HC hires, other clubs' coordinators promoted among them, and their clubs' replacements; OC/DC hires; scheme changes cascade (§4.7). Then the user's agreed hires join and the jobs he left open are filled; owners replace general managers (§8.2). Never fires the user's coaches |
 | 3 | `RETIREMENTS` | Age + decline + contract + `loyalty` driven; stars can hang on |
 | 4 | `CONTRACT_DECISIONS` | Team options, restructures, cuts (pre/post June 1), cap compliance deadline |
 | 5 | `FRANCHISE_TAG` | Tag/transition window |

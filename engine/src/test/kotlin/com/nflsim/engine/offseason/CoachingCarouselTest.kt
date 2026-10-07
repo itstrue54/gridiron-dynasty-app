@@ -43,29 +43,65 @@ class CoachingCarouselTest {
 
     @Test
     fun `a new staff's coordinators are both chosen for their game plans`() {
-        val league = LeagueGenerator.generate(2026, 5L)
-        val t = league.tuning.staff
-        // Everyone fired, so every club hires a whole new staff.
-        val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
-            previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(4L))
-        val hired = r.changes.map { c -> r.league.teams.first { it.id.v == c.team } }
-        assertTrue(hired.size >= 20, "most clubs changed staffs: ${hired.size}")
-        val oc = hired.map { r.league.coach(it.staff.offCoordinator).ratings.gameplan }.average()
-        val dc = hired.map { r.league.coach(it.staff.defCoordinator).ratings.gameplan }.average()
+        // Everyone fired, so every club hires a whole new staff - in ten
+        // leagues, since one league's thirty staffs swing a side by several
+        // points on their own.
+        var oc = 0.0; var dc = 0.0; var hiredClubs = 0
+        var t = LeagueGenerator.generate(2026, 1L).tuning.staff
+        for (seed in 1L..10L) {
+            val league = LeagueGenerator.generate(2026, seed)
+            t = league.tuning.staff
+            val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
+                previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(seed))
+            val hired = r.changes.map { c -> r.league.teams.first { it.id.v == c.team } }
+            oc += hired.sumOf { r.league.coach(it.staff.offCoordinator).ratings.gameplan }
+            dc += hired.sumOf { r.league.coach(it.staff.defCoordinator).ratings.gameplan }
+            hiredClubs += hired.size
+        }
+        oc /= hiredClubs; dc /= hiredClubs
         // The best of a few, read for their game plans, beat the candidates' mean on both sides alike.
         assertTrue(oc > t.candidateMean + 5 && dc > t.candidateMean + 5, "offence $oc, defence $dc")
-        assertTrue(kotlin.math.abs(oc - dc) < 6, "neither side falls behind: offence $oc, defence $dc")
+        assertTrue(kotlin.math.abs(oc - dc) < 4, "neither side falls behind: offence $oc, defence $dc")
     }
 
     @Test
-    fun `a generated league's head coaches are all from the offense, as before`() {
+    fun `clubs promote other clubs' coordinators to head coach, and those clubs replace them`() {
+        val league = LeagueGenerator.generate(2026, 5L)
+        val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
+            previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(4L))
+        assertTrue(r.promotions.isNotEmpty(), "somebody hired a coordinator away")
+        r.promotions.forEach { p ->
+            val club = r.league.teams.first { it.id.v == p.team }
+            val head = r.league.coach(club.staff.headCoach)
+            assertEquals(p.name, head.name)
+            assertEquals(CoachRole.HEAD_COACH, head.role)
+            assertTrue(head.tendencies.fourthDownAggression != null)
+            val from = r.league.teams.first { it.id.v == p.from }
+            assertTrue(r.league.coaches.containsKey(from.staff.offCoordinator) && r.league.coaches.containsKey(from.staff.defCoordinator),
+                "${from.abbrev} has both coordinators")
+            assertTrue(from.staff.offCoordinator != head.id && from.staff.defCoordinator != head.id)
+        }
+        assertEquals(r.promotions.size, r.changes.count { it.promotedFrom != null })
+        // Nobody holds two jobs.
+        val jobs = r.league.teams.flatMap { listOf(it.staff.headCoach, it.staff.offCoordinator, it.staff.defCoordinator) }
+        assertEquals(jobs.size, jobs.toSet().size)
+    }
+
+    @Test
+    fun `a head coach runs his side of the ball, and only a promoted defensive coordinator comes from the defense`() {
         val league = LeagueGenerator.generate(2026, 5L)
         val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
             previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(1L))
+        val promotedFromDefence = r.promotions.filter { it.role == CoachRole.DEFENSIVE_COORDINATOR }.map { it.name }.toSet()
         r.league.teams.forEach { t ->
             val head = r.league.coaches.getValue(t.staff.headCoach)
-            assertEquals(SchemeSide.OFFENSE, side(head.scheme))
-            assertEquals(head.scheme, t.offenseScheme, "an offensive head coach's scheme is the club's offense")
+            if (head.name in promotedFromDefence) {
+                assertEquals(SchemeSide.DEFENSE, side(head.scheme))
+                assertEquals(head.scheme, t.defenseScheme, "a defensive head coach's scheme is the club's defense")
+            } else {
+                assertEquals(SchemeSide.OFFENSE, side(head.scheme), "${t.abbrev}: generated head coaches are from the offense")
+                assertEquals(head.scheme, t.offenseScheme, "an offensive head coach's scheme is the club's offense")
+            }
         }
     }
 }

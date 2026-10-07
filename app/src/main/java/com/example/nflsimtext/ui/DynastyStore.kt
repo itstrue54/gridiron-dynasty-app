@@ -685,9 +685,10 @@ class DynastyStore(private val saveDir: File) {
     }
 
     suspend fun hireCoach(job: com.nflsim.engine.offseason.StaffJob, coach: com.nflsim.engine.model.Coach) {
-        val club = dynasty?.let { com.nflsim.engine.offseason.Staffing.leaving(it, coach) }
-        staffMove({
-            if (club != null) "${coach.name} will be your ${job.label.lowercase()} once the ${club.nickname} let him go, when the offseason starts."
+        val agreedBefore = dynasty?.pendingHires?.size ?: 0
+        staffMove({ next ->
+            // A man who joins later is an agreement, not a hire, until the offseason starts.
+            if (next.pendingHires.size > agreedBefore) "${coach.name} will be your ${job.label.lowercase()} when the offseason starts."
             else "${coach.name} is your ${job.label.lowercase()}."
         }) { com.nflsim.engine.offseason.Staffing.hire(it, job, coach) }
     }

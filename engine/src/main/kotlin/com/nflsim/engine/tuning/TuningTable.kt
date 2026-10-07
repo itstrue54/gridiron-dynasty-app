@@ -1253,6 +1253,12 @@ data class TuningTable(
         /** Coaches out of work a club looks at per vacancy, and what their firing costs them in its eyes. */
         val rehireLook: Int = 2,
         val stigma: Float = 6f,
+        /**
+         * Other clubs' coordinators a club looks at for a head coaching job.
+         * Their clubs cannot stop the promotion (the NFL's anti-tampering
+         * policy), and they are where most real head coaches come from.
+         */
+        val poachLook: Int = 9,
         /** Coaches out of work leave the pool at this age. */
         val retireAge: Int = 68,
         /** Fresh candidates for each job the user's club can fill in the spring, and for its general manager (offseason.Staffing). */

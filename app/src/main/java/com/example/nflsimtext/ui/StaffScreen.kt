@@ -44,6 +44,8 @@ fun StaffScreen(
     open: Boolean = false,
     /** Men the user agreed to hire who join when the offseason starts (Staffing.PendingHire). */
     joining: Set<com.nflsim.engine.model.CoachId> = emptySet(),
+    /** Why a job will be open: a coordinator another club promotes to head coach. */
+    leaving: Map<StaffJob, String> = emptyMap(),
     /** Opens one job to change it; null is the general manager's chair. */
     onJob: (StaffJob?) -> Unit = {},
     onBack: () -> Unit = {},
@@ -154,6 +156,7 @@ fun StaffScreen(
 
         item {
             SituationBlock("Offensive coordinator", meta = SchemeCatalog[team.offenseScheme].name) {
+                leaving[StaffJob.OFFENCE]?.takeIf { offence == null }?.let { Text(it, style = NdTheme.type.body, color = c.chalk) }
                 Coordinator(offence, offenceLines(offence?.tendencies), offence?.id in joining)
                 if (open) ChangeButton(if (offence == null) "Hire an offensive coordinator" else "Change the offensive coordinator") { onJob(StaffJob.OFFENCE) }
             }
@@ -161,6 +164,7 @@ fun StaffScreen(
 
         item {
             SituationBlock("Defensive coordinator", meta = SchemeCatalog[team.defenseScheme].name) {
+                leaving[StaffJob.DEFENCE]?.takeIf { defence == null }?.let { Text(it, style = NdTheme.type.body, color = c.chalk) }
                 Coordinator(defence, defenceLines(defence?.tendencies), defence?.id in joining)
                 if (open) ChangeButton(if (defence == null) "Hire a defensive coordinator" else "Change the defensive coordinator") { onJob(StaffJob.DEFENCE) }
             }

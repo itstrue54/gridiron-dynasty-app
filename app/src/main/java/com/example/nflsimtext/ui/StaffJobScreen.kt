@@ -62,16 +62,27 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
     // The league as this spring's carousel will leave it: who the other
     // clubs let go (Staffing.market). The staff is shown with the men the
     // user agreed to hire already in their jobs.
-    val market = remember(dynasty) { Staffing.market(dynasty) }
+    val spring = remember(dynasty) { Staffing.spring(dynasty) }
+    val market = spring.league
     val shown = remember(dynasty, market) { Staffing.withPending(dynasty, market) }
     val holder = shown.league.coaches[Staffing.holder(shown.team.staff, job)]
-    val agreed = Staffing.pending(dynasty, job) != null
+    val agreed = dynasty.pendingHires.firstOrNull { it.job == job }
+    // His coordinator, leaving for another club's head coaching job.
+    val departing = remember(spring) { Staffing.departures(dynasty, spring)[job] }
     val pool = remember(dynasty, job, market) {
         if (holder == null) Staffing.pool(dynasty, job, market) else emptyList()
     }
-    // The club each man is leaving this spring, for those still working for one.
-    val leaving = remember(pool) { pool.associate { it.id to Staffing.leaving(dynasty, it) } }
-    val holderLeaving = holder?.let { if (agreed) Staffing.leaving(dynasty, it) else null }
+    // Where each man comes from, which decides when he can join.
+    val sources = remember(pool) { pool.associate { it.id to Staffing.source(dynasty, it, market) } }
+    fun club(id: Int) = dynasty.league.teams.firstOrNull { it.id.v == id }
+    val agreedNote = agreed?.let { p ->
+        val why = if (p.candidate != null) "" else when (val from = Staffing.source(dynasty, dynasty.league.coach(com.nflsim.engine.model.CoachId(p.coach)), market)) {
+            is Staffing.Source.LetGo -> ", once the ${from.club.name} let him go"
+            is Staffing.Source.Promotion -> ": the ${from.club.name} cannot stop a promotion to head coach, and hire his replacement"
+            else -> ""
+        }
+        "Joins when the offseason starts$why. "
+    }
     // The side of the ball a coordinator's scheme decides, and what it runs now.
     val side = when (job) {
         StaffJob.OFFENCE -> "offence" to team.offenseScheme
@@ -90,12 +101,10 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
         }
         if (holder != null) {
             item {
-                SituationBlock(if (agreed) "Hired" else "In the job", meta = "${holder.age}, ${contract(holder)}") {
+                SituationBlock(if (agreed != null) "Hired" else "In the job", meta = "${holder.age}, ${contract(holder)}") {
                     Text(holder.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
                     Text(
-                        (if (agreed) "Joins when the offseason starts, once the ${holderLeaving?.name ?: "club he works for"} " +
-                            "let him go. " else "") +
-                            "Comes from ${SchemeCatalog[holder.scheme].name}.",
+                        (agreedNote ?: "") + "Comes from ${SchemeCatalog[holder.scheme].name}.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -103,7 +112,7 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     tendencyLines(job, holder).forEach {
                         Text(it, style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs))
                     }
-                    if (open && agreed) {
+                    if (open && agreed != null) {
                         // Nothing to confirm: he never joined.
                         SecondaryButton("Change your mind", { scope.launch { store.fireCoach(job) } },
                             Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
@@ -120,14 +129,27 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 }
             }
         } else if (open) {
+            departing?.let { d ->
+                item {
+                    SituationBlock("Leaving", situation = Situation.RED_ZONE) {
+                        Text(
+                            "${d.name} leaves to be the ${club(d.team)?.name ?: "new"} head coach. No club can stop a " +
+                                "promotion to head coach. Whoever you hire for his job joins when the offseason starts.",
+                            style = NdTheme.type.body, color = c.chalk,
+                        )
+                    }
+                }
+            }
             item {
-                val letGo = leaving.values.count { it != null }
-                val outOfWork = pool.count { it.id.v > 0 } - letGo
+                val letGo = sources.values.count { it is Staffing.Source.LetGo }
+                val coordinators = sources.values.count { it is Staffing.Source.Promotion || it is Staffing.Source.Own }
+                val outOfWork = sources.values.count { it is Staffing.Source.OutOfWork }
                 Column {
                     Text("Candidates", style = NdTheme.type.headline, color = c.chalk)
                     Text(
-                        "$outOfWork out of work, $letGo let go this spring and ${pool.size - outOfWork - letGo} new, " +
-                            "best for the job first" +
+                        "$outOfWork out of work, $letGo let go this spring" +
+                            (if (job == StaffJob.HEAD) ", $coordinators coordinators" else "") +
+                            " and ${sources.values.count { it is Staffing.Source.Candidate }} new, best for the job first" +
                             (if (pool.size > POOL_SHOWN) " (the top $POOL_SHOWN)" else "") +
                             ". Tap one to look closer.",
                         style = NdTheme.type.caption, color = c.chalkDim,
@@ -158,8 +180,13 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     rows = pool.take(POOL_SHOWN).map { man ->
                         RowData(
                             listOfNotNull(
-                                // A man his club is letting go, with the club.
-                                leaving[man.id]?.let { "${man.name} (${it.abbrev})" } ?: man.name,
+                                // Where he comes from, when it is not open market.
+                                when (val from = sources[man.id]) {
+                                    is Staffing.Source.LetGo -> "${man.name} (${from.club.abbrev})"
+                                    is Staffing.Source.Promotion -> "${man.name} (${from.club.abbrev} ${short(from.job)})"
+                                    is Staffing.Source.Own -> "${man.name} (your ${short(from.job)})"
+                                    else -> man.name
+                                },
                                 if (schemes) SchemeCatalog[man.scheme].name else null,
                                 "${man.age}",
                                 if (develops) "${man.ratings.development}" else null,
@@ -172,7 +199,10 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 )
                 Text(
                     ratingNote(job) +
-                        (if (leaving.values.any { it != null }) " A club in brackets is letting him go this spring: he joins when the offseason starts." else "") +
+                        (if (sources.values.any { it is Staffing.Source.LetGo }) " A club alone in brackets is letting him go this spring." else "") +
+                        (if (job == StaffJob.HEAD) " A coordinator's club cannot stop a promotion to head coach. A man from another club joins when the offseason starts." else "") +
+                        (if (job.role == CoachRole.OFFENSIVE_COORDINATOR || job.role == CoachRole.DEFENSIVE_COORDINATOR || job.role == CoachRole.SPECIAL_TEAMS_COORDINATOR)
+                            " Other clubs' coordinators are not here: a club can refuse a move sideways." else "") +
                         (side?.let { (name, scheme) ->
                         " Highlighted: runs the $name you run now, ${SchemeCatalog[scheme].name}."
                     } ?: ""),
@@ -214,9 +244,13 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
             // A candidate is a long read at a large text size: it scrolls.
             Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    "${man.age}. " + when {
-                        leaving[man.id] != null -> "The ${leaving[man.id]!!.name} are letting him go: he joins when the offseason starts. "
-                        man.id.v > 0 -> "Out of work. "
+                    "${man.age}. " + when (val from = sources[man.id]) {
+                        is Staffing.Source.LetGo -> "The ${from.club.name} are letting him go: he joins when the offseason starts. "
+                        is Staffing.Source.Promotion -> "The ${from.club.name}' ${from.job.label.lowercase()}. They cannot stop a promotion " +
+                            "to head coach: he joins when the offseason starts, and they hire his replacement. " +
+                            (market.teams.firstOrNull { it.staff.headCoach == man.id }?.let { "The ${it.name} mean to make him their head coach: hire him first and he is yours. " } ?: "")
+                        is Staffing.Source.Own -> "Your ${from.job.label.lowercase()}. Promote him now, and his job is open for you to fill. "
+                        is Staffing.Source.OutOfWork -> "Out of work. "
                         else -> "A candidate this spring. "
                     } +
                         "Comes from ${SchemeCatalog[man.scheme].name}.",
@@ -365,6 +399,15 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
             SecondaryButton("Not him", { looking = null }, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.xs))
         }
     }
+}
+
+/** A coordinator's job in two letters, for a tag beside his name. */
+private fun short(job: StaffJob) = when (job.role) {
+    CoachRole.OFFENSIVE_COORDINATOR -> "OC"
+    CoachRole.DEFENSIVE_COORDINATOR -> "DC"
+    CoachRole.SPECIAL_TEAMS_COORDINATOR -> "STC"
+    CoachRole.HEAD_COACH -> "HC"
+    CoachRole.POSITION_COACH -> "${job.group!!.name} coach"
 }
 
 /** What a job does, in a line, so the user knows what he is choosing. */

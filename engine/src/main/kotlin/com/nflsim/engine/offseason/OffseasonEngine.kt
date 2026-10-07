@@ -127,6 +127,8 @@ data class OffseasonReport(
     val transitionKept: Int = 0,
     /** SPEC 7 phase 2: head coaches replaced. */
     val coachingChanges: List<CoachingChange> = emptyList(),
+    /** SPEC 7 phase 2: coordinators other clubs promoted to head coach. */
+    val promotions: List<Promotion> = emptyList(),
     /** SPEC 7 phase 2: general managers replaced. */
     val gmChanges: List<GmChange> = emptyList(),
     /** Every free agent signed, not just the twenty the news screen lists. */
@@ -239,7 +241,7 @@ object OffseasonEngine {
             season.league, { id -> standings.record(id).winPct.toFloat() },
             season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
             previousWinPct, rng.split("carousel|$newYear"), season.userTeamId,
-            reserved = season.pendingHires.map { com.nflsim.engine.model.CoachId(it.coach) }.toSet(),
+            reserved = season.pendingHires.filter { it.coach > 0 }.map { com.nflsim.engine.model.CoachId(it.coach) }.toSet(),
         )
     }
 
@@ -635,6 +637,7 @@ object OffseasonEngine {
             transitionKept = state.transitionKept,
             coachingChanges = carousel.changes,
             gmChanges = carousel.gmChanges,
+            promotions = carousel.promotions,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),

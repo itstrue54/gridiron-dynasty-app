@@ -190,9 +190,16 @@ fun DynastyApp(
                         // its first step has it - those men joined, and the front
                         // office's hires in the jobs left open (offseason.Staffing).
                         val open = store.staffingOpen
-                        val shown = remember(dynasty, open) {
+                        val spring = remember(dynasty, open) { if (open) com.nflsim.engine.offseason.Staffing.spring(dynasty) else null }
+                        // A coordinator another club promotes away, by the job he leaves.
+                        val leaving = spring?.let { sp ->
+                            com.nflsim.engine.offseason.Staffing.departures(dynasty, sp).mapValues { (_, p) ->
+                                "${p.name} leaves to be the ${dynasty.league.teams.firstOrNull { it.id.v == p.team }?.name ?: "new"} head coach."
+                            }
+                        } ?: emptyMap()
+                        val shown = remember(dynasty, open, spring) {
                             when {
-                                open -> com.nflsim.engine.offseason.Staffing.withPending(dynasty)
+                                spring != null -> com.nflsim.engine.offseason.Staffing.withPending(dynasty, spring.league)
                                 dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON -> dynasty.copy(
                                     league = com.nflsim.engine.offseason.Staffing.settle(
                                         com.nflsim.engine.offseason.Staffing.market(dynasty), dynasty))
@@ -200,7 +207,7 @@ fun DynastyApp(
                             }
                         }
                         val joining = if (open) dynasty.pendingHires.map { com.nflsim.engine.model.CoachId(it.coach) }.toSet() else emptySet()
-                        StaffScreen(shown, open, joining, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
+                        StaffScreen(shown, open, joining, leaving, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
                     }
                     Tab.STAFF_JOB -> StaffJobScreen(dynasty, staffJob, store, scope) { tab = Tab.STAFF }
                     Tab.MARKET -> FreeAgentsScreen(dynasty, store, scope) { tab = Tab.HUB }

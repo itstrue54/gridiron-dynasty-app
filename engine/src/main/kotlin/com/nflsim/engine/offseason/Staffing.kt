@@ -19,12 +19,19 @@ import com.nflsim.engine.season.DynastyPhase
 import kotlin.math.roundToInt
 
 /**
- * A coach the user hired from among the men another club is letting go this
- * spring (Staffing.market): he joins when the offseason starts, as soon as
- * that club has let him go. Until then no other club looks at him.
+ * A coach the user agreed to hire in the spring window who joins when the
+ * offseason starts (Staffing.hire): a man his club is letting go, a
+ * coordinator promoted from another club, or anyone hired into a job a
+ * promotion will open. Until then no other club looks at him. [candidate]
+ * carries a fresh candidate, who has no id until he is hired.
  */
 @kotlinx.serialization.Serializable
-data class PendingHire(val role: CoachRole, val group: PositionGroup? = null, val coach: Int) {
+data class PendingHire(
+    val role: CoachRole,
+    val group: PositionGroup? = null,
+    val coach: Int,
+    val candidate: Coach? = null,
+) {
     val job: StaffJob get() = StaffJob(role, group)
 }
 
@@ -82,6 +89,9 @@ object Staffing {
         CoachRole.SPECIAL_TEAMS_COORDINATOR -> staff.stCoordinator
         CoachRole.POSITION_COACH -> staff.positionCoaches[job.group] ?: VACANT
     }
+
+    /** A staff with [id] in [job]: [VACANT] to open it. */
+    internal fun staffWith(staff: Staff, job: StaffJob, id: CoachId): Staff = staff.with(job, id)
 
     private fun Staff.with(job: StaffJob, id: CoachId): Staff = when (job.role) {
         CoachRole.HEAD_COACH -> copy(headCoach = id)
@@ -166,45 +176,86 @@ object Staffing {
         }
     }
 
-    /**
-     * The league as this spring's coaching carousel will leave it
-     * (OffseasonEngine.springCarousel): who the other clubs let go, and who
-     * they hire. The user's window hires from it.
-     */
-    fun market(dynasty: Dynasty): League = OffseasonEngine.springCarousel(dynasty).league
+    /** This spring's coaching carousel, exactly as the offseason will run it (OffseasonEngine.springCarousel). */
+    fun spring(dynasty: Dynasty): CoachingCarousel.Result = OffseasonEngine.springCarousel(dynasty)
 
-    /** The man the user agreed to hire for [job] when his club lets him go, if any. */
+    /**
+     * The league as this spring's carousel will leave it: who the other
+     * clubs let go, promote and hire. The user's window hires from it.
+     */
+    fun market(dynasty: Dynasty): League = spring(dynasty).league
+
+    /** The man the user agreed to hire for [job], if any. */
     fun pending(dynasty: Dynasty, job: StaffJob): Coach? =
-        dynasty.pendingHires.firstOrNull { it.job == job }?.let { dynasty.league.coaches[CoachId(it.coach)] }
+        dynasty.pendingHires.firstOrNull { it.job == job }?.let { it.candidate ?: dynasty.league.coaches[CoachId(it.coach)] }
+
+    /** Where a man in the user's pool comes from, which decides when he can join. */
+    sealed interface Source {
+        /** A fresh candidate this spring. */
+        data object Candidate : Source
+        data object OutOfWork : Source
+        /** Still working for [club], which lets him go this spring. */
+        data class LetGo(val club: com.nflsim.engine.model.Team) : Source
+        /** [club]'s coordinator, whom it cannot stop taking a head coaching job (the NFL's anti-tampering policy). */
+        data class Promotion(val club: com.nflsim.engine.model.Team, val job: StaffJob) : Source
+        /** The user's own coordinator, promoted from within. */
+        data class Own(val job: StaffJob) : Source
+    }
+
+    fun source(dynasty: Dynasty, coach: Coach, market: League = market(dynasty)): Source {
+        if (coach.id.v <= 0) return Source.Candidate
+        val (club, job) = dynasty.league.teams.firstNotNullOfOrNull { club -> jobOf(club.staff, coach.id)?.let { club to it } }
+            ?: return Source.OutOfWork
+        return when {
+            club.id == dynasty.userTeamId -> Source.Own(job)
+            coach.id !in employed(market) -> Source.LetGo(club)
+            else -> Source.Promotion(club, job)
+        }
+    }
+
+    private fun jobOf(staff: Staff, id: CoachId): StaffJob? = StaffJob.ALL.firstOrNull { holder(staff, it) == id }
 
     /**
-     * The club a coach still works for and is letting him go this spring,
-     * for a man in the user's pool who is not out of work yet.
+     * Whether [job] on the user's staff can be filled: it is open now, or
+     * will be once another club has promoted its man away - and nobody is
+     * agreed for it yet.
      */
-    fun leaving(dynasty: Dynasty, coach: Coach): com.nflsim.engine.model.Team? =
-        if (coach.id.v <= 0) null else dynasty.league.teams.firstOrNull { club ->
-            club.id != dynasty.userTeamId && coach.id in employed(dynasty.league.copy(teams = listOf(club)))
-        }
+    fun isVacant(dynasty: Dynasty, job: StaffJob, market: League = market(dynasty)): Boolean =
+        pending(dynasty, job) == null && (
+            dynasty.league.coaches[holder(dynasty.team.staff, job)] == null ||
+                market.coaches[holder(market.team(dynasty.userTeamId).staff, job)] == null)
+
+    /** The user's coordinators other clubs promote to head coach this spring, by the job each leaves. */
+    fun departures(dynasty: Dynasty, spring: CoachingCarousel.Result = spring(dynasty)): Map<StaffJob, Promotion> =
+        spring.promotions.filter { it.from == dynasty.userTeam }.associateBy { StaffJob(it.role) }
 
     /**
      * Who the user's club can hire for [job] this spring, best first: the
      * coaches out of work as the [market] will stand - the men the league
-     * lets go this spring among them - and the year's fresh candidates, less
-     * anyone the club has already agreed to hire.
+     * lets go this spring among them - and the year's fresh candidates. For
+     * head coach, every club's coordinators too, his own among them: a
+     * promotion no club can block. Less anyone the club has already agreed
+     * to hire.
      */
     fun pool(dynasty: Dynasty, job: StaffJob, market: League = market(dynasty)): List<Coach> {
         val promised = dynasty.pendingHires.mapTo(mutableSetOf()) { CoachId(it.coach) }
-        return pool(market, dynasty.year, dynasty.userTeamId, job).filter { it.id !in promised }
+        val open = pool(market, dynasty.year, dynasty.userTeamId, job)
+        val coordinators = if (job != StaffJob.HEAD) emptyList() else dynasty.league.teams
+            .flatMap { listOf(it.staff.offCoordinator, it.staff.defCoordinator) }
+            .mapNotNull { dynasty.league.coaches[it] }
+            .filter { c -> open.none { it.id == c.id } }
+        return (open + coordinators).filter { it.id !in promised }.sortedByDescending { worth(it, job) }
     }
 
     /**
-     * The user's staff as it will stand once the men he agreed to hire have
-     * joined: what the Staff screen shows in the window.
+     * The user's staff as it will stand once the carousel has run and the men
+     * he agreed to hire have joined: what the Staff screen shows in the
+     * window. A coordinator another club promotes away has left it.
      */
     fun withPending(dynasty: Dynasty, market: League = market(dynasty)): Dynasty {
-        var league = dynasty.league
+        var league = market
         for (p in dynasty.pendingHires) {
-            val coach = market.coaches[CoachId(p.coach)] ?: continue
+            val coach = p.candidate ?: market.coaches[CoachId(p.coach)] ?: continue
             league = place(league, dynasty.userTeamId, p.job, coach)
         }
         return dynasty.copy(league = league)
@@ -212,18 +263,50 @@ object Staffing {
 
     /**
      * The user's club once the offseason's carousel has run ([league] is its
-     * result): the men he agreed to hire join, then the front office fills
-     * whatever is still open ([fillVacancies]).
+     * result): the men he agreed to hire join - a coordinator promoted from
+     * another club leaves it, and it hires his replacement - then the front
+     * office fills whatever is still open ([fillVacancies]).
      */
     fun settle(league: League, dynasty: Dynasty): League {
         var out = league
-        val working = employed(league)
+        val user = dynasty.userTeamId
+        val rng = SplitMixRng(dynasty.seed + dynasty.year).split("settle")
         for (p in dynasty.pendingHires) {
-            val coach = out.coaches[CoachId(p.coach)] ?: continue
-            if (coach.id in working || out.coaches[holder(out.team(dynasty.userTeamId).staff, p.job)] != null) continue
-            out = place(out, dynasty.userTeamId, p.job, coach)
+            if (out.coaches[holder(out.team(user).staff, p.job)] != null) continue
+            val coach = p.candidate ?: out.coaches[CoachId(p.coach)] ?: continue
+            if (p.candidate == null) {
+                val club = out.teams.firstOrNull { jobOf(it.staff, coach.id) != null }
+                if (club != null) {
+                    val left = jobOf(club.staff, coach.id)!!
+                    // Only a promotion takes a man from his club: a coordinator to head coach.
+                    if (club.id == user || p.job != StaffJob.HEAD || left !in setOf(StaffJob.OFFENCE, StaffJob.DEFENCE)) continue
+                    out = replaceAway(out, club.id, left, rng.split("replace|${coach.id.v}"))
+                }
+            }
+            out = place(out, user, p.job, coach)
         }
-        return fillVacancies(out, dynasty.userTeamId, dynasty.year)
+        return fillVacancies(out, user, dynasty.year)
+    }
+
+    /** A club whose coordinator the user promoted away hires his replacement (CoachingCarousel.replacement). */
+    private fun replaceAway(league: League, clubId: TeamId, job: StaffJob, rng: com.nflsim.engine.rng.Rng): League {
+        val t = league.tuning.staff
+        val club = league.team(clubId)
+        var next = (league.coaches.keys.maxOfOrNull { it.v } ?: 0) + 1
+        val fill = CoachingCarousel.replacement(league, club, job, t, rng) { role, scheme ->
+            CoachingCarousel.newCoach(CoachId(next++), role, scheme, t, rng)
+        }
+        val after = CoachingCarousel.withCoordinator(club, job, fill)
+        val offChanged = after.offenseScheme != club.offenseScheme
+        val defChanged = after.defenseScheme != club.defenseScheme
+        return league.copy(
+            teams = league.teams.map { if (it.id == clubId) after else it },
+            coaches = league.coaches + (fill.id to fill),
+            players = if (!offChanged && !defChanged) league.players else league.players.map { p ->
+                if (p.teamId == clubId && (if (p.position.isOffense) offChanged else defChanged))
+                    p.copy(yearsInSystem = 0, yearsWithClub = p.clubYears) else p
+            },
+        )
     }
 
     /**
@@ -245,34 +328,51 @@ object Staffing {
     }
 
     /**
-     * The user hires [candidate], from this spring's [pool], into an open
-     * job. A man still working for a club that is letting him go joins when
-     * the offseason starts; anyone else, now.
+     * The user hires [candidate], from this spring's [pool], into a job that
+     * is open or will be ([isVacant]). He joins now if he is free and the job
+     * is open now; a man his club is letting go, a coordinator promoted from
+     * another club, or anyone hired into a job another club's promotion will
+     * open joins when the offseason starts. The user's own coordinator,
+     * promoted to head coach, moves up now and leaves his old job open.
      */
     fun hire(dynasty: Dynasty, job: StaffJob, candidate: Coach, market: League = market(dynasty)): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
-        require(dynasty.league.coaches[holder(dynasty.team.staff, job)] == null && pending(dynasty, job) == null) {
-            "the ${job.label} job is not open"
-        }
+        require(isVacant(dynasty, job, market)) { "the ${job.label} job is not open" }
         require(pool(dynasty, job, market).any { it.id == candidate.id && it.name == candidate.name }) {
             "${candidate.name} is not available for the ${job.label} job"
         }
-        if (candidate.id.v > 0 && candidate.id in employed(dynasty.league)) {
-            return dynasty.copy(pendingHires = dynasty.pendingHires + PendingHire(job.role, job.group, candidate.id.v))
+        val openNow = dynasty.league.coaches[holder(dynasty.team.staff, job)] == null
+        fun agreed() = dynasty.copy(pendingHires = dynasty.pendingHires +
+            PendingHire(job.role, job.group, candidate.id.v, candidate.takeIf { it.id.v <= 0 }))
+        return when (val from = source(dynasty, candidate, market)) {
+            is Source.Own -> {
+                require(openNow) { "the ${job.label} job is not open" }
+                val league = dynasty.league
+                val freed = league.copy(teams = league.teams.map {
+                    if (it.id == dynasty.userTeamId) it.copy(staff = it.staff.with(from.job, VACANT)) else it
+                })
+                dynasty.copy(league = place(freed, dynasty.userTeamId, job, league.coach(candidate.id)))
+            }
+            is Source.LetGo, is Source.Promotion -> agreed()
+            // A man out of work now joins as he is, not as the spring will have aged him.
+            else -> if (openNow) dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job,
+                dynasty.league.coaches[candidate.id] ?: candidate)) else agreed()
         }
-        // A man out of work now joins as he is, not as the spring will have aged him.
-        return dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job, dynasty.league.coaches[candidate.id] ?: candidate))
     }
 
     /**
-     * Puts [coach] in [job] on a new contract. A coordinator brings his
+     * Puts [coach] in [job] on a new contract. A man moving to a new role
+     * takes that role's levers, drawn from the league's seed and his id so
+     * the window's view and the offseason agree. A coordinator brings his
      * scheme, and the players on his side start learning it if it is new to
      * them.
      */
     private fun place(league: League, team: TeamId, job: StaffJob, coach: Coach): League {
         val t = league.tuning.staff
         val id = if (coach.id.v > 0) coach.id else CoachId((league.coaches.keys.maxOfOrNull { it.v } ?: 0) + 1)
-        val hired = coach.copy(id = id, role = job.role, hotSeat = 0, contractYearsLeft = t.newContractYears)
+        val tendencies = if (coach.role == job.role) coach.tendencies
+            else Tendencies.draw(job.role, coach.scheme, SplitMixRng(league.seed).split("role|${id.v}|${job.role}"))
+        val hired = coach.copy(id = id, role = job.role, hotSeat = 0, contractYearsLeft = t.newContractYears, tendencies = tendencies)
         val club = league.team(team)
         val offence = if (job == StaffJob.OFFENCE) hired.scheme else club.offenseScheme
         val defence = if (job == StaffJob.DEFENCE) hired.scheme else club.defenseScheme

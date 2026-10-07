@@ -728,6 +728,27 @@ Then add the realistic catch on top. This is a structural change to how plays re
 
 **Result:** both sides' game plans rise together and cancel, within about 2 points (an eighth of a rating point on a snap). Head coaches, and the development they bring, hold where they were. The per-game bands are measured on new leagues before any carousel, so they don't move. Clubs that hire well now get coordinators worth hiring, and the user's club has to as well.
 
+## Pass 17 — October 2026 (coordinators promoted to head coach)
+
+**What changed:** a club hiring a head coach now looks at other clubs' offensive and defensive coordinators too, since under the NFL's anti-tampering policy no club can block a promotion. The club that loses one hires the best of three replacements. `poachLook` sets how many coordinators a club looks at.
+
+**Target:** in recent NFL hiring cycles, roughly 60-70% of new head coaches were coordinators (about 5 of 8 in 2024, 5 of 7 in 2025).
+
+**Measured:** six leagues, ten seasons each:
+
+| | main | poachLook 3 | 6 | **9 (shipped)** |
+|---|---|---|---|---|
+| Promoted coordinators, share of new head coaches | 0% | 35% | 53% | **59%** |
+| Promotions per offseason | 0 | 1.97 | 2.85 | 3.17 |
+| Coaching changes per offseason | 5.58 | 5.57 | 5.42 | 5.38 |
+| Year-to-year correlation of wins | 0.34 | 0.35 | 0.33 | 0.30 |
+| AI coordinators' game plans (offence / defence) | 75.5 / 73.3 | 74.0 / 75.0 | 75.7 / 75.0 | 73.9 / 74.1 |
+| Head coaches' development | 66.8 | 67.8 | 70.2 | 71.1 |
+
+**Talent, main against shipped** (six leagues, after ten seasons; this probe's own count, so compare it with itself): 15.8 against 16.5 players at 90+ a league, and 77.47 against 77.56 for the mean of each club's top 22.
+
+**Result:** the head coaching market looks like the NFL's, the two sides of the ball stay level, and the league's talent doesn't move. Head coaches develop players better, because a coordinator is hired on ratings he already has rather than drawn below the mean; each player's coaching blends that with his position coach's, which holds where it was. The user's club lost a coordinator to a promotion 8 times in 60 offseasons. The per-game bands are measured before any carousel and don't move.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
