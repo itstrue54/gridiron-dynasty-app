@@ -42,6 +42,8 @@ fun StaffScreen(
     dynasty: Dynasty,
     /** The spring window is open (DynastyStore.staffingOpen): each job can be changed. */
     open: Boolean = false,
+    /** Men the user agreed to hire who join when the offseason starts (Staffing.PendingHire). */
+    joining: Set<com.nflsim.engine.model.CoachId> = emptySet(),
     /** Opens one job to change it; null is the general manager's chair. */
     onJob: (StaffJob?) -> Unit = {},
     onBack: () -> Unit = {},
@@ -128,7 +130,8 @@ fun StaffScreen(
                         if (head.hotSeat >= bar - WARNING) StatusTag("Hot seat", TagTone.URGENT)
                     }
                     Text(
-                        "Runs ${SchemeCatalog[head.scheme].name}. " + jobSecurity(head.hotSeat, bar),
+                        (if (head.id in joining) "Joins when the offseason starts. " else "") +
+                            "Runs ${SchemeCatalog[head.scheme].name}. " + jobSecurity(head.hotSeat, bar),
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -151,21 +154,21 @@ fun StaffScreen(
 
         item {
             SituationBlock("Offensive coordinator", meta = SchemeCatalog[team.offenseScheme].name) {
-                Coordinator(offence, offenceLines(offence?.tendencies))
+                Coordinator(offence, offenceLines(offence?.tendencies), offence?.id in joining)
                 if (open) ChangeButton(if (offence == null) "Hire an offensive coordinator" else "Change the offensive coordinator") { onJob(StaffJob.OFFENCE) }
             }
         }
 
         item {
             SituationBlock("Defensive coordinator", meta = SchemeCatalog[team.defenseScheme].name) {
-                Coordinator(defence, defenceLines(defence?.tendencies))
+                Coordinator(defence, defenceLines(defence?.tendencies), defence?.id in joining)
                 if (open) ChangeButton(if (defence == null) "Hire a defensive coordinator" else "Change the defensive coordinator") { onJob(StaffJob.DEFENCE) }
             }
         }
 
         item {
             SituationBlock("Special teams", meta = special?.let { "${it.age}" } ?: "vacant") {
-                Coordinator(special, emptyList())
+                Coordinator(special, emptyList(), special?.id in joining)
                 if (open) ChangeButton(if (special == null) "Hire a special teams coordinator" else "Change the special teams coordinator") { onJob(StaffJob.SPECIAL) }
             }
         }
@@ -182,7 +185,8 @@ fun StaffScreen(
                     ),
                     rows = position.map { (group, man) ->
                         RowData(
-                            listOf(group.name, man?.name ?: "Vacant", man?.ratings?.development?.toString() ?: "-"),
+                            listOf(group.name, man?.let { if (it.id in joining) "${it.name} (joining)" else it.name } ?: "Vacant",
+                                man?.ratings?.development?.toString() ?: "-"),
                             highlight = open && man == null,
                             onClick = if (open) ({ onJob(StaffJob(CoachRole.POSITION_COACH, group)) }) else null,
                         )
@@ -218,7 +222,7 @@ fun StaffScreen(
 
 /** A coordinator: who he is, and what he calls when the club leaves him to it. */
 @Composable
-internal fun Coordinator(coach: Coach?, lines: List<String>) {
+internal fun Coordinator(coach: Coach?, lines: List<String>, joining: Boolean = false) {
     val c = NdTheme.colors
     if (coach == null) {
         Text("Vacant.", style = NdTheme.type.body, color = c.chalkDim)
@@ -230,7 +234,8 @@ internal fun Coordinator(coach: Coach?, lines: List<String>) {
         color = c.chalk,
     )
     Text(
-        "${coach.age}, ${contract(coach)}. Comes from ${SchemeCatalog[coach.scheme].name}.",
+        (if (joining) "Joins when the offseason starts. " else "") +
+            "${coach.age}, ${contract(coach)}. Comes from ${SchemeCatalog[coach.scheme].name}.",
         style = NdTheme.type.caption, color = c.chalkDim,
         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
     )

@@ -78,6 +78,8 @@ object CoachingCarousel {
         rng: Rng,
         /** The user's club: its seat still warms, as advice, but its staffing is the user's (offseason.Staffing). */
         userTeam: TeamId? = null,
+        /** Coaches the user's club has agreed to hire when they come free (Staffing.PendingHire): no other club looks at them. */
+        reserved: Set<CoachId> = emptySet(),
     ): Result {
         val t = league.tuning.staff
         val coaches = league.coaches.toMutableMap()
@@ -149,7 +151,7 @@ object CoachingCarousel {
 
             val outside = (1..t.candidates).map { candidate(CoachRole.HEAD_COACH, draw(offFit, team.offenseScheme)) }
             val outOfWork = coaches.values
-                .filter { it.id !in employed && it.role == CoachRole.HEAD_COACH }
+                .filter { it.id !in employed && it.id !in reserved && it.role == CoachRole.HEAD_COACH }
                 .shuffled(hireRng).take(t.rehireLook)
             // A head coach from the defense - a roster file can bring one - is
             // read against the defense his scheme would run.

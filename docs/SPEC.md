@@ -326,7 +326,8 @@ user's call.
 
 Each job is filled from a pool: the coaches out of work in that role (the
 league's fired head coaches, the coordinators who left with them, anyone
-the user lets go) and six fresh candidates a spring, drawn from the
+the user lets go) - including the ones the league lets go this spring -
+and six fresh candidates a spring, drawn from the
 league's seed, the year and the job, so the same spring always offers the
 same men. Fresh candidates are drawn as the carousel draws its outside
 ones, below the league's coaching mean, because the user chooses the best
@@ -336,10 +337,22 @@ position coach's development (see the table above). A head coach or coordinator 
 run any scheme on his side of the ball (a head coach, either side); a
 special teams or position coach works in the club's.
 
+**This spring's market (save version 46).** The window sees the carousel
+before it runs: `OffseasonEngine.springCarousel` is exactly the carousel
+the offseason will run from the saved dynasty, deterministic, so the pool
+reads who is out of work from its result (`Staffing.market`). A man still
+working for a club that is letting him go is marked with the club; hiring
+him is a `PendingHire` on the dynasty, and he joins when the offseason
+starts, straight after the carousel. Until then the carousel keeps him off
+every other club's shortlist, so nobody takes him first, and the user can
+change his mind. Who the league lets go never depends on the user; whom it
+hires can, since a coach the user lets go is one more man out of work.
+
 Firing a coordinator leaves the club's scheme alone; hiring one brings his,
 and if it is new the players on his side start learning it again, as after
-the carousel. A job still open when the offseason starts, the front
-office fills from the same pool with the best man, and for a coordinator
+the carousel. A job still open once the carousel has run and the user's
+agreed hires have joined, the front office fills from the same pool with
+the best man, and for a coordinator
 the best who runs the club's current scheme if any does, so no scheme
 changes that the user did not choose. A new hire's contract is
 `newContractYears`.

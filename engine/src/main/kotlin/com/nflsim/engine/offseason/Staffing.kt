@@ -18,6 +18,16 @@ import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import kotlin.math.roundToInt
 
+/**
+ * A coach the user hired from among the men another club is letting go this
+ * spring (Staffing.market): he joins when the offseason starts, as soon as
+ * that club has let him go. Until then no other club looks at him.
+ */
+@kotlinx.serialization.Serializable
+data class PendingHire(val role: CoachRole, val group: PositionGroup? = null, val coach: Int) {
+    val job: StaffJob get() = StaffJob(role, group)
+}
+
 /** One job on a club's staff: a role, and for a position coach the group he coaches. */
 data class StaffJob(val role: CoachRole, val group: PositionGroup? = null) {
     init {
@@ -156,9 +166,74 @@ object Staffing {
         }
     }
 
-    /** The user lets a coach go. His job is open, and he joins the pool. */
+    /**
+     * The league as this spring's coaching carousel will leave it
+     * (OffseasonEngine.springCarousel): who the other clubs let go, and who
+     * they hire. The user's window hires from it.
+     */
+    fun market(dynasty: Dynasty): League = OffseasonEngine.springCarousel(dynasty).league
+
+    /** The man the user agreed to hire for [job] when his club lets him go, if any. */
+    fun pending(dynasty: Dynasty, job: StaffJob): Coach? =
+        dynasty.pendingHires.firstOrNull { it.job == job }?.let { dynasty.league.coaches[CoachId(it.coach)] }
+
+    /**
+     * The club a coach still works for and is letting him go this spring,
+     * for a man in the user's pool who is not out of work yet.
+     */
+    fun leaving(dynasty: Dynasty, coach: Coach): com.nflsim.engine.model.Team? =
+        if (coach.id.v <= 0) null else dynasty.league.teams.firstOrNull { club ->
+            club.id != dynasty.userTeamId && coach.id in employed(dynasty.league.copy(teams = listOf(club)))
+        }
+
+    /**
+     * Who the user's club can hire for [job] this spring, best first: the
+     * coaches out of work as the [market] will stand - the men the league
+     * lets go this spring among them - and the year's fresh candidates, less
+     * anyone the club has already agreed to hire.
+     */
+    fun pool(dynasty: Dynasty, job: StaffJob, market: League = market(dynasty)): List<Coach> {
+        val promised = dynasty.pendingHires.mapTo(mutableSetOf()) { CoachId(it.coach) }
+        return pool(market, dynasty.year, dynasty.userTeamId, job).filter { it.id !in promised }
+    }
+
+    /**
+     * The user's staff as it will stand once the men he agreed to hire have
+     * joined: what the Staff screen shows in the window.
+     */
+    fun withPending(dynasty: Dynasty, market: League = market(dynasty)): Dynasty {
+        var league = dynasty.league
+        for (p in dynasty.pendingHires) {
+            val coach = market.coaches[CoachId(p.coach)] ?: continue
+            league = place(league, dynasty.userTeamId, p.job, coach)
+        }
+        return dynasty.copy(league = league)
+    }
+
+    /**
+     * The user's club once the offseason's carousel has run ([league] is its
+     * result): the men he agreed to hire join, then the front office fills
+     * whatever is still open ([fillVacancies]).
+     */
+    fun settle(league: League, dynasty: Dynasty): League {
+        var out = league
+        val working = employed(league)
+        for (p in dynasty.pendingHires) {
+            val coach = out.coaches[CoachId(p.coach)] ?: continue
+            if (coach.id in working || out.coaches[holder(out.team(dynasty.userTeamId).staff, p.job)] != null) continue
+            out = place(out, dynasty.userTeamId, p.job, coach)
+        }
+        return fillVacancies(out, dynasty.userTeamId, dynasty.year)
+    }
+
+    /**
+     * The user lets a coach go: his job is open, and he joins the pool. A man
+     * the user had agreed to hire is let go of the same way, before he ever
+     * joins.
+     */
     fun fire(dynasty: Dynasty, job: StaffJob): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
+        if (pending(dynasty, job) != null) return dynasty.copy(pendingHires = dynasty.pendingHires.filterNot { it.job == job })
         val league = dynasty.league
         val team = dynasty.team
         val id = holder(team.staff, job)
@@ -169,14 +244,24 @@ object Staffing {
         ))
     }
 
-    /** The user hires [candidate], from this spring's [pool], into an open job. */
-    fun hire(dynasty: Dynasty, job: StaffJob, candidate: Coach): Dynasty {
+    /**
+     * The user hires [candidate], from this spring's [pool], into an open
+     * job. A man still working for a club that is letting him go joins when
+     * the offseason starts; anyone else, now.
+     */
+    fun hire(dynasty: Dynasty, job: StaffJob, candidate: Coach, market: League = market(dynasty)): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
-        require(dynasty.league.coaches[holder(dynasty.team.staff, job)] == null) { "the ${job.label} job is not open" }
-        require(pool(dynasty.league, dynasty.year, dynasty.userTeamId, job).any { it.id == candidate.id && it.name == candidate.name }) {
+        require(dynasty.league.coaches[holder(dynasty.team.staff, job)] == null && pending(dynasty, job) == null) {
+            "the ${job.label} job is not open"
+        }
+        require(pool(dynasty, job, market).any { it.id == candidate.id && it.name == candidate.name }) {
             "${candidate.name} is not available for the ${job.label} job"
         }
-        return dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job, candidate))
+        if (candidate.id.v > 0 && candidate.id in employed(dynasty.league)) {
+            return dynasty.copy(pendingHires = dynasty.pendingHires + PendingHire(job.role, job.group, candidate.id.v))
+        }
+        // A man out of work now joins as he is, not as the spring will have aged him.
+        return dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job, dynasty.league.coaches[candidate.id] ?: candidate))
     }
 
     /**

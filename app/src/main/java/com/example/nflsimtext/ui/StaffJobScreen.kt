@@ -59,10 +59,19 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
     val c = NdTheme.colors
     val open = store.staffingOpen
     val team = dynasty.team
-    val holder = dynasty.league.coaches[Staffing.holder(team.staff, job)]
-    val pool = remember(dynasty, job) {
-        if (holder == null) Staffing.pool(dynasty.league, dynasty.year, team.id, job) else emptyList()
+    // The league as this spring's carousel will leave it: who the other
+    // clubs let go (Staffing.market). The staff is shown with the men the
+    // user agreed to hire already in their jobs.
+    val market = remember(dynasty) { Staffing.market(dynasty) }
+    val shown = remember(dynasty, market) { Staffing.withPending(dynasty, market) }
+    val holder = shown.league.coaches[Staffing.holder(shown.team.staff, job)]
+    val agreed = Staffing.pending(dynasty, job) != null
+    val pool = remember(dynasty, job, market) {
+        if (holder == null) Staffing.pool(dynasty, job, market) else emptyList()
     }
+    // The club each man is leaving this spring, for those still working for one.
+    val leaving = remember(pool) { pool.associate { it.id to Staffing.leaving(dynasty, it) } }
+    val holderLeaving = holder?.let { if (agreed) Staffing.leaving(dynasty, it) else null }
     // The side of the ball a coordinator's scheme decides, and what it runs now.
     val side = when (job) {
         StaffJob.OFFENCE -> "offence" to team.offenseScheme
@@ -81,10 +90,12 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
         }
         if (holder != null) {
             item {
-                SituationBlock("In the job", meta = "${holder.age}, ${contract(holder)}") {
+                SituationBlock(if (agreed) "Hired" else "In the job", meta = "${holder.age}, ${contract(holder)}") {
                     Text(holder.name, style = NdTheme.type.title.copy(fontWeight = FontWeight.W600), color = c.chalk)
                     Text(
-                        "Comes from ${SchemeCatalog[holder.scheme].name}.",
+                        (if (agreed) "Joins when the offseason starts, once the ${holderLeaving?.name ?: "club he works for"} " +
+                            "let him go. " else "") +
+                            "Comes from ${SchemeCatalog[holder.scheme].name}.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                     )
@@ -92,7 +103,11 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     tendencyLines(job, holder).forEach {
                         Text(it, style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs))
                     }
-                    if (open) {
+                    if (open && agreed) {
+                        // Nothing to confirm: he never joined.
+                        SecondaryButton("Change your mind", { scope.launch { store.fireCoach(job) } },
+                            Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
+                    } else if (open) {
                         SecondaryButton("Let him go", { firing = true },
                             Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
                     } else {
@@ -106,11 +121,13 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
             }
         } else if (open) {
             item {
-                val outOfWork = pool.count { it.id.v > 0 }
+                val letGo = leaving.values.count { it != null }
+                val outOfWork = pool.count { it.id.v > 0 } - letGo
                 Column {
                     Text("Candidates", style = NdTheme.type.headline, color = c.chalk)
                     Text(
-                        "$outOfWork out of work and ${pool.size - outOfWork} new this spring, best for the job first" +
+                        "$outOfWork out of work, $letGo let go this spring and ${pool.size - outOfWork - letGo} new, " +
+                            "best for the job first" +
                             (if (pool.size > POOL_SHOWN) " (the top $POOL_SHOWN)" else "") +
                             ". Tap one to look closer.",
                         style = NdTheme.type.caption, color = c.chalkDim,
@@ -141,7 +158,8 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     rows = pool.take(POOL_SHOWN).map { man ->
                         RowData(
                             listOfNotNull(
-                                man.name,
+                                // A man his club is letting go, with the club.
+                                leaving[man.id]?.let { "${man.name} (${it.abbrev})" } ?: man.name,
                                 if (schemes) SchemeCatalog[man.scheme].name else null,
                                 "${man.age}",
                                 if (develops) "${man.ratings.development}" else null,
@@ -153,7 +171,9 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     },
                 )
                 Text(
-                    ratingNote(job) + (side?.let { (name, scheme) ->
+                    ratingNote(job) +
+                        (if (leaving.values.any { it != null }) " A club in brackets is letting him go this spring: he joins when the offseason starts." else "") +
+                        (side?.let { (name, scheme) ->
                         " Highlighted: runs the $name you run now, ${SchemeCatalog[scheme].name}."
                     } ?: ""),
                     style = NdTheme.type.caption, color = c.chalkDim,
@@ -194,7 +214,11 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
             // A candidate is a long read at a large text size: it scrolls.
             Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    "${man.age}. " + (if (man.id.v > 0) "Out of work. " else "A candidate this spring. ") +
+                    "${man.age}. " + when {
+                        leaving[man.id] != null -> "The ${leaving[man.id]!!.name} are letting him go: he joins when the offseason starts. "
+                        man.id.v > 0 -> "Out of work. "
+                        else -> "A candidate this spring. "
+                    } +
                         "Comes from ${SchemeCatalog[man.scheme].name}.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                     modifier = Modifier.padding(bottom = NdTheme.spacing.xs),

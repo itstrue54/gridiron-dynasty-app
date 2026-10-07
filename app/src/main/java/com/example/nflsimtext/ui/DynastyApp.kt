@@ -185,13 +185,22 @@ fun DynastyApp(
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
                     Tab.STAFF -> {
-                        // Once the offseason is under way, its first step has
-                        // filled the jobs left open (offseason.Staffing): show
-                        // the staff as that run has it, not the save's vacancies.
-                        val shown = if (dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON && !store.staffingOpen)
-                            dynasty.copy(league = com.nflsim.engine.offseason.Staffing.fillVacancies(dynasty.league, dynasty.userTeamId, dynasty.year))
-                        else dynasty
-                        StaffScreen(shown, store.staffingOpen, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
+                        // In the window, the staff with the men the user agreed to
+                        // hire in their jobs; once the offseason is under way, as
+                        // its first step has it - those men joined, and the front
+                        // office's hires in the jobs left open (offseason.Staffing).
+                        val open = store.staffingOpen
+                        val shown = remember(dynasty, open) {
+                            when {
+                                open -> com.nflsim.engine.offseason.Staffing.withPending(dynasty)
+                                dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON -> dynasty.copy(
+                                    league = com.nflsim.engine.offseason.Staffing.settle(
+                                        com.nflsim.engine.offseason.Staffing.market(dynasty), dynasty))
+                                else -> dynasty
+                            }
+                        }
+                        val joining = if (open) dynasty.pendingHires.map { com.nflsim.engine.model.CoachId(it.coach) }.toSet() else emptySet()
+                        StaffScreen(shown, open, joining, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
                     }
                     Tab.STAFF_JOB -> StaffJobScreen(dynasty, staffJob, store, scope) { tab = Tab.STAFF }
                     Tab.MARKET -> FreeAgentsScreen(dynasty, store, scope) { tab = Tab.HUB }
