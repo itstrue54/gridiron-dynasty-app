@@ -29,6 +29,7 @@ object WeekRunner {
                 aggression = GamePlan.defaultAggression(team.id.v),
                 staffPlan = Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
+                discipline = league.coaches[team.staff.headCoach]?.ratings?.discipline,
             )
         }
 

@@ -302,6 +302,15 @@ data class TuningTable(
         val passInterferenceMax: Float = 1.2f,
         val passInterferenceAirYards: Int = 12,
         val passInterferenceSpotSpread: Float = 2f,
+        /**
+         * The head coach's discipline on his side's flags (SPEC 5.8): his
+         * side's false starts and holds on offence, and offside and
+         * interference on defence, scale by 1 + this x (the mean - his
+         * discipline) / 100 - at 0.5, half a percent a point. Centred on
+         * the generated mean, so the league's rate is where it was calibrated.
+         */
+        val coachDisciplineScale: Float = 0.5f,
+        val coachDisciplineMean: Float = 65f,
     )
 
     /**

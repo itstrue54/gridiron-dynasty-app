@@ -25,6 +25,8 @@ class GameTeam(
     val staffPlan: com.nflsim.engine.model.GamePlan = com.nflsim.engine.model.GamePlan(),
     /** The head coach's in-game adjustments rating, 0..100: how far the staff adapts to what it sees (SPEC 5.4). */
     val adjustments: Int = 50,
+    /** The head coach's discipline, 0..100: how often his men are flagged (SPEC 5.8). Null is a league-average staff. */
+    val discipline: Int? = null,
 ) {
     val offDepth: DepthChart = DepthChart.auto(roster, offScheme, team.depthPins)
     val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
@@ -472,6 +474,8 @@ class GameSimulator(
             weather = weather,
             offPlan = offTeam.plan,
             defPlan = defTeam.plan,
+            offFlags = coachFlags(offTeam.discipline, tuning.penalties),
+            defFlags = coachFlags(defTeam.discipline, tuning.penalties),
             carries = stats::carries,
             narration = words,
         )
@@ -841,3 +845,12 @@ class GameSimulator(
         }
     }
 }
+
+/**
+ * How a head coach's discipline scales his side's flags (SPEC 5.8): 1 at the
+ * league's mean, more under it and fewer over it. Never below a tenth, so a
+ * table pushed to an extreme still flags somebody.
+ */
+internal fun coachFlags(discipline: Int?, t: com.nflsim.engine.tuning.TuningTable.Penalties): Float =
+    if (discipline == null) 1f
+    else (1f + t.coachDisciplineScale * (t.coachDisciplineMean - discipline) / 100f).coerceAtLeast(0.1f)
