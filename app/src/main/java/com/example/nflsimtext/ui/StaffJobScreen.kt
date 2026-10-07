@@ -124,13 +124,19 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 // after a right-aligned age it runs into it.
                 val schemes = side != null
                 val develops = job.role == CoachRole.HEAD_COACH || job.role == CoachRole.POSITION_COACH
+                // The rating the pool is sorted by, under the name of what it is.
+                val worth = when (job.role) {
+                    CoachRole.HEAD_COACH -> "Rating"
+                    CoachRole.POSITION_COACH -> null
+                    else -> "Game plan"
+                }
                 DataTable(
                     columns = listOfNotNull(
                         ColumnSpec("Coach", 2.0f, wrap = true),
                         if (schemes) ColumnSpec("Scheme", 1.7f, wrap = true) else null,
                         ColumnSpec("Age", 0.7f, numeric = true),
                         if (develops) ColumnSpec("Develops", 1.1f, numeric = true, tier = true) else null,
-                        if (job.role != CoachRole.POSITION_COACH) ColumnSpec("Rating", 1.0f, numeric = true, tier = true) else null,
+                        worth?.let { ColumnSpec(it, 1.1f, numeric = true, tier = true) },
                     ),
                     rows = pool.take(POOL_SHOWN).map { man ->
                         RowData(
@@ -139,7 +145,7 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                                 if (schemes) SchemeCatalog[man.scheme].name else null,
                                 "${man.age}",
                                 if (develops) "${man.ratings.development}" else null,
-                                if (job.role != CoachRole.POSITION_COACH) "${Staffing.worth(man, job).roundToInt()}" else null,
+                                worth?.let { "${Staffing.worth(man, job).roundToInt()}" },
                             ),
                             highlight = side != null && man.scheme == side.second,
                             onClick = { looking = man },
@@ -339,18 +345,21 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
 
 /** What a job does, in a line, so the user knows what he is choosing. */
 internal fun duties(job: StaffJob): String = when (job.role) {
-    CoachRole.HEAD_COACH -> "Develops every player alongside his position coach, adjusts during games, keeps his men's flags down, and decides fourth downs."
-    CoachRole.OFFENSIVE_COORDINATOR -> "Brings the offence's scheme, and calls its plays when you set no game plan of your own."
-    CoachRole.DEFENSIVE_COORDINATOR -> "Brings the defence's scheme, and calls its blitzes and coverages when you set no game plan of your own."
-    CoachRole.SPECIAL_TEAMS_COORDINATOR -> "Coaches the kicking units."
+    CoachRole.HEAD_COACH -> "Develops every player alongside his position coach, adjusts during games, keeps flags down, " +
+        "shortens slumps, lends the scouts his eye for talent, and decides fourth downs."
+    CoachRole.OFFENSIVE_COORDINATOR -> "Brings the offence's scheme and calls its plays when you set no game plan of your own. " +
+        "His game plan is an edge on every snap."
+    CoachRole.DEFENSIVE_COORDINATOR -> "Brings the defence's scheme and calls its blitzes and coverages when you set no game plan of your own. " +
+        "His game plan is an edge on every snap."
+    CoachRole.SPECIAL_TEAMS_COORDINATOR -> "Coaches the kicking units: his game plan is worth yards on every return, yours and theirs."
     CoachRole.POSITION_COACH -> "Develops the ${job.group!!.name} players, alongside the head coach."
 }
 
 /** What the pool's Rating column means for this job (Staffing.worth). */
 internal fun ratingNote(job: StaffJob): String = when (job.role) {
-    CoachRole.HEAD_COACH -> "Rating: his development, adjustments and discipline together."
+    CoachRole.HEAD_COACH -> "Rating: everything he does but a game plan, together."
     CoachRole.POSITION_COACH -> "Sorted by how well he develops players."
-    else -> "Rating: his six ratings together. What he brings is his scheme and how he calls it."
+    else -> "Sorted by his game plan."
 }
 
 /** What a coach calls left to himself, for the job he would do. */

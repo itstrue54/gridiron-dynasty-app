@@ -30,6 +30,9 @@ object WeekRunner {
                 staffPlan = Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
                 discipline = league.coaches[team.staff.headCoach]?.ratings?.discipline,
+                offGameplan = league.coaches[team.staff.offCoordinator]?.ratings?.gameplan,
+                defGameplan = league.coaches[team.staff.defCoordinator]?.ratings?.gameplan,
+                stGameplan = league.coaches[team.staff.stCoordinator]?.ratings?.gameplan,
             )
         }
 
@@ -53,12 +56,13 @@ object WeekRunner {
             acc + r.boxScore.players.mapValues { (id, line) -> (acc[id] ?: com.nflsim.engine.stats.StatLine()) + line }
         }
         val played = results.flatMap { r -> listOf(r.home, r.away) }.toSet()
+        val motivation = league.teams.associate { it.id to league.coaches[it.staff.headCoach]?.ratings?.motivation }
         val players = league.players.map { p ->
             val load = (snaps[p.id.v] ?: 0) * inj.wearPerSnap * (1.5f - p.traits.durabilityUnderLoad / 100f)
             val wear = (p.wear * inj.wearKept + load).toInt().coerceIn(0, 100)
             val weeks = hurt[p.id.v] ?: (p.injuryWeeks - 1).coerceAtLeast(0)
             // Only clubs that played move: a bye week neither builds form nor loses it.
-            val form = if (p.teamId in played) Form.next(p, lines[p.id.v], tuning) else p.form
+            val form = if (p.teamId in played) Form.next(p, lines[p.id.v], tuning, motivation[p.teamId]) else p.form
             if (weeks == p.injuryWeeks && wear == p.wear && form == p.form) p
             else p.copy(injuryWeeks = weeks, wear = wear, form = form)
         }

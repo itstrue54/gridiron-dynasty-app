@@ -27,6 +27,10 @@ class GameTeam(
     val adjustments: Int = 50,
     /** The head coach's discipline, 0..100: how often his men are flagged (SPEC 5.8). Null is a league-average staff. */
     val discipline: Int? = null,
+    /** The coordinators' game plans, 0..100 (SPEC 4.7): their side's edge on every play, and the kicking units'. Null is a league-average coach. */
+    val offGameplan: Int? = null,
+    val defGameplan: Int? = null,
+    val stGameplan: Int? = null,
 ) {
     val offDepth: DepthChart = DepthChart.auto(roster, offScheme, team.depthPins)
     val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
@@ -224,11 +228,17 @@ class GameSimulator(
 
     // ---------------------------------------------------------------
 
+    /** Yards a return gains or loses on the two special teams coordinators (SPEC 4.7). */
+    private fun returnEdge(receiving: GameTeam, kicking: GameTeam): Float =
+        coachEdge(receiving.stGameplan, tuning.staff.returnYards, tuning.staff) -
+            coachEdge(kicking.stGameplan, tuning.staff.returnYards, tuning.staff)
+
     private fun openWithKickoff(state: GameState, receiver: Side, rng: Rng): GameState {
         val receiving = teamFor(receiver)
         val (spot, _) = SpecialTeams.kickoff(
             SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme),
-            receiving.offScheme, rng, st = tuning.specialTeams)
+            receiving.offScheme, rng, st = tuning.specialTeams,
+            edge = returnEdge(receiving, teamFor(receiver.other())))
         return state.copy(possession = receiver, yardLine = spot, down = 1, distance = 10)
     }
 
@@ -272,7 +282,7 @@ class GameSimulator(
                             SpecialTeams.punterFor(punting.offDepth),
                             SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
                             state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams,
-                            narration = words)
+                            narration = words, edge = returnEdge(receivingTeam, punting))
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
                         runClock(tuning.gameFlow.puntClockRunoff)
@@ -476,6 +486,8 @@ class GameSimulator(
             defPlan = defTeam.plan,
             offFlags = coachFlags(offTeam.discipline, tuning.penalties),
             defFlags = coachFlags(defTeam.discipline, tuning.penalties),
+            offEdge = coachEdge(offTeam.offGameplan, tuning.staff.gameplanPoints, tuning.staff),
+            defEdge = coachEdge(defTeam.defGameplan, tuning.staff.gameplanPoints, tuning.staff),
             carries = stats::carries,
             narration = words,
         )
@@ -854,3 +866,11 @@ class GameSimulator(
 internal fun coachFlags(discipline: Int?, t: com.nflsim.engine.tuning.TuningTable.Penalties): Float =
     if (discipline == null) 1f
     else (1f + t.coachDisciplineScale * (t.coachDisciplineMean - discipline) / 100f).coerceAtLeast(0.1f)
+
+/**
+ * What a coach's rating is worth over a league-average one (SPEC 4.7): [per100]
+ * for every 100 points over the mean, as much off under it, and nothing for
+ * an empty chair.
+ */
+internal fun coachEdge(rating: Int?, per100: Float, t: com.nflsim.engine.tuning.TuningTable.Staff): Float =
+    if (rating == null) 0f else per100 * (rating - t.coachMean) / 100f

@@ -89,6 +89,9 @@ object GameCalibration {
                 staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
                 discipline = league.coaches[team.staff.headCoach]?.ratings?.discipline,
+                offGameplan = league.coaches[team.staff.offCoordinator]?.ratings?.gameplan,
+                defGameplan = league.coaches[team.staff.defCoordinator]?.ratings?.gameplan,
+                stGameplan = league.coaches[team.staff.stCoordinator]?.ratings?.gameplan,
             )
         }
 

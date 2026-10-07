@@ -142,7 +142,8 @@ internal object PassResolution {
 
         var routeWin = rate(receiver, routeRating, off) +
             rate(receiver, RatingId.RELEASE, off) * t.coverage.releaseWeight -
-            coverageSkill * t.coverage.coverageWeight
+            coverageSkill * t.coverage.coverageWeight +
+            ctx.offEdge - ctx.defEdge
         if (!def.coverage.man) routeWin += t.coverage.zoneCushion
         if (def.isBlitz) routeWin += def.extraRushers * t.coverage.blitzCoverageCost
         if (def.doubledTarget == targetIndex) routeWin -= t.coverage.doubleTeamPenalty

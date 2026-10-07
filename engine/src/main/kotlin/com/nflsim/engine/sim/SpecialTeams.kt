@@ -76,6 +76,8 @@ object SpecialTeams {
         rng: Rng,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
         narration: Rng? = null,
+        /** Yards the coaching gives the return (GameSimulator.returnEdge). */
+        edge: Float = 0f,
     ): PuntResult {
         val words = narration ?: rng.split("narration")
         val yardsToGoal = 100 - yardLine
@@ -111,7 +113,7 @@ object SpecialTeams {
         if (returner != null && rng.nextFloat() < st.puntReturnRate) {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
             val elusive = rate(returner, RatingId.ELUSIVENESS, returnScheme)
-            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill)
+            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill + edge)
                 .roundToInt().coerceIn(0, 60)
         }
 
@@ -143,6 +145,8 @@ object SpecialTeams {
         returnScheme: Scheme,
         rng: Rng,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+        /** Yards the coaching gives the return (GameSimulator.returnEdge). */
+        edge: Float = 0f,
     ): Pair<Int, String> {
         if (rng.nextFloat() < st.kickoffTouchbackRate) {
             return GameState.TOUCHBACK_YARD_LINE to "Touchback."
@@ -150,7 +154,7 @@ object SpecialTeams {
         val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
-            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance)).roundToInt()
+            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance) + edge).roundToInt()
         }
         val spot = (base + bonus).coerceIn(4, 60)
         val text = if (spot >= 45) "A big return out to the $spot." else "Returned to the $spot."

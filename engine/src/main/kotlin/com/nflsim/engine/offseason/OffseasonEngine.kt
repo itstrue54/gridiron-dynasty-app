@@ -964,7 +964,7 @@ object OffseasonEngine {
                         needBar, ctx.league.tuning.needs)
                         .entries.sortedByDescending { it.value }.take(2).map { it.key }.toSet()
                 }
-                club.staff.scoutingDept to focus
+                com.nflsim.engine.ratings.Scouting.department(club, ctx.league) to focus
             },
             aggression = { id -> ctx.league.teams.first { it.id == id }.gm.aggression },
             tradeUp = { buyer, seller, from, to, later ->

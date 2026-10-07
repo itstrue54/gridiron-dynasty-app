@@ -96,7 +96,7 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     // How the user's club reads a man: his own as his staff knows them, theirs as a newcomer would.
     fun rating(p: Player): String {
         val lens = if (p.teamId == user) lensFor(dynasty, p)
-            else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, dynasty.team.staff.scoutingDept, book.league.tuning.scouting), book.league.tuning.scouting)
+            else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, com.nflsim.engine.ratings.Scouting.department(dynasty.team, dynasty.league), book.league.tuning.scouting), book.league.tuning.scouting)
         // The rating the roster leads with, so a man reads the same on both screens.
         return lens.view(overall(p)).text
     }

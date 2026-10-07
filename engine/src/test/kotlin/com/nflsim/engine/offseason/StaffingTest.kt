@@ -46,8 +46,9 @@ class StaffingTest {
         assertTrue(a.all { SchemeCatalog[it.scheme].side == com.nflsim.engine.ratings.SchemeSide.OFFENSE })
         assertEquals(a.sortedByDescending { Staffing.worth(it, StaffJob.OFFENCE) }, a)
         val heads = Staffing.pool(base, 2026, user, StaffJob.HEAD)
-        assertEquals(heads.sortedByDescending { (it.ratings.development + it.ratings.adjustments + it.ratings.discipline) / 3f }, heads,
-            "a head coach is worth what he develops, adjusts and keeps clean")
+        assertEquals(heads.sortedByDescending { with(it.ratings) { development + adjustments + discipline + motivation + evaluation } }, heads,
+            "a head coach is worth everything but a game plan")
+        assertEquals(a.sortedByDescending { it.ratings.gameplan }, a, "a coordinator is worth his game plan")
         assertNotEquals(a.map { it.name }, Staffing.pool(base, 2027, user, StaffJob.OFFENCE).map { it.name }, "next spring brings new names")
     }
 
