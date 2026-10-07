@@ -98,7 +98,21 @@ object Migrations {
         Step(47, "every coach ages, and coaches in jobs retire (SPEC 4.7); nothing to move") { it },
         // A dynasty saved in the spring window had agreed to hire no general manager yet.
         Step(48, "the user can hire the general managers the owners let go this spring (SPEC 8.2); nothing to move") { it },
+        Step(49, "a finished offseason clears the spring's agreements (SPEC 4.7)", ::clearStaleAgreements),
     )
+
+    /**
+     * Before version 50 an offseason left the spring's agreements on the
+     * dynasty, holding jobs the user had filled. Outside the spring window
+     * any agreement is one of those, and goes. In the window an agreement
+     * may be this spring's or last spring's: the ones that no longer hold -
+     * a job already filled, a man already hired - go, and the rest stay.
+     */
+    private fun clearStaleAgreements(d: Dynasty): Dynasty = when {
+        d.pendingHires.isEmpty() && d.pendingGm == null -> d
+        d.phase != com.nflsim.engine.season.DynastyPhase.OFFSEASON -> d.copy(pendingHires = emptyList(), pendingGm = null)
+        else -> com.nflsim.engine.offseason.Staffing.dropBrokenAgreements(d)
+    }
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
     fun migrate(dynasty: Dynasty, from: Int, to: Int): Dynasty {

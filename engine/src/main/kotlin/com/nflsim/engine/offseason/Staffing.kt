@@ -279,6 +279,19 @@ object Staffing {
             (it.staff.offCoordinator == id || it.staff.defCoordinator == id) }
     }
 
+    /**
+     * The dynasty less any agreement that no longer holds: a coach's job that
+     * no longer opens or whose man is gone ([holds]), and a general manager
+     * who already has the chair or whose club no longer employs him. A save
+     * migration uses it for agreements an offseason once left behind.
+     */
+    fun dropBrokenAgreements(dynasty: Dynasty): Dynasty {
+        val coaches = tidy(dynasty)
+        val gm = coaches.pendingGm ?: return coaches
+        val stale = coaches.team.gm.name == gm || pendingGm(coaches) == null
+        return if (stale) coaches.copy(pendingGm = null) else coaches
+    }
+
     /** The dynasty less any agreement a staff move has undone ([holds]). */
     private fun tidy(dynasty: Dynasty, market: League = market(dynasty)): Dynasty {
         val kept = dynasty.pendingHires.filter { holds(it, dynasty, market) }

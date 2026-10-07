@@ -27,6 +27,20 @@ class MigrationsTest {
     }
 
     @Test
+    fun `a save mid-season loses the agreements an offseason left behind`() {
+        val staff = dynasty.team.staff
+        val stale = dynasty.copy(
+            pendingHires = listOf(com.nflsim.engine.offseason.PendingHire(
+                com.nflsim.engine.model.CoachRole.OFFENSIVE_COORDINATOR, null, staff.offCoordinator.v)),
+            pendingGm = "Somebody Else",
+        )
+        val migrated = Migrations.migrate(stale, 49, 50)
+        assertTrue(migrated.pendingHires.isEmpty())
+        assertEquals(null, migrated.pendingGm)
+        assertSame(dynasty, Migrations.migrate(dynasty, 49, 50), "a save with nothing agreed is untouched")
+    }
+
+    @Test
     fun `a save from before GMs had names gets the names its league would have had`() {
         val blank = dynasty.copy(league = dynasty.league.copy(
             teams = dynasty.league.teams.map { it.copy(gm = it.gm.copy(name = "")) }))
