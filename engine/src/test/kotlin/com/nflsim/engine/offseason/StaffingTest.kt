@@ -207,9 +207,11 @@ class StaffingTest {
         assertTrue(spring.changes.isNotEmpty(), "somebody is fired this spring")
         val open = Staffing.fire(played, StaffJob.HEAD)
         val pool = Staffing.pool(open, StaffJob.HEAD)
-        val letGo = pool.filter { Staffing.leaving(open, it) != null }
-        assertEquals(spring.changes.map { it.fired }.filter { name -> name in pool.map { it.name } }.sorted(), letGo.map { it.name }.sorted(),
-            "every head coach let go and not hired straight back is in the pool, marked by his club")
+        val letGo = pool.filter { Staffing.source(open, it) is Staffing.Source.LetGo }
+        // His coordinators, let go with him, are head coaching candidates too.
+        val firedHeads = spring.changes.map { it.fired }.filter { name -> name in pool.map { it.name } }
+        assertTrue(firedHeads.isNotEmpty())
+        assertTrue(letGo.map { it.name }.containsAll(firedHeads), "every head coach let go and not hired straight back is in the pool, marked by his club")
         assertTrue(letGo.isNotEmpty())
 
         val pick = letGo.first()
@@ -231,6 +233,75 @@ class StaffingTest {
         assertEquals(spring.changes.map { it.fired }, report.coachingChanges.map { it.fired },
             "who is let go never depends on what the user does")
         assertTrue(next.league.teams.count { it.staff.headCoach == pick.id } == 1, "no other club took him")
+    }
+
+    /** The played spring with every club looking at every coordinator, and the user's offensive coordinator the obvious pick. */
+    private fun coveted(): Dynasty {
+        val l = played.league
+        val oc = l.coach(l.team(user).staff.offCoordinator)
+        return played.copy(league = l.copy(
+            tuning = l.tuning.copy(staff = l.tuning.staff.copy(poachLook = 100)),
+            coaches = l.coaches + (oc.id to oc.copy(ratings = com.nflsim.engine.model.CoachRatings(100, 100, 100, 100, 100, 100))),
+        ))
+    }
+
+    @Test
+    fun `other clubs can promote the user's coordinator, and the window says so and lets him line up a replacement`() {
+        val d = coveted()
+        val oc = d.league.coach(d.team.staff.offCoordinator)
+        val spring = Staffing.spring(d)
+        assertEquals(oc.name, Staffing.departures(d, spring)[StaffJob.OFFENCE]?.name, "a club cannot block a promotion")
+        assertEquals(Staffing.VACANT, spring.league.team(user).staff.offCoordinator, "he has left in the window's view")
+        assertTrue(Staffing.isVacant(d, StaffJob.OFFENCE, spring.league))
+        assertEquals(Staffing.VACANT, Staffing.withPending(d, spring.league).team.staff.offCoordinator)
+
+        // A fresh candidate hired for the job his promotion opens joins when the offseason starts.
+        val pick = Staffing.pool(d, StaffJob.OFFENCE, spring.league).first { it.id.v <= 0 }
+        val agreed = Staffing.hire(d, StaffJob.OFFENCE, pick, spring.league)
+        assertEquals(oc.id, agreed.team.staff.offCoordinator, "he is still the user's until the offseason")
+        assertEquals(pick.name, Staffing.pending(agreed, StaffJob.OFFENCE)?.name)
+        val (next, report) = OffseasonEngine.run(agreed)
+        assertEquals(pick.name, next.league.coach(next.league.team(user).staff.offCoordinator).name)
+        val promotion = report.promotions.single { it.from == user.v }
+        assertEquals(oc.id, next.league.team(TeamId(promotion.team)).staff.headCoach)
+        assertEquals(CoachRole.HEAD_COACH, next.league.coach(oc.id).role)
+    }
+
+    @Test
+    fun `the user can promote another club's coordinator to head coach, but not hire one across`() {
+        val d = Staffing.fire(played, StaffJob.HEAD)
+        val market = Staffing.market(d)
+        val other = d.league.teams.first { it.id != user && market.team(it.id).staff.offCoordinator == it.staff.offCoordinator }
+        val target = d.league.coach(other.staff.offCoordinator)
+        val pool = Staffing.pool(d, StaffJob.HEAD, market)
+        assertTrue(pool.any { it.id == target.id }, "every club's coordinators are head coaching candidates")
+        assertEquals(Staffing.Source.Promotion(other, StaffJob.OFFENCE), Staffing.source(d, target, market))
+
+        val agreed = Staffing.hire(d, StaffJob.HEAD, target, market)
+        assertEquals(Staffing.VACANT, agreed.team.staff.headCoach)
+        val (next, _) = OffseasonEngine.run(agreed)
+        val head = next.league.coach(next.league.team(user).staff.headCoach)
+        assertEquals(target.id, head.id)
+        assertEquals(CoachRole.HEAD_COACH, head.role)
+        assertTrue(head.tendencies.fourthDownAggression != null, "a head coach decides fourth downs")
+        assertNotEquals(target.id, next.league.team(other.id).staff.offCoordinator, "his old club hired his replacement")
+        assertTrue(next.league.coaches.containsKey(next.league.team(other.id).staff.offCoordinator))
+
+        // A lateral move is his club's to refuse: no club's coordinator is offered as a coordinator.
+        val firedOc = Staffing.fire(played, StaffJob.OFFENCE)
+        val stillCoordinating = Staffing.market(firedOc).teams.filter { it.id != user }.map { it.staff.offCoordinator }.toSet()
+        assertTrue(Staffing.pool(firedOc, StaffJob.OFFENCE).none { it.id in stillCoordinating })
+    }
+
+    @Test
+    fun `the user can promote his own coordinator to head coach`() {
+        val d = Staffing.fire(played, StaffJob.HEAD)
+        val oc = d.league.coach(d.team.staff.offCoordinator)
+        assertEquals(Staffing.Source.Own(StaffJob.OFFENCE), Staffing.source(d, oc))
+        val promoted = Staffing.hire(d, StaffJob.HEAD, oc)
+        assertEquals(oc.id, promoted.team.staff.headCoach, "from within, at once")
+        assertEquals(CoachRole.HEAD_COACH, promoted.league.coach(oc.id).role)
+        assertEquals(Staffing.VACANT, promoted.team.staff.offCoordinator, "and his old job is open")
     }
 
     @Test

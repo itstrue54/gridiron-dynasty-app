@@ -163,8 +163,10 @@ fun OffseasonScreen(dynasty: Dynasty) {
                 Section("Coaching carousel") {
                     report.coachingChanges.forEach { c ->
                         val club = dynasty.league.teams.firstOrNull { it.id.v == c.team }?.abbrev ?: ""
+                        // A head coach promoted from another club's staff, with the club he left.
+                        val from = c.promotedFrom?.let { id -> dynasty.league.teams.firstOrNull { it.id.v == id }?.abbrev }
                         Line(
-                            "$club  ${c.fired} out, ${c.hired} in",
+                            "$club  ${c.fired} out, ${c.hired} in" + (from?.let { " from $it" } ?: ""),
                             if (c.schemeChanged) "new schemes" else "same schemes",
                             bold = c.team == team.id.v,
                         )

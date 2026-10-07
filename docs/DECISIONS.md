@@ -2442,3 +2442,19 @@ nothing else moves more than 0.006.
 - **The pool shows the rating the job uses:** a head coach's other five together, a coordinator's game plan, a position coach's development.
 - **Saves:** the new coefficients take their defaults in an old save. Save step 44, version 45.
 
+## ADR-0xx — Coordinators are promoted away under the NFL's rules
+
+**Context.** The user asked for clubs to be able to hire another club's coordinator and promote him, under the real NFL rules. The NFL's anti-tampering policy never lets a club block an assistant's promotion to head coach. Since 2020 it doesn't let a club block a promotion to coordinator either. A sideways move, or a head coach under contract leaving, is the employer's to refuse. The interview calendar matters only during the playoffs, and all of this game's hiring happens after the Super Bowl.
+
+**Decision.**
+- **Coordinator to head coach, both ways.** AI clubs look at a few other clubs' coordinators for every head coaching job. The user can promote any club's coordinator, his own included. The user's coordinators can be taken the same way: the rule doesn't care whose staff it is.
+- **No sideways moves.** Nobody hires another club's coordinator as a coordinator, or another club's head coach.
+- **Through the spring market.** The window previews the carousel (`Staffing.market`), so it shows the user who is about to be promoted away and lets him hire a replacement before the offseason starts. That hire is pending, and a pending hire can carry a fresh candidate. The user's own picks are reserved from the carousel, so the user acts first. Without that, an AI club would always win a contest the user can see coming.
+- **Position coach to coordinator is left out** for now. The rules allow it, but it would add a second level of cascade to every promotion, for a smaller effect.
+
+**Consequences.**
+- **Where head coaches come from:** 59% of new head coaches are promoted coordinators, against about 60-70% in recent NFL cycles, with a club looking at nine coordinators (CALIBRATION.md pass 17). Their old clubs replace them from the same candidates as everyone, so coordinators keep their game plans level across the league.
+- **Head coaches are better developers** (71 against 67 after ten seasons), because a coordinator is chosen on ratings he has, not drawn below the mean. The league's talent barely moves: 16.5 players at 90+ a league against 15.8.
+- **The user can lose a coordinator** he didn't choose to, with no way to refuse, as in the NFL. The window says so before the offseason starts.
+- **Saves:** an agreement can carry a fresh candidate, a change can name the club its new coach was promoted from, and the report lists promotions. All read as before from an old save. Save step 46, version 47.
+

@@ -92,6 +92,8 @@ object Migrations {
         Step(44, "every coach rating has a job: game plans, motivation and evaluation (SPEC 4.7); nothing to move") { it },
         // A dynasty saved in the spring window had agreed to hire nobody yet.
         Step(45, "the user can hire the coaches the league lets go this spring (SPEC 4.7); nothing to move") { it },
+        // An old agreement names a man by id, as it always did; old reports promoted nobody.
+        Step(46, "clubs promote other clubs' coordinators to head coach, under the NFL's rules (SPEC 4.7); nothing to move") { it },
     )
 
     /** The dynasty a save of version [from] holds, as version [to] reads it. */
