@@ -120,6 +120,7 @@ fun StaffScreen(
                 else Situation.NORMAL,
             ) {
                 if (head == null) {
+                    leaving[StaffJob.HEAD]?.let { Text(it, style = NdTheme.type.body, color = c.chalk) }
                     Text("Nobody is in charge.", style = NdTheme.type.body, color = c.chalkDim)
                 } else {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -172,6 +173,7 @@ fun StaffScreen(
 
         item {
             SituationBlock("Special teams", meta = special?.let { "${it.age}" } ?: "vacant") {
+                leaving[StaffJob.SPECIAL]?.takeIf { special == null }?.let { Text(it, style = NdTheme.type.body, color = c.chalk) }
                 Coordinator(special, emptyList(), special?.id in joining)
                 if (open) ChangeButton(if (special == null) "Hire a special teams coordinator" else "Change the special teams coordinator") { onJob(StaffJob.SPECIAL) }
             }
@@ -196,6 +198,9 @@ fun StaffScreen(
                         )
                     },
                 )
+                // Position coaches leaving this spring, by name.
+                position.mapNotNull { (group, man) -> leaving[StaffJob(CoachRole.POSITION_COACH, group)]?.takeIf { man == null } }
+                    .forEach { Text(it, style = NdTheme.type.caption, color = c.chalk, modifier = Modifier.padding(top = NdTheme.spacing.xs)) }
                 if (open) {
                     Text(
                         "Tap a group to change its coach.",

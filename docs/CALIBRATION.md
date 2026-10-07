@@ -751,6 +751,26 @@ Then add the realistic catch on top. This is a structural change to how plays re
 
 **Result:** the head coaching market looks like the NFL's, the two sides of the ball stay level, and the league's talent doesn't move. Head coaches develop players better, because a coordinator is hired on ratings he already has rather than drawn below the mean; each player's coaching blends that with his position coach's, which holds where it was. The user's club lost a coordinator to a promotion 8 times in 60 offseasons. The per-game bands are measured before any carousel and don't move.
 
+## Pass 18 — October 2026 (coaches age and retire)
+
+**What changed:** every coach ages each spring, and a man in a job retires at an age of his own from 66 to 72. Clubs replace a retired head coach as if they had fired him, and a coordinator with the best of three. Anyone else is replaced from the generator's spread, so the league's coaching holds.
+
+**Measured:** twelve leagues (seeds 11-22), ten seasons each:
+
+| | main | Retirement |
+|---|---|---|
+| Coach retirements per spring | 0 | 11.9 |
+| Staffs' mean age, oldest | 51.1, 75 | 53.6, 71 |
+| Coaching changes per spring | 5.55 | 6.09 |
+| Position coaches' development | 64.9 | 65.2 |
+| Head coaches' development | 68.4 | 69.0 |
+| Mean of each club's top 22 | 77.39 | 77.31 |
+| Year-to-year correlation of wins | 0.315 | 0.29 |
+
+The first six leagues alone gave 0.32 against 0.27 for the correlation, and the next six gave 0.31 against 0.31. The measure moves about that much between runs: a club's seasons are pairs that aren't independent.
+
+**Result:** staffs turn over, at about one man in forty a spring. Position coaches' development stays where a new league starts it, so talent holds. About half a head coach a spring more changes hands, from retirements. No band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

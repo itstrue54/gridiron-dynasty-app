@@ -88,6 +88,39 @@ class CoachingCarouselTest {
     }
 
     @Test
+    fun `every coach ages a year, and the old retire from their jobs and are replaced`() {
+        val base = LeagueGenerator.generate(2026, 5L)
+        val user = base.teams.first().id
+        // A few men past any retirement age, at the user's club and another.
+        val other = base.teams[1]
+        val old = listOf(base.team(user).staff.offCoordinator, base.team(user).staff.headCoach,
+            other.staff.defCoordinator, other.staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.QB), other.staff.headCoach)
+        val league = base.copy(coaches = base.coaches.mapValues { (id, c) -> if (id in old) c.copy(age = 80) else c })
+        val r = CoachingCarousel.run(league, winPct = { 0.6f }, playoffClubs = emptySet(),
+            previousWinPct = league.teams.associate { it.id.v to 0.6f }, rng = SplitMixRng(2L), userTeam = user)
+        // Nobody fired on a winning season: every staying man is a year older.
+        val stayed = r.league.coaches.filterKeys { it in league.coaches && it !in old }
+        assertTrue(stayed.isNotEmpty())
+        stayed.forEach { (id, c) -> assertEquals(league.coach(id).age + 1, c.age, c.name) }
+        // The old are gone, and listed.
+        old.forEach { assertTrue(it !in r.league.coaches, "${league.coach(it).name} retired") }
+        assertTrue(r.retirements.map { it.name }.containsAll(old.map { league.coach(it).name }))
+        // Anyone else who retired is a generated man who reached a retirement age.
+        val t = league.tuning.staff
+        r.retirements.forEach { ret ->
+            val was = league.coaches.values.first { it.name == ret.name }
+            assertTrue(was.age + 1 >= t.retireFrom, "${ret.name} retired at ${was.age + 1}")
+        }
+        // The user's jobs are his to fill; the other club's are filled.
+        assertEquals(com.nflsim.engine.offseason.Staffing.VACANT, r.league.team(user).staff.offCoordinator)
+        assertEquals(com.nflsim.engine.offseason.Staffing.VACANT, r.league.team(user).staff.headCoach)
+        val o = r.league.team(other.id)
+        listOf(o.staff.headCoach, o.staff.defCoordinator, o.staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.QB))
+            .forEach { assertTrue(it in r.league.coaches && it !in old) }
+        assertTrue(r.changes.single { it.team == other.id.v }.retired)
+    }
+
+    @Test
     fun `a head coach runs his side of the ball, and only a promoted defensive coordinator comes from the defense`() {
         val league = LeagueGenerator.generate(2026, 5L)
         val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),

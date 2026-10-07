@@ -166,7 +166,7 @@ fun OffseasonScreen(dynasty: Dynasty) {
                         // A head coach promoted from another club's staff, with the club he left.
                         val from = c.promotedFrom?.let { id -> dynasty.league.teams.firstOrNull { it.id.v == id }?.abbrev }
                         Line(
-                            "$club  ${c.fired} out, ${c.hired} in" + (from?.let { " from $it" } ?: ""),
+                            "$club  ${c.fired} ${if (c.retired) "retires" else "out"}, ${c.hired} in" + (from?.let { " from $it" } ?: ""),
                             if (c.schemeChanged) "new schemes" else "same schemes",
                             bold = c.team == team.id.v,
                         )

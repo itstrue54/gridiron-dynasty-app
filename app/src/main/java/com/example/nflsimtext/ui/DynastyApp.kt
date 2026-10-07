@@ -192,11 +192,7 @@ fun DynastyApp(
                         val open = store.staffingOpen
                         val spring = remember(dynasty, open) { if (open) com.nflsim.engine.offseason.Staffing.spring(dynasty) else null }
                         // A coordinator another club promotes away, by the job he leaves.
-                        val leaving = spring?.let { sp ->
-                            com.nflsim.engine.offseason.Staffing.departures(dynasty, sp).mapValues { (_, p) ->
-                                "${p.name} leaves to be the ${dynasty.league.teams.firstOrNull { it.id.v == p.team }?.name ?: "new"} head coach."
-                            }
-                        } ?: emptyMap()
+                        val leaving = spring?.let { com.nflsim.engine.offseason.Staffing.leavingNotes(dynasty, it) } ?: emptyMap()
                         val shown = remember(dynasty, open, spring) {
                             when {
                                 spring != null -> com.nflsim.engine.offseason.Staffing.withPending(dynasty, spring.league)

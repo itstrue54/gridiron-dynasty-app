@@ -129,6 +129,8 @@ data class OffseasonReport(
     val coachingChanges: List<CoachingChange> = emptyList(),
     /** SPEC 7 phase 2: coordinators other clubs promoted to head coach. */
     val promotions: List<Promotion> = emptyList(),
+    /** SPEC 7 phase 2: coaches who retired from a club's staff. */
+    val coachRetirements: List<CoachRetirement> = emptyList(),
     /** SPEC 7 phase 2: general managers replaced. */
     val gmChanges: List<GmChange> = emptyList(),
     /** Every free agent signed, not just the twenty the news screen lists. */
@@ -638,6 +640,7 @@ object OffseasonEngine {
             coachingChanges = carousel.changes,
             gmChanges = carousel.gmChanges,
             promotions = carousel.promotions,
+            coachRetirements = carousel.retirements,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),

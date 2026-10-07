@@ -67,14 +67,13 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
     val shown = remember(dynasty, market) { Staffing.withPending(dynasty, market) }
     val holder = shown.league.coaches[Staffing.holder(shown.team.staff, job)]
     val agreed = dynasty.pendingHires.firstOrNull { it.job == job }
-    // His coordinator, leaving for another club's head coaching job.
-    val departing = remember(spring) { Staffing.departures(dynasty, spring)[job] }
+    // Why the job opens this spring, if it does: a promotion elsewhere, a retirement.
+    val leavingNote = remember(spring) { Staffing.leavingNotes(dynasty, spring)[job] }
     val pool = remember(dynasty, job, market) {
         if (holder == null) Staffing.pool(dynasty, job, market) else emptyList()
     }
     // Where each man comes from, which decides when he can join.
     val sources = remember(pool) { pool.associate { it.id to Staffing.source(dynasty, it, market) } }
-    fun club(id: Int) = dynasty.league.teams.firstOrNull { it.id.v == id }
     val agreedNote = agreed?.let { p ->
         val man = dynasty.league.coaches[com.nflsim.engine.model.CoachId(p.coach)]
         val why = if (p.candidate != null || man == null) "" else when (val from = Staffing.source(dynasty, man, market)) {
@@ -130,12 +129,12 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 }
             }
         } else if (open) {
-            departing?.let { d ->
+            leavingNote?.let { note ->
                 item {
                     SituationBlock("Leaving", situation = Situation.RED_ZONE) {
                         Text(
-                            "${d.name} leaves to be the ${club(d.team)?.name ?: "new"} head coach. No club can stop a " +
-                                "promotion to head coach. Whoever you hire for his job joins when the offseason starts.",
+                            note + (if (note.contains("head coach")) " No club can stop a promotion to head coach." else "") +
+                                " Whoever you hire for his job joins when the offseason starts.",
                             style = NdTheme.type.body, color = c.chalk,
                         )
                     }

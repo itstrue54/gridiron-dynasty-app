@@ -225,6 +225,17 @@ object Staffing {
             dynasty.league.coaches[holder(dynasty.team.staff, job)] == null ||
                 market.coaches[holder(market.team(dynasty.userTeamId).staff, job)] == null)
 
+    /**
+     * Why each job on the user's staff opens this spring, in words, for the
+     * window: a coordinator another club promotes, a coach who retires.
+     */
+    fun leavingNotes(dynasty: Dynasty, spring: CoachingCarousel.Result = spring(dynasty)): Map<StaffJob, String> {
+        fun club(id: Int) = dynasty.league.teams.firstOrNull { it.id.v == id }?.name
+        val promoted = departures(dynasty, spring).mapValues { (_, p) -> "${p.name} leaves to be the ${club(p.team) ?: "new"} head coach." }
+        val retired = spring.retirements.filter { it.team == dynasty.userTeam }.associate { it.job to "${it.name} retires." }
+        return retired + promoted
+    }
+
     /** The user's coordinators other clubs promote to head coach this spring, by the job each leaves. */
     fun departures(dynasty: Dynasty, spring: CoachingCarousel.Result = spring(dynasty)): Map<StaffJob, Promotion> =
         spring.promotions.filter { it.from == dynasty.userTeam }.associateBy { StaffJob(it.role) }

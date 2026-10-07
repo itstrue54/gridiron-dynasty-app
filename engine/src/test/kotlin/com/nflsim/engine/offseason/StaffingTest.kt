@@ -283,6 +283,19 @@ class StaffingTest {
     }
 
     @Test
+    fun `a coach retiring from the user's staff is shown in the window, and his replacement joins`() {
+        val dc = played.league.coach(played.team.staff.defCoordinator)
+        val d = played.copy(league = played.league.copy(coaches = played.league.coaches + (dc.id to dc.copy(age = 80))))
+        val spring = Staffing.spring(d)
+        assertEquals("${dc.name} retires.", Staffing.leavingNotes(d, spring)[StaffJob.DEFENCE])
+        val pick = Staffing.pool(d, StaffJob.DEFENCE, spring.league).first()
+        val agreed = Staffing.hire(d, StaffJob.DEFENCE, pick, spring.league)
+        val (next, report) = OffseasonEngine.run(agreed)
+        assertEquals(pick.name, next.league.coach(next.league.team(user).staff.defCoordinator).name)
+        assertTrue(report.coachRetirements.any { it.name == dc.name && it.team == user.v })
+    }
+
+    @Test
     fun `the user can promote another club's coordinator to head coach, but not hire one across`() {
         val d = Staffing.fire(played, StaffJob.HEAD)
         val market = Staffing.market(d)
