@@ -148,7 +148,8 @@ object CoachingCarousel {
         fun retiring(c: Coach) = c.age >= t.retireFrom + (rng.split("retire|${c.id.v}").nextFloat() * t.retireSpread).toInt()
         val retirements = mutableListOf<CoachRetirement>()
 
-        // Assistants who retire leave first, and their clubs fill the jobs:
+        // Assistants who stay are a year on in their contracts. Those who
+        // retire leave first, and their clubs fill the jobs:
         // a coordinator from the best of a few, as when one is promoted away,
         // and anyone else from the spread a new league's staffs are drawn
         // from. The user's are his to fill (Staffing.settle).
@@ -158,7 +159,14 @@ object CoachingCarousel {
             for (job in StaffJob.ALL - StaffJob.HEAD) {
                 val id = Staffing.holder(club.staff, job)
                 val man = coaches[id] ?: continue
-                if (!retiring(man)) continue
+                if (!retiring(man)) {
+                    // A year off his deal, and a new one when it runs out, as
+                    // a head coach who stays gets: an assistant's contract is
+                    // the Staff screen's to show, and nothing reads it.
+                    val left = man.contractYearsLeft - 1
+                    coaches[id] = man.copy(contractYearsLeft = if (left <= 0) t.extensionYears else left)
+                    continue
+                }
                 retirements += CoachRetirement(teamId.v, man.name, job.role, job.group)
                 coaches.remove(id)
                 employed -= id
