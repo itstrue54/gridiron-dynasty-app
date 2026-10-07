@@ -321,6 +321,29 @@ object Transactions {
         )
     }
 
+    /**
+     * The CBA's rule for a club a release's dead money put over the cap
+     * (Article 13): it has seven days to get back under, and may not sign
+     * anyone until it does. Signing already checks the room; this is the
+     * seven days, a week here. A club still over when its week is played
+     * restructures - whatever moves the most room first, all of it - until it
+     * is under, or nothing is left to move. A restructure frees room now and
+     * adds no dead money, which is why it is what a front office reaches for.
+     */
+    fun comply(league: League, team: TeamId, week: Int = 0): League {
+        var out = league
+        repeat(out.roster(team).size) {
+            if (spaceFor(out, team) >= 0) return out
+            val best = out.roster(team).mapNotNull { restructurePreview(it, out.year, 1f) }.maxByOrNull { it.frees }
+                ?: return out
+            when (val o = restructure(out, team, best.player.id, week, 1f)) {
+                is Outcome.Done -> out = o.league
+                is Outcome.Refused -> return out
+            }
+        }
+        return out
+    }
+
     /** Cap figures are in thousands, and nobody reads 840 as money. */
     private fun money(thousands: Int): String =
         if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)

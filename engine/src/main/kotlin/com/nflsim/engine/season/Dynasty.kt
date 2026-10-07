@@ -200,8 +200,13 @@ object DynastyEngine {
         val deadline = if (dynasty.week == TradeDesk.DEADLINE_WEEK)
             DeadlineDeals.run(dynasty, root.split("headlines|deadline|${dynasty.year}"))
             else DeadlineDeals.Result(dynasty.league, emptyList())
+        // A club over the cap has had its week to get under it (CBA Art. 13):
+        // any still over restructures before it plays.
+        val compliant = deadline.league.teams.fold(deadline.league) { l, t ->
+            if (Transactions.spaceFor(l, t.id) < 0) Transactions.comply(l, t.id, dynasty.wireWeek) else l
+        }
         @Suppress("NAME_SHADOWING")
-        val dynasty = dynasty.copy(league = deadline.league, news = dynasty.news + deadline.news)
+        val dynasty = dynasty.copy(league = compliant, news = dynasty.news + deadline.news)
         val teams = WeekRunner.teams(dynasty.league, tuning)
         val played = mutableListOf<GameResult>()
         val week = dynasty.week
