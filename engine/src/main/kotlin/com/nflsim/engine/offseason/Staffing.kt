@@ -244,7 +244,34 @@ object Staffing {
             .flatMap { listOf(it.staff.offCoordinator, it.staff.defCoordinator) }
             .mapNotNull { dynasty.league.coaches[it] }
             .filter { c -> open.none { it.id == c.id } }
-        return (open + coordinators).filter { it.id !in promised }.sortedByDescending { worth(it, job) }
+        // A man the carousel hires and lets go again in the same spring exists
+        // only in its preview: the offseason makes him again under another id,
+        // so he is nobody the user can agree to hire.
+        return (open + coordinators)
+            .filter { it.id !in promised && (it.id.v <= 0 || it.id in dynasty.league.coaches) }
+            .sortedByDescending { worth(it, job) }
+    }
+
+    /**
+     * Whether an agreement still holds against [market]: its job opens (the
+     * carousel leaves it empty on the user's staff) and its man is still
+     * there to be had - out of work, or for head coach another club's
+     * coordinator.
+     */
+    private fun holds(p: PendingHire, dynasty: Dynasty, market: League): Boolean {
+        if (market.coaches[holder(market.team(dynasty.userTeamId).staff, p.job)] != null) return false
+        if (p.candidate != null) return true
+        val id = CoachId(p.coach)
+        if (id !in market.coaches) return false
+        if (id !in employed(market)) return true
+        return p.job == StaffJob.HEAD && market.teams.any { it.id != dynasty.userTeamId &&
+            (it.staff.offCoordinator == id || it.staff.defCoordinator == id) }
+    }
+
+    /** The dynasty less any agreement a staff move has undone ([holds]). */
+    private fun tidy(dynasty: Dynasty, market: League = market(dynasty)): Dynasty {
+        val kept = dynasty.pendingHires.filter { holds(it, dynasty, market) }
+        return if (kept.size == dynasty.pendingHires.size) dynasty else dynasty.copy(pendingHires = kept)
     }
 
     /**
@@ -255,6 +282,7 @@ object Staffing {
     fun withPending(dynasty: Dynasty, market: League = market(dynasty)): Dynasty {
         var league = market
         for (p in dynasty.pendingHires) {
+            if (!holds(p, dynasty, market)) continue
             val coach = p.candidate ?: market.coaches[CoachId(p.coach)] ?: continue
             league = place(league, dynasty.userTeamId, p.job, coach)
         }
@@ -316,15 +344,16 @@ object Staffing {
      */
     fun fire(dynasty: Dynasty, job: StaffJob): Dynasty {
         require(isOpen(dynasty)) { "a club changes its staff between the season and the offseason" }
-        if (pending(dynasty, job) != null) return dynasty.copy(pendingHires = dynasty.pendingHires.filterNot { it.job == job })
+        if (pending(dynasty, job) != null) return tidy(dynasty.copy(pendingHires = dynasty.pendingHires.filterNot { it.job == job }))
         val league = dynasty.league
         val team = dynasty.team
         val id = holder(team.staff, job)
         val coach = requireNotNull(league.coaches[id]) { "nobody holds the ${job.label} job" }
-        return dynasty.copy(league = league.copy(
+        // A man let go is one more out of work: the spring can change, and an agreement with it.
+        return tidy(dynasty.copy(league = league.copy(
             teams = league.teams.map { if (it.id == team.id) it.copy(staff = it.staff.with(job, VACANT)) else it },
             coaches = league.coaches + (id to coach.copy(hotSeat = 0, contractYearsLeft = 0)),
-        ))
+        )))
     }
 
     /**
@@ -342,8 +371,17 @@ object Staffing {
             "${candidate.name} is not available for the ${job.label} job"
         }
         val openNow = dynasty.league.coaches[holder(dynasty.team.staff, job)] == null
-        fun agreed() = dynasty.copy(pendingHires = dynasty.pendingHires +
-            PendingHire(job.role, job.group, candidate.id.v, candidate.takeIf { it.id.v <= 0 }))
+        fun agreed(): Dynasty {
+            val p = PendingHire(job.role, job.group, candidate.id.v, candidate.takeIf { it.id.v <= 0 })
+            val next = dynasty.copy(pendingHires = dynasty.pendingHires + p)
+            // Taking a man another club wanted changes whom it hires instead,
+            // and that can keep at home the coordinator whose job this was.
+            val after = market(next)
+            require(holds(p, next, after)) {
+                "Hiring ${candidate.name} changes whom the other clubs hire, and the ${job.label.lowercase()} job no longer opens."
+            }
+            return tidy(next, after)
+        }
         return when (val from = source(dynasty, candidate, market)) {
             is Source.Own -> {
                 require(openNow) { "the ${job.label} job is not open" }
@@ -351,12 +389,12 @@ object Staffing {
                 val freed = league.copy(teams = league.teams.map {
                     if (it.id == dynasty.userTeamId) it.copy(staff = it.staff.with(from.job, VACANT)) else it
                 })
-                dynasty.copy(league = place(freed, dynasty.userTeamId, job, league.coach(candidate.id)))
+                tidy(dynasty.copy(league = place(freed, dynasty.userTeamId, job, league.coach(candidate.id))))
             }
             is Source.LetGo, is Source.Promotion -> agreed()
             // A man out of work now joins as he is, not as the spring will have aged him.
-            else -> if (openNow) dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job,
-                dynasty.league.coaches[candidate.id] ?: candidate)) else agreed()
+            else -> if (openNow) tidy(dynasty.copy(league = place(dynasty.league, dynasty.userTeamId, job,
+                dynasty.league.coaches[candidate.id] ?: candidate))) else agreed()
         }
     }
 

@@ -208,6 +208,8 @@ class StaffingTest {
         val open = Staffing.fire(played, StaffJob.HEAD)
         val pool = Staffing.pool(open, StaffJob.HEAD)
         val letGo = pool.filter { Staffing.source(open, it) is Staffing.Source.LetGo }
+        assertTrue(pool.all { it.id.v <= 0 || it.id in open.league.coaches },
+            "nobody the carousel only makes this spring: the offseason makes him again under another id")
         // His coordinators, let go with him, are head coaching candidates too.
         val firedHeads = spring.changes.map { it.fired }.filter { name -> name in pool.map { it.name } }
         assertTrue(firedHeads.isNotEmpty())
@@ -262,9 +264,22 @@ class StaffingTest {
         assertEquals(pick.name, Staffing.pending(agreed, StaffJob.OFFENCE)?.name)
         val (next, report) = OffseasonEngine.run(agreed)
         assertEquals(pick.name, next.league.coach(next.league.team(user).staff.offCoordinator).name)
-        val promotion = report.promotions.single { it.from == user.v }
+        val promotion = report.promotions.single { it.from == user.v && it.role == CoachRole.OFFENSIVE_COORDINATOR }
         assertEquals(oc.id, next.league.team(TeamId(promotion.team)).staff.headCoach)
         assertEquals(CoachRole.HEAD_COACH, next.league.coach(oc.id).role)
+    }
+
+    @Test
+    fun `whoever the user agrees to hire for a job a promotion opens, the job opens and he joins`() {
+        val d = coveted()
+        val market = Staffing.market(d)
+        // Every man in the pool, the ones other clubs might want included.
+        for (pick in Staffing.pool(d, StaffJob.OFFENCE, market).take(6)) {
+            val agreed = try { Staffing.hire(d, StaffJob.OFFENCE, pick, market) } catch (e: IllegalArgumentException) { continue }
+            assertEquals(Staffing.VACANT, Staffing.market(agreed).team(user).staff.offCoordinator, "the job still opens with ${pick.name} agreed")
+            val (next, _) = OffseasonEngine.run(agreed)
+            assertEquals(pick.name, next.league.coach(next.league.team(user).staff.offCoordinator).name)
+        }
     }
 
     @Test

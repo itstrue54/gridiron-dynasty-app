@@ -76,7 +76,8 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
     val sources = remember(pool) { pool.associate { it.id to Staffing.source(dynasty, it, market) } }
     fun club(id: Int) = dynasty.league.teams.firstOrNull { it.id.v == id }
     val agreedNote = agreed?.let { p ->
-        val why = if (p.candidate != null) "" else when (val from = Staffing.source(dynasty, dynasty.league.coach(com.nflsim.engine.model.CoachId(p.coach)), market)) {
+        val man = dynasty.league.coaches[com.nflsim.engine.model.CoachId(p.coach)]
+        val why = if (p.candidate != null || man == null) "" else when (val from = Staffing.source(dynasty, man, market)) {
             is Staffing.Source.LetGo -> ", once the ${from.club.name} let him go"
             is Staffing.Source.Promotion -> ": the ${from.club.name} cannot stop a promotion to head coach, and hire his replacement"
             else -> ""
