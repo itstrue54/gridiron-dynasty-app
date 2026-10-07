@@ -661,7 +661,12 @@ class DynastyStore(private val saveDir: File) {
         contracts == null && freeAgency == null && draftRoom == null && cutdown == null
 
     /** A staff move, saved, with what to say about it. */
-    private suspend fun staffMove(say: (Dynasty) -> String, move: (Dynasty) -> Dynasty) {
+    private suspend fun staffMove(
+        say: (Dynasty) -> String,
+        /** The job the move is about: an agreement for it ending is the move, not news. */
+        job: com.nflsim.engine.offseason.StaffJob? = null,
+        move: (Dynasty) -> Dynasty,
+    ) {
         val current = dynasty ?: return
         if (!staffingOpen) return
         // A move reads this spring's carousel (Staffing.market): off the main thread.
@@ -671,7 +676,14 @@ class DynastyStore(private val saveDir: File) {
         }
         dynasty = next
         persist(next)
-        message = say(next)
+        // A move can change whom the other clubs hire, and so undo an
+        // agreement the user made: say which, rather than let it vanish.
+        val undone = current.pendingHires.filter { p -> p.job != job && next.pendingHires.none { it == p } }
+        val lost = undone.mapNotNull { p ->
+            val name = p.candidate?.name ?: current.league.coaches[com.nflsim.engine.model.CoachId(p.coach)]?.name
+            name?.let { "$it won't be joining as ${p.job.label.lowercase()}: with this move, that job no longer opens or he is no longer there to hire." }
+        }
+        message = (listOf(say(next)) + lost).joinToString(" ")
     }
 
     suspend fun fireCoach(job: com.nflsim.engine.offseason.StaffJob) {
@@ -681,7 +693,7 @@ class DynastyStore(private val saveDir: File) {
         staffMove({
             if (agreed != null) "${name ?: "He"} won't be joining. The ${job.label.lowercase()} job is open."
             else "${name ?: "He"} is gone. The ${job.label.lowercase()} job is open."
-        }) { com.nflsim.engine.offseason.Staffing.fire(it, job) }
+        }, job) { com.nflsim.engine.offseason.Staffing.fire(it, job) }
     }
 
     suspend fun hireCoach(job: com.nflsim.engine.offseason.StaffJob, coach: com.nflsim.engine.model.Coach) {
@@ -690,7 +702,7 @@ class DynastyStore(private val saveDir: File) {
             // A man who joins later is an agreement, not a hire, until the offseason starts.
             if (next.pendingHires.size > agreedBefore) "${coach.name} will be your ${job.label.lowercase()} when the offseason starts."
             else "${coach.name} is your ${job.label.lowercase()}."
-        }) { com.nflsim.engine.offseason.Staffing.hire(it, job, coach) }
+        }, job) { com.nflsim.engine.offseason.Staffing.hire(it, job, coach) }
     }
 
     suspend fun fireGm() {

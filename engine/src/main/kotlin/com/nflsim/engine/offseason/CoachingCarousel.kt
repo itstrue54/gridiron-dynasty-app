@@ -14,7 +14,6 @@ import com.nflsim.engine.ratings.SchemeSide
 import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.rng.Rng
 import kotlinx.serialization.Serializable
-import com.nflsim.engine.rng.shuffled
 import kotlin.math.exp
 import kotlin.math.sqrt
 import kotlin.math.roundToInt
@@ -153,28 +152,42 @@ object CoachingCarousel {
             fun draw(fit: Map<String, Float>, current: String) = drawScheme(fit, current, t, hireRng)
             // What he is worth in the job, as the user's pool reads it
             // (Staffing.worth), with the club's eye for its roster's scheme
-            // and the noise of a front office judging men it has not worked with.
-            fun read(c: Coach, job: StaffJob, fit: Map<String, Float>) =
-                Staffing.worth(c, job) + t.fitWeight * (fit[c.scheme] ?: 0f) + hireRng.gaussian(0f, t.evalNoise)
+            // and the noise of a front office judging men it has not worked
+            // with. The noise and the shortlists below are drawn for each man
+            // by name - this club, this coach - not from a shared stream: one
+            // more man on the market, or one fewer, then changes a club's
+            // choice only if he is the one it would have chosen. The user's
+            // window leans on that (Staffing.market): what the user does
+            // changes as little of the league's spring as it can.
+            fun noise(key: String) = rng.split("read|${team.id.v}|$key").gaussian(0f, t.evalNoise)
+            fun lot(c: Coach) = rng.split("look|${team.id.v}|${c.id.v}").nextFloat()
+            fun read(c: Coach, job: StaffJob, fit: Map<String, Float>, key: String = "coach|${c.id.v}") =
+                Staffing.worth(c, job) + t.fitWeight * (fit[c.scheme] ?: 0f) + noise(key)
 
             val outside = (1..t.candidates).map { candidate(CoachRole.HEAD_COACH, draw(offFit, team.offenseScheme)) }
+            val outsideKey = outside.withIndex().associate { (i, c) -> c.id to "outside|$i" }
+            // Shortlists are drawn and read as if nobody were reserved, and the
+            // user's men are passed over only at the choice: so an agreement
+            // changes a club's spring only if it wanted the man the user took.
             val outOfWork = coaches.values
-                .filter { it.id !in employed && it.id !in reserved && it.role == CoachRole.HEAD_COACH }
-                .shuffled(hireRng).take(t.rehireLook)
+                .filter { it.id !in employed && it.role == CoachRole.HEAD_COACH }
+                .sortedBy { lot(it) }.take(t.rehireLook)
             // Other clubs' coordinators: a club cannot stop a man taking a
             // head coaching job (the NFL's anti-tampering policy - a promotion
             // is never blocked), so a few of them are on every list.
             val promotable = clubs.values.filter { it.id != team.id }.flatMap { club ->
                 listOf(StaffJob.OFFENCE to club.staff.offCoordinator, StaffJob.DEFENCE to club.staff.defCoordinator)
                     .mapNotNull { (job, id) -> coaches[id]?.let { Triple(club.id, job, it) } }
-            }.filter { (_, _, c) -> c.id !in reserved && c.id !in newThisSpring }
-                .shuffled(hireRng).take(t.poachLook)
+            }.filter { (_, _, c) -> c.id !in newThisSpring }
+                .sortedBy { lot(it.third) }.take(t.poachLook)
             val fromClub = promotable.associate { (club, job, c) -> c.id to (club to job) }
             // A head coach from the defense is read against the defense his scheme would run.
             fun defensive(c: Coach) = SchemeCatalog[c.scheme].side == SchemeSide.DEFENSE
-            val chosen = (outside + outOfWork + promotable.map { it.third }).maxBy {
-                read(it, StaffJob.HEAD, if (defensive(it)) defFit else offFit) - if (it in outOfWork) t.stigma else 0f
-            }
+            val chosen = (outside + outOfWork + promotable.map { it.third })
+                .map { it to read(it, StaffJob.HEAD, if (defensive(it)) defFit else offFit, outsideKey[it.id] ?: "coach|${it.id.v}") -
+                    if (it in outOfWork) t.stigma else 0f }
+                .filter { it.first.id !in reserved }
+                .maxBy { it.second }.first
             var head = chosen.copy(contractYearsLeft = t.newContractYears, hotSeat = 0)
             fromClub[chosen.id]?.let { (sourceId, job) ->
                 // Promoted from another club's staff: a head coach's levers now,
@@ -202,8 +215,8 @@ object CoachingCarousel {
             // as many: a side that took whoever came would fall behind the
             // other's game plans, dynasty by dynasty.
             fun best(role: CoachRole, job: StaffJob, fit: Map<String, Float>, scheme: () -> String) =
-                (1..t.coordinatorCandidates).map { candidate(role, scheme()) }
-                    .maxBy { read(it, job, fit) }
+                (1..t.coordinatorCandidates).map { i -> candidate(role, scheme()) to i }
+                    .maxBy { (c, i) -> read(c, job, fit, "$role|$i") }.first
                     .copy(tree = head.id)
             val (oc, dc) = if (!defensive(head)) {
                 best(CoachRole.OFFENSIVE_COORDINATOR, StaffJob.OFFENCE, offFit) { head.scheme } to

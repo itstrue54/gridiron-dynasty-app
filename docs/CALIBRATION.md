@@ -747,6 +747,8 @@ Then add the realistic catch on top. This is a structural change to how plays re
 
 **Talent, main against shipped** (six leagues, after ten seasons; this probe's own count, so compare it with itself): 15.8 against 16.5 players at 90+ a league, and 77.47 against 77.56 for the mean of each club's top 22.
 
+**Re-measured after the shortlists became per-man draws** (the fix that keeps an agreement the user made from reshuffling every club's spring): 55% of new head coaches are promoted coordinators (3.17 a spring), coordinators' game plans 74.7 / 74.3, head coaches' development 69.0, year-to-year correlation of wins 0.32, coaching changes 5.75 a spring. Talent: 13.3 players at 90+ a league (15.8 on main, a count that moves by a few between runs), and a top-22 mean of 77.33 (77.47). The user's club lost a coordinator 11 times in 60 offseasons.
+
 **Result:** the head coaching market looks like the NFL's, the two sides of the ball stay level, and the league's talent doesn't move. Head coaches develop players better, because a coordinator is hired on ratings he already has rather than drawn below the mean; each player's coaching blends that with his position coach's, which holds where it was. The user's club lost a coordinator to a promotion 8 times in 60 offseasons. The per-game bands are measured before any carousel and don't move.
 
 ## Still unmeasured

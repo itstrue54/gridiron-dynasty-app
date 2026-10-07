@@ -2453,8 +2453,9 @@ nothing else moves more than 0.006.
 - **Position coach to coordinator is left out** for now. The rules allow it, but it would add a second level of cascade to every promotion, for a smaller effect.
 
 **Consequences.**
-- **Where head coaches come from:** 59% of new head coaches are promoted coordinators, against about 60-70% in recent NFL cycles, with a club looking at nine coordinators (CALIBRATION.md pass 17). Their old clubs replace them from the same candidates as everyone, so coordinators keep their game plans level across the league.
-- **Head coaches are better developers** (71 against 67 after ten seasons), because a coordinator is chosen on ratings he has, not drawn below the mean. The league's talent barely moves: 16.5 players at 90+ a league against 15.8.
+- **Where head coaches come from:** 55% of new head coaches are promoted coordinators, against about 60-70% in recent NFL cycles, with a club looking at nine coordinators (CALIBRATION.md pass 17). Their old clubs replace them from the same candidates as everyone, so coordinators keep their game plans level across the league.
+- **Head coaches are better developers** (69 against 67 after ten seasons), because a coordinator is chosen on ratings he has, not drawn below the mean. The league's talent barely moves: a top-22 mean of 77.33 against 77.47.
+- **A club's shortlist is drawn man by man** (this club, this coach), not shuffled from a shared stream. One man more or less on the market then changes a club's choice only if he is the man it wanted. Without that, letting a head coach go reshuffled every club's spring, and an agreement the user made for a job a promotion would open could vanish when the promotion did.
 - **The user can lose a coordinator** he didn't choose to, with no way to refuse, as in the NFL. The window says so before the offseason starts.
 - **Saves:** an agreement can carry a fresh candidate, a change can name the club its new coach was promoted from, and the report lists promotions. All read as before from an old save. Save step 46, version 47.
 
