@@ -230,6 +230,7 @@ class StaffingTest {
         // And the offseason makes it so: what the window showed is what happens.
         val (next, report) = OffseasonEngine.run(agreed)
         assertEquals(pick.id, next.league.team(user).staff.headCoach)
+        assertTrue(next.pendingHires.isEmpty(), "a finished offseason leaves no agreement behind")
         assertEquals(OffseasonEngine.springCarousel(agreed).changes, report.coachingChanges,
             "the carousel the window shows, after the user's moves, is the offseason's")
         assertEquals(spring.changes.map { it.fired }, report.coachingChanges.map { it.fired },
@@ -354,6 +355,7 @@ class StaffingTest {
 
         val (next, report) = OffseasonEngine.run(agreed)
         assertEquals(pick.name, next.league.team(user).gm.name)
+        assertEquals(null, next.pendingGm, "a finished offseason leaves no agreement behind")
         assertTrue(report.gmChanges.any { it.fired == pick.name }, "his club let him go")
         assertEquals(1, next.league.teams.count { it.gm.name == pick.name }, "no owner took him first")
     }

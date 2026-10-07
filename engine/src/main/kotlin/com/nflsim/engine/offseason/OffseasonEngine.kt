@@ -742,6 +742,10 @@ object OffseasonEngine {
             playoffs = emptyList(),
             champion = null,
             lastGame = null,
+            // The spring's agreements are kept or broken by now: a stale one
+            // would hold a job the user had already filled.
+            pendingHires = emptyList(),
+            pendingGm = null,
         )
         return next to report
     }

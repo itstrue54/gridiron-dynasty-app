@@ -347,6 +347,8 @@ starts, straight after the carousel. Until then the carousel keeps him off
 every other club's shortlist, so nobody takes him first, and the user can
 change his mind. Who the league lets go never depends on the user; whom it
 hires can, since a coach the user lets go is one more man out of work.
+A finished offseason clears every agreement, kept or not (save version 50
+clears any an older offseason left behind).
 
 **Age and retirement (save version 48).** Every coach is a year older
 each spring, in a job or out of one, and a man who stays in his job is a
