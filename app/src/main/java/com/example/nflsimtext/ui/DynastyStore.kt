@@ -706,14 +706,21 @@ class DynastyStore(private val saveDir: File) {
     }
 
     suspend fun fireGm() {
-        val name = dynasty?.team?.gm?.name
-        staffMove({ "${name ?: "He"} is gone. The general manager's chair is open." }) {
+        val d = dynasty ?: return
+        val agreed = d.pendingGm
+        val name = agreed ?: d.team.gm.name
+        staffMove({
+            if (agreed != null) "$name won't be taking the chair. It is open." else "$name is gone. The general manager's chair is open."
+        }) {
             com.nflsim.engine.offseason.Staffing.fireGm(it)
         }
     }
 
     suspend fun hireGm(gm: com.nflsim.engine.model.GmProfile) =
-        staffMove({ "${gm.name} is your general manager." }) { com.nflsim.engine.offseason.Staffing.hireGm(it, gm) }
+        staffMove({ next ->
+            if (next.pendingGm == gm.name) "${gm.name} will be your general manager when the offseason starts."
+            else "${gm.name} is your general manager."
+        }) { com.nflsim.engine.offseason.Staffing.hireGm(it, gm) }
 
     /** Hands the in-season roster moves to the front office, or takes them back. */
     suspend fun setFrontOfficeRoster(on: Boolean) {

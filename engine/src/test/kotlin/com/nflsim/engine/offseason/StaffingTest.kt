@@ -332,6 +332,32 @@ class StaffingTest {
         assertEquals(Staffing.VACANT, promoted.team.staff.offCoordinator, "and his old job is open")
     }
 
+    /** The played spring after a year in which every club lost: owners whose clubs lost again fire their men. */
+    private fun twoBadYears(): Dynasty = played.copy(lastOffseason = OffseasonReport(
+        year = 2025, moneyByTeam = played.league.teams.associate { it.id.v to TeamMoney(winPermille = 200) }))
+
+    @Test
+    fun `the general manager pool has the men the owners let go this spring, and hiring one waits for the offseason`() {
+        val d = Staffing.fireGm(twoBadYears())
+        val market = Staffing.gmMarket(d)
+        val pool = Staffing.gmPool(d, market)
+        val letGo = pool.filter { Staffing.gmLeaving(d, it) != null }
+        assertTrue(letGo.isNotEmpty(), "owners of clubs that lost twice let their men go")
+        val pick = letGo.first()
+        val club = Staffing.gmLeaving(d, pick)!!
+        val agreed = Staffing.hireGm(d, pick, market)
+        assertEquals(pick.name, agreed.pendingGm)
+        assertTrue(agreed.team.gm.name.isBlank(), "he works for the ${club.name} until they let him go")
+        assertEquals(pick.name, Staffing.pendingGm(agreed)?.name)
+        assertTrue(Staffing.gmPool(agreed).none { it.name == pick.name }, "he is not offered twice")
+        assertTrue(Staffing.fireGm(agreed).pendingGm == null, "changing his mind undoes it")
+
+        val (next, report) = OffseasonEngine.run(agreed)
+        assertEquals(pick.name, next.league.team(user).gm.name)
+        assertTrue(report.gmChanges.any { it.fired == pick.name }, "his club let him go")
+        assertEquals(1, next.league.teams.count { it.gm.name == pick.name }, "no owner took him first")
+    }
+
     @Test
     fun `the offseason fills the jobs the user left open before anything reads the staff`() {
         var d = played
