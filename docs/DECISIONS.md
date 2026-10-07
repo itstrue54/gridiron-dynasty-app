@@ -2410,3 +2410,19 @@ nothing else moves more than 0.006.
 - **Rule 7 is unchanged for every other screen.** AGENTS.md notes the exception.
 - **Saves:** a dynasty saved before this reads with editing off. Save step 41, version 42.
 
+
+## ADR-0xx — The user's staff is the user's, in a spring window
+
+**Context.** The user asked to hire and fire coaches and general managers, from a pool. The carousel already fired and hired head coaches for every club, the user's included, and every club's general manager was fixed for the life of the league. The offseason runs as a deterministic chain whose pauses live in memory (SPEC 7), so anything the user decides has to be saved before that chain starts, or replayed into it.
+
+**Decision.**
+- **A window, not a pause:** the user changes the staff after the last playoff game and before starting the offseason. Every change is saved as it is made, so the offseason's deterministic re-runs start from the staff the user chose. The carousel runs after the window, so the pool holds the coaches fired in earlier springs, anyone the user lets go, and fresh candidates. It doesn't hold the ones the league fires this spring. Running the carousel at the end of the season instead would have moved the awards and the cap carry-forward, which read the league as the season finished.
+- **Nobody else fires the user's coaches.** The carousel still keeps his head coach's seat, as advice, and extends a contract that runs out.
+- **Fresh candidates are virtual:** drawn from the seed, the year and the job, with ids of 0 or below, and they enter the league only when hired. Putting them in the league every spring would have filled the save with men nobody hired, and would have given the carousel's rehire look a different pool.
+- **Fire, then hire.** Hiring needs an open job. A job left open is filled by the front office when the offseason starts, keeping the club's schemes where it can.
+- **Owners fire general managers too** (`GmCarousel`), on two losing seasons after two in the chair, and hire by lot. A general manager's style isn't a rating, so there's no "best" one to hire. Hiring by fit would have drifted the whole league to one style.
+
+**Consequences.**
+- **The user's club plays differently** in any run that reaches an offseason: its coach is never fired. AI clubs' general managers now change, which moves the money and roster metrics a little; the game's calibration bands hold (commit message).
+- **Coordinators' and the special teams coordinator's ratings still do nothing in the sim.** The pool ranks coordinators by ratings overall, but what they bring is their scheme and tendencies. Making those ratings count is a separate change.
+- **Saves:** `League.gmPool` and `GmProfile.since` read as empty and 0 from an old save, which is true of it. Save step 42, version 43.

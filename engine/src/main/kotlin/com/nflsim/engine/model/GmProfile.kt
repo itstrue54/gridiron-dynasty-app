@@ -28,6 +28,8 @@ data class GmProfile(
     val loyaltyToOwnPlayers: Float = 0.5f,
     /** Willingness to carry dead money and bet on a bounce-back. */
     val riskTolerance: Float = 0.5f,
+    /** The season he took the chair: 0 for the general managers a league starts with. */
+    val since: Int = 0,
 ) {
     /** Share of a team's space it will commit in one offseason. */
     val spendShare: Float get() = 0.62f + winNowVsFuture * 0.36f

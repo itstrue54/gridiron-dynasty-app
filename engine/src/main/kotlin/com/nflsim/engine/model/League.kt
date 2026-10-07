@@ -26,6 +26,8 @@ data class League(
     val transactions: List<Transaction> = emptyList(),
     /** What the league and its conferences are called (SPEC 9.4). */
     val names: LeagueNames = LeagueNames(),
+    /** General managers out of work, newest first, for clubs to hire (offseason.Staffing). */
+    val gmPool: List<GmProfile> = emptyList(),
 ) {
     /** The league with a move on the wire. */
     fun logged(vararg moves: Transaction): League = copy(transactions = transactions + moves)

@@ -127,6 +127,8 @@ data class OffseasonReport(
     val transitionKept: Int = 0,
     /** SPEC 7 phase 2: head coaches replaced. */
     val coachingChanges: List<CoachingChange> = emptyList(),
+    /** SPEC 7 phase 2: general managers replaced. */
+    val gmChanges: List<GmChange> = emptyList(),
     /** Every free agent signed, not just the twenty the news screen lists. */
     val signingCount: Int = 0,
     /** What players told their clubs they wanted. */
@@ -236,13 +238,18 @@ object OffseasonEngine {
 
         // SPEC 7 phase 2, ahead of everything that reads a staff or a scheme.
         // The awards (phase 1) read the season as it finished - see below.
+        // The jobs the user left open in the spring window are filled first,
+        // so the carousel and everything after it see a full staff.
+        val staffed = Staffing.fillVacancies(season.league, season.userTeamId, oldYear)
         val carousel = CoachingCarousel.run(
-            season.league, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
-            previousWinPct, rng.split("carousel|$newYear"))
+            staffed, winPct, season.playoffs.flatMap { listOf(it.home.v, it.away.v) }.toSet(),
+            previousWinPct, rng.split("carousel|$newYear"), season.userTeamId)
+        val owners = GmCarousel.run(
+            carousel.league, winPct, previousWinPct, season.userTeamId, newYear, rng.split("gms|$newYear"))
         // Last year's unused room joins next year's cap (SPEC 8.1). It is
         // read from the books as the season closed and written before any
         // phase counts money, so every cap check this spring includes it.
-        val dynasty = season.copy(league = CapManagement.carryForward(season.league, carousel.league))
+        val dynasty = season.copy(league = CapManagement.carryForward(season.league, owners.league))
         val league = dynasty.league
 
         // The league's schemes, each carrying its scheme-fit tuning, built once.
@@ -357,7 +364,7 @@ object OffseasonEngine {
             ctx = ctx,
             state = state,
             rng = rng,
-            carousel = carousel,
+            carousel = carousel.copy(league = owners.league, gmChanges = owners.changes),
             awards = awards,
             previousTeam = previousTeam,
             deadMoney = deadMoney,
@@ -609,6 +616,7 @@ object OffseasonEngine {
             tags = state.tags,
             transitionKept = state.transitionKept,
             coachingChanges = carousel.changes,
+            gmChanges = carousel.gmChanges,
             year = newYear,
             retirementCount = retirements.size,
             retirements = retirements.sortedByDescending { it.overall }.take(20),

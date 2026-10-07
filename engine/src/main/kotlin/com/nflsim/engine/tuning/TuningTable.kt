@@ -1246,6 +1246,20 @@ data class TuningTable(
         val stigma: Float = 6f,
         /** Coaches out of work leave the pool at this age. */
         val retireAge: Int = 68,
+        /** Fresh candidates for each job the user's club can fill in the spring, and for its general manager (offseason.Staffing). */
+        val poolCandidates: Int = 6,
+        /**
+         * A club's owner fires its general manager after two losing seasons:
+         * this one under the first figure and the last under the second, once
+         * he has had this many seasons in the chair.
+         */
+        val gmFireWinPct: Float = 0.35f,
+        val gmFirePreviousWinPct: Float = 0.45f,
+        val gmTenure: Int = 2,
+        /** Outside candidates and general managers out of work the owner looks at, and how many out of work the league remembers. */
+        val gmCandidates: Int = 3,
+        val gmRehireLook: Int = 2,
+        val gmPoolLimit: Int = 24,
     )
 
     /** What a club reads as a need at a position (offseason.TeamNeeds), for the draft, the market, extensions and trades. */

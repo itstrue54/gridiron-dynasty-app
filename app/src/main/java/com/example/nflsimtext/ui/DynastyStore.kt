@@ -652,6 +652,49 @@ class DynastyStore(private val saveDir: File) {
         message = "${next.league.playersById[com.nflsim.engine.model.PlayerId(playerId)]?.name ?: "He"} is saved as you edited him."
     }
 
+    /**
+     * Whether the user can change his staff now: the season is over and the
+     * offseason has not started (offseason.Staffing). Once it has, the pauses
+     * hold a league built from the staff as it was.
+     */
+    val staffingOpen: Boolean get() = dynasty?.let { com.nflsim.engine.offseason.Staffing.isOpen(it) } == true &&
+        contracts == null && freeAgency == null && draftRoom == null && cutdown == null
+
+    /** A staff move, saved, with what to say about it. */
+    private suspend fun staffMove(say: (Dynasty) -> String, move: (Dynasty) -> Dynasty) {
+        val current = dynasty ?: return
+        if (!staffingOpen) return
+        val next = try { move(current) } catch (e: IllegalArgumentException) {
+            message = e.message ?: "That move is not open."
+            return
+        }
+        dynasty = next
+        persist(next)
+        message = say(next)
+    }
+
+    suspend fun fireCoach(job: com.nflsim.engine.offseason.StaffJob) {
+        val name = dynasty?.let { d -> d.league.coaches[com.nflsim.engine.offseason.Staffing.holder(d.team.staff, job)]?.name }
+        staffMove({ "${name ?: "He"} is gone. The ${job.label.lowercase()} job is open." }) {
+            com.nflsim.engine.offseason.Staffing.fire(it, job)
+        }
+    }
+
+    suspend fun hireCoach(job: com.nflsim.engine.offseason.StaffJob, coach: com.nflsim.engine.model.Coach) =
+        staffMove({ "${coach.name} is your ${job.label.lowercase()}." }) {
+            com.nflsim.engine.offseason.Staffing.hire(it, job, coach)
+        }
+
+    suspend fun fireGm() {
+        val name = dynasty?.team?.gm?.name
+        staffMove({ "${name ?: "He"} is gone. The general manager's chair is open." }) {
+            com.nflsim.engine.offseason.Staffing.fireGm(it)
+        }
+    }
+
+    suspend fun hireGm(gm: com.nflsim.engine.model.GmProfile) =
+        staffMove({ "${gm.name} is your general manager." }) { com.nflsim.engine.offseason.Staffing.hireGm(it, gm) }
+
     /** Hands the in-season roster moves to the front office, or takes them back. */
     suspend fun setFrontOfficeRoster(on: Boolean) {
         val current = dynasty ?: return

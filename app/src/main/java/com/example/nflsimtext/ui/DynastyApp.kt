@@ -68,6 +68,8 @@ enum class Tab(val label: String) {
     HISTORY("History"),
     /** SPEC 4.7: who coaches the club, behind the Hub. */
     STAFF("Staff"),
+    /** SPEC 4.7: one job on the staff, and in the spring its pool, behind Staff. */
+    STAFF_JOB("Staff job"),
     /** SPEC 7: the market between markets, behind the Hub. */
     MARKET("Free agents"),
     /** SPEC 4.7: the transactions wire, behind the Hub. */
@@ -115,6 +117,8 @@ fun DynastyApp(
     // The player being edited, and the screen the editor goes back to.
     var editing by remember { mutableStateOf<Int?>(null) }
     var editFrom by remember { mutableStateOf(Tab.EDIT_FIND) }
+    // The staff job open behind Staff; null is the general manager's chair.
+    var staffJob by remember { mutableStateOf<com.nflsim.engine.offseason.StaffJob?>(null) }
     // A game opened from the schedule; null is the one just played.
     var boxGame by remember { mutableStateOf<com.nflsim.engine.model.ArchivedGame?>(null) }
     val scope = rememberCoroutineScope()
@@ -136,6 +140,7 @@ fun DynastyApp(
             Tab.TRADES -> if (store.draftRoom != null) Tab.DRAFT else Tab.HUB
             Tab.TUNING, Tab.GALLERY, Tab.SAVES, Tab.EDIT_FIND, Tab.ABOUT -> Tab.SETTINGS
             Tab.EDIT_PLAYER -> editFrom
+            Tab.STAFF_JOB -> Tab.STAFF
             else -> Tab.HUB
         }
     }
@@ -179,7 +184,16 @@ fun DynastyApp(
                     Tab.ABOUT -> AboutScreen { tab = Tab.SETTINGS }
                     Tab.SCOUTING -> ScoutingScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.HISTORY -> HistoryScreen(dynasty) { tab = Tab.HUB }
-                    Tab.STAFF -> StaffScreen(dynasty) { tab = Tab.HUB }
+                    Tab.STAFF -> {
+                        // Once the offseason is under way, its first step has
+                        // filled the jobs left open (offseason.Staffing): show
+                        // the staff as that run has it, not the save's vacancies.
+                        val shown = if (dynasty.phase == com.nflsim.engine.season.DynastyPhase.OFFSEASON && !store.staffingOpen)
+                            dynasty.copy(league = com.nflsim.engine.offseason.Staffing.fillVacancies(dynasty.league, dynasty.userTeamId, dynasty.year))
+                        else dynasty
+                        StaffScreen(shown, store.staffingOpen, onJob = { staffJob = it; tab = Tab.STAFF_JOB }) { tab = Tab.HUB }
+                    }
+                    Tab.STAFF_JOB -> StaffJobScreen(dynasty, staffJob, store, scope) { tab = Tab.STAFF }
                     Tab.MARKET -> FreeAgentsScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.WIRE -> TransactionsScreen(dynasty) { tab = Tab.HUB }
                     Tab.NEWS -> NewsScreen(dynasty) { tab = Tab.HUB }
@@ -280,7 +294,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Tab.entries.filter {
                 it !in setOf(
                     Tab.TUNING, Tab.DEPTH, Tab.PLAN, Tab.GALLERY, Tab.PLAYER, Tab.GAME, Tab.LIVE,
-                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
+                    Tab.SCOUTING, Tab.DRAFT, Tab.HISTORY, Tab.STAFF, Tab.STAFF_JOB, Tab.MARKET, Tab.WIRE, Tab.DEMANDS, Tab.SAVES, Tab.CONTRACTS, Tab.FREE_AGENCY, Tab.CUTDOWN,
                     Tab.TRADES, Tab.NEWS, Tab.SETTINGS, Tab.GLOSSARY, Tab.EDIT_FIND, Tab.EDIT_PLAYER, Tab.ABOUT,
                 )
             }.forEach { t ->

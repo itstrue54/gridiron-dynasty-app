@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
  */
 object StaffGenerator {
 
-    private val OFFENSIVE_GROUPS = setOf(
+    val OFFENSIVE_GROUPS = setOf(
         PositionGroup.QB, PositionGroup.RB, PositionGroup.WR, PositionGroup.TE, PositionGroup.OL)
 
     fun generate(
