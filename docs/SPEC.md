@@ -716,7 +716,16 @@ show - are the two together.
   | Rusher | field goal and punt block (9: the front) | jumping, strength, power moves, acceleration |
 
   The returners (`SpecialTeams.returnerFor`) field the ball, so they are
-  kept off their own return blocking and the punt-return jammers.
+  kept off their own return blocking and the punt-return jammers. A club
+  picks its returner - unless it pins one - from its receivers, backs and
+  corners by speed (and elusiveness, on punts), keeping its starters off
+  returns: a starter returns only when better than the backups by
+  `returnerStarterPenalty` (8) for each place he starts above the last
+  starter at his position, so a club's first receiver or corner almost
+  never returns and its third sometimes does. A returner gains on the
+  league's average return by how far his speed is past
+  `kickoffReturnSpeedAnchor` (63) on kickoffs, and his speed and
+  elusiveness past `puntReturnSkillAnchor` (140) on punts.
   Starters are picked for coverage and returns only when better by
   `starterPenalty` (15 points), so the units are mostly backups, as clubs
   keep starters off them; protection and the rush take whoever is best.

@@ -684,6 +684,16 @@ data class TuningTable(
                 com.nflsim.engine.model.RatingId.PASS_BLOCK to 0.50f, com.nflsim.engine.model.RatingId.STRENGTH to 0.30f,
                 com.nflsim.engine.model.RatingId.AWARENESS to 0.20f),
         ),
+        /** Points a starting receiver, back or corner must be better at returning by to return kicks or punts himself, for each place he starts above the last starter at his position. */
+        val returnerStarterPenalty: Float = 8f,
+        /**
+         * A league's average returner: his speed on kickoffs, his speed and
+         * elusiveness together on punts. A returner gains on the league's
+         * average return by how far past them he is. Measured on new leagues
+         * once starters gave way to backups (63 and 140; they were 70 and 150).
+         */
+        val kickoffReturnSpeedAnchor: Float = 63f,
+        val puntReturnSkillAnchor: Float = 140f,
         /** Points a starter must be better by to be picked for coverage or returns. */
         val starterPenalty: Float = 15f,
         /** Points a core special teamer the club pinned is lifted by, so he always plays. */
@@ -697,7 +707,7 @@ data class TuningTable(
         val kickReturnAnchor: Float = 66.5f,
         val gunnerAnchor: Float = 68.9f,
         val puntCoverageAnchor: Float = 73.6f,
-        val jammerAnchor: Float = 73.3f,
+        val jammerAnchor: Float = 75.3f,
         val puntReturnAnchor: Float = 69.1f,
         val protectionAnchor: Float = 72.9f,
         val rushAnchor: Float = 74.5f,

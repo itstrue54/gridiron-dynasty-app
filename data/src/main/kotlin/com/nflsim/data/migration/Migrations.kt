@@ -111,6 +111,8 @@ object Migrations {
         Step(54, "special teams play as units read from their men's ratings (SPEC 5.10); nothing to move") { it },
         // Seasons already played had no returns or coverage tackles counted; the counting starts with the next game.
         Step(55, "box scores count returns and coverage tackles (SPEC 5.10); nothing to move") { it },
+        // A save's tuning takes the new defaults; its pinned returners stay pinned.
+        Step(56, "clubs keep their starters off returns (SPEC 5.10); nothing to move") { it },
     )
 
     /**

@@ -46,6 +46,25 @@ class SpecialTeamsUnitsTest {
     }
 
     @Test
+    fun `a club's first receiver returns kicks only when far quicker than its backups`() {
+        val receivers = team.offDepth.at(Position.WR)
+        val first = receivers.first(); val backup = receivers.last()
+        fun withSpeeds(top: Int, spare: Int): DepthChart {
+            val roster = team.roster.map {
+                when (it.id) {
+                    first.id -> it.copy(ratings = it.ratings.with(RatingId.SPEED to top))
+                    backup.id -> it.copy(ratings = it.ratings.with(RatingId.SPEED to spare))
+                    else -> it.copy(ratings = it.ratings.with(RatingId.SPEED to minOf(it.ratings[RatingId.SPEED], 60)))
+                }
+            }
+            return DepthChart.auto(roster, team.offScheme)
+        }
+        // Ten points quicker isn't enough to risk him; thirty is.
+        assertEquals(backup.id, SpecialTeams.returnerFor(withSpeeds(95, 85), team.offScheme, st = st)?.id)
+        assertEquals(first.id, SpecialTeams.returnerFor(withSpeeds(99, 70), team.offScheme, st = st)?.id)
+    }
+
+    @Test
     fun `return units are mostly backups`() {
         val starters = (team.offDepth.at(Position.WR).take(3) + team.offDepth.at(Position.RB).take(1) +
             team.defDepth.at(Position.CB).take(3) + team.defDepth.at(Position.LB).take(2) + team.defDepth.at(Position.S).take(2)).toSet()

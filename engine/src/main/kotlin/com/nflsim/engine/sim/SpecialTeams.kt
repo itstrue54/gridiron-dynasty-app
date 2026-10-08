@@ -151,7 +151,7 @@ object SpecialTeams {
         if (returner != null && rng.nextFloat() < returned) {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
             val elusive = rate(returner, RatingId.ELUSIVENESS, returnScheme)
-            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill + edge +
+            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - st.puntReturnSkillAnchor) * st.puntReturnSkill + edge +
                 matchup.returnEdge * st.puntUnitYards)
                 .roundToInt().coerceIn(0, 60)
         }
@@ -202,7 +202,7 @@ object SpecialTeams {
         val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
-            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance) + edge +
+            ((speed - st.kickoffReturnSpeedAnchor) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance) + edge +
                 matchup.returnEdge * st.kickoffUnitYards).roundToInt()
         }
         val spot = (base + bonus).coerceIn(4, 60)
@@ -217,9 +217,33 @@ object SpecialTeams {
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)
 
-    /** The returner the club pinned, else the fastest skill player available. */
-    fun returnerFor(depth: DepthChart, scheme: Scheme, punt: Boolean = false): Player? =
-        (if (punt) depth.puntReturner else depth.kickReturner)
-            ?: (depth.at(Position.WR) + depth.at(Position.RB) + depth.at(Position.CB))
-                .maxByOrNull { rate(it, RatingId.SPEED, scheme) }
+    /**
+     * The returner the club pinned, else the best of its receivers, backs and
+     * corners at the job - speed on a kickoff, speed and elusiveness on a
+     * punt. A starter returns only when he is better than the backups by
+     * `returnerStarterPenalty` for each place he starts above the last
+     * starter at his position: clubs keep starters off returns, where they
+     * take hits they needn't, their best ones most of all.
+     */
+    fun returnerFor(
+        depth: DepthChart,
+        scheme: Scheme,
+        punt: Boolean = false,
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+    ): Player? {
+        (if (punt) depth.puntReturner else depth.kickReturner)?.let { return it }
+        val positions = listOf(Position.WR, Position.RB, Position.CB)
+        // A club's first receiver or corner is the last man it risks on a
+        // return; its third, or its lead back, it might: the margin grows
+        // with how high a man starts.
+        fun penalty(p: Player): Float {
+            val starts = SpecialTeamsUnits.STARTERS[p.position] ?: 0
+            val rank = depth.at(p.position).indexOf(p)
+            return if (rank in 0 until starts) (starts - rank) * st.returnerStarterPenalty else 0f
+        }
+        fun skill(p: Player): Float =
+            if (punt) (rate(p, RatingId.SPEED, scheme) + rate(p, RatingId.ELUSIVENESS, scheme)) / 2f
+            else rate(p, RatingId.SPEED, scheme).toFloat()
+        return positions.flatMap { depth.at(it) }.maxByOrNull { skill(it) - penalty(it) }
+    }
 }
