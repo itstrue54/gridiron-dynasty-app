@@ -2450,7 +2450,7 @@ nothing else moves more than 0.006.
 - **Coordinator to head coach, both ways.** AI clubs look at a few other clubs' coordinators for every head coaching job. The user can promote any club's coordinator, his own included. The user's coordinators can be taken the same way: the rule doesn't care whose staff it is.
 - **No sideways moves.** Nobody hires another club's coordinator as a coordinator, or another club's head coach.
 - **Through the spring market.** The window previews the carousel (`Staffing.market`), so it shows the user who is about to be promoted away and lets him hire a replacement before the offseason starts. That hire is pending, and a pending hire can carry a fresh candidate. The user's own picks are reserved from the carousel, so the user acts first. Without that, an AI club would always win a contest the user can see coming.
-- **Position coach to coordinator** followed later (#135): a club filling a coordinator's job looks at a few other clubs' position coaches as well, and the club that loses one fills his job from the generator's spread, so the cascade stops there.
+- **Position coach to coordinator** followed later (#136): a club filling a coordinator's job looks at a few other clubs' position coaches as well, and the club that loses one fills his job from the generator's spread, so the cascade stops there.
 
 **Consequences.**
 - **Where head coaches come from:** 55% of new head coaches are promoted coordinators, against about 60-70% in recent NFL cycles, with a club looking at nine coordinators (CALIBRATION.md pass 17). Their old clubs replace them from the same candidates as everyone, so coordinators keep their game plans level across the league.
