@@ -16,6 +16,9 @@ class RosterMovesTest {
     private val user = league.teams[0].id
     private val other = league.teams[1].id
 
+    /** The league with nobody on the street, so a club's own squad is all it has to promote from. */
+    private val noStreet = league.copy(players = league.players.filterNot(PracticeSquads::unattached))
+
     private fun hurt(l: League, team: TeamId, weeks: Int): Pair<League, PlayerId> {
         val man = l.roster(team).first { it.position == com.nflsim.engine.model.Position.WR }
         return l.copy(players = l.players.map { if (it.id == man.id) it.copy(injuryWeeks = weeks) else it }) to man.id
@@ -23,7 +26,7 @@ class RosterMovesTest {
 
     @Test
     fun `a long injury goes on reserve and the club fills his place from its squad`() {
-        val (l, id) = hurt(league, other, RosterMoves.IR_WEEKS + 2)
+        val (l, id) = hurt(noStreet, other, RosterMoves.IR_WEEKS + 2)
         val squadBefore = l.team(other).practiceSquad.toSet()
         val after = RosterMoves.afterWeek(l, l.tuning, user)
         assertEquals(PlayerStatus.IR, after.player(id).status)
@@ -32,6 +35,20 @@ class RosterMovesTest {
         assertEquals(1, arrived.size)
         assertTrue(arrived.single() in squadBefore, "the replacement should come off his own squad")
         assertEquals(PracticeSquads.SIZE, after.team(other).practiceSquad.size, "and the squad is topped up")
+    }
+
+    @Test
+    fun `a man on the street better than the club's squad is signed instead`() {
+        // A street receiver with the league's best receiving ratings.
+        val star = league.players.filter { it.position == com.nflsim.engine.model.Position.WR }
+            .maxByOrNull { com.nflsim.engine.ratings.overall(it) }!!
+        val walkOn = Transactions.freeAgents(league).first { it.position == com.nflsim.engine.model.Position.WR }
+        val l0 = league.copy(players = league.players.map { if (it.id == walkOn.id) it.copy(ratings = star.ratings) else it })
+        val (l, _) = hurt(l0, other, RosterMoves.IR_WEEKS + 2)
+        val after = RosterMoves.afterWeek(l, l.tuning, user)
+        val arrived = after.team(other).roster.toSet() - l.team(other).roster.toSet()
+        assertEquals(setOf(walkOn.id), arrived, "the street's man is better than anyone on the squad")
+        assertTrue(walkOn.id !in Transactions.freeAgents(after).map { it.id })
     }
 
     @Test
@@ -74,7 +91,7 @@ class RosterMovesTest {
 
     @Test
     fun `the wire records the reserve move and the signing, dated by the next game`() {
-        val (l, id) = hurt(league, other, RosterMoves.IR_WEEKS + 2)
+        val (l, id) = hurt(noStreet, other, RosterMoves.IR_WEEKS + 2)
         // After week 5 is played there are 13 games left, so the moves come before week 6.
         val after = RosterMoves.afterWeek(l, l.tuning, user, weeksLeft = Schedule.WEEKS - 5)
         val wire = after.transactions

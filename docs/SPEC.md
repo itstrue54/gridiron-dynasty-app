@@ -771,6 +771,13 @@ interface Rng {
   team on his record: he is a free agent his club trains, so any club may
   sign him to its 53. Squads dissolve each spring and are chosen again after
   the cut to 53, the league snaking through them.
+- **The street.** Unsigned men a club can sign in season. Each offseason
+  keeps up to `ai.freeAgentPool` of them (260, about eight a club, what a
+  real wire holds). A new league starts with the same number
+  (`gen.StreetGenerator`), or its first season would have nobody on the
+  street: made as squad camp bodies are, at undrafted-rookie ratings and
+  ages, and spread over the positions as a 53-man roster is. They are drawn
+  from a stream of their own, so rosters and squads are as they were.
 - **The league's clubs** fill a place reserve opens at the position they are
   thinnest - their own squad first, the street second, another club's squad
   only for a man better than both by 8 rating points (`ai.poachClearUpgrade`)
@@ -1231,7 +1238,8 @@ where a formation calls for one. Only a position the game cannot play
 without, left with nobody at all, keeps one generated man, and the import
 says so. A club he lists short of 53 keeps generated men where he left it
 short, so it can dress. Past 53 his extras go to the practice squad, and
-past that to the street. Players on no club are free agents.
+past that to the street. Players on no club are free agents, alongside the
+street every new league is generated with (§6.1).
 
 **Front offices and staffs** (`StaffJson`, `StaffImport`). A club in the
 file may also give its `gm` (a name, and any of the four `GmProfile`

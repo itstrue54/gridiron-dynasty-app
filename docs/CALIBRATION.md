@@ -795,6 +795,25 @@ The first six leagues alone gave 0.32 against 0.27 for the correlation, and the 
 
 The per-game bands are measured on new leagues, whose coaches are generated as before, so they don't move.
 
+## Pass 20 — October 2026 (a new league's street)
+
+**What changed:** a new league is generated with the street an offseason leaves: 260 unsigned men, made as squad camp bodies are and spread over the positions as a 53-man roster is. Before, the first season had nobody on the street. Rosters and squads are generated exactly as before (the same hash over twelve leagues).
+
+**Measured:** twelve leagues (seeds 11-22), the first season, every club's moves made by the league's logic:
+
+| | main, season 1 | **Street, season 1** | main, season 2 |
+|---|---|---|---|
+| Points per team per game | 21.89 | 22.02 | 22.14 |
+| Mean of each club's top 22 at season end | 80.590 | 80.589 | - |
+| Signed off the street | 308 | 1,967 | 418 |
+| Promoted from the club's own squad | 1,827 | 552 | 1,313 |
+| Signed off another club's squad | 414 | 87 | 774 |
+| Mean overall of the men signed or promoted | 59.9 | 59.1 | - |
+
+**Why season one signs off the street:** a new league's squads are camp bodies at the street's own level (median 55, best 60 for both), so the best of 260 street men at a position usually beats the best of a club's 16. From the second season, squads are chosen from camp cuts (median 59) and win instead. The street itself matches the one an offseason leaves (median 55 for both; 90th percentile 60 against 58).
+
+**Result:** who fills a reserve place in season one changes, not how good he is: the men signed are 0.8 weaker on average, and season-end strength and scoring hold. No band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

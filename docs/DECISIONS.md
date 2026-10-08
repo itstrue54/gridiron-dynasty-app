@@ -2484,3 +2484,16 @@ nothing else moves more than 0.006.
 
 **Consequences.** Measured in CALIBRATION.md pass 19. Save step 50, version 51.
 
+
+## ADR-0xx — A new league is generated with a street
+
+**Context.** A phone pass found Free agents empty all through a new dynasty's first season. The generator made rosters and practice squads but nobody unsigned; the street only appeared once an offseason had left its undrafted rookies and unsigned veterans on it. The league's clubs fill reserve places "own squad first, the street second" (SPEC 6.1), so in season one they had only squads, and so did the user.
+
+**Decision.**
+- **Generate the street an offseason would leave:** `ai.freeAgentPool` men (260), as a new league's last step.
+- **Made as squad camp bodies are** (`squadCampOverall`, `squadCampSpread`, `squadCampAgeBias`), which is what the street holds after an offseason: undrafted-rookie ratings and ages. No new tuning fields.
+- **Positions follow the 53-man template,** not the offseason street's mix, which leans on whatever the draft class over-produced. A club that needs a long snapper in week 3 can find one.
+- **After the squads, from a stream of their own,** so every roster and practice squad is exactly what the seed made before. Squads are not re-chosen from the new street: that would change every new league's squads for no gain.
+- **Existing saves are left alone.** A save still in its first season gets its street at its first offseason, as before; no migration adds players to a save.
+
+**Consequences.** A new league holds 260 more players (about 40 KB). Clubs' first-season reserve signings come off the street when its man is the better one. The per-game bands play generated rosters, so they don't move; the first season's effects are in the PR.
