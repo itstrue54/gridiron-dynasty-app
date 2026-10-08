@@ -285,7 +285,7 @@ fun PlayerCardScreen(
                 var picked by remember(player.id) { mutableStateOf(advice.pick ?: options[1.coerceAtMost(options.lastIndex)]) }
                 SituationBlock("Restructure", meta = "Cap now, cap later") {
                     Text(
-                        "Best: ${if (advice.pick == null) "leave it" else advice.pick!!.label.lowercase() + " of what can move"}",
+                        restructureAdvice(advice.pick?.label),
                         style = NdTheme.type.data, color = c.chalk,
                     )
                     Text(advice.why, style = NdTheme.type.caption, color = c.chalkDim)
@@ -377,6 +377,10 @@ private fun bio(player: Player, dynasty: Dynasty): String = buildString {
  * $840k. Read as dollars, a $15M quarterback's deal showed on his card as
  * "$15k against the cap", which is what it said until this was fixed.
  */
+/** The restructure the front office would make, by its label ("Half"), or none. */
+internal fun restructureAdvice(label: String?): String =
+    "Best: " + if (label == null) "leave it" else "restructure ${label.lowercase()}"
+
 private fun money(thousands: Int): String = when {
     thousands >= 1_000 -> "$%.1fM".format(thousands / 1_000.0)
     else -> "$%dk".format(thousands)

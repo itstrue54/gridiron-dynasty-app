@@ -111,8 +111,7 @@ fun FreeAgentsScreen(
                 situation = if (full) Situation.RED_ZONE else Situation.NORMAL,
             ) {
                 Text(
-                    "${money(space)} under the cap. A man signed now costs ${money(cost)}" +
-                        if (cost < Transactions.askingPrice) ", the minimum for the weeks left." else ", the minimum.",
+                    roomLine(space, cost, prorated = cost < Transactions.askingPrice),
                     style = NdTheme.type.data, color = c.chalk,
                 )
                 Text(
@@ -146,6 +145,8 @@ fun FreeAgentsScreen(
             SituationBlock("On the street", meta = "${available.size} shown") {
                 PlayerTable(
                     available, dynasty, ::read, ::fit,
+                    empty = if (position == ALL) "Nobody is on the street right now. Promote a man off your " +
+                        "practice squad, or sign one off another club's." else NOBODY_AT_POSITION,
                     onClick = { chosen = Choice(Kind.STREET, it) },
                 )
                 Hint("Nobody has watched these men closely, so the read is a wide range.")
@@ -294,10 +295,11 @@ private fun PlayerTable(
     fit: (Player) -> String,
     club: Map<Int, String>? = null,
     cap: Boolean = false,
+    empty: String = NOBODY_AT_POSITION,
     onClick: (Int) -> Unit,
 ) {
     if (players.isEmpty()) {
-        Hint("Nobody here at this position.")
+        Hint(empty)
         return
     }
     DataTable(
@@ -333,6 +335,14 @@ private fun Hint(text: String) = Text(
 
 private enum class Kind { STREET, POACH, SQUAD, ROSTER }
 private data class Choice(val kind: Kind, val id: Int)
+
+private const val NOBODY_AT_POSITION = "Nobody here at this position."
+
+/** The club's cap room and what a signing costs; over the cap, it says so instead of a negative room. */
+internal fun roomLine(space: Int, cost: Int, prorated: Boolean): String =
+    if (space < 0) "${money(-space)} over the cap: you can't sign anyone until you're under."
+    else "${money(space)} under the cap. A man signed now costs ${money(cost)}" +
+        if (prorated) ", the minimum for the weeks left." else ", the minimum."
 
 private fun money(thousands: Int): String =
     if (thousands >= 1_000) "$%.1fM".format(thousands / 1_000.0) else "$%dk".format(thousands)

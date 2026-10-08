@@ -44,4 +44,45 @@ class StaffCopyTest {
         assertEquals("$2.4M", capMoney(2_400))
         assertEquals("$850k", capMoney(850))
     }
+
+    @Test
+    fun `a pool's makeup leaves out the sources with nobody`() {
+        assertEquals("6 new", poolMakeup(0 to "out of work", 0 to "let go this spring", 6 to "new"))
+        assertEquals("1 out of work and 6 new", poolMakeup(1 to "out of work", 0 to "let go this spring", 6 to "new"))
+        assertEquals(
+            "3 out of work, 2 let go this spring, 4 coordinators and 6 new",
+            poolMakeup(3 to "out of work", 2 to "let go this spring", 4 to "coordinators", 6 to "new"),
+        )
+        assertEquals("Nobody", poolMakeup(0 to "out of work", 0 to "new"))
+    }
+
+    @Test
+    fun `a general manager hired in the window starts from next season`() {
+        assertEquals("from 2027", gmTenure(2027, 2026))
+        assertEquals("since 2027", gmTenure(2027, 2027))
+        assertEquals("since 2024", gmTenure(2024, 2027))
+    }
+
+    @Test
+    fun `over the cap, the open places wait for the club to get under`() {
+        assertEquals("Sign or promote somebody in Free agents to fill the spot.", openSpotsAdvice(1, overCap = false))
+        assertEquals(
+            "Get under the cap first, then sign or promote somebody in Free agents to fill the spots.",
+            openSpotsAdvice(2, overCap = true),
+        )
+    }
+
+    @Test
+    fun `cap room reads as room, or as how far over the club is`() {
+        assertEquals("$4.2M over the cap: you can't sign anyone until you're under.", roomLine(-4_200, 700, prorated = true))
+        assertEquals("$12.5M under the cap. A man signed now costs $700k, the minimum for the weeks left.", roomLine(12_500, 700, prorated = true))
+        assertEquals("$850k under the cap. A man signed now costs $840k, the minimum.", roomLine(850, 840, prorated = false))
+    }
+
+    @Test
+    fun `the restructure advice reads as a move`() {
+        assertEquals("Best: restructure all of it", restructureAdvice("All of it"))
+        assertEquals("Best: restructure half", restructureAdvice("Half"))
+        assertEquals("Best: leave it", restructureAdvice(null))
+    }
 }
