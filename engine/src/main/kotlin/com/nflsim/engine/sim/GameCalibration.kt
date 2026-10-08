@@ -85,7 +85,7 @@ object GameCalibration {
             GameTeam(
                 team = team,
                 // A real game dresses 47 or 48 of the 53 (GameDay).
-                roster = com.nflsim.engine.season.GameDay.actives(league.roster(team.id), offence, defence),
+                roster = com.nflsim.engine.season.GameDay.actives(league.roster(team.id), offence, defence, st = tuning.specialTeams),
                 offScheme = offence,
                 defScheme = defence,
                 aggression = 0.35f + rng.nextFloat() * 0.4f,

@@ -702,6 +702,43 @@ show - are the two together.
 ### 5.10 Special teams, clock, weather
 
 - FG success = f(distance, `kickPower`, `kickAccuracy`, wind, precipitation, altitude, snap/hold quality, pressure/`clutch`).
+- **Special teams units** (`sim.SpecialTeamsUnits`). Each kick is played by
+  units taken from the 48 dressed and not hurt that game, each man picked
+  for what his job needs (`specialTeams.roleWeights`):
+
+  | Role | Unit | Ratings read |
+  |---|---|---|
+  | Coverage | kickoff (10), punt (7) | speed, acceleration, pursuit, tackle, block shedding |
+  | Gunner | punt (2, split wide) | speed, acceleration, release, tackle |
+  | Return blocker | kick return (10), punt return (7) | impact block, run block, strength, speed, awareness |
+  | Jammer | punt return (2) | press, speed, strength |
+  | Protector | field goal and punt (9: linemen, tight ends) | pass block, strength, awareness |
+  | Rusher | field goal and punt block (9: the front) | jumping, strength, power moves, acceleration |
+
+  Starters are picked for coverage and returns only when better by
+  `starterPenalty` (15 points), so the units are mostly backups, as clubs
+  keep starters off them; protection and the rush take whoever is best.
+  Quarterbacks, kickers, punters and snappers play only their own parts.
+  The user may pin core special teamers (`DepthPins.specialTeams`), who play
+  on every coverage and return unit.
+
+  A unit's strength is its men's average in their role. Each kick reads two
+  units against each other, each as points off a new league's average unit
+  (`*Anchor`), so an average matchup plays as before:
+  - **Kickoffs:** the kicker's leg (`KICK_POWER`) moves the touchback chance
+    (`kickoffPowerTouchback` a point); a return moves `kickoffUnitYards` a
+    point of the return blockers over the coverage.
+  - **Punts:** gunners over jammers force fair catches (`puntReturnGunners`
+    a point off the return chance); a return moves `puntUnitYards` a point of
+    blockers over coverage.
+  - **Blocks:** field goals are blocked `fgBlockBase` (1.2%) and punts
+    `puntBlockBase` (0.5%) of the time, more as the rush beats the
+    protection and as the snap and hold slip. A blocked field goal is a miss;
+    a blocked punt is recovered `puntBlockedLoss` yards behind the line.
+  - **Snap and hold:** the snapper's and holder's (the punter's) overall at
+    their positions, averaged, moves field-goal and try accuracy
+    (`snapScale` a point). There is no snapping rating; a snapper's overall
+    reads the ratings his position uses.
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
   Built (`sim.ClockManagement`):
   - Runoff by play type and outcome.
@@ -810,8 +847,11 @@ interface Rng {
   up only when it is short: a position below what a game needs, then an
   eighth lineman, then the position furthest short of a roster's depth
   while it has fewer fit men than it may dress. The user may name his own
-  (`DepthPins.callUp`), who dress and push his deepest men out. The
-  emergency third quarterback is not modelled.
+  (`DepthPins.callUp`), who dress and push his deepest men out. A club
+  also calls up a squad man whose coverage beats the weakest man it would
+  put on kick coverage by `callUpCoverageMargin`, and of two men as deep it
+  scratches the one worth less at his position and on special teams
+  together (§5.10). The emergency third quarterback is not modelled.
 - **Signing in season** costs the minimum prorated by the weeks left, one
   eighteenth a game (CBA Article 26): one year, all base salary, nothing
   guaranteed.
@@ -1348,7 +1388,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Hub** | Week/phase and the next action (play the week, or call the plays yourself, with a line on the difference); needs attention; top news (five lines, no more than two of a kind, one line a man within a kind, the user's club's stories always; "All the news" for the rest); links grouped as Game day, Your club and League; standings snippet. A new dynasty's first hub opens with a welcome card (how a week works, playing vs calling the plays, what needs attention, when trades and the offseason come), shown once per install. Settings (theme, haptics, saves, player editing, tuning, the design gallery, About, the title screen) are their own screen |
 | **Advance** | The single most-used control. Advance week / to next event / to end of phase |
 | **Roster** | Sortable table, scouted ratings with error bars, contract, age, scheme fit badge |
-| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders; game day: who sits, hurt or scratched, who is called up, and the user's own scratches and call-ups (§6.1) |
+| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders; game day: who sits, hurt or scratched, who is called up, and the user's own scratches and call-ups (§6.1); special teams: each unit's men, and the user's core special teamers (§5.10) |
 | **Game plan** | Coordinator tendency sliders, weekly opponent plan, focus practice |
 | **Player card** | Bio, scouted ratings, revealed traits, career stats, contract, injury history, news |
 | **Schedule / Scores** | League-wide, filterable |

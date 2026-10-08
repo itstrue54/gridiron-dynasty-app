@@ -233,12 +233,28 @@ class GameSimulator(
         coachEdge(receiving.stGameplan, tuning.staff.returnYards, tuning.staff) -
             coachEdge(kicking.stGameplan, tuning.staff.returnYards, tuning.staff)
 
+    /**
+     * A club's special teams as they stand: its units from the men dressed and
+     * not hurt today. Built once a game and again only when somebody is hurt,
+     * since the men out are the only thing that changes them.
+     */
+    private fun units(team: GameTeam): SpecialTeamsUnits {
+        val hurt = team.roster.count { it.id.v in out }
+        val cached = unitCache[team.id]
+        if (cached != null && cached.first == hurt) return cached.second
+        return SpecialTeamsUnits.of(team, tuning.specialTeams, out).also { unitCache[team.id] = hurt to it }
+    }
+    private val unitCache = mutableMapOf<com.nflsim.engine.model.TeamId, Pair<Int, SpecialTeamsUnits>>()
+
     private fun openWithKickoff(state: GameState, receiver: Side, rng: Rng): GameState {
         val receiving = teamFor(receiver)
+        val kicking = teamFor(receiver.other())
         val (spot, _) = SpecialTeams.kickoff(
             SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme),
             receiving.offScheme, rng, st = tuning.specialTeams,
-            edge = returnEdge(receiving, teamFor(receiver.other())))
+            edge = returnEdge(receiving, kicking),
+            kicker = SpecialTeams.kickerFor(kicking.offDepth), kickScheme = kicking.offScheme,
+            matchup = KickMatchup(returnEdge = units(receiving).kickReturnEdge(units(kicking), tuning.specialTeams)))
         return state.copy(possession = receiver, yardLine = spot, down = 1, distance = 10)
     }
 
@@ -278,11 +294,20 @@ class GameSimulator(
                     FourthDownChoice.PUNT -> {
                         val punting = teamFor(offense)
                         val receivingTeam = teamFor(offense.other())
+                        val kickers = units(punting)
+                        val returners = units(receivingTeam)
+                        val st = tuning.specialTeams
                         val punt = SpecialTeams.punt(
                             SpecialTeams.punterFor(punting.offDepth),
                             SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
-                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = tuning.specialTeams,
-                            narration = words, edge = returnEdge(receivingTeam, punting))
+                            state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = st,
+                            narration = words, edge = returnEdge(receivingTeam, punting),
+                            matchup = KickMatchup(
+                                returnEdge = returners.puntReturnEdge(kickers, st),
+                                gunnerEdge = returners.gunnerEdge(kickers, st),
+                                blockEdge = returners.blockEdge(kickers, st),
+                                snapEdge = kickers.snapRating - st.snapAnchor,
+                            ))
                         log(state, punt.narrative)
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
                         runClock(tuning.gameFlow.puntClockRunoff)
@@ -295,12 +320,17 @@ class GameSimulator(
                     }
                     FourthDownChoice.FIELD_GOAL -> {
                         val kicking = teamFor(offense)
+                        val kickers = units(kicking)
                         val kick = SpecialTeams.fieldGoal(
                             SpecialTeams.kickerFor(kicking.offDepth),
                             100 - state.yardLine, kicking.offScheme,
                             home.team.stadium.altitudeFt, rng,
                             clutch = state.quarter >= 4 && abs(state.scoreDiff) <= 3, st = tuning.specialTeams,
-                            narration = words, weather = weather, weatherTuning = tuning.weather)
+                            narration = words, weather = weather, weatherTuning = tuning.weather,
+                            matchup = KickMatchup(
+                                blockEdge = units(teamFor(offense.other())).blockEdge(kickers, tuning.specialTeams),
+                                snapEdge = kickers.snapRating - tuning.specialTeams.snapAnchor,
+                            ))
                         log(state, kick.narrative)
                         runClock(tuning.gameFlow.fieldGoalClockRunoff)
                         if (kick.good) {
@@ -361,7 +391,8 @@ class GameSimulator(
                 val kicking = teamFor(offense)
                 val walkOff = otherHadTheBall && state.scoreFor(offense) > state.scoreFor(offense.other())
                 if (!walkOff && SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
-                        kicking.offScheme, rng, st = tuning.specialTeams)) {
+                        kicking.offScheme, rng, st = tuning.specialTeams,
+                        snapEdge = units(kicking).snapRating - tuning.specialTeams.snapAnchor)) {
                     points += 1
                     state = addPoints(state, offense, 1)
                 }

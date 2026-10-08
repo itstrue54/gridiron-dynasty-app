@@ -6,6 +6,9 @@ import com.nflsim.engine.model.Position
 import com.nflsim.engine.model.PositionGroup
 import com.nflsim.engine.ratings.Scheme
 import com.nflsim.engine.ratings.overall
+import com.nflsim.engine.sim.SpecialTeamsUnits
+import com.nflsim.engine.sim.StRole
+import com.nflsim.engine.tuning.TuningTable
 
 /**
  * Game-day inactives (CBA Article 25): a club dresses 47 of its 53, or 48 if
@@ -62,8 +65,9 @@ object GameDay {
         named: List<Int> = emptyList(),
         squad: List<Player> = emptyList(),
         callUp: List<Int> = emptyList(),
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
     ): List<Player> {
-        val up = callUps(eligible, squad, offence, defence, callUp)
+        val up = callUps(eligible, squad, offence, defence, callUp, st)
         val dressed = (eligible + up).toMutableList()
         val byId = dressed.associateBy { it.id.v }
         for (id in named) {
@@ -72,7 +76,7 @@ object GameDay {
             if (man in dressed && man !in up && canSit(dressed, man)) dressed.remove(man)
         }
         while (dressed.size > limit(dressed)) {
-            dressed.remove(sitOrder(dressed, offence, defence, keep = up.toSet()).firstOrNull() ?: break)
+            dressed.remove(sitOrder(dressed, offence, defence, keep = up.toSet(), st = st).firstOrNull() ?: break)
         }
         return dressed
     }
@@ -82,7 +86,9 @@ object GameDay {
      * fit and have call-ups left, then any the club needs - a position below
      * what a game needs, then an eighth lineman, then the position thinnest
      * against all but one of a roster's usual depth there, then the position
-     * furthest short of that depth while it has fewer fit men than it may dress.
+     * furthest short of that depth while it has fewer fit men than it may dress,
+     * then a special teamer clearly better in coverage than the weakest man the
+     * club would put on its kick coverage (`callUpCoverageMargin`).
      */
     fun callUps(
         eligible: List<Player>,
@@ -90,8 +96,10 @@ object GameDay {
         offence: Scheme,
         defence: Scheme,
         named: List<Int> = emptyList(),
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
     ): List<Player> {
         fun rating(p: Player) = overall(p, if (p.position.isOffense) offence else defence)
+        fun cover(p: Player) = SpecialTeamsUnits.value(p, StRole.COVERAGE, if (p.position.isOffense) offence else defence, st)
         val open = squad.filter { it.injuryWeeks == 0 && it.elevations < CALL_UP_LIMIT }.toMutableList()
         val chosen = mutableListOf<Player>()
         fun take(man: Player) { chosen += man; open.remove(man) }
@@ -116,7 +124,13 @@ object GameDay {
                     val depth = DEPTH[p.position] ?: 1
                     (depth - dressed.count { it.position == p.position }).toFloat() / depth * 100 + rating(p) / 100f
                 }
-                else -> null
+                else -> {
+                    // Special teams: the weakest man the club would cover kicks with, against the squad's best cover man.
+                    val weakest = dressed.filter { it.position !in FLOOR }.map(::cover)
+                        .sortedDescending().getOrNull(SpecialTeamsUnits.KICK_COVERAGE - 1)
+                    open.filter { it.position !in FLOOR }.maxByOrNull(::cover)
+                        ?.takeIf { weakest != null && cover(it) >= weakest + st.callUpCoverageMargin }
+                }
             } ?: break
             take(pick)
         }
@@ -140,15 +154,32 @@ object GameDay {
 
     /**
      * The men a club dressing [dressed] would sit, first choice first: the
-     * deepest at his position for how deep a roster runs there, the
-     * lower-rated of two as deep.
+     * deepest at his position for how deep a roster runs there, and of two as
+     * deep the one worth less at his position and on special teams together.
      */
-    fun sitOrder(dressed: List<Player>, offence: Scheme, defence: Scheme, keep: Set<Player> = emptySet()): List<Player> {
-        fun rating(p: Player) = overall(p, if (p.position.isOffense) offence else defence)
+    fun sitOrder(
+        dressed: List<Player>,
+        offence: Scheme,
+        defence: Scheme,
+        keep: Set<Player> = emptySet(),
+        st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+    ): List<Player> {
+        fun scheme(p: Player) = if (p.position.isOffense) offence else defence
+        fun rating(p: Player) = overall(p, scheme(p))
+        // Read once a man: the sort below compares on it many times.
+        val ratings = dressed.associate { it.id.v to rating(it) }
+        val worth = dressed.associate { p ->
+            p.id.v to ratings.getValue(p.id.v) + maxOf(
+                SpecialTeamsUnits.value(p, StRole.COVERAGE, scheme(p), st),
+                SpecialTeamsUnits.value(p, StRole.BLOCKER, scheme(p), st),
+            )
+        }
         val depth = dressed.groupBy { it.position }.values.flatMap { men ->
-            men.sortedByDescending(::rating).mapIndexed { i, p -> p to (i + 1).toFloat() / (DEPTH[p.position] ?: 1) }
+            men.sortedByDescending { ratings.getValue(it.id.v) }
+                .mapIndexed { i, p -> p.id.v to (i + 1).toFloat() / (DEPTH[p.position] ?: 1) }
         }.toMap()
-        return dressed.filter { it !in keep && canSit(dressed, it) }
-            .sortedWith(compareByDescending<Player> { depth.getValue(it) }.thenBy(::rating))
+        val kept = keep.map { it.id.v }.toSet()
+        return dressed.filter { it.id.v !in kept && canSit(dressed, it) }
+            .sortedWith(compareByDescending<Player> { depth.getValue(it.id.v) }.thenBy { worth.getValue(it.id.v) })
     }
 }

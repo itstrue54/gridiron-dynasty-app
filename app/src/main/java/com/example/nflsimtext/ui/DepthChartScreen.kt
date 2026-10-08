@@ -40,6 +40,7 @@ import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.GameDay
 import com.nflsim.engine.season.WeekRunner
 import com.nflsim.engine.sim.DefensiveFront
+import com.nflsim.engine.sim.SpecialTeamsUnits
 import com.nflsim.engine.sim.DepthChart
 import com.nflsim.engine.sim.Personnel
 import com.nflsim.engine.sim.SpecialTeams
@@ -232,6 +233,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                 }
             }
         }
+        item(key = "special-teams") { SpecialTeamsBlock(dynasty, pins, ::save) }
         item(key = "game-day") { GameDayBlock(dynasty, roster, pins, offense, defense, ::save) }
         item { SecondaryButton("Back to the roster", onBack, Modifier.fillMaxWidth()) }
     }
@@ -254,8 +256,9 @@ private fun GameDayBlock(
     val c = NdTheme.colors
     val eligible = WeekRunner.eligible(roster)
     val squad = dynasty.team.practiceSquad.mapNotNull { dynasty.league.playersById[it] }
-    val up = GameDay.callUps(eligible, squad, offense, defense, pins.callUp)
-    val actives = GameDay.actives(eligible, offense, defense, pins.inactive, squad, pins.callUp)
+    val st = dynasty.league.tuning.specialTeams
+    val up = GameDay.callUps(eligible, squad, offense, defense, pins.callUp, st)
+    val actives = GameDay.actives(eligible, offense, defense, pins.inactive, squad, pins.callUp, st)
     val scratched = eligible - actives.toSet()
     val hurt = roster.filter { it !in eligible && !com.nflsim.engine.season.RosterMoves.onReserve(it) }
     var swapping by remember { mutableStateOf<Player?>(null) }
@@ -307,7 +310,7 @@ private fun GameDayBlock(
         }
         swapping?.let { out ->
             // He dresses; one of the men dressed sits in his place.
-            val candidates = GameDay.sitOrder(actives + out, offense, defense, keep = up.toSet())
+            val candidates = GameDay.sitOrder(actives + out, offense, defense, keep = up.toSet(), st = st)
                 .filter { it != out }.take(SWAP_SHOWN)
             Text(
                 "Who sits instead of ${out.name}?",
@@ -373,6 +376,76 @@ private const val CALL_UP_SHOWN = 6
 
 /** A squad man's call-ups this season, out of the three allowed. */
 internal fun callUpCount(times: Int): String = "$times of ${GameDay.CALL_UP_LIMIT} call-ups used"
+
+/**
+ * The units this week's 48 would put out (sim.SpecialTeamsUnits), by name -
+ * no grades, since what the club knows of its men's ratings goes through
+ * its scouts - and the user's core special teamers, who play on every
+ * coverage and return unit.
+ */
+@Composable
+private fun SpecialTeamsBlock(dynasty: Dynasty, pins: DepthPins, save: (DepthPins) -> Unit) {
+    val c = NdTheme.colors
+    val st = dynasty.league.tuning.specialTeams
+    // The club as it would take the field, with the pins as they stand on screen.
+    val league = dynasty.league.copy(teams = dynasty.league.teams.map { if (it.id == dynasty.userTeamId) it.copy(depthPins = pins) else it })
+    val team = WeekRunner.teams(league, league.tuning).getValue(dynasty.userTeamId)
+    val units = SpecialTeamsUnits.of(team, st)
+    var open by remember { mutableStateOf(false) }
+    fun names(men: List<Player>) = men.joinToString(", ") { "${it.position.label} ${it.lastName}" }
+
+    SituationBlock(
+        "Special teams",
+        meta = if (pins.specialTeams.isNotEmpty()) "${pins.specialTeams.size} core" else "Picks itself",
+    ) {
+        Text(
+            "Each unit takes its men from the 48 by what the job needs: coverage runs and tackles, " +
+                "return blockers block in space, gunners get downfield, jammers slow them. Starters " +
+                "play coverage and returns only when clearly the better man.",
+            style = NdTheme.type.caption, color = c.chalkDim,
+            modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+        )
+        listOf(
+            "Kick coverage" to names(units.kickCoverage),
+            "Kick return" to names(units.kickReturn),
+            "Punt coverage" to "Gunners ${names(units.gunners)}; ${names(units.puntCoverage)}",
+            "Punt return" to "Jammers ${names(units.jammers)}; ${names(units.puntReturn)}",
+            "Field goal" to listOfNotNull(
+                units.snapper?.let { "snaps ${it.lastName}" }, units.holder?.let { "holds ${it.lastName}" },
+            ).joinToString(", ").ifEmpty { "No snapper or holder dressed" },
+        ).forEach { (unit, men) ->
+            Text(unit, style = NdTheme.type.data.copy(fontWeight = FontWeight.W600), color = c.chalk)
+            Text(men, style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(bottom = NdTheme.spacing.xs))
+        }
+        TextButton(onClick = { open = !open }) {
+            Text(if (open) "Done" else "Pick core special teamers", style = NdTheme.type.caption, color = c.pylonText)
+        }
+        if (open) {
+            // The men a coach would look at first: the unit men, and anyone already pinned.
+            val pinned = pins.specialTeams.toSet()
+            val candidates = (units.kickCoverage + units.kickReturn + units.gunners + units.jammers +
+                team.roster.filter { it.id.v in pinned }).distinctBy { it.id }
+            candidates.forEach { man ->
+                val core = man.id.v in pinned
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("${man.position.label} ${man.name}", style = NdTheme.type.data, color = c.chalk, modifier = Modifier.weight(1f))
+                    TextButton(onClick = {
+                        save(pins.copy(specialTeams = if (core) pins.specialTeams - man.id.v else pins.specialTeams + man.id.v))
+                    }) {
+                        Text(if (core) "Remove" else "Make core", style = NdTheme.type.caption, color = c.pylonText)
+                    }
+                }
+            }
+            if (pinned.isNotEmpty()) {
+                SecondaryButton(
+                    "Let the units pick themselves",
+                    { save(pins.copy(specialTeams = emptyList())) },
+                    Modifier.padding(top = NdTheme.spacing.s),
+                )
+            }
+        }
+    }
+}
 
 /** How many of the deepest men a swap offers to sit. */
 private const val SWAP_SHOWN = 8
