@@ -957,6 +957,12 @@ Switching the special-teams effects off one at a time on 16 leagues showed each 
 
 **Result:** returns go to backups and the slot, as on a real club, and the league's returns average what they did. No band moves.
 
+## Pass 29 — October 2026 (a 30-season soak, and where the league settles)
+
+**What was run:** ten leagues (seeds 41-50) for 30 seasons each, after game-day inactives, call-ups, special-teams units, return stats and backup returners. No crashes or broken rules in 300 seasons: no club dressed more than 48, nobody went past three call-ups, call-ups cleared every spring, every return had one coverage tackle, and AI rosters stayed between 46 and 53. Talent held (rostered mean 70.8 to 70.5). Returns ran about 35 kick returns and 23 punt returns a club each season.
+
+**Where the league settles:** the spread of wins averaged 3.10 in a first season and 2.78 over the last ten seasons. Narrowing the generator barely moves the first season, since 17 games of luck alone spread clubs by about 2.1 wins (32 leagues: 2.2 gives 3.25, 2.0 gives 3.22, 1.9 gives 3.17, 1.8 gives 3.09). Matching the settled 2.78 would take about 1.5. A real season spreads about 3.0-3.1, so the first season is right and the settled league is too even. The generator stays at 2.2; why long dynasties flatten is the next thing to measure.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
