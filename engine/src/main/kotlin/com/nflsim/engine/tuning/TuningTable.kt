@@ -1008,7 +1008,7 @@ data class TuningTable(
         /** The overall a street free agent is generated at, and how far above it one may be. */
         val campBody: Int = 55,
         val campBodySpread: Int = 7,
-        /** A practice squad's camp body: his overall, how far above it he may be, and how much younger than the generator's centre (undrafted rookies are 22 or 23). */
+        /** A practice squad's camp body, and a new league's street (gen.StreetGenerator): his overall, how far above it he may be, and how much younger than the generator's centre (undrafted rookies are 22 or 23). */
         val squadCampOverall: Int = 51,
         val squadCampSpread: Int = 10,
         val squadCampAgeBias: Int = -4,
