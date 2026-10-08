@@ -8,13 +8,29 @@ import com.nflsim.engine.rng.Rng
 import com.nflsim.engine.tuning.TuningTable
 import kotlin.math.roundToInt
 
-data class KickResult(val good: Boolean, val distance: Int, val narrative: String)
+data class KickResult(val good: Boolean, val distance: Int, val narrative: String, val blocked: Boolean = false)
 
 data class PuntResult(
     val netYards: Int,
     val touchback: Boolean,
     val returnYards: Int,
     val narrative: String,
+    val blocked: Boolean = false,
+)
+
+/**
+ * How two clubs' special teams meet on a kick (SpecialTeamsUnits), as points
+ * off the league's average units: zero for an average matchup.
+ */
+data class KickMatchup(
+    /** The return blockers over the coverage. */
+    val returnEdge: Float = 0f,
+    /** The gunners over the jammers, on a punt. */
+    val gunnerEdge: Float = 0f,
+    /** The rush over the protection, on a field goal or punt. */
+    val blockEdge: Float = 0f,
+    /** The kicking club's snap and hold, off the league's average. */
+    val snapEdge: Float = 0f,
 )
 
 /**
@@ -38,11 +54,20 @@ object SpecialTeams {
         narration: Rng? = null,
         weather: Weather = Weather.INDOORS,
         weatherTuning: TuningTable.Weather = TuningTable.REALISTIC.weather,
+        matchup: KickMatchup = KickMatchup(),
     ): KickResult {
         val words = narration ?: rng.split("narration")
         // Snap, hold, and seven yards of backfield, plus the ten yard end zone.
         val distance = yardsToGoal + 17
         if (kicker == null) return KickResult(false, distance, PlayLines.write("fg.no_kicker", words))
+
+        // The rush gets a hand on it more often against weak protection.
+        val block = (st.fgBlockBase + matchup.blockEdge * st.blockRushScale - matchup.snapEdge * st.snapBlockScale)
+            .coerceIn(0f, st.fgBlockBase * 3)
+        if (rng.nextFloat() < block) {
+            return KickResult(false, distance,
+                PlayLines.write("fg.blocked", words, "kicker" to kicker.lastName, "distance" to distance), blocked = true)
+        }
 
         val power = rate(kicker, RatingId.KICK_POWER, scheme)
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
@@ -59,6 +84,8 @@ object SpecialTeams {
         if (over > 0) chance *= (1f - (over / st.fgBeyondRange)).coerceAtLeast(st.fgBeyondFloor)
         if (clutch) chance *= st.clutchFloor + (kicker.traits.clutch / 99f) * st.clutchRange
         chance *= 1f - weather.kickAccuracyPenalty(weatherTuning)
+        // A clean snap and hold lets him kick it; a bad one costs him.
+        chance *= 1f + matchup.snapEdge * st.snapScale
         chance = chance.coerceIn(st.fgMinChance, st.fgMaxChance)
 
         val good = rng.nextFloat() < chance
@@ -78,11 +105,20 @@ object SpecialTeams {
         narration: Rng? = null,
         /** Yards the coaching gives the return (GameSimulator.returnEdge). */
         edge: Float = 0f,
+        matchup: KickMatchup = KickMatchup(),
     ): PuntResult {
         val words = narration ?: rng.split("narration")
         val yardsToGoal = 100 - yardLine
         if (punter == null) {
             return PuntResult(st.noPunterYards, false, 0, PlayLines.write("punt.no_punter", words, "gross" to st.noPunterYards))
+        }
+
+        // A punt blocked is recovered behind the line, where the kicking club stood.
+        val block = (st.puntBlockBase + matchup.blockEdge * st.blockRushScale - matchup.snapEdge * st.snapBlockScale)
+            .coerceIn(0f, st.puntBlockBase * 3)
+        if (rng.nextFloat() < block) {
+            return PuntResult(-st.puntBlockedLoss, false, 0,
+                PlayLines.write("punt.blocked", words, "punter" to punter.lastName), blocked = true)
         }
 
         val power = rate(punter, RatingId.PUNT_POWER, puntScheme)
@@ -109,11 +145,14 @@ object SpecialTeams {
         }
 
         // Returns are rare and mostly short; the occasional one is not.
+        // Good gunners force a fair catch; good jammers give the returner room.
         var ret = 0
-        if (returner != null && rng.nextFloat() < st.puntReturnRate) {
+        val returned = (st.puntReturnRate - matchup.gunnerEdge * st.puntReturnGunners).coerceIn(0.1f, 0.8f)
+        if (returner != null && rng.nextFloat() < returned) {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
             val elusive = rate(returner, RatingId.ELUSIVENESS, returnScheme)
-            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill + edge)
+            ret = (rng.exponential(st.puntReturnMean) + (speed + elusive - 150) * st.puntReturnSkill + edge +
+                matchup.returnEdge * st.puntUnitYards)
                 .roundToInt().coerceIn(0, 60)
         }
 
@@ -133,10 +172,14 @@ object SpecialTeams {
         scheme: Scheme,
         rng: Rng,
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
+        /** The kicking club's snap and hold off the league's average. */
+        snapEdge: Float = 0f,
     ): Boolean {
         if (kicker == null) return rng.nextFloat() < st.extraPointNoKicker
         val accuracy = rate(kicker, RatingId.KICK_ACCURACY, scheme)
-        return rng.nextFloat() < (st.extraPointBase + accuracy / st.extraPointAccuracyScale).coerceAtMost(st.extraPointCeiling)
+        val chance = (st.extraPointBase + accuracy / st.extraPointAccuracyScale).coerceAtMost(st.extraPointCeiling) *
+            (1f + snapEdge * st.snapScale)
+        return rng.nextFloat() < chance
     }
 
     /** Where the receiving team starts after a kickoff. */
@@ -147,14 +190,20 @@ object SpecialTeams {
         st: TuningTable.SpecialTeams = TuningTable.REALISTIC.specialTeams,
         /** Yards the coaching gives the return (GameSimulator.returnEdge). */
         edge: Float = 0f,
+        /** The kicker, whose leg puts it through the end zone more often. */
+        kicker: Player? = null,
+        kickScheme: Scheme = returnScheme,
+        matchup: KickMatchup = KickMatchup(),
     ): Pair<Int, String> {
-        if (rng.nextFloat() < st.kickoffTouchbackRate) {
+        val leg = kicker?.let { rate(it, RatingId.KICK_POWER, kickScheme) - st.kickoffPowerAnchor } ?: 0f
+        if (rng.nextFloat() < (st.kickoffTouchbackRate + leg * st.kickoffPowerTouchback).coerceIn(0.2f, 0.95f)) {
             return GameState.TOUCHBACK_YARD_LINE to "Touchback."
         }
         val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
             val speed = rate(returner, RatingId.SPEED, returnScheme)
-            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance) + edge).roundToInt()
+            ((speed - 70) * st.kickoffReturnSpeed + rng.gaussian(0f, st.kickoffReturnVariance) + edge +
+                matchup.returnEdge * st.kickoffUnitYards).roundToInt()
         }
         val spot = (base + bonus).coerceIn(4, 60)
         val text = if (spot >= 45) "A big return out to the $spot." else "Returned to the $spot."

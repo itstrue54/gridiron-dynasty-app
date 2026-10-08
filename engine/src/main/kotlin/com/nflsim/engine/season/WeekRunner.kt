@@ -53,6 +53,7 @@ object WeekRunner {
         return GameDay.actives(
             eligible(league.roster(team.id)), offence, defence,
             named = team.depthPins.inactive, squad = squad, callUp = team.depthPins.callUp,
+            st = tuning.specialTeams,
         ).map { if (it.teamId == null) it.copy(teamId = team.id) else it }
     }
 

@@ -376,6 +376,26 @@
     ", returned {ret} yards",
     ", and a return of {ret}"
   ],
+  "fg.blocked": [
+    "{kicker}'s {distance} yard attempt is blocked!",
+    "Blocked! The {distance} yarder from {kicker} never has a chance.",
+    "They get a hand on it. {kicker}'s {distance} yard try is blocked.",
+    "The kick from {distance} is blocked at the line.",
+    "{kicker} lines up from {distance}, and it is blocked.",
+    "Somebody comes free and blocks {kicker}'s {distance} yard attempt.",
+    "Blocked kick! {kicker} from {distance} yards, no good.",
+    "The rush gets there. {kicker}'s {distance} yarder is blocked."
+  ],
+  "punt.blocked": [
+    "{punter}'s punt is blocked!",
+    "Blocked punt! {punter} never gets it away.",
+    "They break through and block the punt from {punter}.",
+    "The punt is blocked, and the ball bounces back behind the line.",
+    "{punter} is swarmed. The punt is blocked.",
+    "Blocked! Nobody picks up the rusher, and {punter}'s punt goes nowhere.",
+    "A hand gets on {punter}'s punt. Blocked.",
+    "The rush is through, and the punt is blocked."
+  ],
   "punt.return.named": [
     ", returned {ret} by {returner}",
     ", and {returner} brings it back {ret}",

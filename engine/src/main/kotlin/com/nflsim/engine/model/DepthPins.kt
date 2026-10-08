@@ -32,6 +32,8 @@ data class DepthPins(
      * (season.GameDay): two a game at most, each three times a season.
      */
     val callUp: List<Int> = emptyList(),
+    /** The club's core special teamers, who play on every coverage and return unit (sim.SpecialTeamsUnits). */
+    val specialTeams: List<Int> = emptyList(),
 ) {
     /** Pins only for players still in [ids]. */
     fun keepOnly(ids: Set<Int>): DepthPins = DepthPins(
@@ -43,6 +45,7 @@ data class DepthPins(
         puntReturner = puntReturner?.takeIf { it in ids },
         inactive = inactive.filter { it in ids },
         callUp = callUp.filter { it in ids },
+        specialTeams = specialTeams.filter { it in ids },
     )
 
     companion object {

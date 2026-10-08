@@ -617,7 +617,7 @@ data class TuningTable(
         val fgAltitudeBonus: Float = 4f,
         /** How quickly makes fall away toward the edge of his range, and the ceiling accuracy sets. */
         val fgCurveWidth: Float = 6.2f,
-        val fgBaseAccuracy: Float = 0.72f,
+        val fgBaseAccuracy: Float = 0.726f,
         val fgAccuracyScale: Float = 260f,
         /** Yards past his range over which a make goes from likely to hopeless. */
         val fgBeyondRange: Float = 26f,
@@ -638,9 +638,12 @@ data class TuningTable(
         val puntTouchbackBase: Float = 0.62f,
         val puntTouchbackPlacement: Float = 0.006f,
         val puntReturnRate: Float = 0.42f,
-        val puntReturnMean: Float = 6.5f,
+        val puntReturnMean: Float = 6.1f,
         val puntReturnSkill: Float = 0.05f,
         val kickoffTouchbackRate: Float = 0.63f,
+        /** Touchback chance per point of the kicker's leg (KICK_POWER) off `kickoffPowerAnchor`. */
+        val kickoffPowerTouchback: Float = 0.006f,
+        val kickoffPowerAnchor: Float = 69f,
         val kickoffReturnBase: Int = 22,
         val kickoffReturnSpeed: Float = 0.12f,
         val kickoffReturnVariance: Float = 5f,
@@ -653,6 +656,71 @@ data class TuningTable(
         val puntTouchbackMax: Float = 0.9f,
         /** How far a punt goes when nobody on the roster can punt. */
         val noPunterYards: Int = 35,
+        /**
+         * Special-teams units (sim.SpecialTeamsUnits): the ratings each job reads,
+         * weighted. Coverage runs and tackles; a gunner beats the jam; a return
+         * blocker blocks in space; a jammer slows a gunner; a rusher gets a hand
+         * on the kick; a protector keeps him off it.
+         */
+        val roleWeights: Map<com.nflsim.engine.sim.StRole, Map<com.nflsim.engine.model.RatingId, Float>> = mapOf(
+            com.nflsim.engine.sim.StRole.COVERAGE to mapOf(
+                com.nflsim.engine.model.RatingId.SPEED to 0.30f, com.nflsim.engine.model.RatingId.ACCELERATION to 0.15f,
+                com.nflsim.engine.model.RatingId.PURSUIT to 0.20f, com.nflsim.engine.model.RatingId.TACKLE to 0.20f,
+                com.nflsim.engine.model.RatingId.BLOCK_SHEDDING to 0.15f),
+            com.nflsim.engine.sim.StRole.GUNNER to mapOf(
+                com.nflsim.engine.model.RatingId.SPEED to 0.45f, com.nflsim.engine.model.RatingId.ACCELERATION to 0.20f,
+                com.nflsim.engine.model.RatingId.RELEASE to 0.20f, com.nflsim.engine.model.RatingId.TACKLE to 0.15f),
+            com.nflsim.engine.sim.StRole.BLOCKER to mapOf(
+                com.nflsim.engine.model.RatingId.IMPACT_BLOCK to 0.30f, com.nflsim.engine.model.RatingId.RUN_BLOCK to 0.25f,
+                com.nflsim.engine.model.RatingId.STRENGTH to 0.20f, com.nflsim.engine.model.RatingId.SPEED to 0.15f,
+                com.nflsim.engine.model.RatingId.AWARENESS to 0.10f),
+            com.nflsim.engine.sim.StRole.JAMMER to mapOf(
+                com.nflsim.engine.model.RatingId.PRESS to 0.40f, com.nflsim.engine.model.RatingId.SPEED to 0.30f,
+                com.nflsim.engine.model.RatingId.STRENGTH to 0.30f),
+            com.nflsim.engine.sim.StRole.RUSHER to mapOf(
+                com.nflsim.engine.model.RatingId.JUMPING to 0.30f, com.nflsim.engine.model.RatingId.STRENGTH to 0.25f,
+                com.nflsim.engine.model.RatingId.POWER_MOVES to 0.20f, com.nflsim.engine.model.RatingId.ACCELERATION to 0.25f),
+            com.nflsim.engine.sim.StRole.PROTECTOR to mapOf(
+                com.nflsim.engine.model.RatingId.PASS_BLOCK to 0.50f, com.nflsim.engine.model.RatingId.STRENGTH to 0.30f,
+                com.nflsim.engine.model.RatingId.AWARENESS to 0.20f),
+        ),
+        /** Points a starter must be better by to be picked for coverage or returns. */
+        val starterPenalty: Float = 15f,
+        /** Points a core special teamer the club pinned is lifted by, so he always plays. */
+        val corePinBonus: Float = 100f,
+        /**
+         * A new league's average unit, each in its role's rating: the point no
+         * unit gains or loses from, so the league's returns and kicks average
+         * what they did before units were read.
+         */
+        val kickCoverageAnchor: Float = 72.8f,
+        val kickReturnAnchor: Float = 66.6f,
+        val gunnerAnchor: Float = 68.8f,
+        val puntCoverageAnchor: Float = 73.8f,
+        val jammerAnchor: Float = 75.2f,
+        val puntReturnAnchor: Float = 69.1f,
+        val protectionAnchor: Float = 72.9f,
+        val rushAnchor: Float = 74.5f,
+        /** Return yards per point of the return blockers over the coverage, on kickoffs and punts. */
+        val kickoffUnitYards: Float = 1.0f,
+        val puntUnitYards: Float = 0.4f,
+        /** Punt-return chance per point of the gunners over the jammers: good gunners force fair catches. */
+        val puntReturnGunners: Float = 0.006f,
+        /** Blocked kicks: the chance on a field goal and on a punt, and per point of the rush over the protection. */
+        val fgBlockBase: Float = 0.012f,
+        val puntBlockBase: Float = 0.005f,
+        val blockRushScale: Float = 0.0008f,
+        /** A league-average snap and hold (the snapper's and holder's overall), and field-goal chance per point off it. */
+        val snapAnchor: Float = 62f,
+        val snapScale: Float = 0.0015f,
+        /** Block chance per point of a snap and hold below the league's average: a slow snap is easier to get to. */
+        val snapBlockScale: Float = 0.0003f,
+        /** How much worse the snap is with no snapper or holder dressed. */
+        val noSnapperPenalty: Float = 25f,
+        /** Points a squad man must beat the weakest kick-coverage man by for his club to call him up for special teams. */
+        val callUpCoverageMargin: Float = 4f,
+        /** Yards a blocked punt loses: it is recovered behind the line. */
+        val puntBlockedLoss: Int = 8,
         /**
          * Inside [puntAimYards] of the goal line a punter aims short of the
          * end zone: [puntAimMargin] shy of it, less for poor placement, and

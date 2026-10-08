@@ -47,11 +47,13 @@ class PlayLinesTest {
         "fg.good" to setOf("kicker", "distance"),
         "fg.miss" to setOf("kicker", "distance"),
         "fg.no_kicker" to emptySet(),
+        "fg.blocked" to setOf("kicker", "distance"),
         "punt" to setOf("punter", "gross", "return"),
         "punt.touchback" to setOf("punter"),
         "punt.no_punter" to setOf("gross"),
         "punt.return" to setOf("ret"),
         "punt.return.named" to setOf("ret", "returner"),
+        "punt.blocked" to setOf("punter"),
     )
 
     /** Pieces spliced into another line rather than read on their own. */

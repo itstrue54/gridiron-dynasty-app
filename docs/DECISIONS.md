@@ -2534,3 +2534,17 @@ nothing else moves more than 0.006.
 - **The user may name call-ups** (`DepthPins.callUp`), which dress whether or not the club is short, pushing his deepest men out.
 
 **Consequences.** Measured in CALIBRATION.md pass 23. Saves: `Player` and `DepthPins` gain defaulted fields; save step 53, version 54.
+
+## ADR-0xx — Special teams play as units
+
+**Context.** Returns read only the returner's speed and the coordinators; the other ten men on a kick did nothing, the kicker's leg did not touch kickoffs, and the snap and hold - in SPEC 5.10's field-goal formula - were never read. So no club had a reason to dress or call up a special teamer.
+
+**Decision.**
+- **Six roles, each read from the ratings a coach looks for** (coverage, gunner, return blocker, jammer, protector, rusher), weighted in the tuning table. Units are picked per kick from the men dressed and not hurt that game.
+- **Mostly backups:** starters play coverage and returns only when better by a margin (15 points, measured to put about four starters on kick coverage and one on kick return). Protection and the field-goal rush take the best.
+- **Matchups against a league-average unit:** each effect reads two units as points off a new league's average for that unit, so an average matchup plays exactly as before and the league's returns, touchbacks and kicks hold. The base field-goal accuracy rises by the share blocks now take (0.72 to 0.726), and the punt-return mean falls by what clamping a wider spread at zero added (6.5 to 6.1).
+- **No snapping rating:** the snapper's and holder's overall at their positions stands in. The rating list stays locked.
+- **Units name men, not grades, on screen:** a unit's strength comes from true ratings, which the user sees only through scouting.
+- **Special teams give game day its reason:** scratches keep the better special teamer of two as deep, and clubs call up squad men who would cover kicks clearly better than their weakest.
+
+**Consequences.** Measured in CALIBRATION.md pass 24. Saves: `DepthPins` and the tuning table gain defaulted fields; save step 54, version 55.

@@ -870,6 +870,38 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Not matched:** NFL clubs call up most weeks, often for special teams, several hundred a league-season. The sim has no special-teams depth reason to, so clubs here call up only for need.
 
+## Pass 24 — October 2026 (special teams as units)
+
+**What changed:** kicks are played by coverage, return, gunner, jammer, protection and rush units picked from the 48 by the ratings each job reads. Each effect reads two units as points off a new league's average unit, and the kicker's leg now moves kickoff touchbacks. Field goals and punts can be blocked, and the snap and hold move kicking accuracy. The base field-goal accuracy rises 0.72 to 0.726 to cover blocked kicks, and the punt-return mean falls 6.5 to 6.1, since clamping a wider spread at zero raised it.
+
+**Measured, kick by kick:** every pairing of clubs in four new leagues, each kick played four times:
+
+| | Before units | **Units** | NFL |
+|---|---|---|---|
+| Kickoff touchbacks | 62.1% | 62.2% | |
+| Kickoff return start | 23.9 | 24.0 | |
+| Clubs' average return start, spread | ±0.47 | ±1.30 | |
+| Punts returned | 38.2% | 36.0% | |
+| Punt return average | 7.2 | 7.5 | |
+| Clubs' punt return average, spread | ±0.49 | ±0.73 | |
+| Field goals blocked | 0 | 1.1% | about 1.2% |
+| Punts blocked | 0 | 0.4% | about 0.5% |
+
+**Measured, whole games:** `calibrate`, 1,000 games on each of two leagues, against game-day call-ups (pass 23):
+
+| | Call-ups, 2026 | **Units, 2026** | Call-ups, 77 | **Units, 77** |
+|---|---|---|---|---|
+| Bands passing | 23 of 23 | 23 of 23 | 23 of 23 | 23 of 23 |
+| Points per team per game | 21.6 | 21.7 | 21.8 | 22.1 |
+| Field goals made per team | 1.77 | 1.77 | 1.81 | 1.83 |
+| Field goal attempts per team | 2.12 | 2.11 | 2.16 | 2.16 |
+
+**Over a season** (twelve leagues): call-ups rise from 56.4 to 62.2 a league-season and points per team per game are 22.00.
+
+**Result:** the league's kicking and returns hold, and clubs now differ by their units: kick-return starts spread almost three times as wide. No band moves.
+
+**Not matched:** few call-ups are for special teams. A generated squad man is seldom a clearly better coverage man than the weakest of a club's 48, so the NFL's weekly special-teams call-ups still don't happen.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
