@@ -15,7 +15,9 @@ class DeadlineDealsTest {
 
     /** Dynasties at the deadline, before its deals. */
     private val atDeadline: List<Dynasty> by lazy {
-        listOf(3L, 11L, 2026L).map { seed ->
+        // About a third of leagues see no deadline star deal (16 measured), so
+        // six leagues, not three, make "contenders deal" a fair test.
+        listOf(3L, 11L, 2026L, 17L, 18L, 19L).map { seed ->
             val league = LeagueGenerator.generate(2026, seed)
             var d = DynastyEngine.start(league, 2026, seed, league.teams[(seed % 32).toInt()].id)
             while (d.week < TradeDesk.DEADLINE_WEEK) d = DynastyEngine.advance(d)
