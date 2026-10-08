@@ -918,6 +918,26 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Not matched:** NFL clubs still call up several times as often. Sixteen squad men can be called up three times each, and a generated squad seldom has more than a few men who cover kicks better than a club's own backups.
 
+## Pass 26 — October 2026 (returners off their own units)
+
+**What changed:** a phone pass showed a club's returner listed among his own return blockers and jammers. Returners now field the ball only, so the return units are picked without them. The unit anchors were re-measured on the same six new leagues: jammers 75.2 to 73.3 (the returner was often a club's best jammer), kick coverage 72.8 to 72.6, kick return 66.6 to 66.5, gunners 68.8 to 68.9, punt coverage 73.8 to 73.6. With the anchors where the units now sit, an average matchup still plays as average.
+
+## Pass 27 — October 2026 (the generator makes room for special teams)
+
+**What happened:** `SeasonShapeTest` failed on a first-season spread of wins of 3.41 over its eight leagues (band 2.6-3.4). Passes 24 and 25 measured kicks and whole games but not season shape.
+
+**Measured:** the first season of 32 new leagues (seeds 41-72):
+
+| | Before special teams (pass 23) | Special teams (pass 26) | **Generator spread 2.2 (shipped)** | Band |
+|---|---|---|---|---|
+| Spread of wins (sd) | 3.18 | 3.33 | 3.21 | 2.6-3.4 |
+| Best record | | 15.20 | 15.00 | 13-17 |
+| Clubs at 4 wins or fewer | | 4.03 | 3.69 | 2-5 |
+
+Switching the special-teams effects off one at a time on 16 leagues showed each adding a little to the spread, returns most. With all of them off it was 3.13. Real enough: a club with a deep roster fields better units, so the strong get a little stronger. Rather than weaken the effects, `TEAM_STRENGTH_SPREAD` narrows from 2.4 to 2.2 (2.3 gave 3.29), so a new league's clubs stand as far apart as before special teams.
+
+**Result:** the season shape is back where it was; every season band holds. Whole-game bands are checked again in the PR.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

@@ -693,11 +693,11 @@ data class TuningTable(
          * unit gains or loses from, so the league's returns and kicks average
          * what they did before units were read.
          */
-        val kickCoverageAnchor: Float = 72.8f,
-        val kickReturnAnchor: Float = 66.6f,
-        val gunnerAnchor: Float = 68.8f,
-        val puntCoverageAnchor: Float = 73.8f,
-        val jammerAnchor: Float = 75.2f,
+        val kickCoverageAnchor: Float = 72.6f,
+        val kickReturnAnchor: Float = 66.5f,
+        val gunnerAnchor: Float = 68.9f,
+        val puntCoverageAnchor: Float = 73.6f,
+        val jammerAnchor: Float = 73.3f,
         val puntReturnAnchor: Float = 69.1f,
         val protectionAnchor: Float = 72.9f,
         val rushAnchor: Float = 74.5f,

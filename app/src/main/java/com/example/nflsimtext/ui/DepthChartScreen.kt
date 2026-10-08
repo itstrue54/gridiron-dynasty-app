@@ -295,6 +295,8 @@ private fun GameDayBlock(
         }
         if (scratched.isEmpty()) {
             Text("Nobody healthy sits this week.", style = NdTheme.type.data, color = c.chalk)
+        } else {
+            Text("Inactive this week:", style = NdTheme.type.caption, color = c.chalkDim)
         }
         scratched.forEach { man ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -405,13 +407,16 @@ private fun SpecialTeamsBlock(dynasty: Dynasty, pins: DepthPins, save: (DepthPin
             style = NdTheme.type.caption, color = c.chalkDim,
             modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
         )
+        fun returns(p: Player?) = p?.let { "Returner ${it.position.label} ${it.lastName}; " } ?: ""
         listOf(
             "Kick coverage" to names(units.kickCoverage),
-            "Kick return" to names(units.kickReturn),
+            "Kick return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme)) + names(units.kickReturn),
             "Punt coverage" to "Gunners ${names(units.gunners)}; ${names(units.puntCoverage)}",
-            "Punt return" to "Jammers ${names(units.jammers)}; ${names(units.puntReturn)}",
+            "Punt return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true)) +
+                "Jammers ${names(units.jammers)}; ${names(units.puntReturn)}",
             "Field goal" to listOfNotNull(
-                units.snapper?.let { "snaps ${it.lastName}" }, units.holder?.let { "holds ${it.lastName}" },
+                units.snapper?.let { "snaps ${it.position.label} ${it.lastName}" },
+                units.holder?.let { "holds ${it.position.label} ${it.lastName}" },
             ).joinToString(", ").ifEmpty { "No snapper or holder dressed" },
         ).forEach { (unit, men) ->
             Text(unit, style = NdTheme.type.data.copy(fontWeight = FontWeight.W600), color = c.chalk)
@@ -421,14 +426,24 @@ private fun SpecialTeamsBlock(dynasty: Dynasty, pins: DepthPins, save: (DepthPin
             Text(if (open) "Done" else "Pick core special teamers", style = NdTheme.type.caption, color = c.pylonText)
         }
         if (open) {
-            // The men a coach would look at first: the unit men, and anyone already pinned.
+            // The men a coach would look at first: the best in coverage and in
+            // return blocking, starters among them, and anyone already pinned.
             val pinned = pins.specialTeams.toSet()
-            val candidates = (units.kickCoverage + units.kickReturn + units.gunners + units.jammers +
-                team.roster.filter { it.id.v in pinned }).distinctBy { it.id }
+            fun best(role: com.nflsim.engine.sim.StRole) = team.roster
+                .filter { it.position !in setOf(Position.QB, Position.K, Position.P, Position.LS) }
+                .sortedByDescending { SpecialTeamsUnits.value(it, role, if (it.position.isOffense) team.offScheme else team.defScheme, st) }
+                .take(CORE_SHOWN)
+            val candidates = (team.roster.filter { it.id.v in pinned } +
+                best(com.nflsim.engine.sim.StRole.COVERAGE) + best(com.nflsim.engine.sim.StRole.BLOCKER)).distinctBy { it.id }
+            val onUnits = (units.kickCoverage + units.kickReturn + units.gunners + units.puntCoverage +
+                units.jammers + units.puntReturn).groupingBy { it.id }.eachCount()
             candidates.forEach { man ->
                 val core = man.id.v in pinned
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${man.position.label} ${man.name}", style = NdTheme.type.data, color = c.chalk, modifier = Modifier.weight(1f))
+                    Text(
+                        "${man.position.label} ${man.name}, ${unitCount(onUnits[man.id] ?: 0)}",
+                        style = NdTheme.type.data, color = c.chalk, modifier = Modifier.weight(1f),
+                    )
                     TextButton(onClick = {
                         save(pins.copy(specialTeams = if (core) pins.specialTeams - man.id.v else pins.specialTeams + man.id.v))
                     }) {
@@ -447,12 +462,22 @@ private fun SpecialTeamsBlock(dynasty: Dynasty, pins: DepthPins, save: (DepthPin
     }
 }
 
+/** How many of the best men in each role the core picker offers. */
+private const val CORE_SHOWN = 8
+
+/** How many coverage and return units a man plays on. */
+internal fun unitCount(n: Int): String = when (n) {
+    0 -> "on no unit"
+    1 -> "on 1 unit"
+    else -> "on $n units"
+}
+
 /** How many of the deepest men a swap offers to sit. */
 private const val SWAP_SHOWN = 8
 
 /** What game day allows, in words. */
 internal fun gameDayNote(dressing: Int, linemen: Int): String =
-    "$dressing dress on game day: 48 with eight offensive linemen among them, 47 without. " +
+    "$dressing dress this week. A club dresses 48 when eight are offensive linemen, 47 otherwise. " +
         "Hurt men sit first; the club scratches the deepest of the rest." +
         if (linemen < GameDay.LINEMEN) " Only $linemen linemen are fit, so no more than 47 can dress." else ""
 
