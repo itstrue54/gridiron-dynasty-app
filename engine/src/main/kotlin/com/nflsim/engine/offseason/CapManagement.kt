@@ -122,8 +122,12 @@ object CapManagement {
 
             while (committed(roster, year) + dead > cap && roster.size > league.tuning.ai.capMinRoster && guard < 60) {
                 guard++
+                // Only a release that saves money this year: cutting a man whose
+                // dead money outruns his cap hit puts the club further over, and
+                // a loop that kept cutting such men ran one club's dead money
+                // from $10M to $235M in a single spring.
                 val candidate = roster
-                    .filter { canRelease(it, roster, scheme, team.id) }
+                    .filter { canRelease(it, roster, scheme, team.id) && it.capHit(year) - (it.contract?.deadCap(year)?.thisYear ?: 0) > 0 }
                     .maxByOrNull { p ->
                         val ability = overall(p, scheme(team.id, p.position)).coerceAtLeast(35)
                         // Cost per point of ability, with a nudge toward moving
@@ -144,6 +148,19 @@ object CapManagement {
                     overall(candidate, scheme(team.id, candidate.position)),
                     savings, deadCap,
                 )
+            }
+
+            // Still over with nobody left whose release saves money: restructure,
+            // past the GM's habit, before going into the league year over the cap.
+            var lastResort = 0
+            while (committed(roster, year) + dead > cap && lastResort++ < roster.size) {
+                val best = roster.mapNotNull { p ->
+                    com.nflsim.engine.season.Transactions.restructurePreview(p, year, 1f)?.let { p to it }
+                }.maxByOrNull { it.second.frees } ?: break
+                val (p, _) = best
+                val c = p.contract!!
+                val moved = c.baseSalary[c.yearIndex(year)] - Contract.MIN_BASE_SALARY
+                roster[roster.indexOf(p)] = p.copy(contract = c.restructure(year, moved))
             }
 
             deadMoneyByTeam[team.id.v] = dead
