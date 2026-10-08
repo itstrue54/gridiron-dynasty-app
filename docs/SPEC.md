@@ -859,7 +859,8 @@ interface Rng {
   while it has fewer fit men than it may dress. The user may name his own
   (`DepthPins.callUp`), who dress and push his deepest men out. A club
   also calls up a squad man whose coverage beats the weakest man it would
-  put on kick coverage by `callUpCoverageMargin`, and of two men as deep it
+  put on kick coverage - with starters counted down, as the unit builder
+  picks them - by `callUpCoverageMargin` (1 point), and of two men as deep it
   scratches the one worth less at his position and on special teams
   together (§5.10). The emergency third quarterback is not modelled.
 - **Signing in season** costs the minimum prorated by the weeks left, one

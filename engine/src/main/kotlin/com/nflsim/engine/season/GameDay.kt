@@ -125,8 +125,9 @@ object GameDay {
                     (depth - dressed.count { it.position == p.position }).toFloat() / depth * 100 + rating(p) / 100f
                 }
                 else -> {
-                    // Special teams: the weakest man the club would cover kicks with, against the squad's best cover man.
-                    val weakest = dressed.filter { it.position !in FLOOR }.map(::cover)
+                    // Special teams: the weakest man on the kick coverage the club
+                    // would put out - mostly backups - against the squad's best cover man.
+                    val weakest = SpecialTeamsUnits.coverageWorth(dressed, offence, defence, st).values
                         .sortedDescending().getOrNull(SpecialTeamsUnits.KICK_COVERAGE - 1)
                     open.filter { it.position !in FLOOR }.maxByOrNull(::cover)
                         ?.takeIf { weakest != null && cover(it) >= weakest + st.callUpCoverageMargin }

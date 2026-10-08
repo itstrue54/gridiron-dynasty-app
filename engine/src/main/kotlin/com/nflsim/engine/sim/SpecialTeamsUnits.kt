@@ -92,6 +92,23 @@ data class SpecialTeamsUnits(
             return weights.entries.sumOf { (id, w) -> (rate(p, id, scheme) * w).toDouble() }.toFloat() / weights.values.sum()
         }
 
+        /**
+         * How much a man is worth to the kick coverage of a club dressing
+         * [dressed]: his coverage, less the starter penalty if he starts at his
+         * position (by rating, as a depth chart nobody has pinned sorts it).
+         * The unit is the ten worth most; GameDay reads it to see whether a
+         * squad man would make it.
+         */
+        fun coverageWorth(dressed: List<Player>, offence: Scheme, defence: Scheme, st: TuningTable.SpecialTeams): Map<Int, Float> {
+            fun scheme(p: Player) = if (p.position.isOffense) offence else defence
+            val starters = STARTERS.flatMap { (pos, n) ->
+                dressed.filter { it.position == pos }.sortedByDescending { overall(it, scheme(it)) }.take(n)
+            }.map { it.id.v }.toSet()
+            return dressed.filter { it.position !in SPECIALISTS }.associate { p ->
+                p.id.v to value(p, StRole.COVERAGE, scheme(p), st) - (if (p.id.v in starters) st.starterPenalty else 0f)
+            }
+        }
+
         fun of(team: GameTeam, st: TuningTable.SpecialTeams, out: Set<Int> = emptySet()): SpecialTeamsUnits {
             val fit = team.roster.filter { it.id.v !in out }
             val pool = fit.filter { it.position !in SPECIALISTS }

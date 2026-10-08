@@ -30,14 +30,19 @@ class StorylineTest {
         }.first()
     }
 
-    /** The league with the starter a veteran and his backup a rookie as good as he is. */
+    /**
+     * The league with the starter a veteran and his backup a rookie as good as
+     * he is - the club's only rookie quarterback, so any story is about him.
+     */
     private fun withRookie(): Pair<League, com.nflsim.engine.model.Player> {
         val (game, starter) = rough
-        val backup = league.roster(game.home).first { it.position == Position.QB && it.id != starter.id }
+        val qbs = league.roster(game.home).filter { it.position == Position.QB }
+        val backup = qbs.first { it.id != starter.id }
         val l = league.copy(players = league.players.map {
-            when (it.id) {
-                starter.id -> it.copy(accruedSeasons = 4)
-                backup.id -> it.copy(accruedSeasons = 0, ratings = starter.ratings, injuryWeeks = 0)
+            when {
+                it.id == starter.id -> it.copy(accruedSeasons = 4)
+                it.id == backup.id -> it.copy(accruedSeasons = 0, ratings = starter.ratings, injuryWeeks = 0)
+                it in qbs -> it.copy(accruedSeasons = maxOf(it.accruedSeasons, 4))
                 else -> it
             }
         })

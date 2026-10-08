@@ -902,6 +902,22 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Not matched:** few call-ups are for special teams. A generated squad man is seldom a clearly better coverage man than the weakest of a club's 48, so the NFL's weekly special-teams call-ups still don't happen.
 
+## Pass 25 — October 2026 (special-teams call-ups against the real unit)
+
+**What changed:** a club calls up a squad man for special teams when his coverage beats the weakest man on the kick coverage it would actually put out, where starters count less, as the unit builder picks them. Before, it compared him with the tenth-best coverage on the whole 48, starters included, so a squad man almost never measured up. The margin falls from 4 points to 1, so a man is called up when he is better at all.
+
+**Measured:** twelve leagues (seeds 11-22), one season each:
+
+| | Pass 24 | Against the unit, margin 4 | **Against the unit, margin 1 (shipped)** |
+|---|---|---|---|
+| Call-ups a league-season | 62.2 | 97.1 | 194.2 |
+| Points per team per game | 22.00 | 21.93 | 22.04 |
+| Club-weeks dressing fewer than 47 | 0 | 0 | 1 |
+
+**Result:** call-ups triple, about six a club each season, and scoring holds. Per-game bands play rosters with no squads, so they can't move. No band moves.
+
+**Not matched:** NFL clubs still call up several times as often. Sixteen squad men can be called up three times each, and a generated squad seldom has more than a few men who cover kicks better than a club's own backups.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
