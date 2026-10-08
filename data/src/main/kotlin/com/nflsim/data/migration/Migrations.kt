@@ -109,6 +109,8 @@ object Migrations {
         Step(53, "clubs call up practice-squad men for game day (SPEC 6.1); nothing to move") { it },
         // Units pick themselves until the user pins a core special teamer; the new tuning takes its defaults.
         Step(54, "special teams play as units read from their men's ratings (SPEC 5.10); nothing to move") { it },
+        // Seasons already played had no returns or coverage tackles counted; the counting starts with the next game.
+        Step(55, "box scores count returns and coverage tackles (SPEC 5.10); nothing to move") { it },
     )
 
     /**

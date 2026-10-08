@@ -1022,6 +1022,13 @@ private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<R
     lines.entries.filter { it.value.receptions > 0 }.sortedByDescending { it.value.receivingYards }.take(3).forEach { (id, s) ->
         add(RowData(listOf("Catch", name(id), "${s.receptions} rec", "${s.receivingYards}", "${s.receivingTouchdowns}")))
     }
+    // The man who brought back the most yards on kicks and punts.
+    lines.entries.filter { it.value.kickReturns + it.value.puntReturns > 0 }
+        .maxByOrNull { it.value.kickReturnYards + it.value.puntReturnYards }?.let { (id, s) ->
+            add(RowData(listOf(
+                "Ret", name(id), "${s.kickReturns + s.puntReturns} ret", "${s.kickReturnYards + s.puntReturnYards}", "",
+            )))
+        }
     // Combined tackles, as a leaderboard counts them: his own stops and his assists.
     lines.entries.filter { it.value.combinedTackles > 0 }
         .sortedByDescending { it.value.combinedTackles }.take(2).forEach { (id, s) ->
