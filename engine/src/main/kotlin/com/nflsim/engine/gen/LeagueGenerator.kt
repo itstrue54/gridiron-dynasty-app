@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
 object LeagueGenerator {
 
     /** A club's quality: overall points off average, a normal draw this wide, held within the limit. */
-    const val TEAM_STRENGTH_SPREAD = 2.4f
+    const val TEAM_STRENGTH_SPREAD = 2.2f
     const val TEAM_STRENGTH_LIMIT = 6.5f
 
     private val json = Json { ignoreUnknownKeys = true }
