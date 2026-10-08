@@ -197,7 +197,7 @@ object SpecialTeams {
     ): Pair<Int, String> {
         val leg = kicker?.let { rate(it, RatingId.KICK_POWER, kickScheme) - st.kickoffPowerAnchor } ?: 0f
         if (rng.nextFloat() < (st.kickoffTouchbackRate + leg * st.kickoffPowerTouchback).coerceIn(0.2f, 0.95f)) {
-            return GameState.TOUCHBACK_YARD_LINE to "Touchback."
+            return GameState.TOUCHBACK_YARD_LINE to TOUCHBACK
         }
         val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
@@ -210,6 +210,9 @@ object SpecialTeams {
         return spot to text
     }
 
+
+    /** What a kickoff says when nobody returns it. */
+    const val TOUCHBACK = "Touchback."
 
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)

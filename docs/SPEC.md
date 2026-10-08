@@ -739,6 +739,16 @@ show - are the two together.
     their positions, averaged, moves field-goal and try accuracy
     (`snapScale` a point). There is no snapping rating; a snapper's overall
     reads the ratings his position uses.
+  - **Box score:** a returned kickoff or punt counts a return and its yards
+    for the returner (a kickoff is fielded at the goal line, so its yards are
+    the spot it reaches), and one coverage tackle for a man on the kicking
+    club's coverage unit, the better cover men more often
+    (`StatLine.specialTeamsTackles`). Fair catches and touchbacks count
+    nothing. The tackler is drawn from a stream of the return's own, so
+    counting changed no game. Coverage tackles are kept apart from defensive
+    tackles, which awards, the Hall of Fame and contract pricing read. The
+    game's leaders list its top returner; a player card adds a special-teams
+    table when he has any.
 - Clock model: 40-second play clock, runoff by play type and outcome, out-of-bounds rules, two-minute warning, timeouts. **Get the clock right early** — bad clock logic produces 45-point games and it is miserable to retrofit.
   Built (`sim.ClockManagement`):
   - Runoff by play type and outcome.

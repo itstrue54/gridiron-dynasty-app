@@ -249,14 +249,47 @@ class GameSimulator(
     private fun openWithKickoff(state: GameState, receiver: Side, rng: Rng): GameState {
         val receiving = teamFor(receiver)
         val kicking = teamFor(receiver.other())
-        val (spot, _) = SpecialTeams.kickoff(
-            SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme),
+        val returner = SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme)
+        val (spot, text) = SpecialTeams.kickoff(
+            returner,
             receiving.offScheme, rng, st = tuning.specialTeams,
             edge = returnEdge(receiving, kicking),
             kicker = SpecialTeams.kickerFor(kicking.offDepth), kickScheme = kicking.offScheme,
             matchup = KickMatchup(returnEdge = units(receiving).kickReturnEdge(units(kicking), tuning.specialTeams)))
+        // Fielded near the goal line, so the return is about the spot it reaches.
+        if (text != SpecialTeams.TOUCHBACK) creditReturn(returner, spot, punt = false, units(kicking).kickCoverage, rng)
         return state.copy(possession = receiver, yardLine = spot, down = 1, distance = 10)
     }
+
+    /** Kicks returned so far: each picks its tackler from a stream of its own. */
+    private var returnsSoFar = 0
+
+    /**
+     * A returned kick in the box score: the returner's return and yards, and
+     * the tackle to a man on the [coverage] - the better cover men more often.
+     * The tackler is drawn from a stream of the return's own, so the game's
+     * other draws are as they were.
+     */
+    private fun creditReturn(returner: Player?, yards: Int, punt: Boolean, coverage: List<Player>, rng: Rng) {
+        val id = returner?.id ?: return
+        stats.update(id) {
+            if (punt) it.copy(puntReturns = it.puntReturns + 1, puntReturnYards = it.puntReturnYards + yards)
+            else it.copy(kickReturns = it.kickReturns + 1, kickReturnYards = it.kickReturnYards + yards)
+        }
+        if (coverage.isEmpty()) return
+        val own = rng.split("return-tackle|${returnsSoFar++}")
+        val weights = coverage.map { p ->
+            val scheme = if (p.position.isOffense) teamFor(sideOf(p)).offScheme else teamFor(sideOf(p)).defScheme
+            val v = SpecialTeamsUnits.value(p, StRole.COVERAGE, scheme, tuning.specialTeams)
+            (v - 40f).coerceAtLeast(1f).let { it * it }
+        }
+        var roll = own.nextFloat() * weights.sum()
+        val tackler = coverage.indices.firstOrNull { i -> roll -= weights[i]; roll <= 0f }?.let { coverage[it] } ?: coverage.last()
+        stats.update(tackler.id) { it.copy(specialTeamsTackles = it.specialTeamsTackles + 1) }
+    }
+
+    /** Which side a dressed man plays for in this game. */
+    private fun sideOf(p: Player): Side = if (home.roster.any { it.id == p.id }) Side.HOME else Side.AWAY
 
     private fun simulateDrive(start: GameState, rng: Rng): GameState {
         var state = start
@@ -309,6 +342,10 @@ class GameSimulator(
                                 snapEdge = kickers.snapRating - st.snapAnchor,
                             ))
                         log(state, punt.narrative)
+                        if (punt.returnYards > 0) {
+                            creditReturn(SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
+                                punt.returnYards, punt = true, kickers.gunners + kickers.puntCoverage, rng)
+                        }
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
                         runClock(tuning.gameFlow.puntClockRunoff)
                         state = state.copy(

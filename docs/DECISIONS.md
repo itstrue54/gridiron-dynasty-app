@@ -2548,3 +2548,11 @@ nothing else moves more than 0.006.
 - **Special teams give game day its reason:** scratches keep the better special teamer of two as deep, and clubs call up squad men who would cover kicks clearly better than their weakest.
 
 **Consequences.** Measured in CALIBRATION.md pass 24. Saves: `DepthPins` and the tuning table gain defaulted fields; save step 54, version 55.
+
+## ADR-0xx — Coverage tackles are their own stat
+
+**Context.** With special teams played as units, a returned kick needs someone to stop it, and the box score had no returns at all.
+
+**Decision.** Count kick and punt returns and their yards for the returner, and give each return's tackle to a man on the coverage unit, weighted toward the better cover men. Keep coverage tackles in their own field (`StatLine.specialTeamsTackles`) rather than in `tackles`: awards, the Hall of Fame, form and contract pricing all read `tackles` as a defender's work, and a linebacker's value shouldn't jump because he covers kicks. The tackler comes from a stream of the return's own, so counting changes no game (300 games hash the same as before).
+
+**Consequences.** Save step 55, version 56. Seasons already played have no returns counted.

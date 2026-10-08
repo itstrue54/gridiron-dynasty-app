@@ -25,6 +25,13 @@ data class StatLine(
     val assists: Int = 0,
     val sacks: Int = 0,
     val interceptions: Int = 0,
+    /** Kickoffs and punts he brought back (fair catches and touchbacks are not returns), and the yards. */
+    val kickReturns: Int = 0,
+    val kickReturnYards: Int = 0,
+    val puntReturns: Int = 0,
+    val puntReturnYards: Int = 0,
+    /** Returns he stopped in coverage. Kept apart from [tackles], which the defence's records and pricing read. */
+    val specialTeamsTackles: Int = 0,
 ) {
     operator fun plus(other: StatLine) = StatLine(
         passAttempts + other.passAttempts, completions + other.completions,
@@ -36,6 +43,9 @@ data class StatLine(
         receivingYards + other.receivingYards, receivingTouchdowns + other.receivingTouchdowns,
         tackles + other.tackles, assists + other.assists,
         sacks + other.sacks, interceptions + other.interceptions,
+        kickReturns + other.kickReturns, kickReturnYards + other.kickReturnYards,
+        puntReturns + other.puntReturns, puntReturnYards + other.puntReturnYards,
+        specialTeamsTackles + other.specialTeamsTackles,
     )
 
     /** What a tackle leaderboard counts: his own stops and the ones he helped on. */

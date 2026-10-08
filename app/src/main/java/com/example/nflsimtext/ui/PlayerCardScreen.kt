@@ -208,14 +208,22 @@ fun PlayerCardScreen(
                     meta = if (player.careerStats.years == 1) "1 season" else "${player.careerStats.years} seasons",
                 ) {
                     val sheet = careerSheet(player, dynasty)
-                    if (sheet == null) {
+                    val kicks = specialTeamsSheet(player, dynasty)
+                    if (sheet == null && kicks == null) {
                         Text(
                             "No stat line for his position. What he does does not " +
                                 "show up in a box score.",
                             style = NdTheme.type.body, color = c.chalkDim,
                         )
-                    } else {
-                        DataTable(columns = sheet.columns, rows = sheet.rows)
+                    }
+                    sheet?.let { DataTable(columns = it.columns, rows = it.rows) }
+                    kicks?.let {
+                        Text(
+                            "Special teams",
+                            style = NdTheme.type.caption, color = c.chalkDim,
+                            modifier = Modifier.padding(top = NdTheme.spacing.s),
+                        )
+                        DataTable(columns = it.columns, rows = it.rows)
                     }
                 }
             }
@@ -399,6 +407,23 @@ internal fun ratingLabel(rating: RatingId): String = rating.name
         }
     }
     .replaceFirstChar { it.uppercase() }
+
+/** His seasons on special teams - returns and coverage tackles - if he has any. */
+private fun specialTeamsSheet(player: Player, dynasty: Dynasty): CareerSheet? {
+    fun club(id: Int?) = dynasty.league.teams.firstOrNull { it.id.v == id }?.abbrev ?: "--"
+    val seasons = player.careerStats.seasons.sortedByDescending { it.year }
+        .filter { with(it.stats) { kickReturns + puntReturns + specialTeamsTackles > 0 } }
+    if (seasons.isEmpty()) return null
+    return CareerSheet(
+        listOf(ColumnSpec("Year", 1.0f), ColumnSpec("Club", 0.9f), ColumnSpec("KR", 0.6f, numeric = true),
+            ColumnSpec("Yds", 0.8f, numeric = true), ColumnSpec("PR", 0.6f, numeric = true),
+            ColumnSpec("Yds", 0.8f, numeric = true), ColumnSpec("Tkl", 0.6f, numeric = true)),
+        seasons.map { s ->
+            RowData(listOf("${s.year}", club(s.team), "${s.stats.kickReturns}", "${s.stats.kickReturnYards}",
+                "${s.stats.puntReturns}", "${s.stats.puntReturnYards}", "${s.stats.specialTeamsTackles}"))
+        },
+    )
+}
 
 /** A career table, shaped to the position: a guard has no stat line. */
 private class CareerSheet(val columns: List<ColumnSpec>, val rows: List<RowData>)
