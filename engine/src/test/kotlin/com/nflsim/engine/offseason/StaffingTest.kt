@@ -317,9 +317,12 @@ class StaffingTest {
         assertTrue(next.league.coaches.containsKey(next.league.team(other.id).staff.offCoordinator))
 
         // A lateral move is his club's to refuse: no club's coordinator is offered as a coordinator.
+        // (A position coach another club means to promote is still a position
+        // coach: the user can promote him first. A coordinator now is sideways.)
         val firedOc = Staffing.fire(played, StaffJob.OFFENCE)
-        val stillCoordinating = Staffing.market(firedOc).teams.filter { it.id != user }.map { it.staff.offCoordinator }.toSet()
-        assertTrue(Staffing.pool(firedOc, StaffJob.OFFENCE).none { it.id in stillCoordinating })
+        val coordinatingNow = firedOc.league.teams.filter { it.id != user }.flatMap { listOf(it.staff.offCoordinator, it.staff.defCoordinator) }.toSet()
+        val after = Staffing.market(firedOc)
+        assertTrue(Staffing.pool(firedOc, StaffJob.OFFENCE, after).none { it.id in coordinatingNow && it.id in after.teams.flatMap { t -> listOf(t.staff.offCoordinator, t.staff.defCoordinator) } })
     }
 
     @Test
@@ -382,6 +385,51 @@ class StaffingTest {
         assertEquals(lb.id, staff.defCoordinator)
         val newLb = staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.LB)
         assertTrue(newLb != lb.id && newLb in next.league.coaches, "his old job filled")
+    }
+
+    @Test
+    fun `the user can promote another club's position coach to coordinator, and his club fills the job`() {
+        val d = Staffing.fire(played, StaffJob.OFFENCE)
+        val market = Staffing.market(d)
+        val target = d.league.teams.filter { it.id != user }.firstNotNullOf { club ->
+            club.staff.positionCoaches[com.nflsim.engine.model.PositionGroup.WR]?.let { id ->
+                // One his club keeps through the spring.
+                if (market.team(club.id).staff.positionCoaches[com.nflsim.engine.model.PositionGroup.WR] == id) club to d.league.coach(id) else null
+            }
+        }
+        val (club, wr) = target
+        assertTrue(Staffing.pool(d, StaffJob.OFFENCE, market).any { it.id == wr.id }, "another club's position coach, for coordinator")
+        assertEquals(Staffing.Source.Promotion(club, StaffJob(CoachRole.POSITION_COACH, com.nflsim.engine.model.PositionGroup.WR)),
+            Staffing.source(d, wr, market))
+        val agreed = Staffing.hire(d, StaffJob.OFFENCE, wr, market)
+        val (next, _) = OffseasonEngine.run(agreed)
+        assertEquals(wr.id, next.league.team(user).staff.offCoordinator)
+        assertEquals(CoachRole.OFFENSIVE_COORDINATOR, next.league.coach(wr.id).role)
+        val filled = next.league.team(club.id).staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.WR)
+        assertTrue(filled != wr.id && filled in next.league.coaches, "${club.abbrev} filled the job he left")
+    }
+
+    @Test
+    fun `other clubs can promote the user's position coach to coordinator, and the window says so`() {
+        // Every club's coordinators retiring, every club looking at every position
+        // coach, and the user's quarterbacks coach the obvious pick.
+        val l = played.league
+        val qbId = l.team(user).staff.positionCoaches.getValue(com.nflsim.engine.model.PositionGroup.QB)
+        val coordinators = l.teams.filter { it.id != user }.map { it.staff.offCoordinator }.toSet()
+        val d = played.copy(league = l.copy(
+            tuning = l.tuning.copy(staff = l.tuning.staff.copy(assistantLook = 500)),
+            coaches = l.coaches.mapValues { (id, c) ->
+                when (id) {
+                    qbId -> c.copy(ratings = com.nflsim.engine.model.CoachRatings(90, 100, 90, 90, 90, 90))
+                    in coordinators -> c.copy(age = 80)
+                    else -> c
+                }
+            },
+        ))
+        val spring = Staffing.spring(d)
+        val note = Staffing.leavingNotes(d, spring)[StaffJob(CoachRole.POSITION_COACH, com.nflsim.engine.model.PositionGroup.QB)]
+        assertTrue(note != null && note.endsWith("offensive coordinator."), "the window says where he goes: $note")
+        assertEquals(Staffing.VACANT, spring.league.team(user).staff.positionCoaches[com.nflsim.engine.model.PositionGroup.QB])
     }
 
     @Test

@@ -101,6 +101,8 @@ object Migrations {
         Step(49, "a finished offseason clears the spring's agreements (SPEC 4.7)", ::clearStaleAgreements),
         // A coach keeps the ratings he has; his career moves them from his next spring on.
         Step(50, "coaches have careers, and position coaches can be promoted to coordinator (SPEC 4.7); nothing to move") { it },
+        // An old report's promotions were all coordinators made head coaches, which is what the new fields default to.
+        Step(51, "clubs promote other clubs' position coaches to coordinator (SPEC 4.7); nothing to move") { it },
     )
 
     /**

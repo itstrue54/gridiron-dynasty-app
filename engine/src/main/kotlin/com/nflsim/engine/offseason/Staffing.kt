@@ -217,6 +217,14 @@ object Staffing {
 
     private fun jobOf(staff: Staff, id: CoachId): StaffJob? = StaffJob.ALL.firstOrNull { holder(staff, it) == id }
 
+    /** Whether moving from [from] to [to] is a promotion no club can block: an assistant to head coach, a position coach to coordinator. */
+    private fun promotes(from: StaffJob, to: StaffJob): Boolean = when (to.role) {
+        CoachRole.HEAD_COACH -> from.role == CoachRole.OFFENSIVE_COORDINATOR || from.role == CoachRole.DEFENSIVE_COORDINATOR
+        CoachRole.OFFENSIVE_COORDINATOR, CoachRole.DEFENSIVE_COORDINATOR, CoachRole.SPECIAL_TEAMS_COORDINATOR ->
+            from.role == CoachRole.POSITION_COACH
+        else -> false
+    }
+
     /**
      * Whether [job] on the user's staff can be filled: it is open now, or
      * will be once another club has promoted its man away - and nobody is
@@ -233,14 +241,16 @@ object Staffing {
      */
     fun leavingNotes(dynasty: Dynasty, spring: CoachingCarousel.Result = spring(dynasty)): Map<StaffJob, String> {
         fun club(id: Int) = dynasty.league.teams.firstOrNull { it.id.v == id }?.name
-        val promoted = departures(dynasty, spring).mapValues { (_, p) -> "${p.name} leaves to be the ${club(p.team) ?: "new"} head coach." }
+        val promoted = departures(dynasty, spring).mapValues { (_, p) ->
+            "${p.name} leaves to be the ${club(p.team) ?: "new"} ${StaffJob(p.toRole).label.lowercase()}."
+        }
         val retired = spring.retirements.filter { it.team == dynasty.userTeam }.associate { it.job to "${it.name} retires." }
         return retired + promoted
     }
 
     /** The user's coordinators other clubs promote to head coach this spring, by the job each leaves. */
     fun departures(dynasty: Dynasty, spring: CoachingCarousel.Result = spring(dynasty)): Map<StaffJob, Promotion> =
-        spring.promotions.filter { it.from == dynasty.userTeam }.associateBy { StaffJob(it.role) }
+        spring.promotions.filter { it.from == dynasty.userTeam }.associateBy { it.job }
 
     /**
      * Who the user's club can hire for [job] this spring, best first: the
@@ -267,10 +277,15 @@ object Staffing {
         }
         val ownAssistants = dynasty.team.staff.positionCoaches.filterKeys { it in groups }.values
             .mapNotNull { dynasty.league.coaches[it] }
+        // And other clubs' on that side, whose clubs cannot stop a promotion
+        // to coordinator (the NFL's anti-tampering policy, since 2020).
+        val othersAssistants = dynasty.league.teams.filter { it.id != dynasty.userTeamId }
+            .flatMap { club -> club.staff.positionCoaches.filterKeys { it in groups }.values }
+            .mapNotNull { dynasty.league.coaches[it] }
         // A man the carousel hires and lets go again in the same spring exists
         // only in its preview: the offseason makes him again under another id,
         // so he is nobody the user can agree to hire.
-        return (open + coordinators + ownAssistants)
+        return (open + coordinators + ownAssistants + othersAssistants.filter { c -> open.none { it.id == c.id } })
             .filter { it.id !in promised && (it.id.v <= 0 || it.id in dynasty.league.coaches) }
             .sortedByDescending { worth(it, job) }
     }
@@ -289,8 +304,9 @@ object Staffing {
         if (id !in employed(market)) return true
         // One of the user's own, moving up into a job that opens.
         if (jobOf(market.team(dynasty.userTeamId).staff, id) != null) return true
-        return p.job == StaffJob.HEAD && market.teams.any { it.id != dynasty.userTeamId &&
-            (it.staff.offCoordinator == id || it.staff.defCoordinator == id) }
+        // Another club's man, promoted: a coordinator to head coach, a position coach to coordinator.
+        val elsewhere = market.teams.filter { it.id != dynasty.userTeamId }.firstNotNullOfOrNull { jobOf(it.staff, id) } ?: return false
+        return promotes(elsewhere, p.job)
     }
 
     /**
@@ -350,9 +366,10 @@ object Staffing {
                     out = moveUp(out, user, coach.id)
                 } else if (club != null) {
                     val left = jobOf(club.staff, coach.id)!!
-                    // Only a promotion takes a man from his club: a coordinator to head coach.
-                    if (p.job != StaffJob.HEAD || left !in setOf(StaffJob.OFFENCE, StaffJob.DEFENCE)) continue
-                    out = replaceAway(out, club.id, left, rng.split("replace|${coach.id.v}"))
+                    // Only a promotion takes a man from his club.
+                    if (!promotes(left, p.job)) continue
+                    out = if (left.role == CoachRole.POSITION_COACH) assistantAway(out, club.id, left, rng.split("assistant|${coach.id.v}"))
+                        else replaceAway(out, club.id, left, rng.split("replace|${coach.id.v}"))
                 }
             }
             out = place(out, user, p.job, coach)
@@ -361,12 +378,24 @@ object Staffing {
         return fillVacancies(out, user, dynasty.year, gm = false)
     }
 
+    /** A club whose position coach the user promoted away fills his job, as a new league's staffs are drawn. */
+    private fun assistantAway(league: League, clubId: TeamId, job: StaffJob, rng: com.nflsim.engine.rng.Rng): League {
+        val club = league.team(clubId)
+        val id = CoachId((league.coaches.keys.maxOfOrNull { it.v } ?: 0) + 1)
+        val scheme = if (job.group in StaffGenerator.OFFENSIVE_GROUPS) club.offenseScheme else club.defenseScheme
+        val assistant = StaffGenerator.assistant(id, job.role, scheme, rng, league.tuning.staff)
+        return league.copy(
+            teams = league.teams.map { if (it.id == clubId) it.copy(staff = it.staff.with(job, id)) else it },
+            coaches = league.coaches + (id to assistant),
+        )
+    }
+
     /** A club whose coordinator the user promoted away hires his replacement (CoachingCarousel.replacement). */
     private fun replaceAway(league: League, clubId: TeamId, job: StaffJob, rng: com.nflsim.engine.rng.Rng): League {
         val t = league.tuning.staff
         val club = league.team(clubId)
         var next = (league.coaches.keys.maxOfOrNull { it.v } ?: 0) + 1
-        val (fill, from) = CoachingCarousel.replacement(league, club, job, t, rng, { league.coaches[it] }) { role, scheme ->
+        val (fill, from, _) = CoachingCarousel.replacement(league, club, job, t, rng, { league.coaches[it] }) { role, scheme ->
             CoachingCarousel.newCoach(CoachId(next++), role, scheme, t, rng)
         }
         var after = CoachingCarousel.withCoordinator(club, job, fill)
