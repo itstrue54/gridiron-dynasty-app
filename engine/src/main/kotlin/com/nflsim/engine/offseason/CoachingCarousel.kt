@@ -57,14 +57,19 @@ data class CoachRetirement(
  */
 @Serializable
 data class Promotion(
-    /** The club that made him its head coach. */
+    /** The club that promoted him. */
     val team: Int,
     /** The club he left. */
     val from: Int,
     val name: String,
-    /** The job he left. */
+    /** The job he left: a coordinator's, or a position coach's and his group. */
     val role: CoachRole,
-)
+    val group: com.nflsim.engine.model.PositionGroup? = null,
+    /** The job he went to: head coach, or a coordinator's. */
+    val toRole: CoachRole = CoachRole.HEAD_COACH,
+) {
+    val job: StaffJob get() = StaffJob(role, group)
+}
 
 /**
  * SPEC 7 phase 2: the coaching carousel.
@@ -147,6 +152,33 @@ object CoachingCarousel {
         coaches.replaceAll { _, c -> CoachCareer.older(c, t, rng) }
         coaches.entries.removeIf { (id, c) -> id !in employed && c.age >= t.retireAge }
         fun retiring(c: Coach) = c.age >= t.retireFrom + (rng.split("retire|${c.id.v}").nextFloat() * t.retireSpread).toInt()
+        // Other clubs' position coaches on one side of the ball, a few by
+        // lot: since 2020 no club can stop its assistant taking a
+        // coordinator's job elsewhere (the NFL's anti-tampering policy).
+        fun assistantsElsewhere(clubId: TeamId, job: StaffJob): List<Triple<TeamId, StaffJob, Coach>> {
+            val offence = job == StaffJob.OFFENCE
+            return clubs.values.filter { it.id != clubId }.flatMap { c ->
+                c.staff.positionCoaches
+                    .filterKeys { g -> g != com.nflsim.engine.model.PositionGroup.ST && (g in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) == offence }
+                    .mapNotNull { (g, id) -> coaches[id]?.let { Triple(c.id, StaffJob(CoachRole.POSITION_COACH, g), it) } }
+            }.filter { it.third.id !in reserved && it.third.id !in newThisSpring }
+                .sortedBy { rng.split("assistant|${clubId.v}|${job.role}|${it.third.id.v}").nextFloat() }
+                .take(t.assistantLook)
+        }
+        // The position coach's job another club's promotion left behind: that
+        // club fills it, and the user's club fills its own (Staffing.settle).
+        fun leftBehind(clubId: TeamId, job: StaffJob, fillRng: Rng) {
+            val c = clubs.getValue(clubId)
+            if (clubId == userTeam) {
+                clubs[clubId] = c.copy(staff = Staffing.staffWith(c.staff, job, Staffing.VACANT))
+                return
+            }
+            val scheme = if (job.group in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) c.offenseScheme else c.defenseScheme
+            val assistant = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), job.role, scheme, fillRng, t)
+            coaches[assistant.id] = assistant
+            employed += assistant.id
+            clubs[clubId] = c.copy(staff = Staffing.staffWith(c.staff, job, assistant.id))
+        }
         val retirements = mutableListOf<CoachRetirement>()
 
         // Assistants who stay are a year on in their contracts. Those who
@@ -176,14 +208,19 @@ object CoachingCarousel {
                     continue
                 }
                 if (job == StaffJob.OFFENCE || job == StaffJob.DEFENCE) {
-                    val (fill, from) = replacement(league, club, job, t, fillRng, { coaches[it] }) { role, scheme -> newCoach(CoachId(nextId++), role, scheme, t, fillRng) }
+                    val (fill, from, fromClub) = replacement(league, club, job, t, fillRng, { coaches[it] },
+                        assistantsElsewhere(teamId, job)) { role, scheme -> newCoach(CoachId(nextId++), role, scheme, t, fillRng) }
                     coaches[fill.id] = fill
                     employed += fill.id
                     newThisSpring += fill.id
                     val before = club
                     club = withCoordinator(club, job, fill)
-                    // Promoted from within: his old job goes to a new man.
-                    if (from != null) {
+                    if (from != null && fromClub != teamId) {
+                        // Another club's position coach, promoted: that club fills his job.
+                        promotions += Promotion(teamId.v, fromClub!!.v, fill.name, CoachRole.POSITION_COACH, from.group, job.role)
+                        leftBehind(fromClub, from, fillRng)
+                    } else if (from != null) {
+                        // Promoted from within: his old job goes to a new man.
                         val scheme = if (from.group in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) club.offenseScheme else club.defenseScheme
                         val assistant = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), from.role, scheme, fillRng, t)
                         coaches[assistant.id] = assistant
@@ -284,12 +321,18 @@ object CoachingCarousel {
                     // The user's club fills its own (Staffing.settle).
                     clubs[sourceId] = source.copy(staff = Staffing.staffWith(source.staff, job, Staffing.VACANT))
                 } else {
-                    val (fill, from) = replacement(league, source, job, t, hireRng, { coaches[it] }) { role, scheme -> candidate(role, scheme) }
+                    val (fill, from, fromClub) = replacement(league, source, job, t, hireRng, { coaches[it] },
+                        assistantsElsewhere(sourceId, job)) { role, scheme -> candidate(role, scheme) }
                     coaches[fill.id] = fill
                     employed += fill.id
                     newThisSpring += fill.id
                     var after = withCoordinator(source, job, fill)
-                    if (from != null) {
+                    if (from != null && fromClub != sourceId) {
+                        promotions += Promotion(sourceId.v, fromClub!!.v, fill.name, CoachRole.POSITION_COACH, from.group, job.role)
+                        clubs[sourceId] = after
+                        leftBehind(fromClub, from, hireRng)
+                        after = clubs.getValue(sourceId)
+                    } else if (from != null) {
                         val scheme = if (from.group in com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS) after.offenseScheme else after.defenseScheme
                         val assistant = com.nflsim.engine.gen.StaffGenerator.assistant(CoachId(nextId++), from.role, scheme, hireRng, t)
                         coaches[assistant.id] = assistant
@@ -366,32 +409,39 @@ object CoachingCarousel {
         rng: Rng,
         /** The coaches as they stand now, for the club's own position coaches. */
         coachOf: (CoachId) -> Coach?,
+        /** A few other clubs' position coaches on that side, whose clubs cannot stop the promotion. */
+        others: List<Triple<TeamId, StaffJob, Coach>> = emptyList(),
         candidate: (CoachRole, String) -> Coach,
     ): Fill {
         val offence = job == StaffJob.OFFENCE
         val fit = fits(league, club.id, if (offence) SchemeCatalog.offensive else SchemeCatalog.defensive, offence)
         val current = if (offence) club.offenseScheme else club.defenseScheme
-        val outside = (1..t.coordinatorCandidates).map { null to candidate(job.role, drawScheme(fit, current, t, rng)) }
+        val outside = (1..t.coordinatorCandidates).map { Triple<TeamId?, StaffJob?, Coach>(null, null, candidate(job.role, drawScheme(fit, current, t, rng))) }
         // The club's own position coaches on that side of the ball, as a
         // coach's career goes (CoachCareer): read like anyone else, less what
         // a man who has never run a side has yet to learn.
         val groups = com.nflsim.engine.gen.StaffGenerator.OFFENSIVE_GROUPS
         val own = club.staff.positionCoaches
             .filterKeys { g -> g != com.nflsim.engine.model.PositionGroup.ST && (g in groups) == offence }
-            .mapNotNull { (g, id) -> coachOf(id)?.let { StaffJob(CoachRole.POSITION_COACH, g) to it } }
-        val (from, chosen) = (outside + own).maxBy { (from, c) ->
-            Staffing.worth(c, job) + t.fitWeight * (fit[c.scheme] ?: 0f) + rng.gaussian(0f, t.evalNoise) -
-                (if (from != null) t.promoteFromWithinDiscount else 0f)
-        }
-        if (from == null) return Fill(chosen, null)
+            .mapNotNull { (g, id) -> coachOf(id)?.let { Triple<TeamId?, StaffJob?, Coach>(club.id, StaffJob(CoachRole.POSITION_COACH, g), it) } }
+        val (fromClub, from, chosen) = (outside + own + others.map { Triple<TeamId?, StaffJob?, Coach>(it.first, it.second, it.third) })
+            .maxBy { (_, from, c) ->
+                Staffing.worth(c, job) + t.fitWeight * (fit[c.scheme] ?: 0f) + rng.gaussian(0f, t.evalNoise) -
+                    (if (from != null) t.promoteFromWithinDiscount else 0f)
+            }
+        if (from == null) return Fill(chosen, null, null)
         return Fill(chosen.copy(
             role = job.role, hotSeat = 0, contractYearsLeft = t.newContractYears,
             tendencies = com.nflsim.engine.gen.Tendencies.draw(job.role, chosen.scheme, rng.split("promoted|${chosen.id.v}")),
-        ), from)
+        ), from, fromClub)
     }
 
-    /** A club's new coordinator, and the position coach's job he leaves if he was promoted from within. */
-    internal data class Fill(val coach: Coach, val from: StaffJob?)
+    /**
+     * A club's new coordinator, and - if he was a position coach - the job he
+     * left and the club he left it at: his own club, promoted from within, or
+     * another, which cannot stop a promotion (the NFL's anti-tampering policy).
+     */
+    internal data class Fill(val coach: Coach, val from: StaffJob?, val fromClub: TeamId?)
 
     /** A club with [coach] as its coordinator for [job], running his scheme on that side. */
     internal fun withCoordinator(club: Team, job: StaffJob, coach: Coach): Team =

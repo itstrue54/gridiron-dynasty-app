@@ -1283,6 +1283,8 @@ data class TuningTable(
         val careerPeakLift: Float = 1.5f,
         /** What a position coach who has never run a side gives away against outside candidates for a coordinator's job. */
         val promoteFromWithinDiscount: Float = 8f,
+        /** Other clubs' position coaches a club looks at for a coordinator's job: their clubs cannot stop the promotion. */
+        val assistantLook: Int = 3,
         /** Fresh candidates for each job the user's club can fill in the spring, and for its general manager (offseason.Staffing). */
         val poolCandidates: Int = 6,
         /**

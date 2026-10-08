@@ -175,6 +175,23 @@ fun OffseasonScreen(dynasty: Dynasty) {
             }
         }
 
+        // Position coaches other clubs made coordinators (a head coach's
+        // promotion shows on the carousel's line, as "from" his old club).
+        val assistantsPromoted = report.promotions.filter { it.toRole != com.nflsim.engine.model.CoachRole.HEAD_COACH }
+        if (assistantsPromoted.isNotEmpty()) {
+            item {
+                Section("Promoted to coordinator") {
+                    assistantsPromoted.forEach { p ->
+                        val to = dynasty.league.teams.firstOrNull { it.id.v == p.team }?.abbrev ?: ""
+                        val from = dynasty.league.teams.firstOrNull { it.id.v == p.from }?.abbrev ?: ""
+                        Line("$to  ${p.name}, ${p.group?.name ?: ""} coach at $from",
+                            com.nflsim.engine.offseason.StaffJob(p.toRole).label.lowercase(),
+                            bold = p.team == team.id.v || p.from == team.id.v)
+                    }
+                }
+            }
+        }
+
         if (report.gmChanges.isNotEmpty()) {
             item {
                 Section("Front offices") {

@@ -78,7 +78,7 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
         val man = dynasty.league.coaches[com.nflsim.engine.model.CoachId(p.coach)]
         val why = if (p.candidate != null || man == null) "" else when (val from = Staffing.source(dynasty, man, market)) {
             is Staffing.Source.LetGo -> ", once the ${from.club.name} let him go"
-            is Staffing.Source.Promotion -> ": the ${from.club.name} cannot stop a promotion to head coach, and hire his replacement"
+            is Staffing.Source.Promotion -> ": the ${from.club.name} cannot stop a promotion to ${job.label.lowercase()}, and hire his replacement"
             else -> ""
         }
         "Joins when the offseason starts$why. "
@@ -203,7 +203,7 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                         (if (sources.values.any { it is Staffing.Source.LetGo }) " A club alone in brackets is letting him go this spring." else "") +
                         (if (job == StaffJob.HEAD) " A coordinator's club cannot stop a promotion to head coach. A man from another club joins when the offseason starts." else "") +
                         (if (job.role == CoachRole.OFFENSIVE_COORDINATOR || job.role == CoachRole.DEFENSIVE_COORDINATOR || job.role == CoachRole.SPECIAL_TEAMS_COORDINATOR)
-                            " Other clubs' coordinators are not here: a club can refuse a move sideways." else "") +
+                            " A position coach's club cannot stop a promotion to coordinator; other clubs' coordinators are not here, as a club can refuse a move sideways." else "") +
                         (side?.let { (name, scheme) ->
                         " Highlighted: runs the $name you run now, ${SchemeCatalog[scheme].name}."
                     } ?: ""),
@@ -248,8 +248,12 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                     "${man.age}. " + when (val from = sources[man.id]) {
                         is Staffing.Source.LetGo -> "The ${from.club.name} are letting him go: he joins when the offseason starts. "
                         is Staffing.Source.Promotion -> "The ${from.club.name}' ${from.job.label.lowercase()}. They cannot stop a promotion " +
-                            "to head coach: he joins when the offseason starts, and they hire his replacement. " +
-                            (market.teams.firstOrNull { it.staff.headCoach == man.id }?.let { "The ${it.name} mean to make him their head coach: hire him first and he is yours. " } ?: "")
+                            "to ${job.label.lowercase()}: he joins when the offseason starts, and they hire his replacement. " +
+                            // Another club about to promote him, as the window's preview has it.
+                            (market.teams.firstNotNullOfOrNull { t ->
+                                val now = StaffJob.ALL.firstOrNull { Staffing.holder(t.staff, it) == man.id }
+                                if (now != null && !(t.id == from.club.id && now == from.job)) t to now else null
+                            }?.let { (t, now) -> "The ${t.name} mean to make him their ${now.label.lowercase()}: hire him first and he is yours. " } ?: "")
                         is Staffing.Source.Own -> "Your ${from.job.label.lowercase()}. Promote him now, and his job is open for you to fill. "
                         is Staffing.Source.OutOfWork -> "Out of work. "
                         else -> "A candidate this spring. "

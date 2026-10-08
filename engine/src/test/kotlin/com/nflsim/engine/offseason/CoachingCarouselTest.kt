@@ -69,8 +69,16 @@ class CoachingCarouselTest {
         val league = LeagueGenerator.generate(2026, 5L)
         val r = CoachingCarousel.run(league, winPct = { 0f }, playoffClubs = emptySet(),
             previousWinPct = league.teams.associate { it.id.v to 1f }, rng = SplitMixRng(4L))
-        assertTrue(r.promotions.isNotEmpty(), "somebody hired a coordinator away")
-        r.promotions.forEach { p ->
+        assertTrue(r.promotions.any { it.toRole == CoachRole.HEAD_COACH }, "somebody hired a coordinator away")
+        // A position coach promoted to another club's coordinator is that club's coordinator now.
+        r.promotions.filter { it.toRole != CoachRole.HEAD_COACH }.forEach { p ->
+            val club = r.league.teams.first { it.id.v == p.team }
+            val job = StaffJob(p.toRole)
+            val holder = r.league.coaches[Staffing.holder(club.staff, job)]
+            assertTrue(holder == null || holder.name == p.name || r.changes.any { it.team == p.team },
+                "${p.name} became ${club.abbrev}'s ${job.label} (unless that club changed staffs again after)")
+        }
+        r.promotions.filter { it.toRole == CoachRole.HEAD_COACH }.forEach { p ->
             val club = r.league.teams.first { it.id.v == p.team }
             val head = r.league.coach(club.staff.headCoach)
             assertEquals(p.name, head.name)
@@ -81,7 +89,7 @@ class CoachingCarouselTest {
                 "${from.abbrev} has both coordinators")
             assertTrue(from.staff.offCoordinator != head.id && from.staff.defCoordinator != head.id)
         }
-        assertEquals(r.promotions.size, r.changes.count { it.promotedFrom != null })
+        assertEquals(r.promotions.count { it.toRole == CoachRole.HEAD_COACH }, r.changes.count { it.promotedFrom != null })
         // Nobody holds two jobs.
         val jobs = r.league.teams.flatMap { listOf(it.staff.headCoach, it.staff.offCoordinator, it.staff.defCoordinator) }
         assertEquals(jobs.size, jobs.toSet().size)

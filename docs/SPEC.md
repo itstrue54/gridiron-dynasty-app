@@ -401,9 +401,16 @@ Super Bowl. So:
 - **The user's coordinators can be promoted away** like anyone's. The
   window shows who is leaving and for which club, and the user can hire his
   replacement then: whoever he picks joins when the offseason starts.
-- Not modelled: promoting another club's position coach to coordinator,
-  which the rules also allow, and the draft-pick compensation the NFL gives
-  a club that loses a minority coach to a head coaching job.
+- **A position coach to coordinator,** under the same policy since 2020: a
+  club filling a coordinator's job looks at a few other clubs' position
+  coaches on that side too (`assistantLook`, 3), with its own and the
+  outside candidates, less `promoteFromWithinDiscount` for never having run
+  a side; their clubs fill the jobs they leave. The user's coordinator
+  pools hold other clubs' position coaches, and his own can be taken - the
+  window says where to - and the report lists them under "Promoted to
+  coordinator".
+- Not modelled: the draft-pick compensation the NFL gives a club that
+  loses a minority coach to a head coaching job.
 
 Firing a coordinator leaves the club's scheme alone; hiring one brings his,
 and if it is new the players on his side start learning it again, as after
