@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Date:** September 5, 2026
 **Owner:** Peter
-**Repo:** NFLsimtext  ·  **Working title:** NFL Sim Text
+**Repo:** [itstrue54/gridiron-dynasty-app](https://github.com/itstrue54/gridiron-dynasty-app)  ·  **Game:** Gridiron Dynasty (working title was NFL Sim Text)
 
 ---
 
@@ -102,7 +102,7 @@ This is the most important architectural decision in the document:
 ## 3. Module structure **[LOCKED]**
 
 ```
-NFLsimtext/
+gridiron-dynasty-app/
 ├── settings.gradle.kts
 ├── build.gradle.kts
 ├── gradle/libs.versions.toml
