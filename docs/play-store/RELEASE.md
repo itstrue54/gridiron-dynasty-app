@@ -70,7 +70,7 @@ rejects a code it has seen) and set `versionName`.
 
 ## Hosting the privacy policy
 
-This repository is private, so the policy is served from a small public one,
+The policy is served from a small public repository of its own,
 [itstrue54/gridiron-dynasty](https://github.com/itstrue54/gridiron-dynasty),
 by GitHub Pages:
 

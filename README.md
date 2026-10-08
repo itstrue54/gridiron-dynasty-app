@@ -1,6 +1,6 @@
-# NFL Sim Text
+# Gridiron Dynasty
 
-A text-based NFL dynasty simulator for Android. No graphics, no play calling — you run the front office and the game reports back in drive summaries, box scores, and league news.
+A text-based NFL dynasty simulator for Android. No graphics — you run the front office, call your own plays if you want to, and the game reports back in drive summaries, box scores, and league news.
 
 The design target is CPU-vs-CPU slow-sim play: the fun lives in roster construction, scheme fit, player development, and the draft.
 
@@ -8,11 +8,9 @@ The design target is CPU-vs-CPU slow-sim play: the fun lives in roster construct
 
 ## Status
 
-**Milestone:** M8 — the front office. Free agency is an auction priced by the
-market and paid on production; teams keep their own, cut for value, restructure,
-and get punished for it. Players ask out. The app has a Front Office screen with
-your cap sheet, your locker room, trades, the draft and the market.
-Next: draft pick assets so trades can exchange them (SPEC §8.4).
+**Version 1.0.** Everything on the v1.0 roadmap is built: seasons, the
+offseason, free agency, the draft, trades, staffs you hire and fire, and
+play-calling for your own games. It is headed for Google Play.
 
 See [`docs/SPEC.md`](docs/SPEC.md) §14 for the full roadmap.
 
@@ -74,4 +72,13 @@ Commit prefixes: `feat:` `fix:` `test:` `docs:` `tune:` `refactor:` `chore:`
 
 ## License
 
-Private project. Fictional players and teams; no licensed NFL content.
+Copyright © 2026 itstrue54. All rights reserved.
+
+The source is public so it can be read. No license is granted to copy,
+modify or distribute it, in whole or in part.
+
+The bundled fonts, IBM Plex Sans and Big Shoulders Display, are under the
+SIL Open Font License 1.1; their license texts ship with the app in
+[`app/src/main/assets/licenses/`](app/src/main/assets/licenses/).
+
+Fictional players and teams; no licensed NFL content.
