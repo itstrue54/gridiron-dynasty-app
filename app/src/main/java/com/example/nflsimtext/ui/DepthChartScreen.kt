@@ -253,7 +253,9 @@ private fun GameDayBlock(
 ) {
     val c = NdTheme.colors
     val eligible = WeekRunner.eligible(roster)
-    val actives = GameDay.actives(eligible, offense, defense, pins.inactive)
+    val squad = dynasty.team.practiceSquad.mapNotNull { dynasty.league.playersById[it] }
+    val up = GameDay.callUps(eligible, squad, offense, defense, pins.callUp)
+    val actives = GameDay.actives(eligible, offense, defense, pins.inactive, squad, pins.callUp)
     val scratched = eligible - actives.toSet()
     val hurt = roster.filter { it !in eligible && !com.nflsim.engine.season.RosterMoves.onReserve(it) }
     var swapping by remember { mutableStateOf<Player?>(null) }
@@ -265,7 +267,7 @@ private fun GameDayBlock(
 
     SituationBlock(
         "Game day",
-        meta = if (pins.inactive.isNotEmpty()) "Your picks" else "Front office picks",
+        meta = if (pins.inactive.isNotEmpty() || pins.callUp.isNotEmpty()) "Your picks" else "Front office picks",
     ) {
         Text(
             gameDayNote(actives.size, actives.count { it.position.group == com.nflsim.engine.model.PositionGroup.OL }),
@@ -275,6 +277,15 @@ private fun GameDayBlock(
         if (hurt.isNotEmpty()) {
             Text(
                 "Hurt, and inactive: " + hurt.joinToString(", ") { "${it.position.label} ${it.name}" } + ".",
+                style = NdTheme.type.data, color = c.chalk,
+                modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+            )
+        }
+        if (up.isNotEmpty()) {
+            Text(
+                "Called up from the practice squad: " +
+                    // This game counts: the league adds it when the week is played.
+                    up.joinToString(", ") { "${it.position.label} ${it.name} (${callUpCount(it.elevations + 1)})" } + ".",
                 style = NdTheme.type.data, color = c.chalk,
                 modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
             )
@@ -296,7 +307,8 @@ private fun GameDayBlock(
         }
         swapping?.let { out ->
             // He dresses; one of the men dressed sits in his place.
-            val candidates = GameDay.sitOrder(actives + out, offense, defense).filter { it != out }.take(SWAP_SHOWN)
+            val candidates = GameDay.sitOrder(actives + out, offense, defense, keep = up.toSet())
+                .filter { it != out }.take(SWAP_SHOWN)
             Text(
                 "Who sits instead of ${out.name}?",
                 style = NdTheme.type.caption, color = c.chalkDim,
@@ -318,15 +330,49 @@ private fun GameDayBlock(
                 }
             }
         }
-        if (pins.inactive.isNotEmpty()) {
+        // Call-ups: two a game, three a season each; naming one sends the deepest man out.
+        val callable = squad.filter { it.injuryWeeks == 0 && it.elevations < GameDay.CALL_UP_LIMIT }
+            .sortedByDescending { overall(it, if (it.position.isOffense) offense else defense) }
+            .take(CALL_UP_SHOWN)
+        if (callable.isNotEmpty()) {
+            Text(
+                "Call up from your squad (two a game, each three times a season):",
+                style = NdTheme.type.caption, color = c.chalkDim,
+                modifier = Modifier.padding(top = NdTheme.spacing.s),
+            )
+            callable.forEach { man ->
+                val named = man.id.v in pins.callUp
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${man.position.label} ${man.name}, ${callUpCount(man.elevations)}",
+                        style = NdTheme.type.data, color = c.chalk,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = {
+                            save(pins.copy(callUp = if (named) pins.callUp - man.id.v else (pins.callUp + man.id.v).takeLast(GameDay.CALL_UPS)))
+                        },
+                    ) {
+                        Text(if (named) "Don't call up" else "Call him up", style = NdTheme.type.caption, color = c.pylonText)
+                    }
+                }
+            }
+        }
+        if (pins.inactive.isNotEmpty() || pins.callUp.isNotEmpty()) {
             SecondaryButton(
                 "Let the front office pick",
-                { swapping = null; save(pins.copy(inactive = emptyList())) },
+                { swapping = null; save(pins.copy(inactive = emptyList(), callUp = emptyList())) },
                 Modifier.padding(top = NdTheme.spacing.s),
             )
         }
     }
 }
+
+/** Squad men the call-up list offers, best first. */
+private const val CALL_UP_SHOWN = 6
+
+/** A squad man's call-ups this season, out of the three allowed. */
+internal fun callUpCount(times: Int): String = "$times of ${GameDay.CALL_UP_LIMIT} call-ups used"
 
 /** How many of the deepest men a swap offers to sit. */
 private const val SWAP_SHOWN = 8

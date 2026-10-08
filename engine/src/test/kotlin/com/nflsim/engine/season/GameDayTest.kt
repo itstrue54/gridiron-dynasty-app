@@ -92,4 +92,79 @@ class GameDayTest {
         val teams = WeekRunner.teams(league, league.tuning)
         teams.values.forEach { assertTrue(it.roster.size <= GameDay.ACTIVES_WITH_LINE, "${it.team.abbrev} dresses ${it.roster.size}") }
     }
+
+    // ---- practice-squad call-ups ----
+
+    private val squad = team.practiceSquad.map { league.player(it) }
+    /** A practice-squad quarterback for the club, whether or not its squad has one. */
+    private val squadQb = (squad.firstOrNull { it.position == Position.QB }
+        ?: Transactions.freeAgents(league).first { it.position == Position.QB })
+        .copy(status = com.nflsim.engine.model.PlayerStatus.PRACTICE_SQUAD)
+    private val oneQb = roster.filter { it.position != Position.QB } + roster.filter { it.position == Position.QB }.take(1)
+
+    @Test
+    fun `a club down to one quarterback calls one up from its squad`() {
+        val dressed = GameDay.actives(oneQb, offence, defence, squad = squad + squadQb)
+        assertTrue(squadQb in dressed, "the squad quarterback dresses")
+        assertEquals(2, dressed.count { it.position == Position.QB })
+    }
+
+    @Test
+    fun `a man called up three times this season stays on the squad`() {
+        val used = squadQb.copy(elevations = GameDay.CALL_UP_LIMIT)
+        assertTrue(used !in GameDay.actives(oneQb, offence, defence, squad = listOf(used)))
+    }
+
+    @Test
+    fun `a healthy club calls nobody up, and a club never calls up more than two`() {
+        assertTrue(GameDay.callUps(roster, squad, offence, defence).isEmpty())
+        val thin = roster.take(30)
+        assertEquals(GameDay.CALL_UPS, GameDay.callUps(thin, squad + squadQb, offence, defence).size)
+    }
+
+    @Test
+    fun `a man the club names is called up, and its deepest man sits for him`() {
+        val named = squad.first { it.position == Position.WR || it.position == Position.CB }
+        val dressed = GameDay.actives(roster, offence, defence, squad = squad, callUp = listOf(named.id.v))
+        assertTrue(named in dressed)
+        assertEquals(GameDay.ACTIVES_WITH_LINE, dressed.size, "he dresses within the 48")
+    }
+
+    @Test
+    fun `a called-up man plays for the club, counts the game, and goes back to the squad`() {
+        val withQb = league.copy(
+            players = league.players.map { p ->
+                when {
+                    p.teamId == team.id && p.position == Position.QB && p.id != oneQb.first { it.position == Position.QB }.id ->
+                        p.copy(injuryWeeks = 2)
+                    p.id == squadQb.id -> squadQb
+                    else -> p
+                }
+            },
+            teams = league.teams.map { if (it.id == team.id && squadQb.id !in it.practiceSquad) it.copy(practiceSquad = it.practiceSquad.drop(1) + squadQb.id) else it },
+        )
+        val teams = WeekRunner.teams(withQb, withQb.tuning)
+        val ours = teams.getValue(team.id)
+        val called = ours.roster.single { it.id == squadQb.id }
+        assertEquals(team.id, called.teamId, "on the club for the game")
+        val other = teams.values.first { it.team.id != team.id }
+        val game = com.nflsim.engine.sim.GameSimulator(ours, other, withQb.tuning)
+            .simulate(com.nflsim.engine.rng.SplitMixRng(5L))
+        val after = WeekRunner.afterWeek(withQb, listOf(game), withQb.tuning)
+        val back = after.player(squadQb.id)
+        assertEquals(1, back.elevations)
+        assertEquals(null, back.teamId, "the league keeps him on the squad")
+        assertTrue(squadQb.id in after.team(team.id).practiceSquad)
+    }
+
+    @Test
+    fun `a club down to three corners calls one up and sits a deeper man elsewhere`() {
+        val corners = roster.filter { it.position == Position.CB }
+        val thin = roster - corners.drop(3).toSet()
+        val squadCb = (squad.firstOrNull { it.position == Position.CB }
+            ?: Transactions.freeAgents(league).first { it.position == Position.CB })
+        val dressed = GameDay.actives(thin, offence, defence, squad = squad + squadCb)
+        assertEquals(4, dressed.count { it.position == Position.CB }, "four corners dress")
+        assertTrue(dressed.size <= GameDay.ACTIVES_WITH_LINE)
+    }
 }

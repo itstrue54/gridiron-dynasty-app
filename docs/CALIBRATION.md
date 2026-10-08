@@ -853,6 +853,23 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Result:** the men who sit are depth that seldom played: rated 42-56 in a new league, across positions (most often linebackers, receivers and edge rushers, and some third quarterbacks). Every band holds, and no figure moves more than run-to-run noise. No band moves.
 
+## Pass 23 — October 2026 (practice-squad call-ups)
+
+**What changed:** a club may call up two practice-squad men for a game, each three times a season, when it is short at a position a game needs, of an eighth lineman, at a position thinner than all but one of a roster's usual depth, or of fit men overall.
+
+**Measured:** twelve leagues (seeds 11-22), one season each, every club's moves made by the league's logic:
+
+| | Inactives only (#3) | Call-ups when short overall | **Call-ups for thin positions too (shipped)** |
+|---|---|---|---|
+| Points per team per game | 21.91 | 21.97 | 21.77 |
+| Club-weeks dressing fewer than 47 | 2 of 6,912 | 0 | 1 |
+| Call-ups a league-season | 0 | 7.0 | 56.4 |
+| Most call-ups for one man | 0 | 3 | 3 |
+
+**Result:** clubs call up when a position runs thin, and almost never dress short. Scoring holds; per-game bands play healthy rosters and can't move.
+
+**Not matched:** NFL clubs call up most weeks, often for special teams, several hundred a league-season. The sim has no special-teams depth reason to, so clubs here call up only for need.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

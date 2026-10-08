@@ -2521,3 +2521,16 @@ nothing else moves more than 0.006.
 - **Calibration dresses the same way,** so the per-game bands measure the games the season plays.
 
 **Consequences.** Measured in CALIBRATION.md pass 22: no band moves. Saves: `DepthPins` gains a defaulted field; save step 52, version 53.
+
+## ADR-0xx — Practice-squad call-ups
+
+**Context.** With game-day inactives in, a club short of fit men played short: its squad could only reach the field by a permanent promotion. The NFL lets a club call up two squad men for a game, each three times a season (the "standard elevation"), and they return to the squad afterwards.
+
+**Decision.**
+- **Two a game, three a season each,** counted on the player (`Player.elevations`) and cleared each spring when squads dissolve, and for a replayed season. Postseason games don't add to the count.
+- **Called up only when short:** a position below what a game needs, then an eighth lineman (who earns the 48th place), then the position furthest short of a roster's depth while the club has fewer fit men than it may dress. A healthy club calls nobody up.
+- **Within the 47 or 48,** and never the man scratched to make room.
+- **One function decides who dresses** (`WeekRunner.dressed`), for the game and for the count after it, so the count is of the men who really dressed. On game day a called-up man carries his club's id so the game knows his side; the league keeps him on the squad.
+- **The user may name call-ups** (`DepthPins.callUp`), which dress whether or not the club is short, pushing his deepest men out.
+
+**Consequences.** Measured in CALIBRATION.md pass 23. Saves: `Player` and `DepthPins` gain defaulted fields; save step 53, version 54.

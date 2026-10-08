@@ -61,9 +61,16 @@ object PracticeSquads {
             (!isVeteran(p) || squad.count(::isVeteran) < VETERANS) &&
             squad.count { it.position == p.position } < PER_POSITION
 
-    /** Everyone back on the street; the spring does this before free agency. */
+    /**
+     * Everyone back on the street; the spring does this before free agency.
+     * A new season's call-ups start again from none (GameDay).
+     */
     fun dissolve(players: List<Player>): List<Player> = players.map {
-        if (it.status == PlayerStatus.PRACTICE_SQUAD) it.copy(status = PlayerStatus.FREE_AGENT) else it
+        when {
+            it.status == PlayerStatus.PRACTICE_SQUAD -> it.copy(status = PlayerStatus.FREE_AGENT, elevations = 0)
+            it.elevations != 0 -> it.copy(elevations = 0)
+            else -> it
+        }
     }
 
     /**

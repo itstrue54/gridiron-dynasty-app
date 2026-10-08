@@ -802,8 +802,16 @@ interface Rng {
   nor its eighth lineman, whose place in the 48 would go with him. The
   user's club may name its scratches on the depth chart
   (`DepthPins.inactive`); the front office picks any it leaves unnamed. Per-
-  game calibration dresses the same way. Practice-squad elevations on game
-  day are not modelled.
+  game calibration dresses the same way.
+- **Call-ups** (practice-squad elevations). A club may call up two of its
+  squad for a game, each man at most three times a regular season
+  (`Player.elevations`, cleared each spring), and they dress within the
+  same 47 or 48; after the game they are back on the squad. A club calls one
+  up only when it is short: a position below what a game needs, then an
+  eighth lineman, then the position furthest short of a roster's depth
+  while it has fewer fit men than it may dress. The user may name his own
+  (`DepthPins.callUp`), who dress and push his deepest men out. The
+  emergency third quarterback is not modelled.
 - **Signing in season** costs the minimum prorated by the weeks left, one
   eighteenth a game (CBA Article 26): one year, all base salary, nothing
   guaranteed.
@@ -1340,7 +1348,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Hub** | Week/phase and the next action (play the week, or call the plays yourself, with a line on the difference); needs attention; top news (five lines, no more than two of a kind, one line a man within a kind, the user's club's stories always; "All the news" for the rest); links grouped as Game day, Your club and League; standings snippet. A new dynasty's first hub opens with a welcome card (how a week works, playing vs calling the plays, what needs attention, when trades and the offseason come), shown once per install. Settings (theme, haptics, saves, player editing, tuning, the design gallery, About, the title screen) are their own screen |
 | **Advance** | The single most-used control. Advance week / to next event / to end of phase |
 | **Roster** | Sortable table, scouted ratings with error bars, contract, age, scheme fit badge |
-| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders; game day: who sits, hurt or scratched, and the user's own scratches (§6.1) |
+| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders; game day: who sits, hurt or scratched, who is called up, and the user's own scratches and call-ups (§6.1) |
 | **Game plan** | Coordinator tendency sliders, weekly opponent plan, focus practice |
 | **Player card** | Bio, scouted ratings, revealed traits, career stats, contract, injury history, news |
 | **Schedule / Scores** | League-wide, filterable |
@@ -1678,7 +1686,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 - ~~**[OPEN]** Room in v1 or defer to v2?~~ **Resolved Sept 2026: not in v1.** A 30-season save is 2.8 MB and loads in 0.09 s on a desktop JVM (§9.3).
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - ~~**[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.~~ **Resolved Oct 2026: yes** (§4.7 Careers): ratings rise to a prime, hold, and decline very slowly; position coaches can be promoted to coordinator.
-- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. **Gameday inactives resolved Oct 2026:** 47 or 48 dress under the CBA, the front office picks the scratches, and the user may name his own (§6.1).
+- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. **Gameday inactives resolved Oct 2026:** 47 or 48 dress under the CBA, the front office picks the scratches and the practice-squad call-ups, and the user may name his own (§6.1).
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
 
 ---

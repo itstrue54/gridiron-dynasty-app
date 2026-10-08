@@ -27,6 +27,11 @@ data class DepthPins(
      * has to scratch are, and its own choice fills any it leaves unnamed.
      */
     val inactive: List<Int> = emptyList(),
+    /**
+     * Practice-squad men the club calls up for game day, first choice first
+     * (season.GameDay): two a game at most, each three times a season.
+     */
+    val callUp: List<Int> = emptyList(),
 ) {
     /** Pins only for players still in [ids]. */
     fun keepOnly(ids: Set<Int>): DepthPins = DepthPins(
@@ -37,6 +42,7 @@ data class DepthPins(
         kickReturner = kickReturner?.takeIf { it in ids },
         puntReturner = puntReturner?.takeIf { it in ids },
         inactive = inactive.filter { it in ids },
+        callUp = callUp.filter { it in ids },
     )
 
     companion object {
