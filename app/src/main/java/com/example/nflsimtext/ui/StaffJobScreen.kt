@@ -148,9 +148,12 @@ private fun CoachJob(dynasty: Dynasty, job: StaffJob, store: DynastyStore, scope
                 Column {
                     Text("Candidates", style = NdTheme.type.headline, color = c.chalk)
                     Text(
-                        "$outOfWork out of work, $letGo let go this spring" +
-                            (if (job == StaffJob.HEAD) ", $coordinators coordinators" else "") +
-                            " and ${sources.values.count { it is Staffing.Source.Candidate }} new, best for the job first" +
+                        poolMakeup(
+                            outOfWork to "out of work",
+                            letGo to "let go this spring",
+                            (if (job == StaffJob.HEAD) coordinators else 0) to "coordinators",
+                            sources.values.count { it is Staffing.Source.Candidate } to "new",
+                        ) + ", best for the job first" +
                             (if (pool.size > POOL_SHOWN) " (the top $POOL_SHOWN)" else "") +
                             ". Tap one to look closer.",
                         style = NdTheme.type.caption, color = c.chalkDim,
@@ -345,8 +348,9 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
                 Column {
                     Text("Candidates", style = NdTheme.type.headline, color = c.chalk)
                     Text(
-                        "$outOfWork out of work, $letGo let go this spring and ${pool.size - outOfWork - letGo} new. " +
-                            "A club in brackets is letting him go: he takes the chair when the offseason starts. Tap one to look closer.",
+                        poolMakeup(outOfWork to "out of work", letGo to "let go this spring", pool.size - outOfWork - letGo to "new") + ". " +
+                            (if (letGo > 0) "A club in brackets is letting him go: he takes the chair when the offseason starts. " else "") +
+                            "Tap one to look closer.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                     )
                 }
@@ -423,6 +427,19 @@ private fun GmJob(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, 
 }
 
 /** A coordinator's job in two letters, for a tag beside his name. */
+/**
+ * Where a pool's men come from, in words, leaving out the sources with
+ * nobody: "6 new", not "0 out of work, 0 let go this spring and 6 new".
+ */
+internal fun poolMakeup(vararg parts: Pair<Int, String>): String {
+    val named = parts.filter { it.first > 0 }.map { "${it.first} ${it.second}" }
+    return when (named.size) {
+        0 -> "Nobody"
+        1 -> named.single()
+        else -> named.dropLast(1).joinToString(", ") + " and " + named.last()
+    }
+}
+
 private fun short(job: StaffJob) = when (job.role) {
     CoachRole.OFFENSIVE_COORDINATOR -> "OC"
     CoachRole.DEFENSIVE_COORDINATOR -> "DC"

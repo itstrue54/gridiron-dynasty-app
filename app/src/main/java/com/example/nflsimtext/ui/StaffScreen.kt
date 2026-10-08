@@ -98,7 +98,7 @@ fun StaffScreen(
             // The man agreed to take the chair when the offseason starts, shown in it.
             val agreedGm = if (open) com.nflsim.engine.offseason.Staffing.pendingGm(dynasty) else null
             val gm = agreedGm ?: team.gm
-            SituationBlock("General manager", meta = gm.since.takeIf { it > 0 && agreedGm == null }?.let { "since $it" }) {
+            SituationBlock("General manager", meta = gm.since.takeIf { it > 0 && agreedGm == null }?.let { gmTenure(it, dynasty.year) }) {
                 if (gm.name.isBlank()) {
                     Text("Vacant.", style = NdTheme.type.body, color = c.chalkDim)
                 } else {
@@ -178,7 +178,7 @@ fun StaffScreen(
         }
 
         item {
-            SituationBlock("Special teams", meta = special?.let { "${it.age}" } ?: "vacant") {
+            SituationBlock("Special teams", meta = if (special == null) "vacant" else null) {
                 leaving[StaffJob.SPECIAL]?.takeIf { special == null }?.let { Text(it, style = NdTheme.type.body, color = c.chalk) }
                 Coordinator(special, emptyList(), special?.id in joining)
                 if (open) ChangeButton(if (special == null) "Hire a special teams coordinator" else "Change the special teams coordinator") { onJob(StaffJob.SPECIAL) }
@@ -345,3 +345,10 @@ internal fun jobSecurity(pressure: Int, bar: Int): String {
     }
     return "$standing Pressure $pressure; a club like yours fires a coach at $bar."
 }
+
+/**
+ * The general manager's first season. One hired in the hiring window starts
+ * with next season, so until it begins he is "from 2027", not "since 2027"
+ * under a hub that still says 2026.
+ */
+internal fun gmTenure(since: Int, year: Int): String = if (since > year) "from $since" else "since $since"

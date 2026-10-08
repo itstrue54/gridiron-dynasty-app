@@ -218,8 +218,7 @@ fun HubScreen(
                 ) {
                     Text(
                         (if (onReserve.isNotEmpty()) "On injured reserve: $onReserve. " else "") +
-                            "Sign or promote somebody in Free agents to fill " +
-                            (if (open == 1) "the spot." else "the spots."),
+                            openSpotsAdvice(open, overCap = capSpace < 0),
                         style = NdTheme.type.body, color = c.chalkDim,
                     )
                 }
@@ -1078,6 +1077,11 @@ internal fun staffButton(open: Int): String = "Hire and fire your staff first" +
 }
 
 /** What being over the cap in season means, and what happens if nothing is done (CBA Art. 13). */
+/** What to do about open places on the 53; over the cap, nobody can be signed until the club is under. */
+internal fun openSpotsAdvice(open: Int, overCap: Boolean): String =
+    (if (overCap) "Get under the cap first, then sign or promote " else "Sign or promote ") +
+        "somebody in Free agents to fill " + (if (open == 1) "the spot." else "the spots.")
+
 internal fun overCapNote(): String =
     "A release's dead money put you over. You can't sign anyone until you're under, and you have " +
         "until your next game to get there: restructure a contract from a player's card, or release " +
