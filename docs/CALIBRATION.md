@@ -961,7 +961,25 @@ Switching the special-teams effects off one at a time on 16 leagues showed each 
 
 **What was run:** ten leagues (seeds 41-50) for 30 seasons each, after game-day inactives, call-ups, special-teams units, return stats and backup returners. No crashes or broken rules in 300 seasons: no club dressed more than 48, nobody went past three call-ups, call-ups cleared every spring, every return had one coverage tackle, and AI rosters stayed between 46 and 53. Talent held (rostered mean 70.8 to 70.5). Returns ran about 35 kick returns and 23 punt returns a club each season.
 
-**Where the league settles:** the spread of wins averaged 3.10 in a first season and 2.78 over the last ten seasons. Narrowing the generator barely moves the first season, since 17 games of luck alone spread clubs by about 2.1 wins (32 leagues: 2.2 gives 3.25, 2.0 gives 3.22, 1.9 gives 3.17, 1.8 gives 3.09). Matching the settled 2.78 would take about 1.5. A real season spreads about 3.0-3.1, so the first season is right and the settled league is too even. The generator stays at 2.2; why long dynasties flatten is the next thing to measure.
+**Where the league settles:** the spread of wins averaged 3.10 in a first season and 2.78 over the last ten seasons. Narrowing the generator barely moves the first season, since 17 games of luck alone spread clubs by about 2.1 wins (32 leagues: 2.2 gives 3.25, 2.0 gives 3.22, 1.9 gives 3.17, 1.8 gives 3.09). Matching the settled 2.78 would take about 1.5. A real season spreads about 3.0-3.1, so the first season is right and the settled league is too even. The generator stays at 2.2.
+
+**Why long dynasties flatten** (ten leagues, 20 seasons, every club's moves by the league's logic):
+
+| Season | Spread of wins | Spread of club talent (top 22) | Talent-to-wins correlation | Wins carried from last year |
+|---|---|---|---|---|
+| 1 | 3.27 | 1.93 | 0.65 | - |
+| 2 | 2.87 | 1.57 | 0.53 | 0.38 |
+| 3 | 2.93 | 1.32 | 0.45 | 0.31 |
+| 10 | 2.76 | 1.24 | 0.39 | 0.23 |
+| 20 | 2.74 | 1.24 | 0.42 | 0.36 |
+
+- **Talent converges in the first three offseasons,** by a third, then holds.
+- **Arrivals do most of it:** a club a point above average keeps about 0.7 of that edge through an offseason, and arrivals take 0.22-0.28 of it, against 0.04-0.17 for departures and 0.04-0.08 for development.
+- **Free agency is the channel:** 3.7 free agents a year reach a club's top 22, against 0.7 from the draft and 0.2 by trade, and a club a point of talent below average lands 0.4 more of them; the draft pulls 0.16, trades nothing.
+- **Players' pull toward winners (`faWinningAppeal`) isn't the lever:** doubling or nearly tripling it (0.35 to 0.70, 1.00) left the settled spread at 2.86-2.88, though wins carried a little more (0.32 to 0.39). Who bids - weak clubs with holes and cap room - is the levelling, much as in the real league.
+- **Talent also explains less of wins as a dynasty goes on** (correlation 0.65 to about 0.4), a second effect still to explain.
+
+Not changed: the settled league is inside its band, and fixing it is a calibration project of its own - free agency's bidding and how talent turns into wins - not a tune of one coefficient.
 
 ## Still unmeasured
 
