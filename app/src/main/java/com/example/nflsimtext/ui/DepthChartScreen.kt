@@ -189,8 +189,8 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
         }
 
         item(key = "returners") {
-            val kick = SpecialTeams.returnerFor(offChart, offense)
-            val punt = SpecialTeams.returnerFor(offChart, offense, punt = true)
+            val kick = SpecialTeams.returnerFor(offChart, offense, st = dynasty.league.tuning.specialTeams)
+            val punt = SpecialTeams.returnerFor(offChart, offense, punt = true, st = dynasty.league.tuning.specialTeams)
             val candidates = (offChart.at(Position.WR) + offChart.at(Position.RB) + offChart.at(Position.CB))
                 .sortedByDescending { it.ratings[RatingId.SPEED] }.take(6)
             SituationBlock(
@@ -202,7 +202,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                     style = NdTheme.type.data, color = NdTheme.colors.chalk,
                 )
                 Text(
-                    "The fastest men on the roster.",
+                    "The fastest men, backups first: a starter returns only when clearly the better man.",
                     style = NdTheme.type.caption, color = NdTheme.colors.chalkDim,
                     modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
                 )
@@ -410,9 +410,9 @@ private fun SpecialTeamsBlock(dynasty: Dynasty, pins: DepthPins, save: (DepthPin
         fun returns(p: Player?) = p?.let { "Returner ${it.position.label} ${it.lastName}; " } ?: ""
         listOf(
             "Kick coverage" to names(units.kickCoverage),
-            "Kick return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme)) + names(units.kickReturn),
+            "Kick return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme, st = st)) + names(units.kickReturn),
             "Punt coverage" to "Gunners ${names(units.gunners)}; ${names(units.puntCoverage)}",
-            "Punt return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true)) +
+            "Punt return" to returns(SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true, st = st)) +
                 "Jammers ${names(units.jammers)}; ${names(units.puntReturn)}",
             "Field goal" to listOfNotNull(
                 units.snapper?.let { "snaps ${it.position.label} ${it.lastName}" },

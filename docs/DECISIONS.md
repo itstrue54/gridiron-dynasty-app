@@ -2556,3 +2556,11 @@ nothing else moves more than 0.006.
 **Decision.** Count kick and punt returns and their yards for the returner, and give each return's tackle to a man on the coverage unit, weighted toward the better cover men. Keep coverage tackles in their own field (`StatLine.specialTeamsTackles`) rather than in `tackles`: awards, the Hall of Fame, form and contract pricing all read `tackles` as a defender's work, and a linebacker's value shouldn't jump because he covers kicks. The tackler comes from a stream of the return's own, so counting changes no game (300 games hash the same as before).
 
 **Consequences.** Save step 55, version 56. Seasons already played have no returns counted.
+
+## ADR-0xx — Clubs keep their starters off returns
+
+**Context.** A club's returner was its fastest receiver, back or corner, so its first receiver returned almost every kick. Real clubs rarely risk a top starter on returns.
+
+**Decision.** A starter returns only when better at it than the backups by `returnerStarterPenalty` (8) for each place he starts above the last starter at his position. A flat margin couldn't tell a club's star from its third receiver: at 15 the first receiver still returned a quarter of kicks, and at 20 the returners slowed enough to cost a yard a return. Re-centre the speed each return formula measures from, now in the tuning table, so the league's returns average what they did. A pinned returner is still the club's choice.
+
+**Consequences.** Measured in CALIBRATION.md pass 28. Save step 56, version 57.

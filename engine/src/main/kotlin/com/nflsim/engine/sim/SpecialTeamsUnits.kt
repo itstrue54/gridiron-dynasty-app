@@ -79,7 +79,7 @@ data class SpecialTeamsUnits(
         const val RUSH = 9
 
         /** Who starts at each position, by depth: kept off coverage and returns unless clearly the better man. */
-        private val STARTERS = mapOf(
+        internal val STARTERS = mapOf(
             Position.RB to 1, Position.WR to 3, Position.TE to 1,
             Position.LT to 1, Position.LG to 1, Position.C to 1, Position.RG to 1, Position.RT to 1,
             Position.EDGE to 2, Position.DT to 2, Position.LB to 2, Position.CB to 3, Position.S to 2,
@@ -137,8 +137,8 @@ data class SpecialTeamsUnits(
             val blockers = setOf(Position.LT, Position.LG, Position.C, Position.RG, Position.RT, Position.TE)
             val front = setOf(Position.EDGE, Position.DT, Position.LB)
             // The returners field the ball; they don't block for themselves.
-            val kickReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme)
-            val puntReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true)
+            val kickReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme, st = st)
+            val puntReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true, st = st)
             val gunners = pick(StRole.GUNNER, GUNNERS, positions = outside)
             val jammers = pick(StRole.JAMMER, JAMMERS, pool - setOfNotNull(puntReturner), positions = outside)
             val kickCoverage = pick(StRole.COVERAGE, KICK_COVERAGE)

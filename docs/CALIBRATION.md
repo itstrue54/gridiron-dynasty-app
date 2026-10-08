@@ -938,6 +938,25 @@ Switching the special-teams effects off one at a time on 16 leagues showed each 
 
 **Result:** the season shape is back where it was; every season band holds. Whole-game bands are checked again in the PR.
 
+## Pass 28 — October 2026 (backups return kicks)
+
+**What changed:** a club's returner was its fastest receiver, back or corner, starters included, so a club's first receiver returned 90 of 192 clubs' kicks (six new leagues). Now a starter returns only when better than the backups by 8 points for each place he starts above the last starter at his position. The speeds the return formulas measure from move into the tuning table and are re-centred for the new returners (kickoffs 70 to 63, punts 150 to 140), and the jammers' anchor goes back to 75.3, since the starting corners are free to jam again.
+
+**Measured:** six new leagues, 192 clubs; kicks between every pair of clubs:
+
+| | Before | **Backups first** |
+|---|---|---|
+| Kick returners who start | 98% | 46% |
+| Clubs whose first receiver returns kicks | 90 | 9 |
+| Most common kick returners | WR1, CB1, WR2 | RB2, WR3, RB1, WR4 |
+| Returner's speed | 86.0 | 78.9 |
+| Kickoff return start | 24.05 | 24.05 |
+| Punt return average | 7.46 | 7.50 |
+
+**Season shape** (32 leagues): spread of wins 3.25, best record 14.7, clubs at four wins or fewer 3.5, all inside their bands.
+
+**Result:** returns go to backups and the slot, as on a real club, and the league's returns average what they did. No band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

@@ -249,7 +249,7 @@ class GameSimulator(
     private fun openWithKickoff(state: GameState, receiver: Side, rng: Rng): GameState {
         val receiving = teamFor(receiver)
         val kicking = teamFor(receiver.other())
-        val returner = SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme)
+        val returner = SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme, st = tuning.specialTeams)
         val (spot, text) = SpecialTeams.kickoff(
             returner,
             receiving.offScheme, rng, st = tuning.specialTeams,
@@ -332,7 +332,7 @@ class GameSimulator(
                         val st = tuning.specialTeams
                         val punt = SpecialTeams.punt(
                             SpecialTeams.punterFor(punting.offDepth),
-                            SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
+                            SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true, st = tuning.specialTeams),
                             state.yardLine, punting.offScheme, receivingTeam.offScheme, rng, st = st,
                             narration = words, edge = returnEdge(receivingTeam, punting),
                             matchup = KickMatchup(
@@ -343,7 +343,7 @@ class GameSimulator(
                             ))
                         log(state, punt.narrative)
                         if (punt.returnYards > 0) {
-                            creditReturn(SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true),
+                            creditReturn(SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true, st = tuning.specialTeams),
                                 punt.returnYards, punt = true, kickers.gunners + kickers.puntCoverage, rng)
                         }
                         val landing = (state.yardLine + punt.netYards).coerceIn(1, 99)
