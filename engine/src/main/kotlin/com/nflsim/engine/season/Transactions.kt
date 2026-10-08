@@ -332,13 +332,17 @@ object Transactions {
      */
     fun comply(league: League, team: TeamId, week: Int = 0): League {
         var out = league
-        repeat(out.roster(team).size) {
-            if (spaceFor(out, team) >= 0) return out
-            val best = out.roster(team).mapNotNull { restructurePreview(it, out.year, 1f) }.maxByOrNull { it.frees }
-                ?: return out
-            when (val o = restructure(out, team, best.player.id, week, 1f)) {
-                is Outcome.Done -> out = o.league
-                is Outcome.Refused -> return out
+        // The front office's usual share first, and all of it only if that is
+        // not enough: every dollar moved now is a dollar on every year after.
+        for (share in listOf(out.tuning.ai.restructureShare, 1f)) {
+            repeat(out.roster(team).size) {
+                if (spaceFor(out, team) >= 0) return out
+                val best = out.roster(team).mapNotNull { restructurePreview(it, out.year, share) }.maxByOrNull { it.frees }
+                    ?: return@repeat
+                when (val o = restructure(out, team, best.player.id, week, share)) {
+                    is Outcome.Done -> out = o.league
+                    is Outcome.Refused -> return@repeat
+                }
             }
         }
         return out

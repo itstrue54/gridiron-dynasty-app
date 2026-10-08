@@ -27,9 +27,14 @@ class CapManagementTest {
         if (pos.isOffense) SchemeCatalog[t.offenseScheme] else SchemeCatalog[t.defenseScheme]
     }
 
-    /** Every player on one team put on a deal the team cannot possibly carry. */
+    /**
+     * Every player on one team put on a deal the team cannot possibly carry -
+     * mostly salary, with a little bonus, so a cut saves money and still
+     * leaves some behind. (A bonus-heavy deal costs more to cut than to keep,
+     * and the enforcer rightly never cuts one: see below.)
+     */
     private fun bloat(teamId: TeamId) = league.players.map { p ->
-        if (p.teamId == teamId) p.copy(contract = Contract.of(4, 40_000, 2026)) else p
+        if (p.teamId == teamId) p.copy(contract = Contract.of(4, 40_000, 2026, bonusShare = 0.05f, guaranteedShare = 0f)) else p
     }
 
     @Test
@@ -78,6 +83,24 @@ class CapManagementTest {
             league, bloat(kc.id), 2026, schemes(), SplitMixRng(3L))
         assertTrue(releases.all { it.deadMoney > 0 }, "cutting a bonus deal is never free")
         assertTrue((dead[kc.id.v] ?: 0) > 0, "the team should be carrying dead money")
+    }
+
+    @Test
+    fun `a club over the cap never cuts a man whose release costs more than he earns`() {
+        val kc = league.teams.first { it.abbrev == "KC" }
+        // Everyone on a bonus-heavy deal: a cut accelerates more than his cap hit,
+        // so releasing anybody would put the club further over.
+        val heavy = league.players.map { p ->
+            if (p.teamId != kc.id) p else p.copy(contract = Contract(years = 5, baseSalary = List(5) { Contract.MIN_BASE_SALARY },
+                signingBonus = 40_000, signedYear = 2026))
+        }
+        val roster = heavy.filter { it.teamId == kc.id }
+        val p = roster.first()
+        assertTrue(p.contract!!.deadCap(2026).thisYear > p.capHit(2026), "the fixture: a cut costs more than it saves")
+        val (after, dead, releases) = CapManagement.enforce(league, heavy, 2026, schemes(), SplitMixRng(5L))
+        assertTrue(releases.none { it.team == kc.id.v }, "no cut that makes things worse: ${releases.filter { it.team == kc.id.v }.size}")
+        assertEquals(kc.finances.deadMoney, dead[kc.id.v] ?: 0)
+        assertEquals(roster.size, after.count { it.teamId == kc.id })
     }
 
     @Test
