@@ -32,7 +32,7 @@ class LeagueGeneratorTest {
             assertEquals(com.nflsim.engine.season.PracticeSquads.SIZE, it.practiceSquad.size,
                 "${it.abbrev} has ${it.practiceSquad.size} on its practice squad")
         }
-        // Everyone else is on the street, waiting for a call (StreetGenerator).
+        // Everyone else is on the street, waiting for a call (CampCutGenerator).
         assertEquals(
             32 * (53 + com.nflsim.engine.season.PracticeSquads.SIZE) + league.tuning.ai.freeAgentPool,
             league.players.size,

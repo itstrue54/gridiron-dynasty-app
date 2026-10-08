@@ -773,11 +773,14 @@ interface Rng {
   the cut to 53, the league snaking through them.
 - **The street.** Unsigned men a club can sign in season. Each offseason
   keeps up to `ai.freeAgentPool` of them (260, about eight a club, what a
-  real wire holds). A new league starts with the same number
-  (`gen.StreetGenerator`), or its first season would have nobody on the
-  street: made as squad camp bodies are, at undrafted-rookie ratings and
-  ages, and spread over the positions as a 53-man roster is. They are drawn
-  from a stream of their own, so rosters and squads are as they were.
+  real wire holds).
+- **A new league** has had no cut to 53, so it is given camp cuts
+  (`gen.CampCutGenerator`): a squad place for every club and
+  `ai.freeAgentPool` over, made as the offseason's camp bodies are
+  (`ai.campBody`, undrafted-rookie ages) and spread over the positions as a
+  53-man roster is. Its squads are chosen from them as every later season's
+  are, and the men they leave are its first street. Rosters are generated
+  first and do not depend on them.
 - **The league's clubs** fill a place reserve opens at the position they are
   thinnest - their own squad first, the street second, another club's squad
   only for a man better than both by 8 rating points (`ai.poachClearUpgrade`)

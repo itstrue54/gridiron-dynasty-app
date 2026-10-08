@@ -2497,3 +2497,14 @@ nothing else moves more than 0.006.
 - **Existing saves are left alone.** A save still in its first season gets its street at its first offseason, as before; no migration adds players to a save.
 
 **Consequences.** A new league holds 260 more players (about 40 KB). Clubs' first-season reserve signings come off the street when its man is the better one. The per-game bands play generated rosters, so they don't move; the first season's effects are in the PR.
+
+## ADR-0xx — A new league chooses its squads from camp cuts
+
+**Context.** A new league's practice squads were generated camp bodies (median overall 55). Every later season chooses its squads from the men the cut to 53 leaves (median 59). So a club's first-season squad was its weakest ever, and level with the new street, which made clubs sign off the street far more in season one than in any other (CALIBRATION.md pass 20). The street ADR above kept squads as they were so rosters and squads stayed exactly as the seed made them. This reverses that for squads.
+
+**Decision.**
+- **Generate camp cuts, not a street:** a squad place for every club plus `ai.freeAgentPool`, then let `PracticeSquads.fill` choose the squads from them exactly as an offseason does. Whoever is left is the street.
+- **Made as the offseason's camp bodies are** (`ai.campBody` 55 plus up to `campBodySpread` 7, at `squadCampAgeBias` ages): the existing fields for the men camps sign off the street. No new tuning fields, so no save-format step.
+- **Rosters are generated first and are unchanged.** Every new league's squads and street change.
+
+**Consequences.** Squads are chosen the same way every season, and the first season's reserve moves look like later seasons'. Measured in CALIBRATION.md pass 21.
