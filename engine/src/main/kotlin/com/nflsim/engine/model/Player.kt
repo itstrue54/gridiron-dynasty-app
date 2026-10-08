@@ -47,6 +47,8 @@ data class Player(
     val morale: Int = 75,
     /** -100..100: how he is playing this month, not how good he is. Resets each season. */
     val form: Int = 0,
+    /** Games he has been called up from a practice squad for this season (season.GameDay; at most three). */
+    val elevations: Int = 0,
     /** Where his club stands on the deal he has asked it to fix (SPEC 10.1). */
     val demand: DemandState = DemandState.NONE,
     /**

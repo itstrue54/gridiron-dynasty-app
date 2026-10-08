@@ -105,6 +105,8 @@ object Migrations {
         Step(51, "clubs promote other clubs' position coaches to coordinator (SPEC 4.7); nothing to move") { it },
         // Nobody has named an inactive yet, so every club's own choice decides, as for a new league.
         Step(52, "clubs declare game-day inactives, and the user may name his (SPEC 6.1); nothing to move") { it },
+        // Nobody has been called up yet this season, and nobody is named to be.
+        Step(53, "clubs call up practice-squad men for game day (SPEC 6.1); nothing to move") { it },
     )
 
     /**

@@ -92,6 +92,7 @@ private val GLOSSARY: List<Pair<String, List<Term>>> = listOf(
         Term("Practice squad", "Sixteen extra players who practice but do not play, unless promoted."),
         Term("Injured reserve", "Where a hurt player goes: he frees a roster spot until he is healthy."),
         Term("Inactive", "Of the 53, a club dresses 48 on game day (47 without eight offensive linemen). The rest are inactive: hurt men first, then the deepest. Depth chart, Game day."),
+        Term("Call-up", "A practice-squad player brought up for one game, then back to the squad: two a game, each at most three times a season. Depth chart, Game day."),
         Term("Salary cap", "The most a club can spend on players in a season. Cap space is what is left."),
         Term("Dead money", "Money still owed to a player you cut or traded. It counts against your cap."),
         Term("Restructure", "Turning salary into bonus: cheaper this year, dearer every year after."),

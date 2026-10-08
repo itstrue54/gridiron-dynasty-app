@@ -25,4 +25,10 @@ class DepthChartCopyTest {
         val short = gameDayNote(46, 7)
         assertTrue(short.contains("Only 7 linemen are fit, so no more than 47 can dress."))
     }
+
+    @Test
+    fun `a squad man's call-ups read out of the three allowed`() {
+        assertEquals("0 of 3 call-ups used", callUpCount(0))
+        assertEquals("2 of 3 call-ups used", callUpCount(2))
+    }
 }
