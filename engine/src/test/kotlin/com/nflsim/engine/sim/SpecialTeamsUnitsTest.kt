@@ -38,6 +38,14 @@ class SpecialTeamsUnitsTest {
     }
 
     @Test
+    fun `a returner fields the ball and doesn't block for himself`() {
+        val kick = SpecialTeams.returnerFor(team.offDepth, team.offScheme)
+        val punt = SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true)
+        assertTrue(kick != null && kick !in units.kickReturn)
+        assertTrue(punt != null && punt !in units.puntReturn && punt !in units.jammers)
+    }
+
+    @Test
     fun `return units are mostly backups`() {
         val starters = (team.offDepth.at(Position.WR).take(3) + team.offDepth.at(Position.RB).take(1) +
             team.defDepth.at(Position.CB).take(3) + team.defDepth.at(Position.LB).take(2) + team.defDepth.at(Position.S).take(2)).toSet()

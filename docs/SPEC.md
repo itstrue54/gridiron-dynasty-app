@@ -715,6 +715,8 @@ show - are the two together.
   | Protector | field goal and punt (9: linemen, tight ends) | pass block, strength, awareness |
   | Rusher | field goal and punt block (9: the front) | jumping, strength, power moves, acceleration |
 
+  The returners (`SpecialTeams.returnerFor`) field the ball, so they are
+  kept off their own return blocking and the punt-return jammers.
   Starters are picked for coverage and returns only when better by
   `starterPenalty` (15 points), so the units are mostly backups, as clubs
   keep starters off them; protection and the rush take whoever is best.

@@ -20,7 +20,7 @@ class DepthChartCopyTest {
     @Test
     fun `the game-day note says the rule, and why a club short of linemen dresses fewer`() {
         val full = gameDayNote(48, 9)
-        assertTrue(full.startsWith("48 dress on game day"))
+        assertTrue(full.startsWith("48 dress this week."))
         assertFalse(full.contains("Only"))
         val short = gameDayNote(46, 7)
         assertTrue(short.contains("Only 7 linemen are fit, so no more than 47 can dress."))
@@ -30,5 +30,12 @@ class DepthChartCopyTest {
     fun `a squad man's call-ups read out of the three allowed`() {
         assertEquals("0 of 3 call-ups used", callUpCount(0))
         assertEquals("2 of 3 call-ups used", callUpCount(2))
+    }
+
+    @Test
+    fun `a man's units read as a count`() {
+        assertEquals("on no unit", unitCount(0))
+        assertEquals("on 1 unit", unitCount(1))
+        assertEquals("on 4 units", unitCount(4))
     }
 }

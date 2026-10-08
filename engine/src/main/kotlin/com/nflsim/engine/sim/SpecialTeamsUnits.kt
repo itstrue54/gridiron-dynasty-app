@@ -136,12 +136,15 @@ data class SpecialTeamsUnits(
             val outside = setOf(Position.WR, Position.CB, Position.S, Position.RB)
             val blockers = setOf(Position.LT, Position.LG, Position.C, Position.RG, Position.RT, Position.TE)
             val front = setOf(Position.EDGE, Position.DT, Position.LB)
+            // The returners field the ball; they don't block for themselves.
+            val kickReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme)
+            val puntReturner = SpecialTeams.returnerFor(team.offDepth, team.offScheme, punt = true)
             val gunners = pick(StRole.GUNNER, GUNNERS, positions = outside)
-            val jammers = pick(StRole.JAMMER, JAMMERS, positions = outside)
+            val jammers = pick(StRole.JAMMER, JAMMERS, pool - setOfNotNull(puntReturner), positions = outside)
             val kickCoverage = pick(StRole.COVERAGE, KICK_COVERAGE)
-            val kickReturn = pick(StRole.BLOCKER, KICK_RETURN)
+            val kickReturn = pick(StRole.BLOCKER, KICK_RETURN, pool - setOfNotNull(kickReturner))
             val puntCoverage = pick(StRole.COVERAGE, PUNT_COVERAGE, pool - gunners.toSet())
-            val puntReturn = pick(StRole.BLOCKER, PUNT_RETURN, pool - jammers.toSet())
+            val puntReturn = pick(StRole.BLOCKER, PUNT_RETURN, pool - jammers.toSet() - setOfNotNull(puntReturner))
             val protection = pick(StRole.PROTECTOR, PROTECTION, positions = blockers)
             val rush = pick(StRole.RUSHER, RUSH, positions = front)
             val snapper = fit.filter { it.position == Position.LS }.maxByOrNull { overall(it, team.offScheme) }

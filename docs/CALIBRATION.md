@@ -918,6 +918,10 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Not matched:** NFL clubs still call up several times as often. Sixteen squad men can be called up three times each, and a generated squad seldom has more than a few men who cover kicks better than a club's own backups.
 
+## Pass 26 — October 2026 (returners off their own units)
+
+**What changed:** a phone pass showed a club's returner listed among his own return blockers and jammers. Returners now field the ball only, so the return units are picked without them. The unit anchors were re-measured on the same six new leagues: jammers 75.2 to 73.3 (the returner was often a club's best jammer), kick coverage 72.8 to 72.6, kick return 66.6 to 66.5, gunners 68.8 to 68.9, punt coverage 73.8 to 73.6. With the anchors where the units now sit, an average matchup still plays as average.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
