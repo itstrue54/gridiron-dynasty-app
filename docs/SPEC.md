@@ -1290,6 +1290,17 @@ sixteenth of the time line, so the blob stays. Revisit if a phone load
 passes 1.5 s, or if something starts keeping per-play data past the
 current season.
 
+**Re-measured Oct 2026**, after the coach and GM pools, coach careers and
+the hiring window: the same 30 seasons on seed 91, saved at week 9 each
+year, end at 2.6 MB, growing about 50 KB a season, with a decode of about
+0.1 s and an encode of about 0.35 s. The pools level off rather than grow:
+coaches out of work settle near 250, because a man still out of work at
+retirement age leaves the league (§4.7), and the GM pool stays at its
+limit of 24. The spring preview behind the Staff screen still takes a few
+milliseconds in season 30, and a simulated week about 90 ms. The
+transactions wire is the one thing that grows without end, about 1,600
+lines a season, and is inside the 50 KB.
+
 ---
 
 ## 10. UI (Compose)
