@@ -814,6 +814,26 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Result:** who fills a reserve place in season one changes, not how good he is: the men signed are 0.8 weaker on average, and season-end strength and scoring hold. No band moves.
 
+## Pass 21 — October 2026 (a new league's squads from camp cuts)
+
+**What changed:** a new league's practice squads are chosen from generated camp cuts, as every later season's are from the cut to 53, instead of being generated camp bodies. The cuts the squads leave are the street. Rosters are unchanged (the same hash over twelve leagues).
+
+**Measured:** twelve leagues (seeds 11-22), the first season, every club's moves made by the league's logic:
+
+| | main (pass 20) | **Camp cuts** | main, season 2 |
+|---|---|---|---|
+| Squads' median overall | 56 | 59 | 59 |
+| Squad men past two accrued seasons | 0% | 19% | 21% |
+| The street's median overall | 56 | 56 | 55 |
+| Promoted from the club's own squad | 552 | 1,379 | 1,313 |
+| Signed off the street | 1,967 | 983 | 418 |
+| Signed off another club's squad | 87 | 164 | 774 |
+| Points per team per game | 22.01 | 22.07 | 22.14 |
+| Mean of each club's top 22 at season end | 80.589 | 80.586 | - |
+| Mean overall of the men signed or promoted | 59.1 | 59.8 | - |
+
+**Result:** squads now come out as a later season's do, and promotions from them match season two. The street and other clubs' squads still split differently from season two: an offseason's street has almost no linemen, so clubs reach into other squads for them, and its squads carry a tail of released veterans (up to 85) worth taking. Generated cuts cover every position and have no such tail. Scoring and strength hold; no band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).

@@ -110,11 +110,15 @@ object LeagueGenerator {
         // Every club starts holding its own picks for the next three drafts.
         val picks = com.nflsim.engine.offseason.Picks.own(
             teams.map { it.id }, (year + 1)..(year + com.nflsim.engine.offseason.Picks.WINDOW))
-        val squads = com.nflsim.engine.season.PracticeSquads.fill(
-            League(seed = seed, year = year, teams = teams, players = players, coaches = coaches, picks = picks),
+        // The squads are chosen from the camp cuts, as every offseason's are,
+        // and whoever they leave is the street.
+        return com.nflsim.engine.season.PracticeSquads.fill(
+            CampCutGenerator.cut(
+                League(seed = seed, year = year, teams = teams, players = players, coaches = coaches, picks = picks),
+                seed,
+            ),
             seed,
         )
-        return StreetGenerator.fill(squads, seed)
     }
 
     /**
