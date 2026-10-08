@@ -78,12 +78,17 @@ class OvertimeTest {
         level.flatMap { listOf(it.regular, it.playoffs) }.forEach { game ->
             val ot = game.drives.filter { it.startQuarter >= 5 }
             // Every overtime touchdown after the other club's possession that
-            // ends the game is worth six: the second club answering nothing
-            // with a touchdown included.
+            // ends the game by putting its club ahead is worth six: the second
+            // club answering nothing with a touchdown included. One that only
+            // draws level - its club six behind - has its try, and the try
+            // is what wins it.
             ot.forEachIndexed { i, d ->
                 val otherHad = ot.take(i).any { it.offense != d.offense }
                 if (d.ending == DriveEnding.TOUCHDOWN && otherHad && d == ot.last() && !game.isTie) {
-                    assertEquals(6, d.points, "a walk-off touchdown kicked a try: $ot")
+                    val own = ot.take(i).filter { it.offense == d.offense }.sumOf { it.points }
+                    val theirs = ot.take(i).filter { it.offense != d.offense }.sumOf { it.points }
+                    if (own + 6 > theirs) assertEquals(6, d.points, "a walk-off touchdown kicked a try: $ot")
+                    else assertTrue(d.points in 7..8, "a touchdown that only drew level won without its try: $ot")
                     checked++
                 }
             }
