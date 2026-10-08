@@ -2508,3 +2508,16 @@ nothing else moves more than 0.006.
 - **Rosters are generated first and are unchanged.** Every new league's squads and street change.
 
 **Consequences.** Squads are chosen the same way every season, and the first season's reserve moves look like later seasons'. Measured in CALIBRATION.md pass 21.
+
+## ADR-0xx — Game-day inactives
+
+**Context.** Every healthy man on the 53 dressed. The NFL dresses 47, or 48 with eight offensive linemen (CBA Article 25), so depth past that never played. The SPEC's last open rules question asked whether inactives would be fun or admin.
+
+**Decision.**
+- **The rule as written:** 47, or 48 with eight linemen; hurt men sit first.
+- **Scratches by relative depth:** the man deepest at his position for how deep a roster runs there (the generator's template), lower-rated first on a tie. Floors: two quarterbacks, a kicker, a punter, a long snapper; never the eighth lineman, since losing him costs the 48th place too.
+- **Admin only if wanted:** the front office picks by default. The user names scratches on the depth chart by swapping one man for another, which names the whole set (`DepthPins.inactive`). A named man who is hurt, gone or would break a floor is skipped, and the front office fills the rest.
+- **Not modelled:** practice-squad elevations on game day, and the emergency third quarterback.
+- **Calibration dresses the same way,** so the per-game bands measure the games the season plays.
+
+**Consequences.** Measured in CALIBRATION.md pass 22: no band moves. Saves: `DepthPins` gains a defaulted field; save step 52, version 53.

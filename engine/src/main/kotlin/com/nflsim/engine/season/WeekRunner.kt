@@ -18,14 +18,20 @@ import com.nflsim.engine.tuning.TuningTable
  */
 object WeekRunner {
 
-    /** Game-day teams from the league as it stands: players out injured do not dress. */
+    /**
+     * Game-day teams from the league as it stands: players out injured do not
+     * dress, and of the rest each club dresses what the CBA allows (GameDay).
+     */
     fun teams(league: League, tuning: TuningTable): Map<TeamId, GameTeam> =
         league.teams.associate { team ->
+            val offence = SchemeCatalog.tuned(team.offenseScheme, tuning)
+            val defence = SchemeCatalog.tuned(team.defenseScheme, tuning)
             team.id to GameTeam(
                 team = team,
-                roster = dressed(league.roster(team.id)).map { Form.dressed(it, tuning) },
-                offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
-                defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
+                roster = GameDay.actives(eligible(league.roster(team.id)), offence, defence, team.depthPins.inactive)
+                    .map { Form.dressed(it, tuning) },
+                offScheme = offence,
+                defScheme = defence,
                 aggression = GamePlan.defaultAggression(team.id.v),
                 staffPlan = Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,
@@ -70,11 +76,11 @@ object WeekRunner {
     }
 
     /**
-     * The players who dress: everyone not out injured - and where every
+     * The players fit to dress: everyone not out injured - and where every
      * player at a position is out, the least hurt of them plays through it,
-     * as a club with nobody else would.
+     * as a club with nobody else would. GameDay chooses the actives from them.
      */
-    private fun dressed(everyone: List<Player>): List<Player> {
+    fun eligible(everyone: List<Player>): List<Player> {
         // Injured reserve does not dress, healed or not, until he is activated -
         // unless the club has left nobody else at his position, when he is the
         // emergency body like anyone else least hurt.

@@ -103,6 +103,8 @@ object Migrations {
         Step(50, "coaches have careers, and position coaches can be promoted to coordinator (SPEC 4.7); nothing to move") { it },
         // An old report's promotions were all coordinators made head coaches, which is what the new fields default to.
         Step(51, "clubs promote other clubs' position coaches to coordinator (SPEC 4.7); nothing to move") { it },
+        // Nobody has named an inactive yet, so every club's own choice decides, as for a new league.
+        Step(52, "clubs declare game-day inactives, and the user may name his (SPEC 6.1); nothing to move") { it },
     )
 
     /**

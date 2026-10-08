@@ -37,6 +37,8 @@ import com.example.nflsimtext.ui.components.TagTone
 import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.Dynasty
+import com.nflsim.engine.season.GameDay
+import com.nflsim.engine.season.WeekRunner
 import com.nflsim.engine.sim.DefensiveFront
 import com.nflsim.engine.sim.DepthChart
 import com.nflsim.engine.sim.Personnel
@@ -230,8 +232,115 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                 }
             }
         }
+        item(key = "game-day") { GameDayBlock(dynasty, roster, pins, offense, defense, ::save) }
         item { SecondaryButton("Back to the roster", onBack, Modifier.fillMaxWidth()) }
     }
+}
+
+/**
+ * Game-day inactives (season.GameDay): who sits this week, hurt or
+ * scratched, and the user's say over the scratches. Naming a whole set of
+ * scratches fixes them; the front office picks any he leaves unnamed.
+ */
+@Composable
+private fun GameDayBlock(
+    dynasty: Dynasty,
+    roster: List<Player>,
+    pins: DepthPins,
+    offense: Scheme,
+    defense: Scheme,
+    save: (DepthPins) -> Unit,
+) {
+    val c = NdTheme.colors
+    val eligible = WeekRunner.eligible(roster)
+    val actives = GameDay.actives(eligible, offense, defense, pins.inactive)
+    val scratched = eligible - actives.toSet()
+    val hurt = roster.filter { it !in eligible && !com.nflsim.engine.season.RosterMoves.onReserve(it) }
+    var swapping by remember { mutableStateOf<Player?>(null) }
+    fun depth(p: Player): String {
+        val scheme = if (p.position.isOffense || p.position in SPECIALISTS) offense else defense
+        val at = roster.filter { it.position == p.position }.sortedByDescending { overall(it, scheme) }
+        return depthLabel(at.indexOf(p) + 1, at.size, p.position.label)
+    }
+
+    SituationBlock(
+        "Game day",
+        meta = if (pins.inactive.isNotEmpty()) "Your picks" else "Front office picks",
+    ) {
+        Text(
+            gameDayNote(actives.size, actives.count { it.position.group == com.nflsim.engine.model.PositionGroup.OL }),
+            style = NdTheme.type.caption, color = c.chalkDim,
+            modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+        )
+        if (hurt.isNotEmpty()) {
+            Text(
+                "Hurt, and inactive: " + hurt.joinToString(", ") { "${it.position.label} ${it.name}" } + ".",
+                style = NdTheme.type.data, color = c.chalk,
+                modifier = Modifier.padding(bottom = NdTheme.spacing.xs),
+            )
+        }
+        if (scratched.isEmpty()) {
+            Text("Nobody healthy sits this week.", style = NdTheme.type.data, color = c.chalk)
+        }
+        scratched.forEach { man ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${man.position.label} ${man.name}, ${depth(man)}",
+                    style = NdTheme.type.data, color = c.chalk,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { swapping = if (swapping == man) null else man }) {
+                    Text(if (swapping == man) "Cancel" else "Dress him", style = NdTheme.type.caption, color = c.pylonText)
+                }
+            }
+        }
+        swapping?.let { out ->
+            // He dresses; one of the men dressed sits in his place.
+            val candidates = GameDay.sitOrder(actives + out, offense, defense).filter { it != out }.take(SWAP_SHOWN)
+            Text(
+                "Who sits instead of ${out.name}?",
+                style = NdTheme.type.caption, color = c.chalkDim,
+                modifier = Modifier.padding(top = NdTheme.spacing.xs),
+            )
+            candidates.forEach { sit ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${sit.position.label} ${sit.name}, ${depth(sit)}",
+                        style = NdTheme.type.data, color = c.chalk,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = {
+                        swapping = null
+                        save(pins.copy(inactive = (scratched - out + sit).map { it.id.v }))
+                    }) {
+                        Text("Sit him", style = NdTheme.type.caption, color = c.pylonText)
+                    }
+                }
+            }
+        }
+        if (pins.inactive.isNotEmpty()) {
+            SecondaryButton(
+                "Let the front office pick",
+                { swapping = null; save(pins.copy(inactive = emptyList())) },
+                Modifier.padding(top = NdTheme.spacing.s),
+            )
+        }
+    }
+}
+
+/** How many of the deepest men a swap offers to sit. */
+private const val SWAP_SHOWN = 8
+
+/** What game day allows, in words. */
+internal fun gameDayNote(dressing: Int, linemen: Int): String =
+    "$dressing dress on game day: 48 with eight offensive linemen among them, 47 without. " +
+        "Hurt men sit first; the club scratches the deepest of the rest." +
+        if (linemen < GameDay.LINEMEN) " Only $linemen linemen are fit, so no more than 47 can dress." else ""
+
+/** Where a man sits at his position: "4th of 5 at LB". */
+internal fun depthLabel(rank: Int, of: Int, position: String): String {
+    val suffix = if (rank % 100 in 11..13) "th" else when (rank % 10) { 1 -> "st"; 2 -> "nd"; 3 -> "rd"; else -> "th" }
+    return "$rank$suffix of $of at $position"
 }
 
 /**

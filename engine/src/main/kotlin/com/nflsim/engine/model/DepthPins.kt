@@ -21,6 +21,12 @@ data class DepthPins(
     val packages: Map<String, Map<Position, List<Int>>> = emptyMap(),
     val kickReturner: Int? = null,
     val puntReturner: Int? = null,
+    /**
+     * The men the club names inactive on game day, first choice first
+     * (season.GameDay). A club names as many as it likes; only as many as it
+     * has to scratch are, and its own choice fills any it leaves unnamed.
+     */
+    val inactive: List<Int> = emptyList(),
 ) {
     /** Pins only for players still in [ids]. */
     fun keepOnly(ids: Set<Int>): DepthPins = DepthPins(
@@ -30,6 +36,7 @@ data class DepthPins(
             .filterValues { it.isNotEmpty() },
         kickReturner = kickReturner?.takeIf { it in ids },
         puntReturner = puntReturner?.takeIf { it in ids },
+        inactive = inactive.filter { it in ids },
     )
 
     companion object {

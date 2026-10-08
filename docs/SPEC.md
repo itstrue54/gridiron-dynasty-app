@@ -793,6 +793,17 @@ interface Rng {
   places" hands them to the league's logic, and is saved with the dynasty.
   The hub says when the 53 has open places and when the squad is short, and
   the news when another club signs a man off his squad.
+- **Game day** (CBA Article 25, `season.GameDay`). A club dresses 47 of its
+  53, or 48 if at least eight of them are offensive linemen; the rest are
+  inactive. Men hurt but not on reserve sit first. The healthy scratches are
+  the deepest men at their positions for how deep a roster runs there
+  (the generator's template), the lower-rated of two as deep. A club never
+  scratches below two quarterbacks, a kicker, a punter and a long snapper,
+  nor its eighth lineman, whose place in the 48 would go with him. The
+  user's club may name its scratches on the depth chart
+  (`DepthPins.inactive`); the front office picks any it leaves unnamed. Per-
+  game calibration dresses the same way. Practice-squad elevations on game
+  day are not modelled.
 - **Signing in season** costs the minimum prorated by the weeks left, one
   eighteenth a game (CBA Article 26): one year, all base salary, nothing
   guaranteed.
@@ -1329,7 +1340,7 @@ Dense, tabular, readable, dark-mode-first. Think a well-set spreadsheet with goo
 | **Hub** | Week/phase and the next action (play the week, or call the plays yourself, with a line on the difference); needs attention; top news (five lines, no more than two of a kind, one line a man within a kind, the user's club's stories always; "All the news" for the rest); links grouped as Game day, Your club and League; standings snippet. A new dynasty's first hub opens with a welcome card (how a week works, playing vs calling the plays, what needs attention, when trades and the offseason come), shown once per install. Settings (theme, haptics, saves, player editing, tuning, the design gallery, About, the title screen) are their own screen |
 | **Advance** | The single most-used control. Advance week / to next event / to end of phase |
 | **Roster** | Sortable table, scouted ratings with error bars, contract, age, scheme fit badge |
-| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders |
+| **Depth chart** | Per-package, drag to reorder, auto-sort by scheme fit, snap-share sliders; game day: who sits, hurt or scratched, and the user's own scratches (§6.1) |
 | **Game plan** | Coordinator tendency sliders, weekly opponent plan, focus practice |
 | **Player card** | Bio, scouted ratings, revealed traits, career stats, contract, injury history, news |
 | **Schedule / Scores** | League-wide, filterable |
@@ -1667,7 +1678,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 - ~~**[OPEN]** Room in v1 or defer to v2?~~ **Resolved Sept 2026: not in v1.** A 30-season save is 2.8 MB and loads in 0.09 s on a desktop JVM (§9.3).
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - ~~**[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.~~ **Resolved Oct 2026: yes** (§4.7 Careers): ratings rise to a prime, hold, and decline very slowly; position coaches can be promoted to coordinator.
-- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. Gameday inactives are still open: every healthy man on the 53 dresses.
+- ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. **Gameday inactives resolved Oct 2026:** 47 or 48 dress under the CBA, the front office picks the scratches, and the user may name his own (§6.1).
 - **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
 
 ---

@@ -80,11 +80,14 @@ object GameCalibration {
     ): CalibrationReport {
         val rng = SplitMixRng(seed)
         val teams = league.teams.map { team ->
+            val offence = SchemeCatalog.tuned(team.offenseScheme, tuning)
+            val defence = SchemeCatalog.tuned(team.defenseScheme, tuning)
             GameTeam(
                 team = team,
-                roster = league.roster(team.id),
-                offScheme = SchemeCatalog.tuned(team.offenseScheme, tuning),
-                defScheme = SchemeCatalog.tuned(team.defenseScheme, tuning),
+                // A real game dresses 47 or 48 of the 53 (GameDay).
+                roster = com.nflsim.engine.season.GameDay.actives(league.roster(team.id), offence, defence),
+                offScheme = offence,
+                defScheme = defence,
                 aggression = 0.35f + rng.nextFloat() * 0.4f,
                 staffPlan = com.nflsim.engine.gen.Tendencies.of(team.staff, league.coaches),
                 adjustments = league.coaches[team.staff.headCoach]?.ratings?.adjustments ?: 50,

@@ -834,6 +834,25 @@ The per-game bands are measured on new leagues, whose coaches are generated as b
 
 **Result:** squads now come out as a later season's do, and promotions from them match season two. The street and other clubs' squads still split differently from season two: an offseason's street has almost no linemen, so clubs reach into other squads for them, and its squads carry a tail of released veterans (up to 85) worth taking. Generated cuts cover every position and have no such tail. Scoring and strength hold; no band moves.
 
+## Pass 22 — October 2026 (game-day inactives)
+
+**What changed:** each club dresses 47 of its 53 on game day, or 48 with eight offensive linemen; the deepest healthy men sit. The per-game calibration dresses the same way.
+
+**Measured:** `calibrate`, 1,000 games on each of two leagues:
+
+| | main, seed 2026 | **Inactives, 2026** | main, seed 77 | **Inactives, 77** |
+|---|---|---|---|---|
+| Bands passing | 23 of 23 | 23 of 23 | 23 of 23 | 23 of 23 |
+| Points per team per game | 21.7 | 21.6 | 22.0 | 21.8 |
+| Yards per team per game | 348 | 348 | 351 | 349 |
+| Yards per carry | 4.41 | 4.42 | 4.28 | 4.31 |
+| Yards per attempt | 7.12 | 7.11 | 7.25 | 7.23 |
+| Sacks per team per game | 2.32 | 2.33 | 2.31 | 2.32 |
+| Home win rate | 0.54 | 0.54 | 0.57 | 0.58 |
+| Games decided by 3 or less | 0.22 | 0.23 | 0.24 | 0.23 |
+
+**Result:** the men who sit are depth that seldom played: rated 42-56 in a new league, across positions (most often linebackers, receivers and edge rushers, and some third quarterbacks). Every band holds, and no figure moves more than run-to-run noise. No band moves.
+
 ## Still unmeasured
 
 Everything on this list has been measured: season shape (pass 7), talent at the top (pass 8), and rebuilds and dynasties (pass 9).
