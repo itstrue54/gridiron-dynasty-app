@@ -116,8 +116,15 @@ class GameDayTest {
     }
 
     @Test
-    fun `a healthy club calls nobody up, and a club never calls up more than two`() {
-        assertTrue(GameDay.callUps(roster, squad, offence, defence).isEmpty())
+    fun `a healthy club calls up only men who would make its kick coverage, and never more than two`() {
+        val st = league.tuning.specialTeams
+        val weakest = com.nflsim.engine.sim.SpecialTeamsUnits.coverageWorth(roster, offence, defence, st).values
+            .sortedDescending()[com.nflsim.engine.sim.SpecialTeamsUnits.KICK_COVERAGE - 1]
+        GameDay.callUps(roster, squad, offence, defence, st = st).forEach { man ->
+            val cover = com.nflsim.engine.sim.SpecialTeamsUnits.value(
+                man, com.nflsim.engine.sim.StRole.COVERAGE, if (man.position.isOffense) offence else defence, st)
+            assertTrue(cover >= weakest + st.callUpCoverageMargin, "${man.position} called up without beating the coverage")
+        }
         val thin = roster.take(30)
         assertEquals(GameDay.CALL_UPS, GameDay.callUps(thin, squad + squadQb, offence, defence).size)
     }

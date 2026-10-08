@@ -718,7 +718,7 @@ data class TuningTable(
         /** How much worse the snap is with no snapper or holder dressed. */
         val noSnapperPenalty: Float = 25f,
         /** Points a squad man must beat the weakest kick-coverage man by for his club to call him up for special teams. */
-        val callUpCoverageMargin: Float = 4f,
+        val callUpCoverageMargin: Float = 1f,
         /** Yards a blocked punt loses: it is recovered behind the line. */
         val puntBlockedLoss: Int = 8,
         /**
