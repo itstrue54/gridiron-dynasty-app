@@ -127,7 +127,9 @@ object PlaySimulator {
                     .coerceAtLeast(1)
                 return result.copy(
                     outcome = PlayOutcome.INCOMPLETE,
-                    penalty = Penalty(PenaltyType.PASS_INTERFERENCE, spot, result.tackler),
+                    // The man covering the target is the one flagged; on an
+                    // incompletion there is no tackler to name.
+                    penalty = Penalty(PenaltyType.PASS_INTERFERENCE, spot, result.coverage ?: result.tackler),
                     log = result.log.copy(
                         narrative = PlayLines.write("penalty.pass_interference", ctx.words, "spot" to spot)),
                 )

@@ -182,7 +182,7 @@ internal object PassResolution {
             return PlayResult(
                 outcome = PlayOutcome.INTERCEPTION, yards = 0,
                 clockRunoff = t.gameFlow.incompleteClockRunoff,
-                passer = qb.id, target = receiver.id, tackler = defender.id, turnover = true,
+                passer = qb.id, target = receiver.id, tackler = defender.id, turnover = true, coverage = defender.id,
                 log = SimLog(values, PlayLines.write("pass.interception", ctx.words,
                     "defender" to defender.name, "concept" to call.concept.label, "qb" to qb.lastName)),
             )
@@ -192,7 +192,7 @@ internal object PassResolution {
             return PlayResult(
                 outcome = PlayOutcome.INCOMPLETE, yards = 0,
                 clockRunoff = t.gameFlow.incompleteClockRunoff,
-                passer = qb.id, target = receiver.id,
+                passer = qb.id, target = receiver.id, coverage = defender.id,
                 log = SimLog(values, PlayLines.write("pass.incomplete", ctx.words,
                     "qb" to qb.lastName, "concept" to call.concept.label, "receiver" to receiver.lastName)),
             )
@@ -247,7 +247,7 @@ internal object PassResolution {
                 outcome = PlayOutcome.COMPLETION, yards = total,
                 clockRunoff = t.gameFlow.completionClockRunoff,
                 passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
-                turnover = true,
+                turnover = true, coverage = defender.id,
                 log = SimLog(values, PlayLines.write("pass.complete.fumble", ctx.words,
                     "qb" to qb.lastName, "receiver" to receiver.name, "yards" to total)),
             )
@@ -257,7 +257,7 @@ internal object PassResolution {
             outcome = PlayOutcome.COMPLETION, yards = total,
             clockRunoff = t.gameFlow.completionClockRunoff,
             passer = qb.id, target = receiver.id, ballCarrier = receiver.id, tackler = stopper.id,
-            assister = helper?.id,
+            assister = helper?.id, coverage = defender.id,
             log = SimLog(values, PlayLines.write(
                 when {
                     broke && total >= t.passing.catchAndRunYards -> "pass.catch_and_run"

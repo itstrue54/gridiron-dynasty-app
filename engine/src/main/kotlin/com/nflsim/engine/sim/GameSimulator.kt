@@ -577,7 +577,13 @@ class GameSimulator(
         watch(offense, offCall, defCall)
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
         snap(ctx, offTeam, defTeam, state.quarter)
-        log(state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""))
+        val standout = PlayReport.standout(result, result.penalty?.type?.onOffense == false, tuning.passing)
+        log(
+            state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""),
+            offenseCall = PlayReport.offenseCall(offCall, offTeam.team.offenseScheme),
+            defenseCall = PlayReport.defenseCall(defCall, defTeam.team.defenseScheme),
+            defender = standout,
+        )
         return PlayOutcomeBundle(result, offCall is OffensivePlayCall.Pass, offCall)
     }
 
@@ -904,12 +910,21 @@ class GameSimulator(
         if (side == Side.HOME) homeStats = block(homeStats) else awayStats = block(awayStats)
     }
 
-    private fun log(state: GameState, text: String, kind: PlayKind = PlayKind.SNAP) {
+    private fun log(
+        state: GameState,
+        text: String,
+        kind: PlayKind = PlayKind.SNAP,
+        offenseCall: String? = null,
+        defenseCall: String? = null,
+        defender: Pair<Int, DefenderPlay>? = null,
+    ) {
         if (text.isBlank()) return
         playByPlay += PlayLog(
             quarter = state.quarter, clock = state.secondsLeft, offense = state.possession,
             down = state.down, distance = state.distance, yardLine = state.yardLine,
             homeScore = state.homeScore, awayScore = state.awayScore, text = text, kind = kind,
+            offenseCall = offenseCall, defenseCall = defenseCall,
+            defender = defender?.first, defenderPlay = defender?.second,
         )
     }
 

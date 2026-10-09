@@ -111,7 +111,7 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
             )
         }
 
-        item { LastPlayOf(plays, shown) }
+        item { LastPlayOf(plays, shown, dynasty.league, home, away) }
 
         if (!done) {
             item {
@@ -246,9 +246,35 @@ internal fun endOfDrive(plays: List<PlayLog>, from: Int): Int {
  * the weather or a timeout, is not one - at the top of the game.
  */
 @Composable
-internal fun LastPlayOf(plays: List<PlayLog>, shown: Int) {
+internal fun LastPlayOf(plays: List<PlayLog>, shown: Int, league: com.nflsim.engine.model.League, home: Team, away: Team) {
     val i = (shown - 1 downTo 0).firstOrNull { plays[it].kind != com.nflsim.engine.sim.PlayKind.NOTE }
-    LastPlay(i?.let { plays[it] }, i?.let { eventOf(plays, it) })
+    val play = i?.let { plays[it] }
+    LastPlay(play, i?.let { eventOf(plays, it) }, play?.let { playDetail(it, league, home, away) })
+}
+
+/** Beyond a play's line: what each side called, and the defender it turned on, good or bad. */
+internal data class PlayDetail(val calls: List<String>, val defender: String?, val good: Boolean?)
+
+/**
+ * What [play] says beyond its line, for the clubs in it: each side's call
+ * ("LV ran Shotgun Doubles - Double Slants"), and the defender the snap turned
+ * on by position, name and club, with what he did ("CB Owen Talley, CLE: beaten
+ * in coverage"). Null for a kick, a note, or a line logged before plays
+ * kept their calls.
+ */
+internal fun playDetail(play: PlayLog, league: com.nflsim.engine.model.League, home: Team, away: Team): PlayDetail? {
+    val offense = if (play.offense == com.nflsim.engine.sim.Side.HOME) home else away
+    val defense = if (play.offense == com.nflsim.engine.sim.Side.HOME) away else home
+    val calls = listOfNotNull(
+        play.offenseCall?.let { "${offense.abbrev} ran $it" },
+        play.defenseCall?.let { "${defense.abbrev} played $it" },
+    )
+    val man = play.defender?.let { league.playersById[com.nflsim.engine.model.PlayerId(it)] }
+    val defender = play.defenderPlay?.let { what ->
+        man?.let { "${it.position.label} ${it.name}, ${defense.abbrev}: ${what.label}" }
+    }
+    if (calls.isEmpty() && defender == null) return null
+    return PlayDetail(calls, defender, if (defender == null) null else play.defenderPlay?.good)
 }
 
 /**
@@ -257,13 +283,33 @@ internal fun LastPlayOf(plays: List<PlayLog>, shown: Int) {
  * kickoff.
  */
 @Composable
-internal fun LastPlay(play: PlayLog?, event: PlayEvent?) {
+internal fun LastPlay(play: PlayLog?, event: PlayEvent?, detail: PlayDetail? = null) {
+    val c = NdTheme.colors
     SituationBlock("Last play", meta = if (play == null) "Kickoff" else null) {
         if (play == null) {
-            Text("The game is about to kick off.", style = NdTheme.type.body, color = NdTheme.colors.chalk)
+            Text("The game is about to kick off.", style = NdTheme.type.body, color = c.chalk)
         } else {
             // The log's own line, so a score or a turnover carries the same edge here as there.
             PlayLogEntry(downDistance = downAndDistance(play), text = play.text, event = event)
+        }
+        detail?.calls?.forEach { Text(it, style = NdTheme.type.caption, color = c.chalkDim) }
+        detail?.defender?.let { line ->
+            // Who won or lost the snap, so a weak link shows up play after play.
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.padding(top = NdTheme.spacing.xs),
+            ) {
+                com.example.nflsimtext.ui.components.StatusTag(
+                    if (detail.good == true) "Good play" else "Lost the rep",
+                    if (detail.good == true) com.example.nflsimtext.ui.components.TagTone.INFO
+                    else com.example.nflsimtext.ui.components.TagTone.URGENT,
+                )
+                Text(
+                    line,
+                    style = NdTheme.type.caption, color = c.chalk,
+                    modifier = Modifier.padding(start = NdTheme.spacing.s),
+                )
+            }
         }
     }
 }
