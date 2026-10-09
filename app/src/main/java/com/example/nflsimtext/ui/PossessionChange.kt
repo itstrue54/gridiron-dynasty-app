@@ -1,6 +1,7 @@
 package com.example.nflsimtext.ui
 
 import com.nflsim.engine.sim.PlayKind
+import com.nflsim.engine.sim.PlayLines
 import com.nflsim.engine.sim.PlayLog
 import com.nflsim.engine.sim.Side
 
@@ -23,7 +24,8 @@ enum class PossessionChange(val label: String) {
  * Why the ball changed hands after the plays in [shown], when the next snap is
  * [nextOffense]'s: null when the club with the ball still has it, the opening
  * kickoff before the first snap. Read from the last snap or kick (a note such
- * as a timeout is passed over), its kind, its words and the score.
+ * as a timeout is passed over), its kind and the score; a kick's line says
+ * which kind of kick it was.
  */
 internal fun possessionChange(
     shown: List<PlayLog>,
@@ -36,16 +38,18 @@ internal fun possessionChange(
     if (nextOffense == last.offense) return null
     val text = last.text.lowercase()
     // A log saved before plays kept their kind calls every line a snap: its
-    // kicks are known by their words.
-    val punt = last.kind == PlayKind.PUNT || (last.kind == PlayKind.SNAP && "punt" in text)
-    val kick = last.kind == PlayKind.FIELD_GOAL ||
-        (last.kind == PlayKind.SNAP && (FIELD_GOAL_BLOCKS + FIELD_GOAL_MISSES).any { it in text })
+    // kicks are known by the lines the game writes for them.
+    val legacy = last.kind == PlayKind.SNAP
+    val blockedPunt = isLine(last.text, "punt.blocked")
+    val punt = last.kind == PlayKind.PUNT || (legacy && (blockedPunt || isLine(last.text, "punt", "punt.touchback", "punt.no_punter")))
+    val blockedKick = isLine(last.text, "fg.blocked")
+    val kick = last.kind == PlayKind.FIELD_GOAL || (legacy && (blockedKick || isLine(last.text, "fg.miss", "fg.no_kicker")))
     return when {
         nextHomeScore > last.homeScore || nextAwayScore > last.awayScore -> PossessionChange.KICKOFF
         // The half ending is what hands it over, whatever the last play was.
         last.quarter == 2 && nextQuarter == 3 -> PossessionChange.SECOND_HALF
-        punt -> if ("block" in text) PossessionChange.BLOCKED_PUNT else PossessionChange.PUNT
-        kick -> if (FIELD_GOAL_BLOCKS.any { it in text }) PossessionChange.BLOCKED_FIELD_GOAL else PossessionChange.MISSED_FIELD_GOAL
+        punt -> if (blockedPunt) PossessionChange.BLOCKED_PUNT else PossessionChange.PUNT
+        kick -> if (blockedKick) PossessionChange.BLOCKED_FIELD_GOAL else PossessionChange.MISSED_FIELD_GOAL
         "intercept" in text -> PossessionChange.INTERCEPTION
         "fumble" in text -> PossessionChange.FUMBLE
         last.down == 4 -> PossessionChange.DOWNS
@@ -56,12 +60,16 @@ internal fun possessionChange(
 /** What the field says: why the ball changed hands, and whose it is now. */
 internal fun possessionBanner(change: PossessionChange, newOffense: String): String = "${change.label} · $newOffense ball"
 
-/**
- * Words every missed field goal's line uses one of (narratives fg.miss, fg.no_kicker) and no
- * other play's does: "misses" alone is an incomplete pass too.
- */
-private val FIELD_GOAL_MISSES = listOf("no good", "misses from", "yarder", "yard try", "cannot convert", "no kicker")
+/** Whether [text] is one of the game's lines for any of [keys], its blanks filled with anything. */
+private fun isLine(text: String, vararg keys: String): Boolean =
+    keys.any { key -> LINES.getValue(key).any { it.matches(text) } }
 
-/** Words every blocked field goal's line uses one of (narrative fg.blocked); a run "blocked well" is not one. */
-private val FIELD_GOAL_BLOCKS = listOf("attempt is blocked", "blocked!", "try is blocked", "blocked at the line",
-    "and it is blocked", "free and blocks", "yarder is blocked", "blocked kick")
+/** The kicking lines the game writes, each as a pattern with its blanks open (narrative plays.json). */
+private val LINES: Map<String, List<Regex>> by lazy {
+    listOf("punt", "punt.touchback", "punt.no_punter", "punt.blocked", "fg.miss", "fg.blocked", "fg.no_kicker")
+        .associateWith { key ->
+            PlayLines.templates.getValue(key).map { template ->
+                Regex(template.split(Regex("\\{[a-z]+\\}")).joinToString(".*") { Regex.escape(it) })
+            }
+        }
+}

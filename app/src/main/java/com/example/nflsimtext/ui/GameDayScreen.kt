@@ -75,9 +75,8 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
     val motion = NdTheme.motion
     val haptic = LocalHapticFeedback.current
     val hapticsOn = LocalHaptics.current
-    // The play just shown, and the snap that comes next: the board and the
-    // field show the game as it stands now, after the last play.
-    val last = plays.getOrNull(shown - 1)
+    // The snap that comes next: the board and the field show the game as it
+    // stands now, after the last play.
     val now = plays.getOrNull(shown) ?: plays.last()
 
     LaunchedEffect(shown, animate) {
@@ -112,7 +111,7 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
             )
         }
 
-        item { LastPlay(last, if (last == null) null else eventOf(plays, shown - 1)) }
+        item { LastPlayOf(plays, shown) }
 
         if (!done) {
             item {
@@ -240,6 +239,16 @@ internal fun endOfDrive(plays: List<PlayLog>, from: Int): Int {
     var i = from
     while (i < plays.size && plays[i].offense == side) i++
     return i
+}
+
+/**
+ * The last play among the first [shown] of [plays] - a note between plays,
+ * the weather or a timeout, is not one - at the top of the game.
+ */
+@Composable
+internal fun LastPlayOf(plays: List<PlayLog>, shown: Int) {
+    val i = (shown - 1 downTo 0).firstOrNull { plays[it].kind != com.nflsim.engine.sim.PlayKind.NOTE }
+    LastPlay(i?.let { plays[it] }, i?.let { eventOf(plays, it) })
 }
 
 /**

@@ -34,7 +34,10 @@ class PossessionChangeTest {
     }
 
     @Test
-    fun `a saved game's log, without kinds, still knows its missed and blocked kicks by their words`() {
+    fun `a saved game's log, without kinds, still knows its punts and kicks by their lines`() {
+        // Most punt lines never say "punt": "booms it 45 yards", "kicks it away".
+        (lines("punt") + lines("punt.touchback") + lines("punt.no_punter")).forEach { assertEquals(it, PossessionChange.PUNT, after(it)) }
+        lines("punt.blocked").forEach { assertEquals(it, PossessionChange.BLOCKED_PUNT, after(it)) }
         (lines("fg.miss") + lines("fg.no_kicker")).forEach { assertEquals(it, PossessionChange.MISSED_FIELD_GOAL, after(it)) }
         lines("fg.blocked").forEach { assertEquals(it, PossessionChange.BLOCKED_FIELD_GOAL, after(it)) }
     }
