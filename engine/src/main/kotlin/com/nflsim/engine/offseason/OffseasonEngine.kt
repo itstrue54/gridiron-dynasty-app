@@ -487,10 +487,35 @@ object OffseasonEngine {
         userPicks: Map<Int, Int>,
     ): Pair<Dynasty, OffseasonReport> = runToCutdown(pause, userPicks).decide(null)
 
-    /** The draft, and a stop before camp so the user's club can make its own cut to 53. */
+    /**
+     * The draft and training camp (phase 11), then a stop so the user's club
+     * can make its own cut to 53. Camp is where the offseason's development
+     * happens and where a few men get hurt, so the cut is made on what camp
+     * showed - the league's clubs cut on it too.
+     */
     internal fun runToCutdown(pause: DraftPause, userPicks: Map<Int, Int>): CutdownPause {
         val (afterDraft, _) = stepDraft(pause.ctx, pause.state, pause.rng, userPicks)
-        return CutdownPause(pause, afterDraft)
+        val user = pause.ctx.dynasty.userTeamId
+        val before = afterDraft.players.filter { it.teamId == user }
+        val developed = stepDevelopment(pause.ctx, afterDraft, pause.rng)
+        val (players, hurt) = TrainingCamp.injuries(developed.players, pause.ctx.league.tuning.injuries,
+            pause.rng.split("camp-injuries|${pause.ctx.newYear}"))
+        val camp = developed.copy(players = players)
+        // Every other club acts on what camp showed; the user's is suggested to him.
+        val reported = afterDraft.players.associateBy { it.id.v }
+        val decided = CampDecisions.run(campContext(pause, camp, reported), skip = user)
+        val state = camp.copy(players = decided.players, deadMoney = decided.deadMoney, picks = decided.picks,
+            pickTrades = camp.pickTrades + decided.pickTrades)
+        return CutdownPause(pause, state, before, hurt, reported, decided.releases, decided.trades)
+    }
+
+    /** What a club judges its camp by: everyone as camp left them, and as they reported. */
+    internal fun campContext(pause: DraftPause, state: OffseasonState, reported: Map<Int, Player>): CampDecisions.Context {
+        val pricer = state.requirePricer()
+        return CampDecisions.Context(
+            pause.ctx.league, state.players, reported, pause.ctx.newYear, state.deadMoney, state.picks,
+            pause.ctx.scheme, { p, sch -> pricer.annual(p, sch, pause.ctx.newYear) },
+        )
     }
 
     /**
@@ -504,7 +529,10 @@ object OffseasonEngine {
     ): Pair<Dynasty, OffseasonReport> {
         val pause = cutdown.draft
         val ctx = pause.ctx
-        var state = if (cut == null) cutdown.state else cutdown.apply(cut)
+        val campHurt = cutdown.campInjuries.associate { it.player to it.gamesOut }
+        // Left to the front office, the user's club makes its camp moves as every club did.
+        val planned = if (cut == null) cutdown.withCampPlan() else cutdown
+        var state = if (cut == null) planned.state else cutdown.apply(cut)
         val skip = if (cut == null) null else ctx.dynasty.userTeamId
         val rng = pause.rng
         val carousel = pause.carousel
@@ -514,8 +542,8 @@ object OffseasonEngine {
         val releases = pause.releases
         val pricer = pause.pricer
         val wishes = pause.wishes
-        val trades = pause.trades
-        val valueCuts = pause.valueCuts
+        val trades = pause.trades + planned.campTrades
+        val valueCuts = pause.valueCuts + planned.campReleases
         val dynasty = ctx.dynasty
         val league = ctx.league
         val newYear = ctx.newYear
@@ -532,7 +560,7 @@ object OffseasonEngine {
         state = stepCutdownCompliance(ctx, state, rng)
         state = stepPracticeSquads(ctx, state, rng)
         state = stepResolveUnsigned(ctx, state, rng)
-        state = stepDevelopment(ctx, state, rng)
+        // Development happened at camp, before the cut (runToCutdown).
         val developments = state.developments
         val deltaSum = state.deltaSum
         val deltaCount = state.deltaCount
@@ -586,12 +614,14 @@ object OffseasonEngine {
                 )
             // Box scores: full for the last five seasons played (SPEC 9.2).
             }.compressedFor(ctx.oldYear),
-            // A new season starts healthy, fresh, and nobody hot or cold.
+            // A new season starts healthy, fresh, and nobody hot or cold - but
+            // a man hurt in camp is still hurt: camp is this season's.
             players = survivors.map {
-                if (it.injuryWeeks == 0 && it.wear == 0 && it.form == 0 &&
+                val camp = campHurt[it.id.v] ?: 0
+                if (it.injuryWeeks == camp && it.wear == 0 && it.form == 0 &&
                     it.demand == com.nflsim.engine.model.DemandState.NONE && it.demandFloor == 0) it
                 else it.copy(
-                    injuryWeeks = 0, wear = 0, form = 0,
+                    injuryWeeks = camp, wear = 0, form = 0,
                     demand = com.nflsim.engine.model.DemandState.NONE, demandFloor = 0,
                 )
             },

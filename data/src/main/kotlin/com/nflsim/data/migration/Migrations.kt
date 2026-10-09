@@ -123,6 +123,10 @@ object Migrations {
         Step(60, "each snap names who was hurt on it (SPEC 10); nothing to move") { it },
         // An old game's log has no kickoff lines; its punts read as they did.
         Step(61, "kickoffs and their returns are lines of the play-by-play (SPEC 10); nothing to move") { it },
+        // The tuning table's injuries gain camp's rate, defaulted on read.
+        Step(62, "training camp comes before the cut to 53, and can hurt a man (SPEC 7); nothing to move") { it },
+        // The tuning table's AI gains camp's thresholds, defaulted on read.
+        Step(63, "clubs cut and trade at camp on what it showed (SPEC 7); nothing to move") { it },
     )
 
     /**
