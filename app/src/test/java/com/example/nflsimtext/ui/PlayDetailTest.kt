@@ -32,4 +32,14 @@ class PlayDetailTest {
     fun `a line logged before plays kept their calls says nothing more`() {
         assertNull(playDetail(PlayLog(1, 600, Side.HOME, 1, 10, 25, 0, 0, "A run for 4."), league, home, away))
     }
+
+    @Test
+    fun `a man hurt on the snap is named, with his club and how long he is out`() {
+        val hurt = league.roster(home.id).first { it.position == Position.WR }
+        val play = PlayLog(2, 400, Side.HOME, 1, 10, 30, 0, 0, "A catch for 6.",
+            injured = listOf(com.nflsim.engine.sim.Injury(hurt.id.v, home.id.v, 3, 2)))
+        assertEquals(listOf("WR ${hurt.name}, ${home.abbrev}: out 3 games"), playDetail(play, league, home, away)!!.injuries)
+        assertEquals("out 1 game", injuryLength(1))
+        assertEquals("out for the season", injuryLength(com.nflsim.engine.sim.Injury.SEASON_ENDING))
+    }
 }

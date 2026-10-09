@@ -82,7 +82,16 @@ private val SPOTS = listOf(
  * clears a position's pins.
  */
 @Composable
-fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope, onBack: () -> Unit) {
+fun DepthChartScreen(
+    dynasty: Dynasty,
+    store: DynastyStore,
+    scope: CoroutineScope,
+    /** Opened from a game he is calling: changes play from the next snap. */
+    inGame: Boolean = false,
+    /** Men hurt in the game under way, who sit whatever the chart says. */
+    hurtNow: Set<Int> = emptySet(),
+    onBack: () -> Unit,
+) {
     val team = dynasty.team
     val roster = dynasty.league.roster(team.id)
     val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
@@ -115,6 +124,14 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                         "keeps sorting itself by scheme-adjusted overall.",
                     style = NdTheme.type.body, color = NdTheme.colors.chalkDim,
                 )
+                if (inGame) {
+                    Text(
+                        "In the game: a change plays from the next snap. Men hurt today sit whatever the chart says; " +
+                            "inactives and call-ups take effect next game.",
+                        style = NdTheme.type.caption, color = NdTheme.colors.chalk,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                    )
+                }
             }
         }
         CHART_ORDER.forEach { position ->
@@ -139,6 +156,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                             i, list[i], overall(list[i], schemeFor(position)), list[i].id.v in pinned,
                             canUp = i > 0, canDown = i < list.size - 1,
                             fit = SchemeFitGrade.letter(schemeFit(list[i], schemeFor(position))),
+                            hurt = list[i].id.v in hurtNow,
                             onUp = { save(pins.copy(order = pins.order + (position to moved(list, i, i - 1)))) },
                             onDown = { save(pins.copy(order = pins.order + (position to moved(list, i, i + 1)))) },
                         )
@@ -180,6 +198,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
                             i, shown[i], overall(shown[i], schemeFor(spot.position)), shown[i].id.v in pinned,
                             canUp = i > 0, canDown = i < shown.size - 1, inPackage = i < spot.count,
                             fit = SchemeFitGrade.letter(schemeFit(shown[i], schemeFor(spot.position))),
+                            hurt = shown[i].id.v in hurtNow,
                             onUp = { save(write(moved(list, i, i - 1))) },
                             onDown = { save(write(moved(list, i, i + 1))) },
                         )
@@ -235,7 +254,7 @@ fun DepthChartScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScop
         }
         item(key = "special-teams") { SpecialTeamsBlock(dynasty, pins, ::save) }
         item(key = "game-day") { GameDayBlock(dynasty, roster, pins, offense, defense, ::save) }
-        item { SecondaryButton("Back to the roster", onBack, Modifier.fillMaxWidth()) }
+        item { SecondaryButton(if (inGame) "Back to the game" else "Back to the roster", onBack, Modifier.fillMaxWidth()) }
     }
 }
 
@@ -538,6 +557,7 @@ private fun PlayerRow(
     canDown: Boolean,
     inPackage: Boolean = true,
     fit: String = "",
+    hurt: Boolean = false,
     onUp: () -> Unit,
     onDown: () -> Unit,
 ) {
@@ -555,6 +575,7 @@ private fun PlayerRow(
             color = if (inPackage) c.chalk else c.chalkDim,
             modifier = Modifier.weight(1f),
         )
+        if (hurt) StatusTag("Hurt", TagTone.URGENT, Modifier.padding(end = NdTheme.spacing.xs))
         if (pinned) StatusTag("Pinned", TagTone.INFO, Modifier.padding(end = NdTheme.spacing.xs))
         RatingValue(ovr, Modifier.width(30.dp))
         TextButton(

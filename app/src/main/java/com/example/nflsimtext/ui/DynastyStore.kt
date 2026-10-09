@@ -233,10 +233,20 @@ class DynastyStore(private val saveDir: File) {
         val game = LiveGame(
             com.nflsim.engine.playbook.Playbooks.forScheme(current.team.offenseScheme),
             com.nflsim.engine.playbook.Playbooks.forScheme(current.team.defenseScheme),
+            // The depth chart as he leaves it between snaps: what the game plays from next.
+            pins = { dynasty?.team?.depthPins },
         )
         live = game
         try {
-            val next = withContext(Dispatchers.IO) { DynastyEngine.advance(current, caller = game) }
+            val played = withContext(Dispatchers.IO) { DynastyEngine.advance(current, caller = game) }
+            // The week ran from the league as it kicked off; a depth chart he
+            // changed during the game stays changed, less anyone no longer his.
+            val pins = dynasty?.team?.depthPins
+            val next = if (pins == null || pins == current.team.depthPins || played.phase != current.phase) played
+            else played.copy(league = played.league.copy(teams = played.league.teams.map { t ->
+                if (t.id != played.userTeamId) t
+                else t.copy(depthPins = pins.keepOnly((t.roster + t.practiceSquad).map { it.v }.toSet()))
+            }))
             dynasty = next
             persist(next)
             if (next.phase != current.phase) {

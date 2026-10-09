@@ -13,6 +13,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -55,6 +57,11 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
     LaunchedEffect(game) { if (game != null) seen = true else if (seen) onDone() }
     // Back hands the rest to the coordinators rather than walking out on it.
     BackHandler(enabled = game != null) { game?.finish() }
+    // The depth chart or the roster, opened from the game: it waits at his
+    // snap while he looks, and back returns to it.
+    var panel by remember { mutableStateOf<GamePanel?>(null) }
+    BackHandler(enabled = panel != null) { panel = null }
+    val scope = rememberCoroutineScope()
     if (game == null) {
         Column(Modifier.padding(NdTheme.spacing.xl)) {
             Text("Getting the game ready.", style = NdTheme.type.body, color = c.chalkDim)
@@ -83,6 +90,20 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
         return
     }
 
+    // Who has been hurt in this game, for the depth chart and the roster to show.
+    val hurtNow = snap?.plays.orEmpty().flatMap { it.injured }.filter { it.team == dynasty.userTeam }.map { it.player }.toSet()
+    when (panel) {
+        GamePanel.DEPTH -> {
+            DepthChartScreen(dynasty, store, scope, inGame = true, hurtNow = hurtNow) { panel = null }
+            return
+        }
+        GamePanel.ROSTER -> {
+            RosterScreen(dynasty, onDepthChart = { panel = GamePanel.DEPTH }, onBackToGame = { panel = null }, hurtNow = hurtNow)
+            return
+        }
+        null -> Unit
+    }
+
     ScreenList {
         item {
             Scoreboard(
@@ -99,6 +120,13 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
         // What just happened, at the top; the log of the game stays at the foot.
         val played = snap?.plays.orEmpty()
         item { LastPlayOf(played, played.size, dynasty.league, home, away) }
+        // A man hurt or struggling: move his backup up between snaps.
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s)) {
+                SecondaryButton("Depth chart", { panel = GamePanel.DEPTH }, Modifier.weight(1f))
+                SecondaryButton("Roster", { panel = GamePanel.ROSTER }, Modifier.weight(1f))
+            }
+        }
         if (state != null) {
             val offense = if (state.possession == EngineSide.HOME) home else away
             val defense = if (state.possession == EngineSide.HOME) away else home
@@ -331,3 +359,6 @@ private fun spotAt(yardLine: Int, defense: Team): String = when {
     yardLine == 50 -> "midfield"
     else -> "own $yardLine"
 }
+
+/** What the game screen has open over the game. */
+private enum class GamePanel { DEPTH, ROSTER }

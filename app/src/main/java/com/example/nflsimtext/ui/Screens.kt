@@ -669,6 +669,10 @@ fun RosterScreen(
     dynasty: Dynasty,
     onDepthChart: () -> Unit = {},
     onPlayer: (Int) -> Unit = {},
+    /** Opened from a game he is calling: the way back to it, and nothing to change but the depth chart. */
+    onBackToGame: (() -> Unit)? = null,
+    /** Men hurt in the game under way. */
+    hurtNow: Set<Int> = emptySet(),
 ) {
     val c = NdTheme.colors
     val team = dynasty.team
@@ -693,6 +697,7 @@ fun RosterScreen(
                     "Defense ${defense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, defense, false))}",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
+                onBackToGame?.let { SecondaryButton("Back to the game", it, Modifier.padding(top = NdTheme.spacing.s)) }
                 SecondaryButton(
                     "Set the depth chart", onDepthChart,
                     Modifier.padding(top = NdTheme.spacing.s),
@@ -700,7 +705,7 @@ fun RosterScreen(
                 // SPEC 9.4: the roster leaves in the shape the game reads back.
                 var exported by remember { mutableStateOf<String?>(null) }
                 val context = LocalContext.current
-                SecondaryButton(
+                if (onBackToGame == null) SecondaryButton(
                     "Export this roster",
                     {
                         exported = try {
@@ -749,13 +754,14 @@ fun RosterScreen(
                     RowData(
                         listOf(
                             p.position.label,
-                            p.name,
+                            if (p.id.v in hurtNow) "${p.name} (hurt today)" else p.name,
                             "${p.age(dynasty.year)}",
                             lens.view(overall(p)).text,
                             lens.view(overall(p, scheme)).text,
                             SchemeFitGrade.letter(schemeFit(p, scheme)),
                         ),
-                        onClick = { onPlayer(p.id.v) },
+                        // In a game, the roster is to read: his card's moves wait for the final whistle.
+                        onClick = if (onBackToGame != null) null else ({ onPlayer(p.id.v) }),
                     )
                 },
                 sort = sort,
@@ -766,12 +772,17 @@ fun RosterScreen(
             )
         }
         item {
-            Text("Tap a player for his card.", style = NdTheme.type.caption, color = c.chalkDim)
+            Text(
+                if (onBackToGame != null) "Set the depth chart to move a man up or down; the rest waits for the final whistle."
+                else "Tap a player for his card.",
+                style = NdTheme.type.caption, color = c.chalkDim,
+            )
         }
         // The season's defensive reps, worst first: where to look for a replacement.
         if (shown.any { !it.position.isOffense }) {
             val season = dynasty.playerStats.filterKeys { id -> shown.any { it.id.v == id && !it.position.isOffense } }
-            val reps = defenderRows(season, { id -> dynasty.league.playersById[PlayerId(id)]?.let { "${it.position.label} ${it.name}" } ?: "" }, onPlayer)
+            val reps = defenderRows(season, { id -> dynasty.league.playersById[PlayerId(id)]?.let { "${it.position.label} ${it.name}" } ?: "" },
+                if (onBackToGame != null) null else onPlayer)
             item {
                 SituationBlock("Defensive report", meta = "${dynasty.year} season") {
                     if (reps.isEmpty()) {

@@ -2564,3 +2564,11 @@ nothing else moves more than 0.006.
 **Decision.** A starter returns only when better at it than the backups by `returnerStarterPenalty` (8) for each place he starts above the last starter at his position. A flat margin couldn't tell a club's star from its third receiver: at 15 the first receiver still returned a quarter of kicks, and at 20 the returners slowed enough to cost a yard a return. Re-centre the speed each return formula measures from, now in the tuning table, so the league's returns average what they did. A pinned returner is still the club's choice.
 
 **Consequences.** Measured in CALIBRATION.md pass 28. Save step 56, version 57.
+
+## ADR-0xx — The coach re-pins the depth chart during a called game
+
+**Context.** A starter who is hurt or losing his matchups could only be benched between games. The live game runs on a snapshot of the dynasty, so a chart change made mid-game never reached the simulator.
+
+**Decision.** The play caller (`SnapCaller.depthPins()`) hands the simulator the coach's current pins before each snap; when they differ from the side's, that side is rebuilt with them and its cached units dropped, so the change plays from the next snap. Only pins move mid-game: inactives and call-ups were set before kickoff and take effect next game, and men hurt today still sit whatever the chart says. A caller that never changes its pins plays the same game as no caller. After the game the store keeps the new pins, trimmed to men still on the club. Each play's log also names who was hurt on it, so the screen reads injuries from the play rather than guessing from text.
+
+**Consequences.** Save step 60, version 61. No league numbers move: simulated games have no caller.

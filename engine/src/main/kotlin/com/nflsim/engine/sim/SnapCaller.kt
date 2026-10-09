@@ -39,6 +39,13 @@ interface SnapCaller {
 
     /** That playoff game is over. */
     fun final(homeScore: Int, awayScore: Int) {}
+
+    /**
+     * The caller's club's depth chart as its coach has it now, read before
+     * each snap: a change he made mid-game - a hurt man's backup moved up, a
+     * struggling starter benched - plays from the next snap. Null, unchanged.
+     */
+    fun depthPins(): com.nflsim.engine.model.DepthPins? = null
 }
 
 /** A snap as the caller sees it: the game as it stands, and every play so far. */
