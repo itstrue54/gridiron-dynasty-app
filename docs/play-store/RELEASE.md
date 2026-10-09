@@ -39,8 +39,9 @@ rejects a code it has seen) and set `versionName`.
 
 ## 4. In Play Console
 
-1. Create the app. Default language English, app not free-to-play-with-ads,
-   no ads.
+1. Create the app. Default language English, **Paid**, no ads. A paid app
+   can later be made free, but a free one can never be made paid - and a
+   paid app made free cannot go back.
 2. **App content**
    - Privacy policy: https://itstrue54.github.io/gridiron-dynasty/ (see
      *Hosting the privacy policy* below).
@@ -67,6 +68,34 @@ rejects a code it has seen) and set `versionName`.
 4. **Testing** -> Internal testing: upload the `.aab`, add yourself as a
    tester, install from the opt-in link, and play a season through before
    promoting to production.
+
+## Pricing
+
+Paid, once: **$2.99 for a two-week launch, then $4.99** (DECISIONS.md, *Paid
+once*). Nothing in the app changes with the price: there is no billing code.
+
+1. **Payments profile first.** Play Console -> Setup -> Payments profile: a
+   merchant account with your tax details. Play will not let a paid app be
+   priced until it exists, and it can take a few days to verify.
+2. **Set the launch price.** Monetize -> App pricing: $2.99 (USD), and let
+   Play convert it for the other countries - or set them yourself.
+3. **Put the change in your calendar** for two weeks after the production
+   release goes live. On that day set the price to $4.99 the same way. It
+   reaches the store within a few hours; anyone who already bought keeps the
+   app. (Play's paid-app *sales* tool can't be used for this: a sale lowers a
+   price, and you are raising one.)
+4. **Testers and reviewers.** A paid app on a closed test may ask testers to
+   buy it. Give them **promo codes** instead (Monetize -> Promo codes, up to
+   500 a quarter): a code installs the app free.
+5. **The listing never names the price.** Play shows it on the button, and a
+   price in the description goes stale the day it changes.
+
+## Before each release: feature freeze
+
+From the first upload to Internal testing until production, change nothing
+but fixes. Every new feature since October has changed the save format, and
+each one is another thing the closed test has to prove. New features wait
+for 1.0.1.
 
 ## Hosting the privacy policy
 

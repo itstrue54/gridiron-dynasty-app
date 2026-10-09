@@ -2,7 +2,10 @@
 
 ## Title (30 characters max)
 
-Gridiron Dynasty: Football GM
+Gridiron Dynasty: Football Sim
+
+"Football GM" is another game's name, and Play treats a title that borrows
+one as keyword spam; "Football Sim" says what this is in words nobody owns.
 
 ## Short description (80 characters max)
 
@@ -21,7 +24,7 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 - Re-sign your stars, use the franchise tag, and bid in free agency under a real salary cap. Cut a bad contract and you still pay for it.
 
 **Run the team**
-- Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. Promote another club's coordinator to head coach: under NFL rules his club can't stop you, and yours can't stop them. A new coordinator brings his own scheme and tendencies.
+- Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. Promote another club's coordinator to head coach: his club can't stop you, and yours can't stop them. A new coordinator brings his own scheme and tendencies.
 - Set your depth chart and a game plan: how often you pass, when you blitz, how often you go for it on fourth down.
 - Watch every game play by play, call the plays yourself, or skip straight to the final.
 - Want to play commissioner? Turn on player editing and rewrite any player's position, ratings and traits. Or leave it off and play it straight.
@@ -34,7 +37,14 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 **Built to feel real**
 Calibrated against real league statistics - how often teams run and pass, how many points they score, how often the ball comes loose - with fatigue, injuries and weather. Play it Realistic, Arcade or Grinder, or tune every value yourself.
 
-No ads. No purchases. No accounts. No internet connection needed.
+Buy it once and it is yours: no ads, no in-app purchases, no accounts, no internet connection needed.
+
+## Price
+
+Paid, one time: **$2.99 for the first two weeks, then $4.99** (see
+`RELEASE.md`, *Pricing*). The price is set in Play Console, never in the
+listing: a price in the text goes stale the day it changes, and Play does not
+allow one in the title.
 
 ## Category
 

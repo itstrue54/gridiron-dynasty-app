@@ -2584,3 +2584,11 @@ A score as the half or the game runs out, or one that decides overtime, still ma
 A punt names the man who fielded it, returned or fair caught. The words come from the game's narration stream, so no kick moves: 300 games' scores, box scores and injuries hash the same as before.
 
 **Consequences.** Save step 61, version 62. Games already played have no kickoff lines.
+
+## ADR-0xx — Paid once: $2.99 at launch, then $4.99
+
+**Context.** Monetization was the SPEC's last open question. Google Play never lets a free app become paid, so the choice had to be made before the first release. In-app purchases could be added later, but only with a billing library, the internet permission, and new privacy and data-safety answers.
+
+**Decision.** A one-time price: $2.99 for the first two weeks after launch, then $4.99. No ads, no in-app purchases, no accounts. The app stays as it is: no billing code, no network, no permissions. The price lives in Play Console, not in the listing text.
+
+**Consequences.** Fewer installs than a free app, in exchange for revenue from the first sale and the "buy once, no strings" promise the listing makes. A Play payments profile is needed before the price can be set. The two-week change to $4.99 is a manual step in Play Console (RELEASE.md, *Pricing*). Anyone who bought at $2.99 keeps the app.
