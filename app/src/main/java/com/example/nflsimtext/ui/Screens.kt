@@ -88,12 +88,27 @@ internal fun lensFor(dynasty: Dynasty, player: Player): ScoutingLens = ScoutingL
 )
 
 /**
- * How the user's club reads any man: its own as its staff knows them, any
- * other club's as a newcomer would (SPEC 4.6) - years with his own club
+ * Whether the user's staff has coached [player]: he is on the club's roster
+ * or its practice squad (a squad man has no club of his own), or he is a free
+ * agent whose last club was the user's. [lastClub] is that club when the
+ * caller knows it - the market says where each man played last season -
+ * otherwise it is read from the wire: the club that made his last move.
+ */
+internal fun knownBy(dynasty: Dynasty, player: Player, lastClub: TeamId? = null): Boolean {
+    val user = dynasty.userTeamId
+    if (player.teamId == user || player.id in dynasty.team.practiceSquad) return true
+    if (player.teamId != null || player.status == com.nflsim.engine.model.PlayerStatus.PRACTICE_SQUAD) return false
+    val last = lastClub?.v ?: dynasty.league.transactions.lastOrNull { it.player == player.id.v }?.team
+    return last == user.v
+}
+
+/**
+ * How the user's club reads any man: one its staff has coached as it knows
+ * him, anyone else as a newcomer would (SPEC 4.6) - years with another club
  * teach the user's staff nothing.
  */
-internal fun lensOf(dynasty: Dynasty, player: Player): ScoutingLens =
-    if (player.teamId == dynasty.userTeamId) lensFor(dynasty, player)
+internal fun lensOf(dynasty: Dynasty, player: Player, lastClub: TeamId? = null): ScoutingLens =
+    if (knownBy(dynasty, player, lastClub)) lensFor(dynasty, player)
     else ScoutingLens.of(
         playerId = player.id.v,
         viewerId = dynasty.userTeamId.v,
