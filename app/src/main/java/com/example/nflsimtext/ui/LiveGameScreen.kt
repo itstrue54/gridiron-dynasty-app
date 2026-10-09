@@ -98,7 +98,11 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
             return
         }
         GamePanel.ROSTER -> {
-            RosterScreen(dynasty, onDepthChart = { panel = GamePanel.DEPTH }, onBackToGame = { panel = null }, hurtNow = hurtNow)
+            val ours = if (homeId == dynasty.userTeamId) EngineSide.HOME else EngineSide.AWAY
+            RosterScreen(
+                dynasty, onDepthChart = { panel = GamePanel.DEPTH }, onBackToGame = { panel = null }, hurtNow = hurtNow,
+                today = defenderTally(snap?.plays.orEmpty(), ours),
+            )
             return
         }
         null -> Unit
