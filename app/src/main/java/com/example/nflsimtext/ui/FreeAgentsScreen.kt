@@ -69,6 +69,14 @@ fun FreeAgentsScreen(
 
     var position by remember { mutableStateOf(ALL) }
     var chosen by remember { mutableStateOf<Choice?>(null) }
+    // A man's card, over the screen; the lists wait underneath.
+    var card by remember { mutableStateOf<Int?>(null) }
+    androidx.activity.compose.BackHandler(enabled = card != null) { card = null }
+    card?.let { id ->
+        val man = league.player(com.nflsim.engine.model.PlayerId(id))
+        PlayerCardScreen(dynasty, id, store, scope, backLabel = "Back to free agents", readAs = lensFor(dynasty, man)) { card = null }
+        return
+    }
     fun wanted(p: Player) = position == ALL || p.position.group.name == position
 
     val available = Transactions.freeAgents(league)
@@ -281,6 +289,7 @@ fun FreeAgentsScreen(
                         style = NdTheme.type.caption, color = c.chalkDim,
                     )
                 }
+                SecondaryButton("See his card", { card = choice.id; chosen = null })
                 SecondaryButton("Never mind", { chosen = null })
             }
         }
