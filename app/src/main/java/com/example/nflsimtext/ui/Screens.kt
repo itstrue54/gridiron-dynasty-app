@@ -86,6 +86,20 @@ internal fun lensFor(dynasty: Dynasty, player: Player): ScoutingLens = ScoutingL
     t = dynasty.league.tuning.scouting,
 )
 
+/**
+ * How the user's club reads any man: its own as its staff knows them, any
+ * other club's as a newcomer would (SPEC 4.6) - years with his own club
+ * teach the user's staff nothing.
+ */
+internal fun lensOf(dynasty: Dynasty, player: Player): ScoutingLens =
+    if (player.teamId == dynasty.userTeamId) lensFor(dynasty, player)
+    else ScoutingLens.of(
+        playerId = player.id.v,
+        viewerId = dynasty.userTeamId.v,
+        confidence = ScoutingLens.ownPlayer(0, com.nflsim.engine.ratings.Scouting.department(dynasty.team, dynasty.league), dynasty.league.tuning.scouting),
+        t = dynasty.league.tuning.scouting,
+    )
+
 /** Whether the club played in the week that just finished, rather than sat a bye. */
 internal fun Dynasty.playedLastWeek(): Boolean = userResults().lastOrNull()?.week == week - 1
 
