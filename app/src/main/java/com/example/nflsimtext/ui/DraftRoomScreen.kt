@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.ColumnSpec
 import com.example.nflsimtext.ui.components.DataTable
@@ -68,6 +70,8 @@ fun DraftRoomScreen(
     fun lens(p: Player) = Scouting.lens(p.id.v, team.id.v, p.position, dept, focus, dynasty.league.tuning.scouting)
 
     val clock = room.onTheClock
+    // The prospect whose scouting report is open, before anyone is drafted.
+    var report by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Int?>(null) }
     val board = room.board.available
         .sortedByDescending { lens(it).view(overall(it)).point }
         .take(BOARD_DEPTH)
@@ -132,13 +136,13 @@ fun DraftRoomScreen(
                                     lens(p).view(overall(p)).text,
                                     SchemeFitGrade.letter(schemeFit(p, scheme(p))),
                                 ),
-                                onClick = { scope.launch { store.draftPlayer(p.id.v) } },
+                                onClick = { report = p.id.v },
                             )
                         },
                     )
                     Text(
-                        "Tap a man to draft him. A range is what your scouts " +
-                            "would put him between.",
+                        "Tap a man for his scouting report, and draft him from it. A range " +
+                            "is what your scouts would put him between.",
                         style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(top = NdTheme.spacing.s),
                     )
@@ -229,7 +233,64 @@ fun DraftRoomScreen(
             }
         }
     }
+
+    report?.let { id -> board.firstOrNull { it.id.v == id } ?: room.board.available.firstOrNull { it.id.v == id } }?.let { p ->
+        ScoutingReport(
+            p, lens(p), scheme(p), dynasty.year,
+            canDraft = clock != null && !store.busy,
+            onDraft = { report = null; scope.launch { store.draftPlayer(p.id.v) } },
+            onClose = { report = null },
+        )
+    }
 }
+
+/**
+ * A prospect as the scouts see him: his build, the read on him in general
+ * and in the user's scheme, and the ratings his position is judged on most,
+ * each as a range where they are unsure. Drafted from here.
+ */
+@Composable
+private fun ScoutingReport(
+    p: Player,
+    lens: com.nflsim.engine.ratings.ScoutingLens,
+    scheme: com.nflsim.engine.ratings.Scheme,
+    year: Int,
+    canDraft: Boolean,
+    onDraft: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val c = NdTheme.colors
+    com.example.nflsimtext.ui.components.ActionDialog("${p.position.label} ${p.name}", onDismiss = onClose) {
+        Column(verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.xs)) {
+            Text(
+                "${p.college}, age ${p.age(year)}, ${p.heightIn / 12}'${p.heightIn % 12}\", ${p.weightLb} lb, ${p.archetype.label}.",
+                style = NdTheme.type.caption, color = c.chalkDim,
+            )
+            val ovr = lens.view(overall(p))
+            val inScheme = lens.view(overall(p, scheme))
+            Text("Overall ${ovr.text}. In your ${scheme.name}: ${inScheme.text}, fit ${SchemeFitGrade.letter(schemeFit(p, scheme))}.",
+                style = NdTheme.type.body, color = c.chalk)
+            keyRatings(p.position).forEach { rating ->
+                val view = lens.view(p.ratings[rating])
+                com.example.nflsimtext.ui.components.AttributeBar(
+                    ratingLabel(rating), view.point,
+                    band = if (view.exact) null else view.low..view.high,
+                    text = view.text,
+                )
+            }
+            PrimaryButton("Draft ${p.name}", onDraft, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = canDraft)
+            SecondaryButton("Back to the board", onClose, Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** The ratings a position is judged on most, most important first: what a scouting report leads with. */
+internal fun keyRatings(position: com.nflsim.engine.model.Position): List<com.nflsim.engine.model.RatingId> =
+    com.nflsim.engine.ratings.OverallWeights.forPosition(position).entries
+        .sortedByDescending { it.value }.take(KEY_RATINGS).map { it.key }
+
+/** How many ratings a scouting report shows. */
+private const val KEY_RATINGS = 6
 
 /** How much of the board to show at once. */
 private const val BOARD_DEPTH = 20
