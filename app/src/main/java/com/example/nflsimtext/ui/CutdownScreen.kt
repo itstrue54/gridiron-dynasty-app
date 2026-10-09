@@ -58,8 +58,10 @@ fun CutdownScreen(
         return
     }
     // The calls are the user's: nobody is cut or signed until he says so.
-    val release = remember(pause) { mutableStateListOf<Int>() }
-    val sign = remember(pause) { mutableStateListOf<Int>() }
+    // Kept across a camp trade taken: the pause changes, the user's calls so far do not.
+    val release = remember(pause.year, pause.userTeam) { mutableStateListOf<Int>() }
+    val sign = remember(pause.year, pause.userTeam) { mutableStateListOf<Int>() }
+    release.retainAll(pause.roster.map { it.id.v }.toSet())
     var position by remember { mutableStateOf(ALL) }
 
     val count = pause.roster.size - release.size + sign.size
@@ -136,6 +138,41 @@ fun CutdownScreen(
                     Text("Nobody hurt in camp.", style = NdTheme.type.caption, color = c.chalkDim,
                         modifier = Modifier.padding(top = NdTheme.spacing.s))
                 }
+            }
+        }
+
+        store.message?.let { note ->
+            item {
+                SituationBlock("Last move", situation = Situation.THIRD_DOWN) {
+                    Text(note, style = NdTheme.type.body, color = c.chalk)
+                    SecondaryButton("Clear", { store.dismissMessage() }, Modifier.padding(top = NdTheme.spacing.s))
+                }
+            }
+        }
+
+        // What camp says to do with his own men: each a suggestion he makes or not.
+        if (pause.campPlan.isNotEmpty()) item {
+            SituationBlock("Camp's calls", meta = "${pause.campPlan.size} suggested") {
+                pause.campPlan.forEach { m ->
+                    val p = m.player
+                    Text("${p.position.label} ${p.name}", style = NdTheme.type.title, color = c.chalk,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s))
+                    Text(pause.campReason(m).replaceFirstChar { it.uppercase() }, style = NdTheme.type.body, color = c.chalkDim)
+                    val club = m.to?.let { dynasty.league.team(it) }
+                    if (club != null) {
+                        Text("${club.name} would trade for him: their ${m.pick!!.year} round ${m.pick!!.round} pick. Or cut him below.",
+                            style = NdTheme.type.body, color = c.chalk)
+                        PrimaryButton("Trade him to ${club.abbrev}", { store.takeCampTrade(m) },
+                            Modifier.padding(top = NdTheme.spacing.xs), enabled = !store.busy)
+                    } else {
+                        val cutting = p.id.v in release
+                        SecondaryButton(if (cutting) "Keep him" else "Cut him",
+                            { if (cutting) release.remove(p.id.v) else release.add(p.id.v) },
+                            Modifier.padding(top = NdTheme.spacing.xs))
+                    }
+                }
+                Text("Nothing is done until you do it. A man you keep stays on the roster as he is.",
+                    style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.s))
             }
         }
 
