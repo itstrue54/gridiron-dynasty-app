@@ -1195,7 +1195,8 @@ internal fun eventOf(plays: List<PlayLog>, i: Int): PlayEvent? {
         (nextPlay.homeScore > play.homeScore || nextPlay.awayScore > play.awayScore)
     ) return PlayEvent.SCORE
     val text = play.text.lowercase()
-    if ("intercept" in text || "fumble" in text) return PlayEvent.TURNOVER
+    // The game calls every turnover by name, on downs too ("Turnover on downs!").
+    if ("intercept" in text || "fumble" in text || "turnover" in text) return PlayEvent.TURNOVER
     if ("first down" in text) return PlayEvent.FIRST_DOWN
     return null
 }

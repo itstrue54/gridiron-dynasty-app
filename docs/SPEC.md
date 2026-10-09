@@ -1549,15 +1549,21 @@ save replays with the same headlines and the wording never moves what the
 sim does. A slot a template uses that its story does not fill is an error,
 not braces on screen.
 
-The play-by-play is written the same way from `narrative/plays.json`: 32
-kinds of line, 8 or 9 ways each - every run, pass, sack, scramble, turnover,
-penalty, kick and punt - with fragments (`run.tackle`, `punt.return`) spliced
-into the line they finish. Each game words its plays from its own
+The play-by-play is written the same way from `narrative/plays.json`,
+8 to 10 ways for each kind of line - every run, pass, sack, scramble, turnover,
+penalty, kickoff, kick and punt - with fragments (`run.tackle`, `punt.return`,
+`punt.fair_catch`) spliced into the line they finish. The big moments are
+called on the snap they happened on, after its line: a touchdown
+("Touchdown, Forge!"), louder when it puts the club ahead of one that had
+scored (`touchdown.lead`) or wins in overtime (`touchdown.walkoff`), then
+how the try went (`pat.good`, `pat.miss`); a turnover ("Turnover! Gale
+ball."), a turnover on downs and a safety, each naming the club that has
+the ball or the points. Each game words its plays from its own
 `narration` split of the game's stream, so the words never move a snap and
 a replayed game reads the same; a snap played on its own words itself from
 `split("narration")` of its stream. Every interception line says
-"intercept" and every fumble line "fumble", because the game log marks a
-turnover by reading the line.
+"intercept", every fumble line "fumble" and every turnover call
+"turnover", because the game log marks a turnover by reading the line.
 
 ---
 

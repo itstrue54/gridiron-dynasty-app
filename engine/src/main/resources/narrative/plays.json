@@ -465,5 +465,87 @@
     "Nobody returns it. Touchback.",
     "The kick goes out of the end zone for a touchback.",
     "Into the end zone, and they take the touchback."
+  ],
+  "touchdown": [
+    "Touchdown, {team}!",
+    "He's in! Touchdown, {team}!",
+    "Into the end zone! Six for {team}.",
+    "Touchdown! Six points to {team}.",
+    "And he scores! Touchdown, {team}!",
+    "That's a touchdown for {team}!",
+    "All the way in! Touchdown, {team}!",
+    "Six more for {team}. Touchdown!",
+    "He crosses the goal line. Touchdown, {team}!",
+    "Paydirt! Touchdown, {team}!"
+  ],
+  "touchdown.lead": [
+    "Touchdown! And the lead goes to {team}!",
+    "Touchdown, {team}, and that puts them in front!",
+    "He's in! Touchdown, and {team} are on top!",
+    "Touchdown! The lead changes hands: {team} in front!",
+    "Six points, and the lead, for {team}!",
+    "Touchdown, {team}! They've gone ahead!",
+    "And he scores! A go-ahead touchdown for {team}!",
+    "Touchdown! {team} in front now!"
+  ],
+  "touchdown.walkoff": [
+    "Touchdown! Ballgame, {team}!",
+    "He's in for the touchdown, and that's the game! Victory for {team}!",
+    "Touchdown! It's over! {team} win it in overtime!",
+    "Into the end zone for the touchdown, and it's finished! {team} walk it off!",
+    "Touchdown! Game over, and the win goes to {team}!",
+    "That's it! A walk-off touchdown for {team}!",
+    "He scores, and that ends it! Overtime belongs to {team}!",
+    "Touchdown! The game is over. {team} take it!"
+  ],
+  "pat.good": [
+    "The extra point from {kicker} is good.",
+    "Extra point good, {kicker}.",
+    "The kick is good from {kicker}.",
+    "Good snap, good hold, and {kicker} adds the extra point.",
+    "And the point after from {kicker} is good.",
+    "The extra point is through, from {kicker}.",
+    "Point after: good, {kicker}.",
+    "Then {kicker} adds the extra point."
+  ],
+  "pat.miss": [
+    "But the extra point from {kicker} is no good!",
+    "The kick from {kicker} is wide! No good.",
+    "And the extra point from {kicker} misses!",
+    "Point after: no good, {kicker} pushes it wide.",
+    "The extra point from {kicker} sails wide! No good.",
+    "But the point after from {kicker} hits the upright! No good.",
+    "And the kick from {kicker} is no good. The extra point is missed!",
+    "Extra point no good! {kicker} misses it."
+  ],
+  "turnover": [
+    "Turnover! {team} ball.",
+    "Turnover! And it's {team} ball!",
+    "Turnover, and {team} have it!",
+    "Big turnover! {team} ball.",
+    "A takeaway for {team}! Turnover.",
+    "Change of possession: turnover, {team} ball!",
+    "Turnover! The ball goes the other way, {team} ball.",
+    "What a turnover! {team} take over."
+  ],
+  "downs": [
+    "Turnover on downs! {team} ball.",
+    "Short! Turnover on downs, and {team} take over.",
+    "They don't get it. Turnover on downs!",
+    "Stopped! Turnover on downs, {team} ball.",
+    "The gamble fails. Turnover on downs!",
+    "Turnover on downs! A huge stop, and {team} ball.",
+    "Not enough! Turnover on downs.",
+    "The defense holds! Turnover on downs, {team} ball."
+  ],
+  "safety": [
+    "Safety! Two points to {team}.",
+    "That's a safety! Two for {team}.",
+    "Safety! {team} get two points.",
+    "Tackled in the end zone! Safety, two points to {team}.",
+    "Safety! Two points, and the ball, for {team}.",
+    "He's down in the end zone. Safety! Two for {team}.",
+    "Safety! A two-point play for {team}.",
+    "Brought down for a safety! Two points to {team}."
   ]
 }

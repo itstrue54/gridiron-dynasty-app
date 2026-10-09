@@ -453,16 +453,31 @@ class GameSimulator(
             state = applied.state
 
             if (applied.touchdown) {
+                val ledBefore = state.scoreFor(offense) > state.scoreFor(offense.other())
                 points += 6
                 state = addPoints(state, offense, 6)
                 val kicking = teamFor(offense)
                 val walkOff = otherHadTheBall && state.scoreFor(offense) > state.scoreFor(offense.other())
-                if (!walkOff && SpecialTeams.extraPoint(SpecialTeams.kickerFor(kicking.offDepth),
+                val kicker = SpecialTeams.kickerFor(kicking.offDepth)
+                val extraPoint = !walkOff && SpecialTeams.extraPoint(kicker,
                         kicking.offScheme, rng, st = tuning.specialTeams,
-                        snapEdge = units(kicking).snapRating - tuning.specialTeams.snapAnchor)) {
+                        snapEdge = units(kicking).snapRating - tuning.specialTeams.snapAnchor)
+                if (extraPoint) {
                     points += 1
                     state = addPoints(state, offense, 1)
                 }
+                // Said on the snap that scored: the touchdown, louder when it
+                // wins the game or takes the lead, and how the try went.
+                val team = kicking.team.nickname
+                val ahead = state.scoreFor(offense) > state.scoreFor(offense.other())
+                call(when {
+                    walkOff -> PlayLines.write("touchdown.walkoff", words, "team" to team)
+                    // Going ahead of a club that has scored: the opening score of a game is just a touchdown.
+                    ahead && !ledBefore && state.scoreFor(offense.other()) > 0 -> PlayLines.write("touchdown.lead", words, "team" to team)
+                    else -> PlayLines.write("touchdown", words, "team" to team)
+                })
+                if (!walkOff) call(PlayLines.write(if (extraPoint) "pat.good" else "pat.miss", words,
+                    "kicker" to (kicker?.lastName ?: "an emergency kicker")))
                 if (reachedRedZone) {
                     addTeam(offense) { it.copy(redZoneTouchdowns = it.redZoneTouchdowns + 1) }
                 }
@@ -473,17 +488,20 @@ class GameSimulator(
             }
 
             if (applied.turnover) {
+                call(PlayLines.write("turnover", words, "team" to teamFor(offense.other()).team.nickname))
                 ending = if (result.outcome == PlayOutcome.INTERCEPTION)
                     DriveEnding.INTERCEPTION else DriveEnding.FUMBLE
                 break
             }
             if (applied.safety) {
+                call(PlayLines.write("safety", words, "team" to teamFor(offense.other()).team.nickname))
                 state = addPoints(state, offense.other(), 2)
                 ending = DriveEnding.SAFETY
                 state = state.copy(possession = offense.other(), yardLine = 40, down = 1, distance = 10)
                 break
             }
             if (applied.turnoverOnDowns) {
+                call(PlayLines.write("downs", words, "team" to teamFor(offense.other()).team.nickname))
                 ending = DriveEnding.DOWNS
                 break
             }
@@ -969,6 +987,17 @@ class GameSimulator(
 
     private fun addTeam(side: Side, block: (TeamStats) -> TeamStats) {
         if (side == Side.HOME) homeStats = block(homeStats) else awayStats = block(awayStats)
+    }
+
+    /**
+     * Adds [line] to the snap just played - a touchdown, a turnover - so the
+     * moment is said where it happened. A timeout called after the snap may
+     * have been logged since, so it is the last snap's line, not the last line.
+     */
+    private fun call(line: String) {
+        val i = playByPlay.indexOfLast { it.kind == PlayKind.SNAP }
+        if (i < 0 || line.isBlank()) return
+        playByPlay[i] = playByPlay[i].let { it.copy(text = it.text + " " + line) }
     }
 
     private fun log(
