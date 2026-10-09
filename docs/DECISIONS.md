@@ -2584,3 +2584,11 @@ A score as the half or the game runs out, or one that decides overtime, still ma
 A punt names the man who fielded it, returned or fair caught. The words come from the game's narration stream, so no kick moves: 300 games' scores, box scores and injuries hash the same as before.
 
 **Consequences.** Save step 61, version 62. Games already played have no kickoff lines.
+
+## ADR-0xx — Training camp comes before the cut to 53
+
+**Context.** The offseason's development ran after every club had cut to 53, so a club, the user's included, cut the man it had signed rather than the one camp showed. Nothing happened at camp but the cut, and nobody was ever hurt there.
+
+**Decision.** After the draft, run camp before any cut. Development happens there, and a man on a club's roster risks an injury that costs games: `campRate` (2%), raised by proneness and lowered by resistance as on a snap, on the season's spread of how long. The spread is now one function both share (`Injury.gamesOut`). Camp's injuries come from a stream of their own. The turn of the year, which heals everyone, keeps a camp injury, since camp is this season's. The user's cut screen opens on what camp showed: each position group's move in his staff's read, its riser and fallers, and who was hurt. That keeps the true ratings behind the scouting lens.
+
+**Consequences.** Moving development ahead of the fill and the cuts changes the offseason's draws, so leagues play out differently from the same seed. Four leagues over eight seasons, against main: spread of wins after the first season 2.906 against 2.883, rostered talent 72.43 against 72.33, points a game 22.74 against 22.56, about 0.8 men a club starting the season hurt from camp. No calibration band moves. Undrafted men signed after camp don't develop until next year. Tuning gains `injuries.campRate`; save step 62, version 63.

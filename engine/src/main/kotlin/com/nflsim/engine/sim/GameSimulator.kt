@@ -52,6 +52,18 @@ data class Injury(val player: Int, val team: Int, val gamesOut: Int, val quarter
     companion object {
         /** More games than a season has left: out until the offseason heals him. */
         const val SEASON_ENDING = 30
+
+        /** Games an injury costs, on the NFL's spread (TuningTable.Injuries): most one or two, a few the season. */
+        fun gamesOut(i: com.nflsim.engine.tuning.TuningTable.Injuries, rng: com.nflsim.engine.rng.Rng): Int {
+            val u = rng.nextFloat()
+            return when {
+                u < i.oneGame -> 1
+                u < i.oneGame + i.twoGames -> 2
+                u < i.oneGame + i.twoGames + i.threeFour -> 3 + rng.nextInt(2)
+                u < i.oneGame + i.twoGames + i.threeFour + i.fiveEight -> 5 + rng.nextInt(4)
+                else -> SEASON_ENDING
+            }
+        }
     }
 }
 
@@ -692,17 +704,7 @@ class GameSimulator(
     }
 
     /** Games an injury costs, on the NFL's spread. */
-    private fun gamesOut(): Int {
-        val i = tuning.injuries
-        val u = injuryRng.nextFloat()
-        return when {
-            u < i.oneGame -> 1
-            u < i.oneGame + i.twoGames -> 2
-            u < i.oneGame + i.twoGames + i.threeFour -> 3 + injuryRng.nextInt(2)
-            u < i.oneGame + i.twoGames + i.threeFour + i.fiveEight -> 5 + injuryRng.nextInt(4)
-            else -> Injury.SEASON_ENDING
-        }
-    }
+    private fun gamesOut(): Int = Injury.gamesOut(tuning.injuries, injuryRng)
 
     /**
      * A coach spells a tired player only for a teammate who, fresh, plays at

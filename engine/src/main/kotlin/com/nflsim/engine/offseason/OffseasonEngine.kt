@@ -487,10 +487,20 @@ object OffseasonEngine {
         userPicks: Map<Int, Int>,
     ): Pair<Dynasty, OffseasonReport> = runToCutdown(pause, userPicks).decide(null)
 
-    /** The draft, and a stop before camp so the user's club can make its own cut to 53. */
+    /**
+     * The draft and training camp (phase 11), then a stop so the user's club
+     * can make its own cut to 53. Camp is where the offseason's development
+     * happens and where a few men get hurt, so the cut is made on what camp
+     * showed - the league's clubs cut on it too.
+     */
     internal fun runToCutdown(pause: DraftPause, userPicks: Map<Int, Int>): CutdownPause {
         val (afterDraft, _) = stepDraft(pause.ctx, pause.state, pause.rng, userPicks)
-        return CutdownPause(pause, afterDraft)
+        val user = pause.ctx.dynasty.userTeamId
+        val before = afterDraft.players.filter { it.teamId == user }
+        val developed = stepDevelopment(pause.ctx, afterDraft, pause.rng)
+        val (players, hurt) = TrainingCamp.injuries(developed.players, pause.ctx.league.tuning.injuries,
+            pause.rng.split("camp-injuries|${pause.ctx.newYear}"))
+        return CutdownPause(pause, developed.copy(players = players), before, hurt)
     }
 
     /**
@@ -504,6 +514,7 @@ object OffseasonEngine {
     ): Pair<Dynasty, OffseasonReport> {
         val pause = cutdown.draft
         val ctx = pause.ctx
+        val campHurt = cutdown.campInjuries.associate { it.player to it.gamesOut }
         var state = if (cut == null) cutdown.state else cutdown.apply(cut)
         val skip = if (cut == null) null else ctx.dynasty.userTeamId
         val rng = pause.rng
@@ -532,7 +543,7 @@ object OffseasonEngine {
         state = stepCutdownCompliance(ctx, state, rng)
         state = stepPracticeSquads(ctx, state, rng)
         state = stepResolveUnsigned(ctx, state, rng)
-        state = stepDevelopment(ctx, state, rng)
+        // Development happened at camp, before the cut (runToCutdown).
         val developments = state.developments
         val deltaSum = state.deltaSum
         val deltaCount = state.deltaCount
@@ -586,12 +597,14 @@ object OffseasonEngine {
                 )
             // Box scores: full for the last five seasons played (SPEC 9.2).
             }.compressedFor(ctx.oldYear),
-            // A new season starts healthy, fresh, and nobody hot or cold.
+            // A new season starts healthy, fresh, and nobody hot or cold - but
+            // a man hurt in camp is still hurt: camp is this season's.
             players = survivors.map {
-                if (it.injuryWeeks == 0 && it.wear == 0 && it.form == 0 &&
+                val camp = campHurt[it.id.v] ?: 0
+                if (it.injuryWeeks == camp && it.wear == 0 && it.form == 0 &&
                     it.demand == com.nflsim.engine.model.DemandState.NONE && it.demandFloor == 0) it
                 else it.copy(
-                    injuryWeeks = 0, wear = 0, form = 0,
+                    injuryWeeks = camp, wear = 0, form = 0,
                     demand = com.nflsim.engine.model.DemandState.NONE, demandFloor = 0,
                 )
             },
