@@ -3,6 +3,10 @@ package com.example.nflsimtext.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import com.example.nflsimtext.ui.components.StatusTag
+import com.example.nflsimtext.ui.components.TagTone
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -67,19 +71,71 @@ fun CutdownScreen(
     val offence = SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)
     val defence = SchemeCatalog.tuned(dynasty.team.defenseScheme, dynasty.league.tuning)
     fun read(p: Player) = lensFor(dynasty, p).view(overall(p, if (p.position.isOffense) offence else defence)).text
+    // What camp did, as the staff reads it: the same lens before and after.
+    fun point(p: Player) = lensFor(dynasty, p).view(overall(p, if (p.position.isOffense) offence else defence)).point
+    val camp = remember(pause) { campReport(pause.campBefore, pause.roster, ::point) }
+    val hurt = pause.campInjuries.filter { it.team == pause.userTeam.v }.associateBy { it.player }
     fun wanted(p: Player) = position == ALL || p.position.group.name == position
     fun done(cut: CutdownPause.Cut?) { scope.launch { store.finishCamp(cut); if (store.dynasty?.phase != com.nflsim.engine.season.DynastyPhase.OFFSEASON) onDone() } }
 
     ScreenList {
         item {
             Column {
-                Text("Camp", style = NdTheme.type.display, color = c.chalk)
+                Text("Training camp", style = NdTheme.type.display, color = c.chalk)
                 Text(
                     "${pause.roster.size} in camp. Cut to ${CutdownPause.ROSTER_LIMIT} - and no fewer than " +
                         "${CutdownPause.GAME_DAY}, the most a club dresses - and sign off the street to fill " +
                         "a thin room. Every cut costs what his contract says; a signing is a year at the minimum.",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
+            }
+        }
+
+        // What camp did to each position group, and who it hurt.
+        item {
+            SituationBlock("What camp showed", meta = "by position group") {
+                DataTable(
+                    columns = listOf(
+                        ColumnSpec("Group", 0.9f),
+                        ColumnSpec("Men", 0.6f, numeric = true),
+                        ColumnSpec("Change", 0.9f, numeric = true),
+                        ColumnSpec("Most improved", 2.4f, wrap = true),
+                    ),
+                    rows = camp.map { g ->
+                        RowData(listOf(
+                            g.group.name, "${g.men}", signed(g.change),
+                            g.riser?.let { (p, d) -> "${p.lastName} ${signed(d.toFloat())}" } ?: "-",
+                        ))
+                    },
+                )
+                camp.mapNotNull { it.faller }.filter { it.second < 0 }.sortedBy { it.second }.take(CAMP_FALLERS).let { fallers ->
+                    if (fallers.isNotEmpty()) Text(
+                        "Went backwards: " + fallers.joinToString { (p, d) -> "${p.position.label} ${p.name} $d" } + ".",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                    )
+                }
+                Text(
+                    "Change is the average move in your staff's read of the group's men in your schemes, from " +
+                        "reporting day to now: the young grow, the old slip.",
+                    style = NdTheme.type.caption, color = c.chalkDim,
+                    modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                )
+                if (hurt.isNotEmpty()) {
+                    Text("Hurt in camp", style = NdTheme.type.label, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s))
+                    pause.roster.filter { it.id.v in hurt }.forEach { p ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = NdTheme.spacing.xs)) {
+                            StatusTag("Injury", TagTone.URGENT)
+                            Text("${p.position.label} ${p.name}: ${injuryLength(hurt.getValue(p.id.v).gamesOut)}",
+                                style = NdTheme.type.body, color = c.chalk,
+                                modifier = Modifier.padding(start = NdTheme.spacing.s))
+                        }
+                    }
+                } else {
+                    Text("Nobody hurt in camp.", style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.s))
+                }
             }
         }
 
@@ -159,7 +215,8 @@ fun CutdownScreen(
                                 p.position.label,
                                 // The highlight says he is being cut; the star leads so a
                                 // long name cannot push it off the end.
-                                (if (p.id.v in suggested.release) "★ " else "") + p.name,
+                                (if (p.id.v in suggested.release) "★ " else "") + p.name +
+                                    (hurt[p.id.v]?.let { " (hurt)" } ?: ""),
                                 read(p),
                                 dealMoney(p.capHit(pause.year)),
                                 dealMoney(pause.deadIfCut(p)),
@@ -221,6 +278,41 @@ fun CutdownScreen(
     }
 }
 
+/** One position group's camp: how many men, the average move in the staff's read, and its biggest riser and faller. */
+internal data class GroupCamp(
+    val group: com.nflsim.engine.model.PositionGroup,
+    val men: Int,
+    val change: Float,
+    val riser: Pair<Player, Int>?,
+    val faller: Pair<Player, Int>?,
+)
+
+/**
+ * What camp did to the men who reported ([before]) and are still in camp
+ * ([after]), group by group in the order the roster lists them: each man's
+ * move in [read], the staff's read of him.
+ */
+internal fun campReport(before: List<Player>, after: List<Player>, read: (Player) -> Int): List<GroupCamp> {
+    val was = before.associateBy { it.id.v }
+    val moves = after.mapNotNull { p -> was[p.id.v]?.let { p to read(p) - read(it) } }
+    return moves.groupBy { it.first.position.group }.toSortedMap(compareBy { it.ordinal }).map { (group, men) ->
+        GroupCamp(
+            group, men.size,
+            men.sumOf { it.second }.toFloat() / men.size,
+            men.maxByOrNull { it.second }?.takeIf { it.second > 0 },
+            men.minByOrNull { it.second },
+        )
+    }
+}
+
+/** A change with its sign: +1.5, -2, 0. */
+internal fun signed(x: Float): String {
+    val r = kotlin.math.round(x * 10f) / 10f
+    val text = if (r == r.toInt().toFloat()) "${r.toInt()}" else "$r"
+    return if (r > 0f) "+$text" else text
+}
+
+private const val CAMP_FALLERS = 4
 private const val ALL = "All"
 private const val STREET_SHOWN = 30
 private const val SUGGESTION_REASONS = 8
