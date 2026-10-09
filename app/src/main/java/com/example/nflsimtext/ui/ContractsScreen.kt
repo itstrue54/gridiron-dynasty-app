@@ -65,7 +65,7 @@ fun ContractsScreen(
         val man = pause.expiring.first { it.player.id.v == id }.player
         // His own club's man: read as the staff that coached him knows him.
         PlayerCardScreen(dynasty, id, players = mapOf(id to man), backLabel = "Back to contracts",
-            readAs = lensFor(dynasty, man)) { card = null }
+            readAs = lensFor(dynasty, man), year = pause.year) { card = null }
         return
     }
     val offence = com.nflsim.engine.ratings.SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)

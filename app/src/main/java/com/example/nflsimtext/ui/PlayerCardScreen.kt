@@ -60,6 +60,8 @@ fun PlayerCardScreen(
     backLabel: String = "Back to the roster",
     /** How the list he was opened from reads him, so he reads the same on both. */
     readAs: com.nflsim.engine.ratings.ScoutingLens? = null,
+    /** The year his age is told in: the offseason's lists are the new season's. */
+    year: Int = dynasty.year,
     onBack: () -> Unit = {},
 ) {
     val c = NdTheme.colors
@@ -98,7 +100,7 @@ fun PlayerCardScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(player.name, style = NdTheme.type.display, color = c.chalk)
-                    Text(bio(player, dynasty), style = NdTheme.type.label, color = c.chalkDim)
+                    Text(bio(player, dynasty, year), style = NdTheme.type.label, color = c.chalkDim)
                 }
                 Text(
                     "${ovr.point}",
@@ -393,10 +395,10 @@ private val TRAITS: List<Pair<String, (Player) -> Int>> = listOf(
     "injury proneness" to { p: Player -> p.traits.injuryProneness },
 )
 
-private fun bio(player: Player, dynasty: Dynasty): String = buildString {
+private fun bio(player: Player, dynasty: Dynasty, year: Int): String = buildString {
     append(player.position.label)
     player.jersey?.let { append(", #$it") }
-    append(", age ${player.age(dynasty.year)}")
+    append(", age ${player.age(year)}")
     append(", " + (dynasty.league.teams.firstOrNull { it.id == player.teamId }?.name ?: "free agent"))
 }
 
