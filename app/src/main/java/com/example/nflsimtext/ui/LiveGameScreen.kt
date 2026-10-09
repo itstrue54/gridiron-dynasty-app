@@ -98,7 +98,7 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
         }
         // What just happened, at the top; the log of the game stays at the foot.
         val played = snap?.plays.orEmpty()
-        item { LastPlayOf(played, played.size) }
+        item { LastPlayOf(played, played.size, dynasty.league, home, away) }
         if (state != null) {
             val offense = if (state.possession == EngineSide.HOME) home else away
             val defense = if (state.possession == EngineSide.HOME) away else home
