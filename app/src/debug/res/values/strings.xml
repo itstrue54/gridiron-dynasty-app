@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The development build installs beside the store one: a name to tell them apart. -->
+    <string name="app_name">Gridiron Dynasty (debug)</string>
+</resources>
