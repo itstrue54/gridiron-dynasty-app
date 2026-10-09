@@ -115,6 +115,8 @@ object Migrations {
         Step(56, "clubs keep their starters off returns (SPEC 5.10); nothing to move") { it },
         // An old game's lines read as snaps; the screen knows its kicks by their words.
         Step(57, "each line of the play-by-play says what it is (SPEC 10); nothing to move") { it },
+        // An old game's snaps carry no calls and name no defender; the box at the top shows just the line.
+        Step(58, "each snap names both sides' calls and the defender it turned on (SPEC 10); nothing to move") { it },
     )
 
     /**

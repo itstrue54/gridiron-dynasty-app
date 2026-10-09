@@ -49,6 +49,20 @@ data class Drive(
     val isScore: Boolean get() = points > 0
 }
 
+/**
+ * A defender's part in a snap the sim decided for him by name - good or bad -
+ * so a coach can see who is winning and who is losing (SPEC 10).
+ */
+@Serializable
+enum class DefenderPlay(val good: Boolean, val label: String) {
+    SACK(true, "sack"),
+    INTERCEPTION(true, "interception"),
+    COVERED(true, "had him covered"),
+    STUFF(true, "stopped it at the line"),
+    BEATEN(false, "beaten in coverage"),
+    FLAG(false, "flagged"),
+}
+
 /** What a line of the play-by-play is: a snap, a kick that ends a drive, or a note between plays. */
 @Serializable
 enum class PlayKind { SNAP, PUNT, FIELD_GOAL, NOTE }
@@ -67,6 +81,12 @@ data class PlayLog(
     val text: String,
     /** What the line is. A log saved before kinds were kept reads every line as a snap. */
     val kind: PlayKind = PlayKind.SNAP,
+    /** On a snap, what each side called, named from its club's playbook. */
+    val offenseCall: String? = null,
+    val defenseCall: String? = null,
+    /** On a snap, the defender the play turned on, and how (DefenderPlay). */
+    val defender: Int? = null,
+    val defenderPlay: DefenderPlay? = null,
 ) {
     val clockText: String get() = "%d:%02d".format(clock / 60, clock % 60)
 

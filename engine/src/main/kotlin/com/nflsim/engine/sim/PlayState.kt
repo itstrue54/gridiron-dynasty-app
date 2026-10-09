@@ -102,6 +102,8 @@ data class PlayResult(
     val tackler: PlayerId? = null,
     /** The second man in, when there was one. */
     val assister: PlayerId? = null,
+    /** On a throw, the defender covering the man it went to. */
+    val coverage: PlayerId? = null,
     val turnover: Boolean = false,
     val penalty: Penalty? = null,
     val log: SimLog = SimLog(),

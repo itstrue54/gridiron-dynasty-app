@@ -41,6 +41,8 @@ data class TuningTable(
 ) {
     @Serializable
     data class Passing(
+        /** A completion this long that the receiver won his route on marks his cover man beaten in the play-by-play (PlayLog.defenderPlay). */
+        val beatenYards: Int = 20,
         /** Bigger = protection differences matter less. */
         val pressureScale: Float = 30f,
         /** Share of pressures that become sacks before the QB's escape rating. */
