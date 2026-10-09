@@ -63,9 +63,9 @@ enum class DefenderPlay(val good: Boolean, val label: String) {
     FLAG(false, "flagged"),
 }
 
-/** What a line of the play-by-play is: a snap, a kick that ends a drive, or a note between plays. */
+/** What a line of the play-by-play is: a snap, a kick that ends a drive, a kickoff, or a note between plays. */
 @Serializable
-enum class PlayKind { SNAP, PUNT, FIELD_GOAL, NOTE }
+enum class PlayKind { SNAP, PUNT, FIELD_GOAL, NOTE, KICKOFF }
 
 /** A single line in the play-by-play feed. */
 @Serializable

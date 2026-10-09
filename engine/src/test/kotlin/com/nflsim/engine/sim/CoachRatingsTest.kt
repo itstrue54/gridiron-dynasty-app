@@ -67,7 +67,7 @@ class CoachRatingsTest {
         fun meanSpot(edge: Float): Double {
             val rng = SplitMixRng(5L)
             return (1..4000).map { SpecialTeams.kickoff(returner, scheme, rng, edge = edge) }
-                .filter { it.second != "Touchback." }.map { it.first }.average()
+                .filter { !it.touchback }.map { it.spot }.average()
         }
         assertTrue(meanSpot(4f) > meanSpot(0f) + 2.0)
         assertTrue(meanSpot(-4f) < meanSpot(0f) - 2.0)

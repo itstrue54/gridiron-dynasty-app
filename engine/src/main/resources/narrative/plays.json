@@ -405,5 +405,65 @@
     ", with {returner} returning it {ret}",
     ", and {returner} weaves back {ret} yards",
     ", {returner} with a {ret} yard return"
+  ],
+  "punt.fair_catch": [
+    ", fair catch by {returner}",
+    ", and {returner} calls for the fair catch",
+    ", {returner} waving for a fair catch",
+    ", fielded by {returner} with a fair catch",
+    ", and {returner} fair catches it",
+    ", {returner} signalling fair catch",
+    ", and {returner} settles under it for a fair catch",
+    ", {returner} with no room, so a fair catch"
+  ],
+  "kickoff.touchback": [
+    "{kicker} kicks it through the end zone. Touchback.",
+    "Touchback: {kicker}'s kickoff carries out of the end zone.",
+    "{kicker} sends it deep. Touchback.",
+    "The kickoff from {kicker} is a touchback.",
+    "{kicker} kicks off into the end zone, and they take the touchback.",
+    "{kicker} boots it out of the back of the end zone. Touchback.",
+    "Nobody brings back {kicker}'s kickoff. Touchback.",
+    "{kicker}'s kick lands deep in the end zone, and they kneel for the touchback."
+  ],
+  "kickoff.return": [
+    "{returner} brings the kickoff back to the {spot}.",
+    "{kicker} kicks off; {returner} returns it to the {spot}.",
+    "{returner} takes the kick and runs it back to the {spot}.",
+    "Kickoff returned by {returner} to the {spot}.",
+    "{returner} fields it and gets back to the {spot}.",
+    "{kicker}'s kickoff is brought out to the {spot} by {returner}.",
+    "{returner} returns {kicker}'s kick to the {spot}.",
+    "{returner} catches it deep and is stopped at the {spot}."
+  ],
+  "kickoff.return.big": [
+    "{returner} breaks it! A big return out to the {spot}.",
+    "{returner} finds a seam and takes the kickoff all the way to the {spot}.",
+    "A long return: {returner} brings it out to the {spot}.",
+    "{returner} gets loose on the kickoff, out to the {spot}.",
+    "{returner} hits the hole and is away, out to the {spot}!",
+    "What a return from {returner}: out to the {spot}.",
+    "{returner} breaks a tackle and races to the {spot}.",
+    "{returner} takes it back to the {spot}, and the field has flipped."
+  ],
+  "kickoff.return.unnamed": [
+    "Kickoff returned to the {spot}.",
+    "The kick is brought back to the {spot}.",
+    "Returned to the {spot}.",
+    "The kickoff is run back to the {spot}.",
+    "They bring the kickoff out to the {spot}.",
+    "A return to the {spot}.",
+    "The kick is fielded and returned to the {spot}.",
+    "Brought out to the {spot}."
+  ],
+  "kickoff.touchback.unnamed": [
+    "Touchback.",
+    "The kickoff is a touchback.",
+    "It carries into the end zone. Touchback.",
+    "A deep kickoff, and a touchback.",
+    "Kicked through the end zone. Touchback.",
+    "Nobody returns it. Touchback.",
+    "The kick goes out of the end zone for a touchback.",
+    "Into the end zone, and they take the touchback."
   ]
 }

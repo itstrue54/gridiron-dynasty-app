@@ -89,7 +89,7 @@ class SpecialTeamsUnitsTest {
             val rng = SplitMixRng(9L)
             return (1..4000).map {
                 SpecialTeams.kickoff(team.roster.first { it.position == Position.WR }, team.offScheme, rng, st,
-                    matchup = KickMatchup(returnEdge = edge)).first
+                    matchup = KickMatchup(returnEdge = edge)).spot
             }.filter { it != GameState.TOUCHBACK_YARD_LINE }.average()
         }
         assertTrue(average(8f) > average(-8f) + 8, "16 points of matchup is worth about 16 yards")
@@ -102,7 +102,7 @@ class SpecialTeamsUnitsTest {
             val rng = SplitMixRng(3L)
             val leg = kicker.copy(ratings = kicker.ratings.with(RatingId.KICK_POWER to power))
             return (1..4000).count {
-                SpecialTeams.kickoff(null, team.offScheme, rng, st, kicker = leg, kickScheme = team.offScheme).second == "Touchback."
+                SpecialTeams.kickoff(null, team.offScheme, rng, st, kicker = leg, kickScheme = team.offScheme).touchback
             }
         }
         assertTrue(touchbacks(90) > touchbacks(50) + 500)

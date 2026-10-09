@@ -121,6 +121,8 @@ object Migrations {
         Step(59, "box scores tally each defender's reps won and lost (SPEC 10); nothing to move") { it },
         // An old game's lines name no one hurt; the game's own list still does.
         Step(60, "each snap names who was hurt on it (SPEC 10); nothing to move") { it },
+        // An old game's log has no kickoff lines; its punts read as they did.
+        Step(61, "kickoffs and their returns are lines of the play-by-play (SPEC 10); nothing to move") { it },
     )
 
     /**

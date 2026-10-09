@@ -2572,3 +2572,15 @@ nothing else moves more than 0.006.
 **Decision.** The play caller (`SnapCaller.depthPins()`) hands the simulator the coach's current pins before each snap; when they differ from the side's, that side is rebuilt with them and its cached units dropped, so the change plays from the next snap. Only pins move mid-game: inactives and call-ups were set before kickoff and take effect next game, and men hurt today still sit whatever the chart says. A caller that never changes its pins plays the same game as no caller. After the game the store keeps the new pins, trimmed to men still on the club. Each play's log also names who was hurt on it, so the screen reads injuries from the play rather than guessing from text.
 
 **Consequences.** Save step 60, version 61. No league numbers move: simulated games have no caller.
+
+## ADR-0xx — Kickoffs are lines of the play-by-play
+
+**Context.** A kickoff's return was worked out and credited to the box score, but its line was thrown away, so the game screen never showed a kickoff. Punt lines named the returner only on a return of more than 12 yards, and said nothing of a fair catch.
+
+**Decision.** Log every kickoff the game plays as its own line (`PlayKind.KICKOFF`), worded from the narrative file. The line belongs to the *receiving* club, with the state the kick leaves: first and ten at the return spot. A kickoff logged as the kicking club's would, after a field goal, have read in the calibration's long-play count as a gain on the same drive. The field's banner, after a kickoff, looks at the play before it to say why it was kicked. The watch view's board looks past a kickoff to the next snap, so it shows the ball where the return left it, as it did before.
+
+A score as the half or the game runs out, or one that decides overtime, still makes the sim work out a kickoff. That leaves every draw where it was, but the kickoff isn't logged. Otherwise a phantom third-quarter kickoff would come before the real halftime one. The overtime and field-position tests caught that.
+
+A punt names the man who fielded it, returned or fair caught. The words come from the game's narration stream, so no kick moves: 300 games' scores, box scores and injuries hash the same as before.
+
+**Consequences.** Save step 61, version 62. Games already played have no kickoff lines.
