@@ -87,6 +87,8 @@ data class PlayLog(
     /** On a snap, the defender the play turned on, and how (DefenderPlay). */
     val defender: Int? = null,
     val defenderPlay: DefenderPlay? = null,
+    /** Who was hurt on the snap, and for how long. */
+    val injured: List<Injury> = emptyList(),
 ) {
     val clockText: String get() = "%d:%02d".format(clock / 60, clock % 60)
 

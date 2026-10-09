@@ -36,6 +36,12 @@ class GameTeam(
     val defDepth: DepthChart = DepthChart.auto(roster, defScheme, team.depthPins)
     val id: TeamId get() = team.id
 
+    /** The same club in the same game, its depth chart re-pinned (a coach's change between snaps). */
+    fun withPins(pins: com.nflsim.engine.model.DepthPins): GameTeam = GameTeam(
+        team.copy(depthPins = pins), roster, offScheme, defScheme, aggression, staffPlan,
+        adjustments, discipline, offGameplan, defGameplan, stGameplan,
+    )
+
     /** What this club calls from: its game plan, then its staff's tendencies, then its schemes. */
     val plan: com.nflsim.engine.model.GamePlan = team.gamePlan.over(staffPlan)
 }
@@ -120,6 +126,10 @@ class GameSimulator(
 
     // ---- injuries (SPEC 5.5): once hurt, out for the rest of this game ----
     private val out = mutableSetOf<Int>()
+    /** The clubs as they take each snap: the caller's re-pinned when its coach changes his depth chart mid-game. */
+    private var homeNow = home
+    private var awayNow = away
+
     val injuries = mutableListOf<Injury>()
     private var injuryRng: Rng = com.nflsim.engine.rng.SplitMixRng(0L)
     /** Whether a play ends out of bounds (SPEC 5.10): its own stream, so it moves the clock and nothing else. */
@@ -535,6 +545,7 @@ class GameSimulator(
     }
 
     private fun runPlay(state: GameState, offense: Side, rng: Rng): PlayOutcomeBundle {
+        repin()
         val offTeam = teamFor(offense)
         val defTeam = teamFor(offense.other())
         val playState = state.toPlayState()
@@ -576,6 +587,7 @@ class GameSimulator(
         )
         watch(offense, offCall, defCall)
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
+        val hurtBefore = injuries.size
         snap(ctx, offTeam, defTeam, state.quarter)
         val standout = PlayReport.standout(result, result.penalty?.type?.onOffense == false, tuning.passing)
         // His rep in the box score, for the tally a coach reads (sacks and
@@ -596,6 +608,7 @@ class GameSimulator(
             offenseCall = PlayReport.offenseCall(offCall, offTeam.team.offenseScheme),
             defenseCall = PlayReport.defenseCall(defCall, defTeam.team.defenseScheme),
             defender = standout,
+            injured = injuries.drop(hurtBefore),
         )
         return PlayOutcomeBundle(result, offCall is OffensivePlayCall.Pass, offCall)
     }
@@ -917,7 +930,22 @@ class GameSimulator(
         }
     }
 
-    private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) home else away
+    private fun teamFor(side: Side): GameTeam = if (side == Side.HOME) homeNow else awayNow
+
+    /**
+     * Before a snap, the caller's club takes any change its coach made to its
+     * depth chart since the last one (SnapCaller.depthPins). The men out hurt
+     * stay out whatever the chart says; the next snap uses the new order.
+     */
+    private fun repin() {
+        val side = callerSide ?: return
+        val pins = caller?.depthPins() ?: return
+        val now = teamFor(side)
+        if (pins == now.team.depthPins) return
+        val next = now.withPins(pins)
+        if (side == Side.HOME) homeNow = next else awayNow = next
+        unitCache.remove(now.id)
+    }
 
     private fun addTeam(side: Side, block: (TeamStats) -> TeamStats) {
         if (side == Side.HOME) homeStats = block(homeStats) else awayStats = block(awayStats)
@@ -930,6 +958,7 @@ class GameSimulator(
         offenseCall: String? = null,
         defenseCall: String? = null,
         defender: Pair<Int, DefenderPlay>? = null,
+        injured: List<Injury> = emptyList(),
     ) {
         if (text.isBlank()) return
         playByPlay += PlayLog(
@@ -937,7 +966,7 @@ class GameSimulator(
             down = state.down, distance = state.distance, yardLine = state.yardLine,
             homeScore = state.homeScore, awayScore = state.awayScore, text = text, kind = kind,
             offenseCall = offenseCall, defenseCall = defenseCall,
-            defender = defender?.first, defenderPlay = defender?.second,
+            defender = defender?.first, defenderPlay = defender?.second, injured = injured,
         )
     }
 

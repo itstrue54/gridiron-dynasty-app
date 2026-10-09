@@ -119,6 +119,8 @@ object Migrations {
         Step(58, "each snap names both sides' calls and the defender it turned on (SPEC 10); nothing to move") { it },
         // Games already played counted no reps; the tally starts with the next game.
         Step(59, "box scores tally each defender's reps won and lost (SPEC 10); nothing to move") { it },
+        // An old game's lines name no one hurt; the game's own list still does.
+        Step(60, "each snap names who was hurt on it (SPEC 10); nothing to move") { it },
     )
 
     /**
