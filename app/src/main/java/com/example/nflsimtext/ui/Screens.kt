@@ -62,6 +62,7 @@ import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.DynastyPhase
 import com.nflsim.engine.season.Schedule
+import com.nflsim.engine.sim.DefenderPlay
 import com.nflsim.engine.sim.PlayLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -673,6 +674,8 @@ fun RosterScreen(
     onBackToGame: (() -> Unit)? = null,
     /** Men hurt in the game under way. */
     hurtNow: Set<Int> = emptySet(),
+    /** In a game, each defender's reps in it so far (defenderTally). */
+    today: Map<Int, StatLine> = emptyMap(),
 ) {
     val c = NdTheme.colors
     val team = dynasty.team
@@ -717,6 +720,22 @@ fun RosterScreen(
                 )
                 exported?.let {
                     Text(it, style = NdTheme.type.caption, color = c.chalkDim)
+                }
+            }
+        }
+        // In a game, who the defence is losing with today, before the roster.
+        if (onBackToGame != null) {
+            val name = { id: Int -> dynasty.league.playersById[PlayerId(id)]?.let { "${it.position.label} ${it.name}" } ?: "" }
+            val reps = defenderRows(today, name)
+            item {
+                SituationBlock("Defense today", meta = "this game") {
+                    if (reps.isEmpty()) {
+                        Text("No reps counted yet today.", style = NdTheme.type.body, color = c.chalkDim)
+                    } else {
+                        DataTable(columns = DEFENDER_COLUMNS, rows = reps)
+                    }
+                    Text(DEFENDER_NOTE, style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs))
                 }
             }
         }
@@ -1073,6 +1092,26 @@ internal fun defenderRows(lines: Map<Int, StatLine>, name: (Int) -> String, onCl
                 listOf(name(id), "${s.playsMade}", "${s.timesBeaten}", "${s.defensiveFlags}"),
                 onClick = onClick?.let { { it(id) } },
             )
+        }
+
+/**
+ * The tally so far of the game in [plays], for the defenders of [side]: the
+ * reps each snap turned on, counted the way the box score counts them.
+ */
+internal fun defenderTally(plays: List<PlayLog>, side: com.nflsim.engine.sim.Side): Map<Int, StatLine> =
+    plays.filter { it.offense != side && it.defender != null && it.defenderPlay != null }
+        .groupBy { it.defender!! }
+        .mapValues { (_, reps) ->
+            reps.fold(StatLine()) { s, play ->
+                when (play.defenderPlay!!) {
+                    DefenderPlay.SACK -> s.copy(sacks = s.sacks + 1)
+                    DefenderPlay.INTERCEPTION -> s.copy(interceptions = s.interceptions + 1)
+                    DefenderPlay.COVERED -> s.copy(coverageWins = s.coverageWins + 1)
+                    DefenderPlay.STUFF -> s.copy(stuffs = s.stuffs + 1)
+                    DefenderPlay.BEATEN -> s.copy(timesBeaten = s.timesBeaten + 1)
+                    DefenderPlay.FLAG -> s.copy(defensiveFlags = s.defensiveFlags + 1)
+                }
+            }
         }
 
 private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<RowData> = buildList {
