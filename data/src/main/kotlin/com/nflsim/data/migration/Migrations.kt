@@ -113,6 +113,8 @@ object Migrations {
         Step(55, "box scores count returns and coverage tackles (SPEC 5.10); nothing to move") { it },
         // A save's tuning takes the new defaults; its pinned returners stay pinned.
         Step(56, "clubs keep their starters off returns (SPEC 5.10); nothing to move") { it },
+        // An old game's lines read as snaps; the screen knows its kicks by their words.
+        Step(57, "each line of the play-by-play says what it is (SPEC 10); nothing to move") { it },
     )
 
     /**

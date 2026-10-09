@@ -49,6 +49,10 @@ data class Drive(
     val isScore: Boolean get() = points > 0
 }
 
+/** What a line of the play-by-play is: a snap, a kick that ends a drive, or a note between plays. */
+@Serializable
+enum class PlayKind { SNAP, PUNT, FIELD_GOAL, NOTE }
+
 /** A single line in the play-by-play feed. */
 @Serializable
 data class PlayLog(
@@ -61,6 +65,8 @@ data class PlayLog(
     val homeScore: Int,
     val awayScore: Int,
     val text: String,
+    /** What the line is. A log saved before kinds were kept reads every line as a snap. */
+    val kind: PlayKind = PlayKind.SNAP,
 ) {
     val clockText: String get() = "%d:%02d".format(clock / 60, clock % 60)
 

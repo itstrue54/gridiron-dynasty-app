@@ -139,7 +139,7 @@ class GameSimulator(
 
         var state = GameState(home.id, away.id, possession = firstReceiver)
         // Outdoors, the conditions open the play-by-play.
-        if (!weather.indoors) log(state, PlayLines.write("weather", words, "conditions" to weather.description))
+        if (!weather.indoors) log(state, PlayLines.write("weather", words, "conditions" to weather.description), PlayKind.NOTE)
         state = openWithKickoff(state, firstReceiver, rng)
 
         var secondHalfStarted = false
@@ -341,7 +341,7 @@ class GameSimulator(
                                 blockEdge = returners.blockEdge(kickers, st),
                                 snapEdge = kickers.snapRating - st.snapAnchor,
                             ))
-                        log(state, punt.narrative)
+                        log(state, punt.narrative, PlayKind.PUNT)
                         if (punt.returnYards > 0) {
                             creditReturn(SpecialTeams.returnerFor(receivingTeam.offDepth, receivingTeam.offScheme, punt = true, st = tuning.specialTeams),
                                 punt.returnYards, punt = true, kickers.gunners + kickers.puntCoverage, rng)
@@ -368,7 +368,7 @@ class GameSimulator(
                                 blockEdge = units(teamFor(offense.other())).blockEdge(kickers, tuning.specialTeams),
                                 snapEdge = kickers.snapRating - tuning.specialTeams.snapAnchor,
                             ))
-                        log(state, kick.narrative)
+                        log(state, kick.narrative, PlayKind.FIELD_GOAL)
                         runClock(tuning.gameFlow.fieldGoalClockRunoff)
                         if (kick.good) {
                             points += 3
@@ -415,7 +415,7 @@ class GameSimulator(
                 state = if (side == Side.HOME) state.copy(homeTimeouts = state.homeTimeouts - 1)
                     else state.copy(awayTimeouts = state.awayTimeouts - 1)
                 log(state, PlayLines.write("timeout", words, "team" to teamFor(side).team.name,
-                    "left" to timeoutsLeft(state.timeoutsFor(side))))
+                    "left" to timeoutsLeft(state.timeoutsFor(side))), PlayKind.NOTE)
             }
 
             val applied = applyResult(state, offense, result, outcome.wasPass)
@@ -904,12 +904,12 @@ class GameSimulator(
         if (side == Side.HOME) homeStats = block(homeStats) else awayStats = block(awayStats)
     }
 
-    private fun log(state: GameState, text: String) {
+    private fun log(state: GameState, text: String, kind: PlayKind = PlayKind.SNAP) {
         if (text.isBlank()) return
         playByPlay += PlayLog(
             quarter = state.quarter, clock = state.secondsLeft, offense = state.possession,
             down = state.down, distance = state.distance, yardLine = state.yardLine,
-            homeScore = state.homeScore, awayScore = state.awayScore, text = text,
+            homeScore = state.homeScore, awayScore = state.awayScore, text = text, kind = kind,
         )
     }
 
