@@ -1,7 +1,9 @@
 package com.example.nflsimtext.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +39,9 @@ import com.nflsim.engine.model.Player
 import com.nflsim.engine.model.PlayerStatus
 import com.nflsim.engine.model.TeamId
 import com.nflsim.engine.offseason.PickValue
-import com.nflsim.engine.ratings.ScoutingLens
+import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.SchemeFitGrade
+import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.Dynasty
 import com.nflsim.engine.season.TradeDesk
@@ -56,7 +60,9 @@ import kotlinx.coroutines.launch
  * added is answered where the user is looking.
  *
  * Nothing here reads a true rating: the user's own players read as his
- * staff knows them, another club's as a newcomer would (SPEC 4.6).
+ * staff knows them, another club's as a newcomer would (SPEC 4.6). Any man
+ * in any view opens his card - held in a table, tapped in a call or on the
+ * block - over the screen, so the deal being built stays as it was.
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -94,12 +100,12 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     val said = verdict?.let { TradeDesk.answer(book, user, proposal, it) }
 
     // How the user's club reads a man: his own as his staff knows them, theirs as a newcomer would.
-    fun rating(p: Player): String {
-        val lens = if (p.teamId == user) lensFor(dynasty, p)
-            else ScoutingLens.of(p.id.v, user.v, ScoutingLens.ownPlayer(0, com.nflsim.engine.ratings.Scouting.department(dynasty.team, dynasty.league), book.league.tuning.scouting), book.league.tuning.scouting)
-        // The rating the roster leads with, so a man reads the same on both screens.
-        return lens.view(overall(p)).text
-    }
+    // The rating the roster leads with, so a man reads the same on both screens.
+    fun rating(p: Player): String = lensOf(dynasty, p).view(overall(p)).text
+    // How he would suit the user's schemes, whoever's he is now.
+    val offense = SchemeCatalog.tuned(dynasty.team.offenseScheme, book.league.tuning)
+    val defense = SchemeCatalog.tuned(dynasty.team.defenseScheme, book.league.tuning)
+    fun fit(p: Player): String = SchemeFitGrade.letter(schemeFit(p, if (p.position.isOffense) offense else defense))
     fun years(p: Player): Int = p.contract?.let { k -> (k.signedYear + k.years - book.year).coerceAtLeast(1) } ?: 0
     fun label(p: Player): String {
         val contract = p.contract?.let { ", ${money(p.capHit(book.year))} ×${years(p)}" } ?: ""
@@ -113,6 +119,20 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
     }
     val byId = remember(book) { book.players.associateBy { it.id.v } }
     androidx.compose.runtime.LaunchedEffect(dynasty, book) { store.refreshTradeOffers() }
+
+    // A man's card, over the screen: the deal and the view wait underneath.
+    var card by remember { mutableStateOf<Int?>(null) }
+    BackHandler(enabled = card != null) { card = null }
+    card?.let { id ->
+        PlayerCardScreen(dynasty, id, store, scope, players = byId, backLabel = "Back to the trade") { card = null }
+        return
+    }
+    // A line in a call or on the block: tap it for his card.
+    @Composable
+    fun Man(p: Player) {
+        Text(label(p), style = NdTheme.type.body, color = c.chalk,
+            modifier = Modifier.clickable(onClickLabel = "open his card") { card = p.id.v })
+    }
 
     fun roster(team: TeamId) = book.players
         .filter { it.teamId == team && (it.status == PlayerStatus.ACTIVE || it.status == PlayerStatus.IR) }
@@ -168,15 +188,13 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                             Text("\u2014 ${offer.pitch.speaker}", style = NdTheme.type.caption, color = c.chalkDim)
                             Text("They want", style = NdTheme.type.label, color = c.chalkDim,
                                 modifier = Modifier.padding(top = NdTheme.spacing.s))
-                            offer.proposal.give.mapNotNull { byId[it] }.forEach {
-                                Text(label(it), style = NdTheme.type.body, color = c.chalk)
-                            }
+                            offer.proposal.give.mapNotNull { byId[it] }.forEach { Man(it) }
                             Text("They offer", style = NdTheme.type.label, color = c.chalkDim,
                                 modifier = Modifier.padding(top = NdTheme.spacing.s))
-                            offer.proposal.get.mapNotNull { byId[it] }.forEach {
-                                Text(label(it), style = NdTheme.type.body, color = c.chalk)
-                            }
+                            offer.proposal.get.mapNotNull { byId[it] }.forEach { Man(it) }
                             offer.proposal.getPicks.forEach { Text(pickLabel(it), style = NdTheme.type.body, color = c.chalk) }
+                            Text("Tap a player for his card.", style = NdTheme.type.caption, color = c.chalkDim,
+                                modifier = Modifier.padding(top = NdTheme.spacing.xs))
                             PrimaryButton(
                                 "Take the deal",
                                 { scope.launch { if (store.trade(offer.proposal)) clear() } },
@@ -200,8 +218,9 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                 SituationBlock("Your trade block", meta = if (block.isEmpty()) "nobody" else "${block.size}") {
                     if (block.isEmpty()) Text("Put a man on the block from his player card, and clubs he would help call about him.",
                         style = NdTheme.type.caption, color = c.chalkDim)
+                    if (block.isNotEmpty()) Text("Tap a player for his card.", style = NdTheme.type.caption, color = c.chalkDim)
                     block.forEach { p ->
-                        Text(label(p), style = NdTheme.type.body, color = c.chalk)
+                        Man(p)
                         SecondaryButton("Take him off", { scope.launch { store.setOnBlock(p.id.v, false) } },
                             Modifier.padding(bottom = NdTheme.spacing.s))
                     }
@@ -257,12 +276,14 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                             // Every piece, both ways; tap one to take it off.
                             DataTable(
                                 columns = listOf(ColumnSpec("", 0.8f), ColumnSpec("Piece", 3.2f, wrap = true)),
-                                rows = give.mapNotNull { byId[it] }.map { p -> RowData(listOf("Send", label(p)), onClick = { give = give - p.id.v }) } +
+                                rows = give.mapNotNull { byId[it] }.map { p -> RowData(listOf("Send", label(p)), onClick = { give = give - p.id.v },
+                                        onLongClick = { card = p.id.v }, longClickLabel = CARD) } +
                                     givePicks.map { pk -> RowData(listOf("Send", pickLabel(pk)), onClick = { givePicks = givePicks - pk }) } +
-                                    get.mapNotNull { byId[it] }.map { p -> RowData(listOf("Get", label(p)), onClick = { get = get - p.id.v }) } +
+                                    get.mapNotNull { byId[it] }.map { p -> RowData(listOf("Get", label(p)), onClick = { get = get - p.id.v },
+                                        onLongClick = { card = p.id.v }, longClickLabel = CARD) } +
                                     getPicks.map { pk -> RowData(listOf("Get", pickLabel(pk)), onClick = { getPicks = getPicks - pk }) },
                             )
-                            Text("Tap a piece to take it off.", style = NdTheme.type.caption, color = c.chalkDim,
+                            Text("Tap a piece to take it off; hold a player for his card.", style = NdTheme.type.caption, color = c.chalkDim,
                                 modifier = Modifier.padding(top = NdTheme.spacing.xs))
                         }
                         // What their GM says, then the facts behind it.
@@ -311,6 +332,7 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                                 ColumnSpec("Player", 2.2f),
                                 ColumnSpec("Age", 0.55f, numeric = true),
                                 ColumnSpec("Ovr", 1.05f, numeric = true, tier = true),
+                                ColumnSpec("Fit", 0.5f, numeric = true),
                                 ColumnSpec("Cap", 1.6f, numeric = true),
                             ),
                             rows = men.map { p ->
@@ -320,15 +342,20 @@ fun TradeScreen(dynasty: Dynasty, store: DynastyStore, scope: CoroutineScope) {
                                         p.name + if (p.status == PlayerStatus.IR) " (IR)" else "",
                                         "${p.age(book.year)}",
                                         rating(p),
+                                        fit(p),
                                         p.contract?.let { "${money(p.capHit(book.year))} ×${years(p)}" } ?: "-",
                                     ),
                                     highlight = p.id.v in chosen,
                                     onClick = {
                                         if (theirSide) get = get.toggle(p.id.v) else give = give.toggle(p.id.v)
                                     },
+                                    onLongClick = { card = p.id.v },
+                                    longClickLabel = CARD,
                                 )
                             },
                         )
+                        Text("Tap a player to put him on the table; hold him for his card. Fit grades how he suits your schemes, A to F.",
+                            style = NdTheme.type.caption, color = c.chalkDim, modifier = Modifier.padding(top = NdTheme.spacing.xs))
                     }
                 }
 
@@ -433,6 +460,8 @@ private fun <T> Set<T>.toggle(x: T): Set<T> = if (x in this) this - x else this 
 private fun <T> List<T>.toggle(x: T): List<T> = if (x in this) this - x else this + x
 
 private const val ALL = "ALL"
+/** What holding a man's row does, as a screen reader says it. */
+private const val CARD = "open his card"
 private val GROUPS = listOf(ALL) + com.nflsim.engine.model.PositionGroup.entries.map { it.name }
 
 private fun money(thousands: Int): String =

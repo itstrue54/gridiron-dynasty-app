@@ -37,12 +37,15 @@ import com.nflsim.engine.ratings.SchemeFitGrade
 import com.nflsim.engine.ratings.TraitScouting
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.ratings.schemeFit
+import com.nflsim.engine.model.PlayerId
 import com.nflsim.engine.season.Dynasty
 
 /**
- * One player, as his own club sees him (docs/DESIGN.md 5): the ratings his
+ * One player, as the user's club sees him (docs/DESIGN.md 5): the ratings his
  * position is judged on, what the staff has learned of his traits, and how he
- * fits the scheme. Nothing the club has not seen is given a number.
+ * fits the user's schemes. Nothing the club has not seen is given a number:
+ * another club's man reads as a newcomer would (SPEC 4.6), and only the
+ * user's own can be restructured or shopped.
  */
 @Composable
 fun PlayerCardScreen(
@@ -52,28 +55,33 @@ fun PlayerCardScreen(
     scope: kotlinx.coroutines.CoroutineScope? = null,
     /** With player editing on (SPEC 10.5), opens the editor for this man. */
     onEdit: ((Int) -> Unit)? = null,
+    /** Where to find him when it isn't the league as it stands - a trade being worked at the draft room. */
+    players: Map<Int, Player>? = null,
+    backLabel: String = "Back to the roster",
     onBack: () -> Unit = {},
 ) {
     val c = NdTheme.colors
-    val player = playerId?.let { id ->
-        dynasty.league.roster(dynasty.userTeamId).firstOrNull { it.id.v == id }
-    }
+    val player = playerId?.let { id -> players?.get(id) ?: dynasty.league.playersById[PlayerId(id)] }
     if (player == null) {
         Column(Modifier.fillMaxSize().padding(NdTheme.spacing.xl)) {
             Text("No player chosen.", style = NdTheme.type.title, color = c.chalk)
-            SecondaryButton("Back to the roster", onBack, Modifier.padding(top = NdTheme.spacing.m))
+            SecondaryButton(backLabel, onBack, Modifier.padding(top = NdTheme.spacing.m))
         }
         return
     }
 
     val team = dynasty.team
+    val own = player.teamId == dynasty.userTeamId
     val scheme = SchemeCatalog.tuned(
         if (player.position.isOffense) team.offenseScheme else team.defenseScheme,
         dynasty.league.tuning,
     )
     val fit = schemeFit(player, scheme)
-    val seen = TraitScouting.confidence(player.clubYears, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
-    val lens = lensFor(dynasty, player)
+    // His years elsewhere teach the user's staff nothing about his traits.
+    val seen = TraitScouting.confidence(if (own) player.clubYears else 0, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
+    val lens = lensOf(dynasty, player)
+    // Another club's man: how he suits the schemes he plays in now.
+    val club = player.teamId?.takeIf { !own }?.let { id -> dynasty.league.teams.firstOrNull { it.id == id } }
     val ovr = lens.view(overall(player))
 
     LazyColumn(
@@ -152,10 +160,10 @@ fun PlayerCardScreen(
         }
 
         item {
-            SituationBlock("Scheme fit", meta = scheme.name) {
+            SituationBlock("Scheme fit", meta = if (own) scheme.name else "Your ${scheme.name}") {
                 val inScheme = lens.view(overall(player, scheme))
                 AttributeBar(
-                    "In this scheme",
+                    if (own) "In this scheme" else "In your scheme",
                     inScheme.point,
                     band = if (inScheme.exact) null else inScheme.low..inScheme.high,
                     text = inScheme.text,
@@ -165,6 +173,16 @@ fun PlayerCardScreen(
                     style = NdTheme.type.body, color = c.chalkDim,
                     modifier = Modifier.padding(top = NdTheme.spacing.xs),
                 )
+                club?.let { theirs ->
+                    val now = SchemeCatalog.tuned(
+                        if (player.position.isOffense) theirs.offenseScheme else theirs.defenseScheme,
+                        dynasty.league.tuning,
+                    )
+                    Text(
+                        "Fit ${SchemeFitGrade.letter(schemeFit(player, now))} in ${theirs.abbrev}'s ${now.name}.",
+                        style = NdTheme.type.body, color = c.chalkDim,
+                    )
+                }
             }
         }
 
@@ -285,7 +303,7 @@ fun PlayerCardScreen(
 
         // SPEC 8.3: the club's cheapest lever, and its most expensive habit.
         val options = com.nflsim.engine.offseason.ContractOptions.restructures(player, dynasty.year)
-        if (options.isNotEmpty() && store != null && scope != null) {
+        if (own && options.isNotEmpty() && store != null && scope != null) {
             val room = com.nflsim.engine.season.Transactions.spaceFor(dynasty.league, dynasty.userTeamId)
             val advice = com.nflsim.engine.offseason.ContractOptions.bestRestructure(
                 options, room, com.nflsim.engine.offseason.CapManagement.capFor(dynasty.year), dynasty.league.tuning)
@@ -335,7 +353,7 @@ fun PlayerCardScreen(
         }
 
         // SPEC 8.4: say he is available, and clubs he would help call about him.
-        if (store != null && scope != null && player.status != com.nflsim.engine.model.PlayerStatus.PRACTICE_SQUAD) {
+        if (own && store != null && scope != null && player.status != com.nflsim.engine.model.PlayerStatus.PRACTICE_SQUAD) {
             val onBlock = player.id.v in com.nflsim.engine.season.TradeOffers.block(dynasty)
             item {
                 SituationBlock("Trade block", meta = if (onBlock) "Available" else "Not shopped") {
@@ -356,7 +374,7 @@ fun PlayerCardScreen(
         if (dynasty.editPlayers && onEdit != null) item {
             SecondaryButton("Edit player", { onEdit(player.id.v) })
         }
-        item { SecondaryButton("Back to the roster", onBack) }
+        item { SecondaryButton(backLabel, onBack) }
     }
 }
 
@@ -377,7 +395,7 @@ private fun bio(player: Player, dynasty: Dynasty): String = buildString {
     append(player.position.label)
     player.jersey?.let { append(", #$it") }
     append(", age ${player.age(dynasty.year)}")
-    append(", ${dynasty.team.name}")
+    append(", " + (dynasty.league.teams.firstOrNull { it.id == player.teamId }?.name ?: "free agent"))
 }
 
 /**

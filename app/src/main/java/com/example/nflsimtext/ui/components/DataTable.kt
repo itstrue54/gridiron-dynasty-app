@@ -2,6 +2,7 @@ package com.example.nflsimtext.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -57,6 +59,9 @@ data class RowData(
     val cells: List<String>,
     val highlight: Boolean = false,
     val onClick: (() -> Unit)? = null,
+    /** Holding the row: a second thing it does, said to a screen reader as [longClickLabel]. */
+    val onLongClick: (() -> Unit)? = null,
+    val longClickLabel: String? = null,
 )
 
 /** Which column the table is sorted by, and which way. */
@@ -148,7 +153,14 @@ fun DataTable(
                 .then(if (row.highlight) Modifier.drawBehind {
                     drawRect(c.accent, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height))
                 } else Modifier)
-                .then(if (row.onClick != null) Modifier.clickable { row.onClick.invoke() } else Modifier)
+                .then(when {
+                    row.onLongClick != null -> Modifier.combinedClickable(
+                        onLongClickLabel = row.longClickLabel,
+                        onLongClick = row.onLongClick,
+                    ) { row.onClick?.invoke() }
+                    row.onClick != null -> Modifier.clickable { row.onClick.invoke() }
+                    else -> Modifier
+                })
                 // One thing to hear per row, with every number named, rather
                 // than a string of bare cells (SPEC 11).
                 .clearAndSetSemantics {
@@ -157,6 +169,9 @@ fun DataTable(
                     row.onClick?.let { open ->
                         role = Role.Button
                         onClick { open(); true }
+                    }
+                    row.onLongClick?.let { hold ->
+                        onLongClick(row.longClickLabel) { hold(); true }
                     }
                 }
                 .padding(horizontal = NdTheme.spacing.xs)
