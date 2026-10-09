@@ -12,9 +12,11 @@ import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.Dynasty
 
 /**
- * The offseason stopped after the draft (SPEC 7 phases 10-11), so the
- * user's club fills its own camp and makes its own cut to 53 instead of
- * the league's logic doing both.
+ * The offseason stopped after the draft and training camp (SPEC 7 phases
+ * 10-11), so the user's club fills its own roster and makes its own cut to
+ * 53 instead of the league's logic doing both. Camp has happened: its
+ * development and its injuries are in, and [campBefore] is his roster as it
+ * reported, for what camp did to each man.
  *
  * He releases whoever he wants - each at the dead money his contract says -
  * and signs undrafted men and leftover veterans off the street at the
@@ -24,6 +26,10 @@ import com.nflsim.engine.season.Dynasty
 class CutdownPause internal constructor(
     internal val draft: OffseasonEngine.DraftPause,
     internal val state: OffseasonState,
+    /** The user's roster as it reported to camp, before camp developed it. */
+    val campBefore: List<Player> = emptyList(),
+    /** Every man hurt in camp, the league over. */
+    val campInjuries: List<TrainingCamp.CampInjury> = emptyList(),
 ) {
     val year: Int get() = draft.ctx.newYear
     val userTeam: TeamId get() = draft.ctx.dynasty.userTeamId

@@ -363,6 +363,12 @@ data class TuningTable(
         val loadSnaps: Float = 60f,
         val loadCentre: Float = 0.5f,
         val loadFloor: Float = 0.2f,
+        /**
+         * A man's chance of an injury that costs games in training camp,
+         * before his proneness and resistance: a slight one, about one or two
+         * a club, most of them short, on the same spread as the season's.
+         */
+        val campRate: Float = 0.02f,
     ) {
         fun perSnap(position: com.nflsim.engine.model.Position): Float = when (position) {
             com.nflsim.engine.model.Position.RB, com.nflsim.engine.model.Position.FB -> perSnapBack

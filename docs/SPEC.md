@@ -896,7 +896,7 @@ The offseason is an explicit enum. Each phase has an `advance()` that returns a 
 | 8 | `PRE_DRAFT` | Combine, pro days, interviews, scouting spend, trade-up/down talks |
 | 9 | `DRAFT` | 7 rounds + compensatory picks, live trade offers |
 | 10 | `UDFA` | Priority free agent scramble |
-| 11 | `OTA_CAMP` | Progression/regression, position battles, scheme installation, preseason injuries, cut to 53 |
+| 11 | `OTA_CAMP` | Training camp: progression/regression and camp injuries, then the cut to 53 on what camp showed (position battles and scheme installation are not modelled) |
 
 Then `PRESEASON → REGULAR_SEASON`.
 
@@ -944,8 +944,21 @@ for this club and it fits, one year if he is past the age a club pays
 through, pass on anyone who would sit. The draft room opens with who
 signed, who went where, and who is still waiting.
 
+**Training camp (phase 11).** After the draft, every club goes to camp
+(`TrainingCamp`): the offseason's development (§7.1) happens there, before
+any club cuts, so the league cuts the men camp has shown. A man on a club's
+roster risks an injury that costs games, at `campRate` (2%) raised by his
+proneness and lowered by his resistance as on a snap, on the season's
+spread of how long - about one or two a club, most of them a game or two.
+He carries it into the season. Camp's injuries are drawn from a stream of
+camp's own.
+
 **Camp and the cut to 53 (phases 10-11, the user's club).** The offseason
-stops after the draft (`CutdownPause`) and hands the user his camp roster
+stops after camp (`CutdownPause`) and hands the user his roster as camp
+left it, with what camp showed: for each position group, how many men, the
+average move in his staff's read of them in his schemes from reporting day
+(`campBefore`) to now, the group's biggest riser, the men who went
+backwards, and who was hurt and for how long (marked in his roster too) -
 and the street - undrafted men and veterans nobody signed. He releases
 whoever he wants, each at the dead money his contract says, and signs off
 the street at a year of the minimum. The blocking condition is the roster
