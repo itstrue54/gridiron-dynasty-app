@@ -63,7 +63,9 @@ fun FreeAgentsScreen(
     val offence = SchemeCatalog.tuned(team.offenseScheme, league.tuning)
     val defence = SchemeCatalog.tuned(team.defenseScheme, league.tuning)
     fun scheme(p: Player) = if (p.position.isOffense) offence else defence
-    fun read(p: Player) = lensFor(dynasty, p).view(overall(p, scheme(p)))
+    // Another club's man, released or on its squad, reads as a newcomer: the
+    // years he spent there taught the user's staff nothing (SPEC 4.6).
+    fun read(p: Player) = lensOf(dynasty, p).view(overall(p, scheme(p)))
     fun fit(p: Player) = SchemeFitGrade.letter(schemeFit(p, scheme(p)))
     val full = roster.size >= Transactions.ROSTER_LIMIT
 
@@ -74,7 +76,7 @@ fun FreeAgentsScreen(
     androidx.activity.compose.BackHandler(enabled = card != null) { card = null }
     card?.let { id ->
         val man = league.player(com.nflsim.engine.model.PlayerId(id))
-        PlayerCardScreen(dynasty, id, store, scope, backLabel = "Back to free agents", readAs = lensFor(dynasty, man)) { card = null }
+        PlayerCardScreen(dynasty, id, store, scope, backLabel = "Back to free agents", readAs = lensOf(dynasty, man)) { card = null }
         return
     }
     fun wanted(p: Player) = position == ALL || p.position.group.name == position

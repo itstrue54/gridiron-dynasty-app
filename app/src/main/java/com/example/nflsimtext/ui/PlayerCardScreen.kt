@@ -80,7 +80,7 @@ fun PlayerCardScreen(
     )
     val fit = schemeFit(player, scheme)
     // His years elsewhere teach the user's staff nothing about his traits.
-    val seen = TraitScouting.confidence(if (own) player.clubYears else 0, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
+    val seen = TraitScouting.confidence(if (knownBy(dynasty, player)) player.clubYears else 0, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
     val lens = readAs ?: lensOf(dynasty, player)
     // Another club's man: how he suits the schemes he plays in now.
     val club = player.teamId?.takeIf { !own }?.let { id -> dynasty.league.teams.firstOrNull { it.id == id } }

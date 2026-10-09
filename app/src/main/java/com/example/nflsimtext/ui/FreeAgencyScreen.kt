@@ -78,10 +78,10 @@ fun FreeAgencyScreen(
     var card by remember { mutableStateOf<Int?>(null) }
     androidx.activity.compose.BackHandler(enabled = card != null) { card = null }
     card?.let { id ->
-        val man = pause.candidates.first { it.player.id.v == id }.player
+        val cand = pause.candidates.first { it.player.id.v == id }
         PlayerCardScreen(
-            dynasty, id, players = mapOf(id to man), backLabel = "Back to free agency",
-            readAs = lensFor(dynasty, man),
+            dynasty, id, players = mapOf(id to cand.player), backLabel = "Back to free agency",
+            readAs = lensOf(dynasty, cand.player, cand.from),
         ) { card = null }
         return
     }
@@ -192,7 +192,8 @@ fun FreeAgencyScreen(
                     situation = if (mine != null) Situation.THIRD_DOWN else Situation.NORMAL,
                 ) {
                     Text(
-                        "Your read: ${lensFor(dynasty, p).view(overall(p, scheme)).text}, " +
+                        // Only the user's own expiring men read as his staff knows them (SPEC 4.6).
+                        "Your read: ${lensOf(dynasty, p, cand.from).view(overall(p, scheme)).text}, " +
                             "fit ${SchemeFitGrade.letter(schemeFit(p, scheme))}. " +
                             "Worth ${dealMoney(cand.market)} a year; opens asking ${dealMoney(cand.opening)}" +
                             (cand.from?.let { ", late of ${abbrev[it] ?: "?"}" } ?: "") + ".",
