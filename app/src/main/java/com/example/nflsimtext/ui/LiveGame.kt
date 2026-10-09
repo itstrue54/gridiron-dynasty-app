@@ -21,7 +21,14 @@ import java.util.concurrent.LinkedBlockingQueue
  * In the postseason one of these calls every game his club plays, one after
  * another: each opens with a kickoff he starts, or hands to the coordinators.
  */
-class LiveGame(val offense: Playbook, val defense: Playbook) : SnapCaller {
+class LiveGame(
+    val offense: Playbook,
+    val defense: Playbook,
+    /** His club's depth chart as he has it now, changed mid-game on the depth chart (SnapCaller.depthPins). */
+    private val pins: () -> com.nflsim.engine.model.DepthPins? = { null },
+) : SnapCaller {
+
+    override fun depthPins(): com.nflsim.engine.model.DepthPins? = pins()
 
     /** What the game is waiting on: the snap and the coordinator's call. */
     sealed interface Ask {

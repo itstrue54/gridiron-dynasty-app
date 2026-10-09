@@ -253,7 +253,14 @@ internal fun LastPlayOf(plays: List<PlayLog>, shown: Int, league: com.nflsim.eng
 }
 
 /** Beyond a play's line: what each side called, and the defender it turned on, good or bad. */
-internal data class PlayDetail(val calls: List<String>, val defender: String?, val good: Boolean?)
+internal data class PlayDetail(val calls: List<String>, val defender: String?, val good: Boolean?, val injuries: List<String> = emptyList())
+
+/** How long a man hurt in a game is out, in words. */
+internal fun injuryLength(gamesOut: Int): String = when {
+    gamesOut >= com.nflsim.engine.sim.Injury.SEASON_ENDING -> "out for the season"
+    gamesOut == 1 -> "out 1 game"
+    else -> "out $gamesOut games"
+}
 
 /**
  * What [play] says beyond its line, for the clubs in it: each side's call
@@ -273,8 +280,14 @@ internal fun playDetail(play: PlayLog, league: com.nflsim.engine.model.League, h
     val defender = play.defenderPlay?.let { what ->
         man?.let { "${it.position.label} ${it.name}, ${defense.abbrev}: ${what.label}" }
     }
-    if (calls.isEmpty() && defender == null) return null
-    return PlayDetail(calls, defender, if (defender == null) null else play.defenderPlay?.good)
+    // Who was hurt on the snap, either side, and for how long.
+    val injuries = play.injured.mapNotNull { hurt ->
+        val p = league.playersById[com.nflsim.engine.model.PlayerId(hurt.player)] ?: return@mapNotNull null
+        val club = if (hurt.team == home.id.v) home else away
+        "${p.position.label} ${p.name}, ${club.abbrev}: ${injuryLength(hurt.gamesOut)}"
+    }
+    if (calls.isEmpty() && defender == null && injuries.isEmpty()) return null
+    return PlayDetail(calls, defender, if (defender == null) null else play.defenderPlay?.good, injuries)
 }
 
 /**
@@ -293,6 +306,15 @@ internal fun LastPlay(play: PlayLog?, event: PlayEvent?, detail: PlayDetail? = n
             PlayLogEntry(downDistance = downAndDistance(play), text = play.text, event = event)
         }
         detail?.calls?.forEach { Text(it, style = NdTheme.type.caption, color = c.chalkDim) }
+        detail?.injuries?.forEach { line ->
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.padding(top = NdTheme.spacing.xs),
+            ) {
+                com.example.nflsimtext.ui.components.StatusTag("Injury", com.example.nflsimtext.ui.components.TagTone.URGENT)
+                Text(line, style = NdTheme.type.caption, color = c.chalk, modifier = Modifier.padding(start = NdTheme.spacing.s))
+            }
+        }
         detail?.defender?.let { line ->
             // Who won or lost the snap, so a weak link shows up play after play.
             Row(
