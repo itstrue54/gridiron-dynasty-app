@@ -96,9 +96,14 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
         game.title?.let { title ->
             item { Text(title, style = NdTheme.type.label, color = c.chalkDim) }
         }
+        // What just happened, at the top; the log of the game stays at the foot.
+        val played = snap?.plays.orEmpty()
+        item { LastPlay(played.lastOrNull(), if (played.isEmpty()) null else eventOf(played, played.size - 1)) }
         if (state != null) {
             val offense = if (state.possession == EngineSide.HOME) home else away
             val defense = if (state.possession == EngineSide.HOME) away else home
+            // The ball changing hands says so on the field.
+            val change = possessionChange(played, state.possession, state.quarter, state.homeScore, state.awayScore)
             item {
                 SituationBlock(
                     "${downAndDistance(logOf(state))} at ${spotAt(state.yardLine, defense)}",
@@ -116,6 +121,7 @@ fun LiveGameScreen(dynasty: Dynasty, store: DynastyStore, onDone: () -> Unit) {
                         ballLabel = spotAt(state.yardLine, defense),
                         gainLabel = spotAt((state.yardLine + state.distance).coerceAtMost(100), defense),
                         animate = false,
+                        banner = change?.let { possessionBanner(it, offense.abbrev) },
                     )
                 }
             }

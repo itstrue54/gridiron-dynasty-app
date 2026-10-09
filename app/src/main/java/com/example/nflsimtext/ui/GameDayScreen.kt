@@ -75,11 +75,14 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
     val motion = NdTheme.motion
     val haptic = LocalHapticFeedback.current
     val hapticsOn = LocalHaptics.current
-    val play = plays[shown - 1]
+    // The play just shown, and the snap that comes next: the board and the
+    // field show the game as it stands now, after the last play.
+    val last = plays.getOrNull(shown - 1)
+    val now = plays.getOrNull(shown) ?: plays.last()
 
     LaunchedEffect(shown, animate) {
         // The end zone takes the pylon, holds, and gives it back.
-        if (animate && eventOf(plays, shown - 1) == PlayEvent.SCORE) {
+        if (animate && shown > 0 && eventOf(plays, shown - 1) == PlayEvent.SCORE) {
             scored = true
             delay(motion.signature.toLong() + 150L)
             scored = false
@@ -88,38 +91,45 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
         }
     }
     val done = shown >= plays.size
-    val offenseIsHome = play.offense == EngineSide.HOME
+    val offenseIsHome = now.offense == EngineSide.HOME
     val offense = if (offenseIsHome) home else away
     val defense = if (offenseIsHome) away else home
+    // The ball changing hands says so on the field: the opening kickoff, and
+    // after that whatever handed it over.
+    val change = if (done) null
+        else possessionChange(plays.take(shown), now.offense, now.quarter, now.homeScore, now.awayScore)
 
     ScreenList {
         item {
             Scoreboard(
-                away = TeamScore(away.abbrev, away.name, if (done) game.awayScore else play.awayScore),
-                home = TeamScore(home.abbrev, home.name, if (done) game.homeScore else play.homeScore),
-                quarter = play.quarter,
-                clock = play.clockText,
+                away = TeamScore(away.abbrev, away.name, if (done) game.awayScore else now.awayScore),
+                home = TeamScore(home.abbrev, home.name, if (done) game.homeScore else now.homeScore),
+                quarter = now.quarter,
+                clock = now.clockText,
                 animate = animate,
                 possession = if (done) null else if (offenseIsHome) BoardSide.HOME else BoardSide.AWAY,
                 status = if (done) "Final" else null,
             )
         }
 
+        item { LastPlay(last, if (last == null) null else eventOf(plays, shown - 1)) }
+
         if (!done) {
             item {
                 SituationBlock(
-                    "${downAndDistance(play)} at ${spot(play, defense)}",
-                    situation = situationOf(play),
+                    "${downAndDistance(now)} at ${spot(now, defense)}",
+                    situation = situationOf(now),
                     meta = "${offense.abbrev} ball",
                 ) {
                     DriveTracker(
-                        ballOn = play.yardLine,
-                        lineToGain = (play.yardLine + play.distance).coerceAtMost(100),
+                        ballOn = now.yardLine,
+                        lineToGain = (now.yardLine + now.distance).coerceAtMost(100),
                         direction = Direction.RIGHT,
-                        ballLabel = spot(play, defense),
-                        gainLabel = spotOf((play.yardLine + play.distance).coerceAtMost(100), defense),
+                        ballLabel = spot(now, defense),
+                        gainLabel = spotOf((now.yardLine + now.distance).coerceAtMost(100), defense),
                         scored = scored,
                         animate = animate,
+                        banner = change?.let { possessionBanner(it, offense.abbrev) },
                     )
                 }
             }
@@ -159,7 +169,7 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
                     PrimaryButton("See the box score", onBoxScore, Modifier.fillMaxWidth())
                     SecondaryButton("Watch it play by play", {
                         animate = false
-                        shown = 1
+                        shown = 0
                     }, Modifier.fillMaxWidth())
                     SecondaryButton("Back to the hub", onBack, Modifier.fillMaxWidth())
                 }
@@ -221,12 +231,30 @@ private fun spotOf(yardLine: Int, defense: Team): String = when {
 }
 
 /**
- * The play that ends this drive: the last one before the ball changes hands,
- * or the end of the game.
+ * How many plays are shown once the drive under way ends: every snap of the
+ * club that has the ball now, so the field turns to the new possession.
  */
-private fun endOfDrive(plays: List<PlayLog>, from: Int): Int {
-    val side = plays[from - 1].offense
+internal fun endOfDrive(plays: List<PlayLog>, from: Int): Int {
+    if (from >= plays.size) return plays.size
+    val side = plays[from].offense
     var i = from
     while (i < plays.size && plays[i].offense == side) i++
-    return (i + 1).coerceAtMost(plays.size)
+    return i
+}
+
+/**
+ * The last play at the top of the game, the way a broadcast puts the result
+ * up: its down and distance, and what happened. Before the first snap, the
+ * kickoff.
+ */
+@Composable
+internal fun LastPlay(play: PlayLog?, event: PlayEvent?) {
+    SituationBlock("Last play", meta = if (play == null) "Kickoff" else null) {
+        if (play == null) {
+            Text("The game is about to kick off.", style = NdTheme.type.body, color = NdTheme.colors.chalk)
+        } else {
+            // The log's own line, so a score or a turnover carries the same edge here as there.
+            PlayLogEntry(downDistance = downAndDistance(play), text = play.text, event = event)
+        }
+    }
 }

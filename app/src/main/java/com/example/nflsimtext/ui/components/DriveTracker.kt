@@ -5,7 +5,17 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
@@ -39,6 +49,11 @@ fun DriveTracker(
     scored: Boolean = false,
     /** Off when the state was jumped to rather than played out. */
     animate: Boolean = true,
+    /**
+     * The ball has just changed hands: why, and whose it is now - "Interception
+     * · DEN ball". Shown on the field over the ball's new spot.
+     */
+    banner: String? = null,
 ) {
     val c = NdTheme.colors
     val motion = NdTheme.motion
@@ -62,14 +77,15 @@ fun DriveTracker(
         label = "end zone",
     )
     val spoken = buildString {
+        if (banner != null) append("$banner. ")
         append("Ball on $ballLabel.")
         if (gainLabel != null) append(" Line to gain, $gainLabel.")
     }
+    Box(modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
     Canvas(
-        modifier
+        Modifier
             .fillMaxWidth()
-            .height(32.dp)
-            .clearAndSetSemantics { contentDescription = spoken },
+            .height(32.dp),
     ) {
         val endZoneWidth = size.width * 0.06f
         val field = size.width - endZoneWidth * 2
@@ -101,6 +117,22 @@ fun DriveTracker(
         }
         drawCircle(c.chalk, radius = 5.dp.toPx(), center = Offset(x(ball), size.height / 2))
     }
+    if (banner != null) {
+        // A new possession says so on the field, fading in when the play was watched.
+        val shown = remember(banner) { MutableTransitionState(still) }.apply { targetState = true }
+        AnimatedVisibility(visibleState = shown, enter = fadeIn(motion.standardSpec())) {
+            Text(
+                banner,
+                style = NdTheme.type.caption.copy(fontWeight = FontWeight.W600),
+                color = c.onPylon,
+                maxLines = 1,
+                modifier = Modifier
+                    .background(c.pylon, NdTheme.shapes.tag)
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
+    }
+    }
 }
 
 @Preview(name = "Night")
@@ -119,4 +151,10 @@ private fun TrackerDay() = PreviewFrame(dark = false) {
 @Composable
 private fun TrackerLarge() = PreviewFrame(dark = true) {
     DriveTracker(40, 50, Direction.LEFT)
+}
+
+@Preview(name = "Change of possession")
+@Composable
+private fun TrackerChange() = PreviewFrame(dark = true) {
+    DriveTracker(28, 38, Direction.RIGHT, banner = "Interception · DEN ball", animate = false)
 }
