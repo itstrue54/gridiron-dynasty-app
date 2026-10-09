@@ -500,7 +500,22 @@ object OffseasonEngine {
         val developed = stepDevelopment(pause.ctx, afterDraft, pause.rng)
         val (players, hurt) = TrainingCamp.injuries(developed.players, pause.ctx.league.tuning.injuries,
             pause.rng.split("camp-injuries|${pause.ctx.newYear}"))
-        return CutdownPause(pause, developed.copy(players = players), before, hurt)
+        val camp = developed.copy(players = players)
+        // Every other club acts on what camp showed; the user's is suggested to him.
+        val reported = afterDraft.players.associateBy { it.id.v }
+        val decided = CampDecisions.run(campContext(pause, camp, reported), skip = user)
+        val state = camp.copy(players = decided.players, deadMoney = decided.deadMoney, picks = decided.picks,
+            pickTrades = camp.pickTrades + decided.pickTrades)
+        return CutdownPause(pause, state, before, hurt, reported, decided.releases, decided.trades)
+    }
+
+    /** What a club judges its camp by: everyone as camp left them, and as they reported. */
+    internal fun campContext(pause: DraftPause, state: OffseasonState, reported: Map<Int, Player>): CampDecisions.Context {
+        val pricer = state.requirePricer()
+        return CampDecisions.Context(
+            pause.ctx.league, state.players, reported, pause.ctx.newYear, state.deadMoney, state.picks,
+            pause.ctx.scheme, { p, sch -> pricer.annual(p, sch, pause.ctx.newYear) },
+        )
     }
 
     /**
@@ -515,7 +530,9 @@ object OffseasonEngine {
         val pause = cutdown.draft
         val ctx = pause.ctx
         val campHurt = cutdown.campInjuries.associate { it.player to it.gamesOut }
-        var state = if (cut == null) cutdown.state else cutdown.apply(cut)
+        // Left to the front office, the user's club makes its camp moves as every club did.
+        val planned = if (cut == null) cutdown.withCampPlan() else cutdown
+        var state = if (cut == null) planned.state else cutdown.apply(cut)
         val skip = if (cut == null) null else ctx.dynasty.userTeamId
         val rng = pause.rng
         val carousel = pause.carousel
@@ -525,8 +542,8 @@ object OffseasonEngine {
         val releases = pause.releases
         val pricer = pause.pricer
         val wishes = pause.wishes
-        val trades = pause.trades
-        val valueCuts = pause.valueCuts
+        val trades = pause.trades + planned.campTrades
+        val valueCuts = pause.valueCuts + planned.campReleases
         val dynasty = ctx.dynasty
         val league = ctx.league
         val newYear = ctx.newYear

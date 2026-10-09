@@ -556,6 +556,14 @@ class DynastyStore(private val saveDir: File) {
         }
     }
 
+    /** A club's camp offer for one of the user's men, taken: he goes, its pick comes. Nothing else changes. */
+    fun takeCampTrade(offer: com.nflsim.engine.offseason.CampDecisions.Move) {
+        val camp = cutdown ?: return
+        cutdown = camp.takeCampTrade(offer)
+        val club = dynasty?.league?.teams?.firstOrNull { it.id == offer.to }?.name ?: "his new club"
+        message = "Trade made: ${offer.player.position.label} ${offer.player.name} to $club for a ${offer.pick!!.year} round ${offer.pick!!.round} pick."
+    }
+
     /**
      * The cut made - or, with null, the front office's fill and cut - and
      * the rest of the offseason, into the new year.

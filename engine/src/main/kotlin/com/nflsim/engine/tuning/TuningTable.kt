@@ -936,6 +936,27 @@ data class TuningTable(
         /** A release worth making for value saves at least this much, and a club makes at most this many. */
         val capMeaningfulSaving: Int = 2_500,
         val capMaxValueCuts: Int = 3,
+        /**
+         * Camp (TrainingCamp): a club makes at most [campMaxMoves] moves on what
+         * camp showed. A man camp passed by goes when his cap hit is over his
+         * worth by [campPatience] of his GM's patience; a drop of
+         * [campRegressDrop] or more in camp is regression, and goes once he
+         * is paid more than he is worth at all; next year's saving counts at
+         * [campNextYearWeight] of this year's, and a camp move saves at least
+         * [campMinSaving] - most backups earn the minimum, so the spring's
+         * bar would leave camp with almost nothing to do (two leagues: about
+         * a dozen regressed veterans overpaid, and six to fourteen passed-by
+         * backups saving $1M or more). Another club trades for him rather
+         * than see him cut when he beats its weakest starter by [campTradeEdge].
+         */
+        val campMaxMoves: Int = 2,
+        val campMinSaving: Int = 750,
+        /** Camp's money moves only weigh a man paid at least this many times the minimum: a minimum backup is the roster cut's business. */
+        val campMinHitMultiple: Float = 1.5f,
+        val campPatience: Float = 0.85f,
+        val campRegressDrop: Int = 3,
+        val campNextYearWeight: Float = 0.5f,
+        val campTradeEdge: Int = 2,
         /** Of the base salary a club may move into bonus, how much it moves. */
         val restructureShare: Float = 0.6f,
         /** A club takes a fifth-year option when the player is worth at least this share of it. */

@@ -953,13 +953,32 @@ spread of how long - about one or two a club, most of them a game or two.
 He carries it into the season. Camp's injuries are drawn from a stream of
 camp's own.
 
+**Camp's decisions (`CampDecisions`).** Then each club acts on what camp
+showed, at most `campMaxMoves` (2) times, on veterans paid at least
+`campMinHitMultiple` (1.5) times the minimum - a minimum backup is the
+roster cut's business - who are not hurt and were not signed this year,
+leaving every position at least its starters. Three reasons, judged by the
+club's GM: he went backwards in camp (`campRegressDrop`, 3 or more) and is
+paid more than he is worth; camp passed him by, so he is no longer a starter
+and his cap hit is over his worth by `campPatience` (0.85) of the GM's
+patience; or the club is over next year's cap as it stands and he is the
+dearest for what he gives, starter or not. A move saves money this year and
+at least `campMinSaving` ($750k) counting next year's at `campNextYearWeight`
+(half). Before cutting him, the club trades him to the club he would most
+help - beating its weakest starter by `campTradeEdge` (2), with the cap room
+and a roster place - for that club's latest pick (round 6 or 7) next year.
+The user's club is never moved for him, and never traded to: its plan is
+his to take or not.
+
 **Camp and the cut to 53 (phases 10-11, the user's club).** The offseason
 stops after camp (`CutdownPause`) and hands the user his roster as camp
 left it, with what camp showed: for each position group, how many men, the
 average move in his staff's read of them in his schemes from reporting day
 (`campBefore`) to now, the group's biggest riser, the men who went
 backwards, and who was hurt and for how long (marked in his roster too) -
-and the street - undrafted men and veterans nobody signed. He releases
+then camp's calls for his own men, each with its reason and what letting
+him go saves this year and next (a trade offer to take, or a cut he makes
+or not; the cut is among the suggested ones) - and the street - undrafted men and veterans nobody signed. He releases
 whoever he wants, each at the dead money his contract says, and signs off
 the street at a year of the minimum. The blocking condition is the roster
 size: he cannot leave camp with more than 53 or fewer than 46, the most a
