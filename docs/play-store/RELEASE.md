@@ -65,9 +65,9 @@ rejects a code it has seen) and set `versionName`.
    Both images are drawn by `assets/draw-assets.py`, which reuses the
    launcher icon's mark. Run `python3 assets/draw-assets.py assets` to
    redraw them if the palette changes.
-4. **Testing** -> Internal testing: upload the `.aab`, add yourself as a
-   tester, install from the opt-in link, and play a season through before
-   promoting to production.
+4. **Testing**: internal test first, then the closed test Play may require
+   (12 testers, 14 days), with the full tour - all in `TESTING.md`. Nothing
+   goes to production until its checklist is done.
 
 ## Pricing
 
