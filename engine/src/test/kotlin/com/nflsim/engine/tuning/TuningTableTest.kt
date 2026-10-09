@@ -96,7 +96,7 @@ class TuningTableTest {
         val scheme = SchemeCatalog.offensive.first()
         val always = TuningTable.SpecialTeams(kickoffTouchbackRate = 1f)
         val never = TuningTable.SpecialTeams(kickoffTouchbackRate = 0f, kickoffReturnBase = 30)
-        assertEquals(GameState.TOUCHBACK_YARD_LINE, SpecialTeams.kickoff(null, scheme, SplitMixRng(1L), always).first)
-        assertEquals(30, SpecialTeams.kickoff(null, scheme, SplitMixRng(1L), never).first)
+        assertEquals(GameState.TOUCHBACK_YARD_LINE, SpecialTeams.kickoff(null, scheme, SplitMixRng(1L), always).spot)
+        assertEquals(30, SpecialTeams.kickoff(null, scheme, SplitMixRng(1L), never).spot)
     }
 }

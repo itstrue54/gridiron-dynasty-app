@@ -10,6 +10,9 @@ import kotlin.math.roundToInt
 
 data class KickResult(val good: Boolean, val distance: Int, val narrative: String, val blocked: Boolean = false)
 
+/** Where a kickoff leaves the receiving club, whether anyone ran it back, and the line that says so. */
+data class KickoffResult(val spot: Int, val touchback: Boolean, val narrative: String)
+
 data class PuntResult(
     val netYards: Int,
     val touchback: Boolean,
@@ -157,10 +160,13 @@ object SpecialTeams {
         }
 
         val net = (gross - ret).coerceAtLeast(1)
+        // The man who fielded it is named whatever he did with it: a coach
+        // reading the play wants to know who his returner was.
         val back = when {
-            ret > 12 && returner != null ->
+            ret > 0 && returner != null ->
                 PlayLines.write("punt.return.named", words, "ret" to ret, "returner" to returner.lastName)
             ret > 0 -> PlayLines.write("punt.return", words, "ret" to ret)
+            returner != null -> PlayLines.write("punt.fair_catch", words, "returner" to returner.lastName)
             else -> ""
         }
         val text = PlayLines.write("punt", words, "punter" to punter.lastName, "gross" to gross, "return" to back)
@@ -194,10 +200,15 @@ object SpecialTeams {
         kicker: Player? = null,
         kickScheme: Scheme = returnScheme,
         matchup: KickMatchup = KickMatchup(),
-    ): Pair<Int, String> {
+        /** The game's narration stream, so the line drawn never moves the kick. */
+        narration: Rng? = null,
+    ): KickoffResult {
+        val words = narration ?: rng.split("kickoff-narration")
         val leg = kicker?.let { rate(it, RatingId.KICK_POWER, kickScheme) - st.kickoffPowerAnchor } ?: 0f
         if (rng.nextFloat() < (st.kickoffTouchbackRate + leg * st.kickoffPowerTouchback).coerceIn(0.2f, 0.95f)) {
-            return GameState.TOUCHBACK_YARD_LINE to TOUCHBACK
+            val text = if (kicker == null) PlayLines.write("kickoff.touchback.unnamed", words)
+                else PlayLines.write("kickoff.touchback", words, "kicker" to kicker.lastName)
+            return KickoffResult(GameState.TOUCHBACK_YARD_LINE, true, text)
         }
         val base = st.kickoffReturnBase
         val bonus = if (returner == null) 0 else {
@@ -206,15 +217,19 @@ object SpecialTeams {
                 matchup.returnEdge * st.kickoffUnitYards).roundToInt()
         }
         val spot = (base + bonus).coerceIn(4, 60)
-        val text = if (spot >= 45) "A big return out to the $spot." else "Returned to the $spot."
-        return spot to text
+        val text = when {
+            returner == null -> PlayLines.write("kickoff.return.unnamed", words, "spot" to spot)
+            spot >= BIG_RETURN_SPOT -> PlayLines.write("kickoff.return.big", words, "returner" to returner.lastName, "spot" to spot)
+            else -> PlayLines.write("kickoff.return", words, "returner" to returner.lastName,
+                "kicker" to (kicker?.lastName ?: "The kicker"), "spot" to spot)
+        }
+        return KickoffResult(spot, false, text)
     }
 
-
-    /** What a kickoff says when nobody returns it. */
-    const val TOUCHBACK = "Touchback."
-
     fun kickerFor(depth: DepthChart): Player? = depth.starter(Position.K)
+    /** A return out to here reads as a big one. Wording only: it moves no kick. */
+    private const val BIG_RETURN_SPOT = 45
+
     fun punterFor(depth: DepthChart): Player? = depth.starter(Position.P)
 
     /**

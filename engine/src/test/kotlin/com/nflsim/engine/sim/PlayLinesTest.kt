@@ -54,10 +54,16 @@ class PlayLinesTest {
         "punt.return" to setOf("ret"),
         "punt.return.named" to setOf("ret", "returner"),
         "punt.blocked" to setOf("punter"),
+        "punt.fair_catch" to setOf("returner"),
+        "kickoff.touchback" to setOf("kicker"),
+        "kickoff.touchback.unnamed" to emptySet(),
+        "kickoff.return" to setOf("returner", "kicker", "spot"),
+        "kickoff.return.big" to setOf("returner", "spot"),
+        "kickoff.return.unnamed" to setOf("spot"),
     )
 
     /** Pieces spliced into another line rather than read on their own. */
-    private val fragments = setOf("run.tackle", "punt.return", "punt.return.named")
+    private val fragments = setOf("run.tackle", "punt.return", "punt.return.named", "punt.fair_catch")
 
     @Test
     fun `every line has between eight and fifteen ways to say it`() {

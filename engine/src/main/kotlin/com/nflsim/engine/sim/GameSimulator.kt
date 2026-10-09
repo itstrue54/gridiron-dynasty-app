@@ -152,7 +152,7 @@ class GameSimulator(
         if (!weather.indoors) log(state, PlayLines.write("weather", words, "conditions" to weather.description), PlayKind.NOTE)
         state = openWithKickoff(state, firstReceiver, rng)
 
-        var secondHalfStarted = false
+        secondHalfStarted = false
 
         while (!state.isOver) {
             val before = state
@@ -260,15 +260,35 @@ class GameSimulator(
         val receiving = teamFor(receiver)
         val kicking = teamFor(receiver.other())
         val returner = SpecialTeams.returnerFor(receiving.offDepth, receiving.offScheme, st = tuning.specialTeams)
-        val (spot, text) = SpecialTeams.kickoff(
+        val kick = SpecialTeams.kickoff(
             returner,
             receiving.offScheme, rng, st = tuning.specialTeams,
             edge = returnEdge(receiving, kicking),
             kicker = SpecialTeams.kickerFor(kicking.offDepth), kickScheme = kicking.offScheme,
-            matchup = KickMatchup(returnEdge = units(receiving).kickReturnEdge(units(kicking), tuning.specialTeams)))
+            matchup = KickMatchup(returnEdge = units(receiving).kickReturnEdge(units(kicking), tuning.specialTeams)),
+            narration = words)
         // Fielded near the goal line, so the return is about the spot it reaches.
-        if (text != SpecialTeams.TOUCHBACK) creditReturn(returner, spot, punt = false, units(kicking).kickCoverage, rng)
-        return state.copy(possession = receiver, yardLine = spot, down = 1, distance = 10)
+        if (!kick.touchback) creditReturn(returner, kick.spot, punt = false, units(kicking).kickCoverage, rng)
+        val next = state.copy(possession = receiver, yardLine = kick.spot, down = 1, distance = 10)
+        // In the play-by-play as the receiving club's, where it leaves the ball: first and ten.
+        if (kickedOff(state)) log(next, kick.narrative, PlayKind.KICKOFF)
+        return next
+    }
+
+    /** Whether the second half has kicked off: until it has, a score that ends the half is followed by no kickoff. */
+    private var secondHalfStarted = false
+
+    /**
+     * Whether a kickoff at [state] is one the game plays. A score as the half
+     * or the game runs out, or one that decides overtime, is followed by none:
+     * the sim still works one out, so every draw is where it was, but it is
+     * not said.
+     */
+    private fun kickedOff(state: GameState): Boolean = when {
+        state.isOver -> false
+        state.quarter == 3 && !secondHalfStarted -> false
+        state.inOvertime && otherHadTheBall && state.homeScore != state.awayScore -> false
+        else -> true
     }
 
     /** Kicks returned so far: each picks its tackler from a stream of its own. */
