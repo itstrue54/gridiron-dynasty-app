@@ -30,6 +30,11 @@ class CutdownPause internal constructor(
     val campBefore: List<Player> = emptyList(),
     /** Every man hurt in camp, the league over. */
     val campInjuries: List<TrainingCamp.CampInjury> = emptyList(),
+    /** Everyone as he reported to camp, for how far camp moved him. */
+    internal val reported: Map<Int, Player> = emptyMap(),
+    /** The camp cuts and trades made so far: every other club's, and any the user has taken. */
+    internal val campReleases: List<Release> = emptyList(),
+    internal val campTrades: List<TradeMove> = emptyList(),
 ) {
     val year: Int get() = draft.ctx.newYear
     val userTeam: TeamId get() = draft.ctx.dynasty.userTeamId
@@ -76,17 +81,55 @@ class CutdownPause internal constructor(
                 have[position] = (have[position] ?: 0) + 1
             }
         }
-        val camp = roster + signs.map { it.copy(teamId = userTeam, contract = streetDeal()) }
+        // The camp moves first: whoever camp says should go is not counted on.
+        val planned = campPlan.map { it.player.id.v }.toSet()
+        val camp = roster.filter { it.id.v !in planned } + signs.map { it.copy(teamId = userTeam, contract = streetDeal()) }
         val kept = OffseasonEngine.enforceRosterLimit(league, camp, year, draft.ctx.scheme)
             .filter { it.teamId == userTeam }.map { it.id.v }.toSet()
         Cut(
-            release = roster.map { it.id.v }.filter { it !in kept }.toSet(),
+            release = roster.map { it.id.v }.filter { it !in kept }.toSet() + planned,
             sign = signs.map { it.id.v }.filter { it in kept }.toSet(),
         )
     }
 
-    /** Why a suggested cut is one: where he sits among his club's men at his position. */
+    /**
+     * The moves the user's club would make on what camp showed (CampDecisions):
+     * each a cut, or a trade another club has offered for him. Nothing is
+     * made until the user takes it.
+     */
+    val campPlan: List<CampDecisions.Move> by lazy {
+        CampDecisions.plan(OffseasonEngine.campContext(draft, state, reported), league.team(userTeam),
+            league.teams.filter { it.id != userTeam })
+    }
+
+    /** The clubs that would trade for one of the user's men rather than see him cut. */
+    val campOffers: List<CampDecisions.Move> get() = campPlan.filter { it.to != null }
+
+    /** Camp with [offer] taken: the man gone to his new club, its pick the user's, the rest as it was. */
+    fun takeCampTrade(offer: CampDecisions.Move): CutdownPause {
+        require(offer in campOffers) { "no such offer" }
+        val ctx = OffseasonEngine.campContext(draft, state, reported)
+        val after = CampDecisions.apply(ctx, CampDecisions.Result(state.players, state.deadMoney, state.picks,
+            emptyList(), emptyList(), emptyList()), offer)
+        return CutdownPause(draft,
+            state.copy(players = after.players, deadMoney = after.deadMoney, picks = after.picks,
+                pickTrades = state.pickTrades + after.pickTrades),
+            campBefore, campInjuries, reported, campReleases, campTrades + after.trades)
+    }
+
+    /** Camp with the user's club making every move its front office would: its trades, then its cuts. */
+    internal fun withCampPlan(): CutdownPause {
+        val ctx = OffseasonEngine.campContext(draft, state, reported)
+        var r = CampDecisions.Result(state.players, state.deadMoney, state.picks, emptyList(), emptyList(), emptyList())
+        campPlan.forEach { r = CampDecisions.apply(ctx, r, it) }
+        return CutdownPause(draft,
+            state.copy(players = r.players, deadMoney = r.deadMoney, picks = r.picks, pickTrades = state.pickTrades + r.pickTrades),
+            campBefore, campInjuries, reported, campReleases + r.releases, campTrades + r.trades)
+    }
+
+    /** Why a suggested cut is one: what camp showed, or where he sits among his club's men at his position. */
     fun whyCut(p: Player): String {
+        campPlan.firstOrNull { it.player.id == p.id }?.let { return campReason(it) }
         val scheme = draft.ctx.scheme(userTeam, p.position)
         val ahead = roster.count { it.position == p.position && overall(it, scheme) > overall(p, scheme) }
         val dead = deadIfCut(p)
@@ -160,6 +203,18 @@ class CutdownPause internal constructor(
 
     /** A camp body's deal: a year at the minimum, nothing guaranteed. */
     private fun streetDeal() = Contract(years = 1, baseSalary = listOf(Contract.MIN_BASE_SALARY), signedYear = year)
+
+    /** A camp move in words: why, and what letting him go saves this year and next. */
+    fun campReason(m: CampDecisions.Move): String {
+        val why = when (m.why) {
+            CampDecisions.Why.REGRESSED -> "went backwards in camp (${m.campChange}) and is paid ${money(m.capHit)} for less than that now"
+            CampDecisions.Why.PASSED_BY -> "camp passed him by: he is no longer a starter, at ${money(m.capHit)}"
+            CampDecisions.Why.NEXT_YEARS_CAP -> "next year's cap is over as it stands, and at ${money(m.capHit)} he is the dearest for what he gives"
+        }
+        val next = if (m.savingNext > 0) " and ${money(m.savingNext)} next year" else ""
+        val dead = if (m.deadNow > 0) ", leaving ${money(m.deadNow)} of dead money" else ""
+        return "$why. Letting him go frees ${money(m.savingNow)} this year$next$dead."
+    }
 
     private fun ordinal(n: Int) = when {
         n % 100 in 11..13 -> "${n}th"
