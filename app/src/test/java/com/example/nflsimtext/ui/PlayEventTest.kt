@@ -29,4 +29,12 @@ class PlayEventTest {
             assertEquals(template, null, eventOf(listOf(play(template)), 0))
         }
     }
+
+    @Test
+    fun `a stop on fourth down, called a turnover on downs, is marked as one`() {
+        PlayLines.templates.getValue("downs").forEach { call ->
+            val line = PlayLines.templates.getValue("run.stuffed").first() + " " + call
+            assertEquals(line, PlayEvent.TURNOVER, eventOf(listOf(play(line)), 0))
+        }
+    }
 }

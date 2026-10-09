@@ -60,6 +60,14 @@ class PlayLinesTest {
         "kickoff.return" to setOf("returner", "kicker", "spot"),
         "kickoff.return.big" to setOf("returner", "spot"),
         "kickoff.return.unnamed" to setOf("spot"),
+        "touchdown" to setOf("team"),
+        "touchdown.lead" to setOf("team"),
+        "touchdown.walkoff" to setOf("team"),
+        "pat.good" to setOf("kicker"),
+        "pat.miss" to setOf("kicker"),
+        "turnover" to setOf("team"),
+        "downs" to setOf("team"),
+        "safety" to setOf("team"),
     )
 
     /** Pieces spliced into another line rather than read on their own. */
@@ -99,6 +107,22 @@ class PlayLinesTest {
         }
         listOf("run.fumble", "pass.sack.fumble", "pass.complete.fumble").forEach { key ->
             PlayLines.templates.getValue(key).forEach { assertTrue("fumble" in it.lowercase(), "$key: $it") }
+        }
+    }
+
+    @Test
+    fun `the big moments are called as such`() {
+        // A touchdown says so, a turnover says so - the moment, not just the yards.
+        listOf("touchdown", "touchdown.lead", "touchdown.walkoff").forEach { key ->
+            PlayLines.templates.getValue(key).forEach { assertTrue("touchdown" in it.lowercase() || "six" in it.lowercase() || "scores" in it.lowercase(), "$key: $it") }
+        }
+        listOf("turnover", "downs").forEach { key ->
+            PlayLines.templates.getValue(key).forEach { assertTrue("turnover" in it.lowercase(), "$key: $it") }
+        }
+        PlayLines.templates.getValue("safety").forEach { assertTrue("safety" in it.lowercase(), it) }
+        // The kicker may be "an emergency kicker", so a try never opens with his name.
+        listOf("pat.good", "pat.miss").forEach { key ->
+            PlayLines.templates.getValue(key).forEach { assertTrue(!it.startsWith("{kicker}"), "$key: $it") }
         }
     }
 
