@@ -51,4 +51,26 @@ class PlayReportTest {
         }
         assertTrue(named > 100, "10 games name $named standout defenders")
     }
+
+    @Test
+    fun `a game's box score tallies each defender's reps as the play-by-play names them`() {
+        val league = LeagueGenerator.generate(2026, 38L)
+        val teams = WeekRunner.teams(league, league.tuning).values.toList()
+        repeat(6) { i ->
+            val game = GameSimulator(teams[i], teams[i + 12], league.tuning).simulate(SplitMixRng(i.toLong()))
+            val named = game.playByPlay.filter { it.defender != null }.groupBy { it.defender!! }
+            named.forEach { (id, plays) ->
+                val line = game.boxScore.players.getValue(id)
+                fun n(what: DefenderPlay) = plays.count { it.defenderPlay == what }
+                assertEquals(n(DefenderPlay.COVERED), line.coverageWins)
+                assertEquals(n(DefenderPlay.STUFF), line.stuffs)
+                assertEquals(n(DefenderPlay.BEATEN), line.timesBeaten)
+                assertEquals(n(DefenderPlay.FLAG), line.defensiveFlags)
+            }
+            // Nobody else has a rep counted.
+            game.boxScore.players.filterKeys { it !in named }.values.forEach { line ->
+                assertEquals(0, line.coverageWins + line.stuffs + line.timesBeaten + line.defensiveFlags)
+            }
+        }
+    }
 }

@@ -768,6 +768,22 @@ fun RosterScreen(
         item {
             Text("Tap a player for his card.", style = NdTheme.type.caption, color = c.chalkDim)
         }
+        // The season's defensive reps, worst first: where to look for a replacement.
+        if (shown.any { !it.position.isOffense }) {
+            val season = dynasty.playerStats.filterKeys { id -> shown.any { it.id.v == id && !it.position.isOffense } }
+            val reps = defenderRows(season, { id -> dynasty.league.playersById[PlayerId(id)]?.let { "${it.position.label} ${it.name}" } ?: "" }, onPlayer)
+            item {
+                SituationBlock("Defensive report", meta = "${dynasty.year} season") {
+                    if (reps.isEmpty()) {
+                        Text("No reps counted yet this season.", style = NdTheme.type.body, color = c.chalkDim)
+                    } else {
+                        DataTable(columns = DEFENDER_COLUMNS, rows = reps)
+                    }
+                    Text(DEFENDER_NOTE, style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs))
+                }
+            }
+        }
     }
 }
 
@@ -986,6 +1002,15 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
                     )
                 }
             }
+            // Who won and lost his reps, worst first: where a defence is losing.
+            val reps = defenderRows(lines, ::name)
+            if (reps.isNotEmpty()) item {
+                SituationBlock("${side.nickname} defense", meta = "Reps won and lost") {
+                    DataTable(columns = DEFENDER_COLUMNS, rows = reps)
+                    Text(DEFENDER_NOTE, style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs))
+                }
+            }
         }
 
         if (plays.isNotEmpty()) {
@@ -1011,6 +1036,33 @@ fun BoxScoreScreen(dynasty: Dynasty, archived: ArchivedGame? = null) {
         }
     }
 }
+
+/** The tally's columns: what a defender made, how often he was beaten, how often flagged. */
+internal val DEFENDER_COLUMNS = listOf(
+    ColumnSpec("Player", 2.6f),
+    ColumnSpec("Made", 0.8f, numeric = true),
+    ColumnSpec("Beaten", 0.9f, numeric = true),
+    ColumnSpec("Flags", 0.8f, numeric = true),
+)
+
+/** What the tally counts, in words. */
+internal const val DEFENDER_NOTE =
+    "Made: sacks, interceptions, throws he had covered and runs he stopped at the line. " +
+        "Beaten: catches of 20 yards or more on his man. Flags: penalties on him."
+
+/**
+ * Each defender with a rep counted in [lines], worst first - most reps lost,
+ * then fewest made - so the man a defence is losing with is at the top.
+ */
+internal fun defenderRows(lines: Map<Int, StatLine>, name: (Int) -> String, onClick: ((Int) -> Unit)? = null): List<RowData> =
+    lines.entries.filter { it.value.playsMade + it.value.repsLost > 0 }
+        .sortedWith(compareByDescending<Map.Entry<Int, StatLine>> { it.value.repsLost }.thenBy { it.value.playsMade }.thenBy { name(it.key) })
+        .map { (id, s) ->
+            RowData(
+                listOf(name(id), "${s.playsMade}", "${s.timesBeaten}", "${s.defensiveFlags}"),
+                onClick = onClick?.let { { it(id) } },
+            )
+        }
 
 private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<RowData> = buildList {
     lines.entries.filter { it.value.passAttempts > 0 }.maxByOrNull { it.value.passYards }?.let { (id, s) ->

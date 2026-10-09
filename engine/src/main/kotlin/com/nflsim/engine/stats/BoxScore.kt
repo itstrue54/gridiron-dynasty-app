@@ -32,6 +32,15 @@ data class StatLine(
     val puntReturnYards: Int = 0,
     /** Returns he stopped in coverage. Kept apart from [tackles], which the defence's records and pricing read. */
     val specialTeamsTackles: Int = 0,
+    /**
+     * A defender's reps the sim decided by name (sim.PlayReport): throws he had
+     * covered, runs he stopped at the line, long catches he was beaten on, and
+     * flags on him. With [sacks] and [interceptions], his good and bad plays.
+     */
+    val coverageWins: Int = 0,
+    val stuffs: Int = 0,
+    val timesBeaten: Int = 0,
+    val defensiveFlags: Int = 0,
 ) {
     operator fun plus(other: StatLine) = StatLine(
         passAttempts + other.passAttempts, completions + other.completions,
@@ -46,7 +55,15 @@ data class StatLine(
         kickReturns + other.kickReturns, kickReturnYards + other.kickReturnYards,
         puntReturns + other.puntReturns, puntReturnYards + other.puntReturnYards,
         specialTeamsTackles + other.specialTeamsTackles,
+        coverageWins + other.coverageWins, stuffs + other.stuffs,
+        timesBeaten + other.timesBeaten, defensiveFlags + other.defensiveFlags,
     )
+
+    /** A defender's reps won: sacks, interceptions, throws covered, runs stopped at the line. */
+    val playsMade: Int get() = sacks + interceptions + coverageWins + stuffs
+
+    /** A defender's reps lost: long catches he was beaten on, and flags on him. */
+    val repsLost: Int get() = timesBeaten + defensiveFlags
 
     /** What a tackle leaderboard counts: his own stops and the ones he helped on. */
     val combinedTackles: Int get() = tackles + assists

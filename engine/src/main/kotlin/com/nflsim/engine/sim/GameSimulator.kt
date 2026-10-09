@@ -578,6 +578,19 @@ class GameSimulator(
         val result = PlaySimulator.simPlay(ctx, offCall, defCall, rng)
         snap(ctx, offTeam, defTeam, state.quarter)
         val standout = PlayReport.standout(result, result.penalty?.type?.onOffense == false, tuning.passing)
+        // His rep in the box score, for the tally a coach reads (sacks and
+        // interceptions are counted with the play).
+        standout?.let { (id, what) ->
+            stats.update(com.nflsim.engine.model.PlayerId(id)) {
+                when (what) {
+                    DefenderPlay.COVERED -> it.copy(coverageWins = it.coverageWins + 1)
+                    DefenderPlay.STUFF -> it.copy(stuffs = it.stuffs + 1)
+                    DefenderPlay.BEATEN -> it.copy(timesBeaten = it.timesBeaten + 1)
+                    DefenderPlay.FLAG -> it.copy(defensiveFlags = it.defensiveFlags + 1)
+                    DefenderPlay.SACK, DefenderPlay.INTERCEPTION -> it
+                }
+            }
+        }
         log(
             state, result.log.narrative + (result.penalty?.let { " (${it.description})" } ?: ""),
             offenseCall = PlayReport.offenseCall(offCall, offTeam.team.offenseScheme),

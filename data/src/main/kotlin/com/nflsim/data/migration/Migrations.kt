@@ -117,6 +117,8 @@ object Migrations {
         Step(57, "each line of the play-by-play says what it is (SPEC 10); nothing to move") { it },
         // An old game's snaps carry no calls and name no defender; the box at the top shows just the line.
         Step(58, "each snap names both sides' calls and the defender it turned on (SPEC 10); nothing to move") { it },
+        // Games already played counted no reps; the tally starts with the next game.
+        Step(59, "box scores tally each defender's reps won and lost (SPEC 10); nothing to move") { it },
     )
 
     /**
