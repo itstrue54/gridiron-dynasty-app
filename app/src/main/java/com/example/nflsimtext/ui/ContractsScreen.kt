@@ -9,6 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import com.example.nflsimtext.ui.components.Chip
 import com.example.nflsimtext.ui.components.PrimaryButton
@@ -55,6 +58,18 @@ fun ContractsScreen(
     fun go(choices: Map<Int, ContractDecision>?) {
         scope.launch { store.decideContracts(choices); if (store.freeAgency != null) onDraft() }
     }
+    // A man's card, over the list: the calls made so far wait underneath.
+    var card by remember { mutableStateOf<Int?>(null) }
+    androidx.activity.compose.BackHandler(enabled = card != null) { card = null }
+    card?.let { id ->
+        val man = pause.expiring.first { it.player.id.v == id }.player
+        // His own club's man: read as the staff that coached him knows him.
+        PlayerCardScreen(dynasty, id, players = mapOf(id to man), backLabel = "Back to contracts",
+            readAs = lensFor(dynasty, man)) { card = null }
+        return
+    }
+    val offence = com.nflsim.engine.ratings.SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)
+    val defence = com.nflsim.engine.ratings.SchemeCatalog.tuned(dynasty.team.defenseScheme, dynasty.league.tuning)
     val cost = pause.cost(decisions)
     val left = pause.capSpace - cost
     val tagger = decisions.entries.firstOrNull {
@@ -135,6 +150,13 @@ fun ContractsScreen(
                         style = NdTheme.type.body, color = c.chalk,
                     )
                     e.wish?.let { Text("He ${it.note}.", style = NdTheme.type.caption, color = c.chalkDim) }
+                    val scheme = if (e.player.position.isOffense) offence else defence
+                    Text(
+                        "Your read: ${lensFor(dynasty, e.player).view(com.nflsim.engine.ratings.overall(e.player, scheme)).text}, " +
+                            "fit ${com.nflsim.engine.ratings.SchemeFitGrade.letter(com.nflsim.engine.ratings.schemeFit(e.player, scheme))}.",
+                        style = NdTheme.type.body, color = c.chalk,
+                    )
+                    SecondaryButton("See his card", { card = id }, Modifier.padding(top = NdTheme.spacing.xs))
 
                     // The recommendation, and the reason for it.
                     Text(
