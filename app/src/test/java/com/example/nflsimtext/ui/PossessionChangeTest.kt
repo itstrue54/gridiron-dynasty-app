@@ -89,4 +89,43 @@ class PossessionChangeTest {
         assertEquals(6, endOfDrive(plays, 5))
         assertEquals(6, endOfDrive(plays, 6))
     }
+
+    private fun kickoff(offense: Side, quarter: Int = 2, home: Int = 7, away: Int = 3) =
+        PlayLog(quarter, 900, offense, 1, 10, 27, home, away, "Smith brings the kickoff back to the 27.", PlayKind.KICKOFF)
+
+    @Test
+    fun `after a kickoff, until the next snap, the field says why it was kicked`() {
+        // The kickoff is the receiving club's line, so the ball is already theirs.
+        assertEquals(PossessionChange.OPENING_KICKOFF,
+            possessionChange(listOf(kickoff(Side.AWAY, quarter = 1, home = 0, away = 0)), Side.AWAY, 1, 0, 0))
+        val touchdown = play("Smith runs it in.", down = 1, home = 7, away = 0)
+        assertEquals(PossessionChange.KICKOFF,
+            possessionChange(listOf(play("A run for 3.", down = 1, home = 0, away = 0), touchdown, kickoff(Side.AWAY, home = 7, away = 0)), Side.AWAY, 2, 7, 0))
+        val half = play("A run for 3.", down = 1, quarter = 2)
+        assertEquals(PossessionChange.SECOND_HALF,
+            possessionChange(listOf(half, kickoff(Side.AWAY, quarter = 3)), Side.AWAY, 3, 7, 3))
+        // Once the receiving club has snapped it, the field says nothing.
+        assertNull(possessionChange(listOf(touchdown, kickoff(Side.AWAY), play("A run for 4.", down = 1, offense = Side.AWAY)), Side.AWAY, 2, 7, 3))
+    }
+
+    @Test
+    fun `a kickoff reads as a kickoff, not a down`() {
+        assertEquals("Kickoff", downAndDistance(kickoff(Side.AWAY)))
+    }
+
+    @Test
+    fun `the last play box leads with a score, and tells its kickoff under it`() {
+        val run = play("A run for 3.", down = 1, home = 0, away = 0)
+        val touchdown = play("Smith runs it in.", down = 2, home = 0, away = 0)
+        val kick = kickoff(Side.AWAY, home = 7, away = 0)
+        val timeout = play("Timeout.", down = 1, kind = PlayKind.NOTE, offense = Side.AWAY, home = 7, away = 0)
+        val plays = listOf(run, touchdown, kick, timeout)
+        assertEquals(1 to 2, lastPlays(plays, 3))
+        assertEquals("a note after it changes nothing", 1 to 2, lastPlays(plays, 4))
+        assertEquals("before the kick, the score alone", 1 to null, lastPlays(plays, 2))
+        // A kickoff after no score - the game's first, the second half's - stands alone.
+        assertEquals(0 to null, lastPlays(listOf(kickoff(Side.AWAY, quarter = 1, home = 0, away = 0)), 1))
+        assertEquals(1 to null, lastPlays(listOf(play("A run for 3.", down = 1), kickoff(Side.AWAY, quarter = 3)), 2))
+        assertEquals(null to null, lastPlays(emptyList(), 0))
+    }
 }

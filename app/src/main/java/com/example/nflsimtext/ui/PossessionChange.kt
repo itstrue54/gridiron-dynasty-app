@@ -23,7 +23,8 @@ enum class PossessionChange(val label: String) {
 /**
  * Why the ball changed hands after the plays in [shown], when the next snap is
  * [nextOffense]'s: null when the club with the ball still has it, the opening
- * kickoff before the first snap. Read from the last snap or kick (a note such
+ * kickoff before the first snap. After a kickoff, until the next snap, why
+ * it was kicked. Read from the last snap or kick (a note such
  * as a timeout is passed over), its kind and the score; a kick's line says
  * which kind of kick it was.
  */
@@ -34,7 +35,20 @@ internal fun possessionChange(
     nextHomeScore: Int,
     nextAwayScore: Int,
 ): PossessionChange? {
-    val last = shown.lastOrNull { it.kind != PlayKind.NOTE } ?: return PossessionChange.OPENING_KICKOFF
+    val i = shown.indexOfLast { it.kind != PlayKind.NOTE }
+    if (i < 0) return PossessionChange.OPENING_KICKOFF
+    val last = shown[i]
+    // A kickoff is logged as the receiving club's, so the ball is already
+    // theirs: why it was kicked is the play before it.
+    if (last.kind == PlayKind.KICKOFF) {
+        val before = shown.subList(0, i).lastOrNull { it.kind != PlayKind.NOTE }
+        return when {
+            before == null -> PossessionChange.OPENING_KICKOFF
+            last.homeScore > before.homeScore || last.awayScore > before.awayScore -> PossessionChange.KICKOFF
+            before.quarter == 2 && last.quarter == 3 -> PossessionChange.SECOND_HALF
+            else -> PossessionChange.KICKOFF
+        }
+    }
     if (nextOffense == last.offense) return null
     val text = last.text.lowercase()
     // A log saved before plays kept their kind calls every line a snap: its

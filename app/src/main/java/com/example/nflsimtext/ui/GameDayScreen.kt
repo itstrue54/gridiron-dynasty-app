@@ -76,8 +76,9 @@ fun GameDayScreen(dynasty: Dynasty, onBoxScore: () -> Unit = {}, onBack: () -> U
     val haptic = LocalHapticFeedback.current
     val hapticsOn = LocalHaptics.current
     // The snap that comes next: the board and the field show the game as it
-    // stands now, after the last play.
-    val now = plays.getOrNull(shown) ?: plays.last()
+    // stands now, after the last play. A kickoff is not a snap: the board
+    // shows where it leaves the ball.
+    val now = plays.drop(shown).firstOrNull { it.kind != com.nflsim.engine.sim.PlayKind.KICKOFF } ?: plays.last()
 
     LaunchedEffect(shown, animate) {
         // The end zone takes the pylon, holds, and gives it back.
@@ -247,9 +248,24 @@ internal fun endOfDrive(plays: List<PlayLog>, from: Int): Int {
  */
 @Composable
 internal fun LastPlayOf(plays: List<PlayLog>, shown: Int, league: com.nflsim.engine.model.League, home: Team, away: Team) {
-    val i = (shown - 1 downTo 0).firstOrNull { plays[it].kind != com.nflsim.engine.sim.PlayKind.NOTE }
+    val (i, kick) = lastPlays(plays, shown)
     val play = i?.let { plays[it] }
-    LastPlay(play, i?.let { eventOf(plays, it) }, play?.let { playDetail(it, league, home, away) })
+    LastPlay(play, i?.let { eventOf(plays, it) }, play?.let { playDetail(it, league, home, away) }, then = kick?.let { plays[it] })
+}
+
+/**
+ * Which of the first [shown] of [plays] the Last play box shows: the last
+ * play, and the kickoff after it when it was a score. A score and its
+ * kickoff come in one go, so the box leads with the score and says how the
+ * kick went under it; a kickoff after no score - the game's first, the
+ * second half's - stands alone.
+ */
+internal fun lastPlays(plays: List<PlayLog>, shown: Int): Pair<Int?, Int?> {
+    fun before(n: Int) = (n - 1 downTo 0).firstOrNull { plays[it].kind != com.nflsim.engine.sim.PlayKind.NOTE }
+    val i = before(shown) ?: return null to null
+    if (plays[i].kind != com.nflsim.engine.sim.PlayKind.KICKOFF) return i to null
+    val scored = before(i)?.takeIf { j -> plays[i].homeScore > plays[j].homeScore || plays[i].awayScore > plays[j].awayScore }
+    return if (scored != null) scored to i else i to null
 }
 
 /** Beyond a play's line: what each side called, and the defender it turned on, good or bad. */
@@ -296,7 +312,7 @@ internal fun playDetail(play: PlayLog, league: com.nflsim.engine.model.League, h
  * kickoff.
  */
 @Composable
-internal fun LastPlay(play: PlayLog?, event: PlayEvent?, detail: PlayDetail? = null) {
+internal fun LastPlay(play: PlayLog?, event: PlayEvent?, detail: PlayDetail? = null, then: PlayLog? = null) {
     val c = NdTheme.colors
     SituationBlock("Last play", meta = if (play == null) "Kickoff" else null) {
         if (play == null) {
@@ -331,6 +347,12 @@ internal fun LastPlay(play: PlayLog?, event: PlayEvent?, detail: PlayDetail? = n
                     style = NdTheme.type.caption, color = c.chalk,
                     modifier = Modifier.padding(start = NdTheme.spacing.s),
                 )
+            }
+        }
+        // The kickoff that followed the score.
+        then?.let { kick ->
+            Column(Modifier.padding(top = NdTheme.spacing.s)) {
+                PlayLogEntry(downDistance = downAndDistance(kick), text = kick.text, event = null)
             }
         }
     }

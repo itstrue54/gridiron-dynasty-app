@@ -1172,6 +1172,7 @@ private fun leaderRows(lines: Map<Int, StatLine>, name: (Int) -> String): List<R
 }
 
 internal fun downAndDistance(play: PlayLog): String {
+    if (play.kind == com.nflsim.engine.sim.PlayKind.KICKOFF) return "Kickoff"
     val down = when (play.down) {
         1 -> "1st"
         2 -> "2nd"
