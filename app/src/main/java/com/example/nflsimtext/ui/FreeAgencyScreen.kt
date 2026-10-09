@@ -23,6 +23,8 @@ import com.example.nflsimtext.ui.components.SituationBlock
 import com.example.nflsimtext.ui.theme.NdTheme
 import com.nflsim.engine.offseason.FreeAgency
 import com.nflsim.engine.ratings.SchemeCatalog
+import com.nflsim.engine.ratings.SchemeFitGrade
+import com.nflsim.engine.ratings.schemeFit
 import com.nflsim.engine.ratings.overall
 import com.nflsim.engine.season.Dynasty
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +73,18 @@ fun FreeAgencyScreen(
         .filter { position == ALL || it.player.position.group.name == position }
         .take(SHOWN)
     val abbrev = dynasty.league.teams.associate { it.id to it.abbrev }
+
+    // A man's card, over the market; the offers wait underneath.
+    var card by remember { mutableStateOf<Int?>(null) }
+    androidx.activity.compose.BackHandler(enabled = card != null) { card = null }
+    card?.let { id ->
+        val man = pause.candidates.first { it.player.id.v == id }.player
+        PlayerCardScreen(
+            dynasty, id, players = mapOf(id to man), backLabel = "Back to free agency",
+            readAs = lensFor(dynasty, man),
+        ) { card = null }
+        return
+    }
     val cut = (FreeAgency.dailyCut(dynasty.league.tuning.ai) * 100).toInt()
 
     ScreenList {
@@ -178,7 +192,8 @@ fun FreeAgencyScreen(
                     situation = if (mine != null) Situation.THIRD_DOWN else Situation.NORMAL,
                 ) {
                     Text(
-                        "Your read: ${lensFor(dynasty, p).view(overall(p, scheme)).text}. " +
+                        "Your read: ${lensFor(dynasty, p).view(overall(p, scheme)).text}, " +
+                            "fit ${SchemeFitGrade.letter(schemeFit(p, scheme))}. " +
                             "Worth ${dealMoney(cand.market)} a year; opens asking ${dealMoney(cand.opening)}" +
                             (cand.from?.let { ", late of ${abbrev[it] ?: "?"}" } ?: "") + ".",
                         style = NdTheme.type.body, color = c.chalk,
@@ -189,6 +204,7 @@ fun FreeAgencyScreen(
                         modifier = Modifier.padding(top = NdTheme.spacing.xs),
                     )
                     Text(advice.why, style = NdTheme.type.caption, color = c.chalkDim)
+                    SecondaryButton("See his card", { card = id }, Modifier.padding(top = NdTheme.spacing.xs))
                     FlowRow(
                         Modifier.padding(top = NdTheme.spacing.s),
                         horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),

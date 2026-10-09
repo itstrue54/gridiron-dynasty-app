@@ -58,6 +58,8 @@ fun PlayerCardScreen(
     /** Where to find him when it isn't the league as it stands - a trade being worked at the draft room. */
     players: Map<Int, Player>? = null,
     backLabel: String = "Back to the roster",
+    /** How the list he was opened from reads him, so he reads the same on both. */
+    readAs: com.nflsim.engine.ratings.ScoutingLens? = null,
     onBack: () -> Unit = {},
 ) {
     val c = NdTheme.colors
@@ -79,7 +81,7 @@ fun PlayerCardScreen(
     val fit = schemeFit(player, scheme)
     // His years elsewhere teach the user's staff nothing about his traits.
     val seen = TraitScouting.confidence(if (own) player.clubYears else 0, com.nflsim.engine.ratings.Scouting.department(team, dynasty.league), dynasty.league.tuning.scouting)
-    val lens = lensOf(dynasty, player)
+    val lens = readAs ?: lensOf(dynasty, player)
     // Another club's man: how he suits the schemes he plays in now.
     val club = player.teamId?.takeIf { !own }?.let { id -> dynasty.league.teams.firstOrNull { it.id == id } }
     val ovr = lens.view(overall(player))
