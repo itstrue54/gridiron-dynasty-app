@@ -125,7 +125,10 @@ object ContractOptions {
         val term = deals.map { it.years }.distinct().filter { it <= maxOf(prime, 1) }.maxOrNull()
             ?: deals.minOf { it.years }
         val atTerm = deals.filter { it.years == term }
-        val tight = capSpace - atTerm.first { it.structure == Structure.STANDARD }.capNow < cap * t.tightCapShare
+        // [deals] may be only the ones the club can afford: with the standard
+        // way of writing it gone, the room is tight by definition.
+        val standard = atTerm.firstOrNull { it.structure == Structure.STANDARD }
+        val tight = standard == null || capSpace - standard.capNow < cap * t.tightCapShare
         val structure = when {
             tight -> Structure.CAP_LIGHT
             age >= t.payThroughAge - 1 -> Structure.PAY_AS_YOU_GO
