@@ -73,7 +73,12 @@ class ScreenSoakTest {
         camp.suggested
         camp.roster.forEach { camp.whyCut(it); camp.value(it); camp.deadIfCut(it) }
         camp.pool.take(30).forEach { camp.value(it) }
-        return camp.decide(null).first
+        // Camp's report and its calls, and a trade offer taken as the screen takes it.
+        campReport(camp.campBefore, camp.roster) { com.nflsim.engine.ratings.overall(it) }
+        camp.campPlan.forEach { camp.campReason(it) }
+        val after = camp.campOffers.firstOrNull()?.let { camp.takeCampTrade(it) } ?: camp
+        after.suggested
+        return after.decide(null).first
     }
 
     @Test
