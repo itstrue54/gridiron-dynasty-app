@@ -60,18 +60,18 @@ never shown in the store.
 
 ## Screenshots
 
-`assets/screenshots/` holds eight phone screenshots. They were taken on a Galaxy (1080x2340) on 1 October 2026, from a fictional club: the Cleveland Forge of a generated league, 9-3 going into week 14.
+`assets/screenshots/` holds eight phone screenshots, in the order to upload them: game day leads, because the first two are what most people judge the game by. They were taken on a Galaxy (1080x2340) on 10 October 2026, from fictional clubs of generated leagues - the Cleveland Forge throughout.
 
 | File | Screen |
 |---|---|
-| 1-hub | the club, its record, what needs attention, next week's game, and the grouped links |
-| 2-roster | the roster with the club's own read on each man, as a range, and the ratings legend |
-| 3-transactions | the league's wire, filtered to signings |
-| 4-free-agents | the market, the practice squad and the prorated minimum |
-| 5-game-plan | the game plan in plain words |
-| 6-staff | the head coach and his ratings |
-| 7-standings | the division, the user's club highlighted |
-| 8-box-score | the last game's team stats |
+| 1-touchdown | a called game: the Last play box with the touchdown call, both clubs' calls, the corner who was beaten, the kickoff after it, and the field's possession banner |
+| 2-call-the-play | calling a play: the coordinator's suggestion, or a formation and then a run or pass |
+| 3-draft-report | the draft room's scouting report on a receiver: build, school, his read in the user's scheme, his six key ratings as the scouts' ranges, and the Draft button |
+| 4-training-camp | what camp showed, group by group: each group's most improved man, its size and its average change |
+| 5-trade-call | another club's general manager calling about a man on the block, with a player and a first-round pick |
+| 6-hub | the club at 9-3, what needs attention, and next week's game |
+| 7-player-card | a corner's card: the ratings his position asks for, as ranges, and his scheme fit |
+| 8-game-recap | a 37-34 comeback told by the plays that swung it |
 
 There are two versions of each:
 - **The plain file** is the phone's screen with the status bar and the navigation bar cropped off: 1080x2108. The status bar carries the owner's notifications, and neither bar is part of the app.
