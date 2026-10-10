@@ -2,7 +2,10 @@
 
 ## Title (30 characters max)
 
-Gridiron Dynasty: Football GM
+Gridiron Dynasty: Football Sim
+
+"Football GM" is another game's name, and Play treats a title that borrows
+one as keyword spam; "Football Sim" says what this is in words nobody owns.
 
 ## Short description (80 characters max)
 
@@ -21,7 +24,7 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 - Re-sign your stars, use the franchise tag, and bid in free agency under a real salary cap. Cut a bad contract and you still pay for it.
 
 **Run the team**
-- Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. Promote another club's coordinator to head coach: under NFL rules his club can't stop you, and yours can't stop them. A new coordinator brings his own scheme and tendencies.
+- Hire and fire your coaches and general manager each spring, from the men out of work and new candidates. Promote another club's coordinator to head coach: his club can't stop you, and yours can't stop them. A new coordinator brings his own scheme and tendencies.
 - Set your depth chart and a game plan: how often you pass, when you blitz, how often you go for it on fourth down.
 - Watch every game play by play, call the plays yourself, or skip straight to the final.
 - Want to play commissioner? Turn on player editing and rewrite any player's position, ratings and traits. Or leave it off and play it straight.
@@ -34,7 +37,14 @@ Thirty-two fictional clubs and seventeen hundred players you will come to know: 
 **Built to feel real**
 Calibrated against real league statistics - how often teams run and pass, how many points they score, how often the ball comes loose - with fatigue, injuries and weather. Play it Realistic, Arcade or Grinder, or tune every value yourself.
 
-No ads. No purchases. No accounts. No internet connection needed.
+Buy it once and it is yours: no ads, no in-app purchases, no accounts, no internet connection needed.
+
+## Price
+
+Paid, one time: **$2.99 for the first two weeks, then $4.99** (see
+`RELEASE.md`, *Pricing*). The price is set in Play Console, never in the
+listing: a price in the text goes stale the day it changes, and Play does not
+allow one in the title.
 
 ## Category
 
@@ -50,18 +60,18 @@ never shown in the store.
 
 ## Screenshots
 
-`assets/screenshots/` holds eight phone screenshots. They were taken on a Galaxy (1080x2340) on 1 October 2026, from a fictional club: the Cleveland Forge of a generated league, 9-3 going into week 14.
+`assets/screenshots/` holds eight phone screenshots, in the order to upload them: game day leads, because the first two are what most people judge the game by. They were taken on a Galaxy (1080x2340) on 10 October 2026, from fictional clubs of generated leagues - the Cleveland Forge throughout.
 
 | File | Screen |
 |---|---|
-| 1-hub | the club, its record, what needs attention, next week's game, and the grouped links |
-| 2-roster | the roster with the club's own read on each man, as a range, and the ratings legend |
-| 3-transactions | the league's wire, filtered to signings |
-| 4-free-agents | the market, the practice squad and the prorated minimum |
-| 5-game-plan | the game plan in plain words |
-| 6-staff | the head coach and his ratings |
-| 7-standings | the division, the user's club highlighted |
-| 8-box-score | the last game's team stats |
+| 1-touchdown | a called game: the Last play box with the touchdown call, both clubs' calls, the corner who was beaten, the kickoff after it, and the field's possession banner |
+| 2-call-the-play | calling a play: the coordinator's suggestion, or a formation and then a run or pass |
+| 3-draft-report | the draft room's scouting report on a receiver: build, school, his read in the user's scheme, his six key ratings as the scouts' ranges, and the Draft button |
+| 4-training-camp | what camp showed, group by group: each group's most improved man, its size and its average change |
+| 5-trade-call | another club's general manager calling about a man on the block, with a player and a first-round pick |
+| 6-hub | the club at 9-3, what needs attention, and next week's game |
+| 7-player-card | a corner's card: the ratings his position asks for, as ranges, and his scheme fit |
+| 8-game-recap | a 37-34 comeback told by the plays that swung it |
 
 There are two versions of each:
 - **The plain file** is the phone's screen with the status bar and the navigation bar cropped off: 1080x2108. The status bar carries the owner's notifications, and neither bar is part of the app.

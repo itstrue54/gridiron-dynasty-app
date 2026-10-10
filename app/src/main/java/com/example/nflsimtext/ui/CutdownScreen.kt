@@ -97,16 +97,19 @@ fun CutdownScreen(
         item {
             SituationBlock("What camp showed", meta = "by position group") {
                 DataTable(
+                    // The numbers at the ends: a right-aligned figure beside a
+                    // left-aligned name ran into it ("-0.4Flowers +3").
                     columns = listOf(
                         ColumnSpec("Group", 0.9f),
+                        ColumnSpec("Most improved", 2.4f, wrap = true),
                         ColumnSpec("Men", 0.6f, numeric = true),
                         ColumnSpec("Change", 0.9f, numeric = true),
-                        ColumnSpec("Most improved", 2.4f, wrap = true),
                     ),
                     rows = camp.map { g ->
                         RowData(listOf(
-                            g.group.name, "${g.men}", signed(g.change),
+                            g.group.name,
                             g.riser?.let { (p, d) -> "${p.lastName} ${signed(d.toFloat())}" } ?: "-",
+                            "${g.men}", signed(g.change),
                         ))
                     },
                 )

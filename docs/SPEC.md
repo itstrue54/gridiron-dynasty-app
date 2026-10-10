@@ -1787,7 +1787,7 @@ Consequences: Save/load and file access live in :data. Slightly more boilerplate
 - ~~**[OPEN]** Real player names via an import file, or fully fictional only?~~ **Resolved Sept 2026: both.** Ship fictional; support user-supplied roster import. See §9.4.
 - ~~**[OPEN]** Do coaches have their own progression/career arcs? Adds a lot of flavor; adds a lot of scope. Candidate for post-1.0.~~ **Resolved Oct 2026: yes** (§4.7 Careers): ratings rise to a prime, hold, and decline very slowly; position coaches can be promoted to coordinator.
 - ~~**[OPEN]** Practice squad and gameday inactives — realistic, but is it fun or is it admin?~~ **Resolved Sept 2026: practice squads built** (§6.1); the user's squad is his to manage or hand to the front office. **Gameday inactives resolved Oct 2026:** 47 or 48 dress under the CBA, the front office picks the scratches and the practice-squad call-ups, and the user may name his own (§6.1).
-- **[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.
+- ~~**[OPEN]** Monetization: free, one-time paid, or free with a paid "commissioner tools" tier? Doesn't affect architecture; decide at M11.~~ **Resolved Oct 2026: paid, once.** $2.99 for a two-week launch, then $4.99. No ads, no in-app purchases, no accounts, no network; the app has no billing code and needs none (ADR in DECISIONS.md, steps in docs/play-store/RELEASE.md).
 
 ---
 

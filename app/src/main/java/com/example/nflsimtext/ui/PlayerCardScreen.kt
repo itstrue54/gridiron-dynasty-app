@@ -284,7 +284,8 @@ fun PlayerCardScreen(
                 SituationBlock("Moves", meta = "${moves.size}") {
                     DataTable(
                         columns = listOf(
-                            ColumnSpec("Year", 0.8f, numeric = true),
+                            // Left-aligned: a right-aligned year ran into the week beside it.
+                            ColumnSpec("Year", 0.8f),
                             ColumnSpec("When", 0.9f),
                             ColumnSpec("Club", 0.7f),
                             ColumnSpec("Move", 2.4f, wrap = true),
