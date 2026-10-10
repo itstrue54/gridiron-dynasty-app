@@ -111,13 +111,20 @@ class CampDecisionsTest {
     @Test
     fun `a patient general manager makes fewer camp moves than a hasty one`() {
         // Patience is 1.28 + riskTolerance x 0.5: every club's GM made hasty, then patient.
-        fun moves(risk: Float): Int {
-            val league = season.league.copy(teams = season.league.teams.map { it.copy(gm = it.gm.copy(riskTolerance = risk)) })
-            val camp = OffseasonEngine.runToDraft(season.copy(league = league)).toCutdown()
+        // Patience only gates the passed-by moves, so one league can tie (seed 33: 14 and 14);
+        // two leagues together are counted. Four measured: 14-14, 16-9, 21-14, 21-16.
+        val other: Dynasty = LeagueGenerator.generate(2026, 41L).let { league ->
+            var d = DynastyEngine.start(league, 2026, 41L, league.teams.first().id)
+            while (d.phase != DynastyPhase.OFFSEASON) d = DynastyEngine.advance(d)
+            d
+        }
+        fun moves(d: Dynasty, risk: Float): Int {
+            val league = d.league.copy(teams = d.league.teams.map { it.copy(gm = it.gm.copy(riskTolerance = risk)) })
+            val camp = OffseasonEngine.runToDraft(d.copy(league = league)).toCutdown()
             return camp.campReleases.size + camp.campTrades.size
         }
-        val hasty = moves(0f)
-        val patient = moves(1f)
+        val hasty = moves(season, 0f) + moves(other, 0f)
+        val patient = moves(season, 1f) + moves(other, 1f)
         assertTrue(hasty > patient, "hasty $hasty vs patient $patient")
     }
 }

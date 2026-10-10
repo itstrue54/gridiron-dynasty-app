@@ -94,8 +94,10 @@ object Transactions {
             status = PlayerStatus.ACTIVE,
             // A street deal: one year, all base salary, nothing guaranteed.
             contract = Contract(years = 1, baseSalary = listOf(cost), signedYear = year),
-            yearsWithClub = 0,
-            yearsInSystem = 0,
+            // Promoted off his own club's squad, he never left: his years there
+            // stand. From anywhere else he is new to the club and its system.
+            yearsWithClub = if (from == team) player.yearsWithClub else 0,
+            yearsInSystem = if (from == team) player.yearsInSystem else 0,
         )
         return done(
             Transaction.of(league.year, week, when (from) { null -> TransactionKind.SIGNED; team -> TransactionKind.PROMOTED; else -> TransactionKind.SIGNED_OFF_SQUAD }, team, player, amount = cost, years = 1, other = from?.takeIf { it != team }),
@@ -169,8 +171,9 @@ object Transactions {
             Transaction.of(league.year, week, TransactionKind.TO_SQUAD, team, player),
 
             league.copy(
+                // New to the club: its staff and its system start from nothing with him.
                 players = league.players.map {
-                    if (it.id == playerId) it.copy(status = PlayerStatus.PRACTICE_SQUAD) else it
+                    if (it.id == playerId) it.copy(status = PlayerStatus.PRACTICE_SQUAD, yearsWithClub = 0, yearsInSystem = 0) else it
                 },
                 teams = league.teams.map {
                     if (it.id == team) it.copy(practiceSquad = it.practiceSquad + playerId) else it
@@ -229,9 +232,15 @@ object Transactions {
      */
     fun releaseToPracticeSquad(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year, week: Int = 0): Outcome {
         squadRefusal(league, team, playerId)?.let { return Outcome.Refused(it) }
+        val before = league.playersById.getValue(playerId)
         val released = release(league, team, playerId, year, week) as? Outcome.Done ?: return release(league, team, playerId, year, week)
         return when (val squad = signToPracticeSquad(released.league, team, playerId, week)) {
-            is Outcome.Done -> Outcome.Done(squad.league, released.note.removeSuffix(".") + ", and joins the practice squad.")
+            // He stays with the club, so his years with it and in its system stand.
+            is Outcome.Done -> Outcome.Done(
+                squad.league.copy(players = squad.league.players.map {
+                    if (it.id == playerId) it.copy(yearsWithClub = before.yearsWithClub, yearsInSystem = before.yearsInSystem) else it
+                }),
+                released.note.removeSuffix(".") + ", and joins the practice squad.")
             is Outcome.Refused -> squad
         }
     }

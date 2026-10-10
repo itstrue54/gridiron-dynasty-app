@@ -81,4 +81,23 @@ class SquadMoveTest {
         if (full.team(club).practiceSquad.size < PracticeSquads.VETERANS) return
         assertTrue(Transactions.squadRefusal(full, club, vet.id)!!.contains("veteran"))
     }
+
+    @Test
+    fun `a man sent down and promoted again keeps his years with the club and its system`() {
+        val vet = young.copy(yearsWithClub = 3, yearsInSystem = 2)
+        val start = league.copy(players = league.players.map { if (it.id == young.id) vet else it })
+        val down = (Transactions.releaseToPracticeSquad(start, club, young.id) as Transactions.Outcome.Done).league
+        assertEquals(3 to 2, down.player(young.id).let { it.yearsWithClub to it.yearsInSystem })
+        val up = (Transactions.sign(down, club, young.id) as Transactions.Outcome.Done).league
+        assertEquals(3 to 2, up.player(young.id).let { it.yearsWithClub to it.yearsInSystem })
+    }
+
+    @Test
+    fun `a man new to the club starts its years from nothing, on the squad or the 53`() {
+        val stranger = league.players.first { PracticeSquads.unattached(it) && !PracticeSquads.isVeteran(it) }
+            .let { it.copy(yearsWithClub = 4, yearsInSystem = 3) }
+        val start = league.copy(players = league.players.map { if (it.id == stranger.id) stranger else it })
+        val squad = (Transactions.signToPracticeSquad(start, club, stranger.id) as Transactions.Outcome.Done).league
+        assertEquals(0 to 0, squad.player(stranger.id).let { it.yearsWithClub to it.yearsInSystem })
+    }
 }
