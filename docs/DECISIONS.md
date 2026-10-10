@@ -2607,3 +2607,11 @@ A punt names the man who fielded it, returned or fair caught. The words come fro
 **Decision.** A one-time price: $2.99 for the first two weeks after launch, then $4.99. No ads, no in-app purchases, no accounts. The app stays as it is: no billing code, no network, no permissions. The price lives in Play Console, not in the listing text.
 
 **Consequences.** Fewer installs than a free app, in exchange for revenue from the first sale and the "buy once, no strings" promise the listing makes. A Play payments profile is needed before the price can be set. The two-week change to $4.99 is a manual step in Play Console (RELEASE.md, *Pricing*). Anyone who bought at $2.99 keeps the app.
+
+## ADR-0xx — A man keeps his years when he moves within his club
+
+**Context.** Promoting a man off a club's own practice squad signed him as if he were new: his years with the club and in its system went to 0. A coach who moved a backup down and back up found his staff had forgotten him (seen on the phone: a 67-74 read became 64-77), and he lost his scheme familiarity. Signing a man to a squad from outside kept the years he brought from his old club.
+
+**Decision.** Years reset when a man joins a club from outside, to its squad or its 53. They're kept when he moves between his own club's 53 and squad: sent down (`releaseToPracticeSquad`) or promoted (`sign` of the club's own squad man).
+
+**Consequences.** League clubs promote their own squad men too, and a call-up's familiarity now starts at 0 on joining a squad, so leagues move a little. Four leagues over eight seasons against main: spread of wins after the first season 2.800 against 2.869, talent 72.51 against 72.53, points a game 22.65 against 22.51. No calibration band moves. No save change.
