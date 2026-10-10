@@ -705,12 +705,24 @@ fun RosterScreen(
     hurtNow: Set<Int> = emptySet(),
     /** In a game, each defender's reps in it so far (defenderTally). */
     today: Map<Int, StatLine> = emptyMap(),
+    /** The club on show: the user's, or any other to scout. Out of a game, [onClub] switches it. */
+    club: TeamId = dynasty.userTeamId,
+    onClub: ((TeamId) -> Unit)? = null,
+    /** What the last roster move did, and the way to clear it. */
+    message: String? = null,
+    onDismiss: () -> Unit = {},
 ) {
     val c = NdTheme.colors
-    val team = dynasty.team
-    val offense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
-    val defense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
+    val own = club == dynasty.userTeamId
+    val team = dynasty.league.team(club)
+    // Scheme and Fit are always the user's: another club's man is scouted for what he would be here.
+    val offense = SchemeCatalog.tuned(dynasty.team.offenseScheme, dynasty.league.tuning)
+    val defense = SchemeCatalog.tuned(dynasty.team.defenseScheme, dynasty.league.tuning)
+    val theirOffense = SchemeCatalog.tuned(team.offenseScheme, dynasty.league.tuning)
+    val theirDefense = SchemeCatalog.tuned(team.defenseScheme, dynasty.league.tuning)
     val roster = dynasty.league.roster(team.id)
+    val squad = team.practiceSquad.mapNotNull { dynasty.league.playersById[it] }
+    var choosingClub by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf("All") }
     var sort by remember { mutableStateOf(SortState(3)) }
 
@@ -722,22 +734,42 @@ fun RosterScreen(
             Column {
                 Text(team.name, style = NdTheme.type.display, color = c.chalk)
                 Text(
-                    "Offense ${offense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, offense, true))}",
+                    "Offense ${theirOffense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, theirOffense, true))}",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
                 Text(
-                    "Defense ${defense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, defense, false))}",
+                    "Defense ${theirDefense.name}, fit ${SchemeFitGrade.letter(SchemeFitGrade.side(roster, theirDefense, false))}",
                     style = NdTheme.type.body, color = c.chalkDim,
                 )
                 onBackToGame?.let { SecondaryButton("Back to the game", it, Modifier.padding(top = NdTheme.spacing.s)) }
-                SecondaryButton(
+                // Any club's roster, to scout it; the user's own is the one he can change.
+                onClub?.let { pick ->
+                    SecondaryButton(if (choosingClub) "Keep ${team.abbrev}" else "See another club's roster",
+                        { choosingClub = !choosingClub }, Modifier.padding(top = NdTheme.spacing.s))
+                    if (choosingClub) {
+                        androidx.compose.foundation.layout.FlowRow(
+                            Modifier.padding(top = NdTheme.spacing.s),
+                            horizontalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                            verticalArrangement = Arrangement.spacedBy(NdTheme.spacing.s),
+                        ) {
+                            dynasty.league.teams.sortedBy { it.abbrev }.forEach { t ->
+                                com.example.nflsimtext.ui.components.Chip(
+                                    if (t.id == dynasty.userTeamId) "${t.abbrev} (yours)" else t.abbrev, t.id == club,
+                                ) { pick(t.id); choosingClub = false }
+                            }
+                        }
+                    }
+                    if (!own) SecondaryButton("Back to ${dynasty.team.abbrev}", { pick(dynasty.userTeamId) },
+                        Modifier.padding(top = NdTheme.spacing.s))
+                }
+                if (own) SecondaryButton(
                     "Set the depth chart", onDepthChart,
                     Modifier.padding(top = NdTheme.spacing.s),
                 )
                 // SPEC 9.4: the roster leaves in the shape the game reads back.
                 var exported by remember { mutableStateOf<String?>(null) }
                 val context = LocalContext.current
-                if (onBackToGame == null) SecondaryButton(
+                if (onBackToGame == null && own) SecondaryButton(
                     "Export this roster",
                     {
                         exported = try {
@@ -749,6 +781,14 @@ fun RosterScreen(
                 )
                 exported?.let {
                     Text(it, style = NdTheme.type.caption, color = c.chalkDim)
+                }
+            }
+        }
+        message?.let { note ->
+            item {
+                SituationBlock("Last move", situation = com.example.nflsimtext.ui.components.Situation.THIRD_DOWN) {
+                    Text(note, style = NdTheme.type.body, color = c.chalk)
+                    SecondaryButton("Clear", onDismiss, Modifier.padding(top = NdTheme.spacing.s))
                 }
             }
         }
@@ -777,7 +817,8 @@ fun RosterScreen(
         item {
             Column {
                 Text(
-                    "Ovr is how good he is. Scheme is how good he is in your schemes. " +
+                    (if (own) "" else "Another club's men, as your scouts see them from outside. ") +
+                        "Ovr is how good he is. Scheme is how good he is in your schemes. " +
                         "Fit grades how well he suits them, A to F.",
                     style = NdTheme.type.caption, color = c.chalkDim,
                 )
@@ -798,7 +839,7 @@ fun RosterScreen(
                 ),
                 rows = shown.map { p ->
                     val scheme = if (p.position.isOffense) offense else defense
-                    val lens = lensFor(dynasty, p)
+                    val lens = lensOf(dynasty, p)
                     RowData(
                         listOf(
                             p.position.label,
@@ -821,10 +862,42 @@ fun RosterScreen(
         }
         item {
             Text(
-                if (onBackToGame != null) "Set the depth chart to move a man up or down; the rest waits for the final whistle."
-                else "Tap a player for his card.",
+                when {
+                    onBackToGame != null -> "Set the depth chart to move a man up or down; the rest waits for the final whistle."
+                    own -> "Tap a player for his card, and for what to do with him: release him, or send him to the practice squad."
+                    else -> "Tap a player for his card."
+                },
                 style = NdTheme.type.caption, color = c.chalkDim,
             )
+        }
+        // The club's practice squad, out of a game: promoted or released from his card.
+        if (onBackToGame == null) item {
+            SituationBlock("Practice squad", meta = "${squad.size} of ${com.nflsim.engine.season.PracticeSquads.SIZE}") {
+                if (squad.isEmpty()) {
+                    Text("Nobody on the squad.", style = NdTheme.type.body, color = c.chalkDim)
+                } else {
+                    DataTable(
+                        columns = listOf(
+                            ColumnSpec("Pos", 1.0f), ColumnSpec("Player", 2.2f),
+                            ColumnSpec("Age", 0.6f, numeric = true), ColumnSpec("Ovr", 1.1f, numeric = true, tier = true),
+                            ColumnSpec("Fit", 0.6f, numeric = true),
+                        ),
+                        rows = squad.sortedWith(compareBy({ ROSTER_ORDER.indexOf(it.position) }, { it.lastName })).map { p ->
+                            val scheme = if (p.position.isOffense) offense else defense
+                            RowData(
+                                listOf(p.position.label, p.name, "${p.age(dynasty.year)}",
+                                    lensOf(dynasty, p).view(overall(p, scheme)).text, SchemeFitGrade.letter(schemeFit(p, scheme))),
+                                onClick = { onPlayer(p.id.v) },
+                            )
+                        },
+                    )
+                    Text(
+                        if (own) "Tap a man to promote him to the 53 or release him." else "Squad men can be signed away to your 53 in Free agents.",
+                        style = NdTheme.type.caption, color = c.chalkDim,
+                        modifier = Modifier.padding(top = NdTheme.spacing.xs),
+                    )
+                }
+            }
         }
         // The season's defensive reps, worst first: where to look for a replacement.
         if (shown.any { !it.position.isOffense }) {
@@ -858,9 +931,9 @@ private fun rosterOrder(dynasty: Dynasty, sort: SortState): Comparator<Player> {
     val by: Comparator<Player> = when (sort.column) {
         0, 1 -> compareBy({ ROSTER_ORDER.indexOf(it.position) }, { it.lastName })
         2 -> compareBy { it.age(dynasty.year) }
-        4 -> compareBy { lensFor(dynasty, it).view(overall(it, scheme(it))).point }
+        4 -> compareBy { lensOf(dynasty, it).view(overall(it, scheme(it))).point }
         5 -> compareBy { schemeFit(it, scheme(it)) }
-        else -> compareBy { lensFor(dynasty, it).view(overall(it)).point }
+        else -> compareBy { lensOf(dynasty, it).view(overall(it)).point }
     }
     return if (sort.descending && sort.column !in setOf(0, 1)) by.reversed() else by
 }

@@ -62,6 +62,8 @@ fun PlayerCardScreen(
     readAs: com.nflsim.engine.ratings.ScoutingLens? = null,
     /** The year his age is told in: the offseason's lists are the new season's. */
     year: Int = dynasty.year,
+    /** Opened from the roster: what the club can do with him - release, the squad, the 53. */
+    rosterMoves: Boolean = false,
     onBack: () -> Unit = {},
 ) {
     val c = NdTheme.colors
@@ -376,10 +378,98 @@ fun PlayerCardScreen(
             }
         }
 
+        // SPEC 6.1: what the club can do with its own man, from his card.
+        if (rosterMoves && store != null && scope != null) {
+            val onSquad = player.id in team.practiceSquad
+            val on53 = player.teamId == dynasty.userTeamId
+            if (onSquad || on53) item {
+                RosterMoves(dynasty, player, onSquad, store, scope, onGone = onBack)
+            }
+        }
+
         if (dynasty.editPlayers && onEdit != null) item {
             SecondaryButton("Edit player", { onEdit(player.id.v) })
         }
         item { SecondaryButton(backLabel, onBack) }
+    }
+}
+
+/** A move asked for, waiting on the user's yes: its title, what it does, the button, and the move. */
+private class Pending(val title: String, val says: String, val button: String, val move: suspend () -> Unit, val leaves: Boolean)
+
+/**
+ * What the club can do with its own man (SPEC 6.1). On the 53: release him,
+ * or send him to the practice squad if it has a place for him. On the squad:
+ * promote him to the 53, or release him. A release asks first - it can't be
+ * undone, and it says what it costs.
+ */
+@Composable
+private fun RosterMoves(
+    dynasty: Dynasty,
+    player: Player,
+    onSquad: Boolean,
+    store: DynastyStore,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onGone: () -> Unit,
+) {
+    val c = NdTheme.colors
+    val league = dynasty.league
+    val team = dynasty.team
+    var asking by remember(player.id) { mutableStateOf<Pending?>(null) }
+    SituationBlock("Roster moves", meta = if (onSquad) "Practice squad" else "On the 53") {
+        if (onSquad) {
+            val price = com.nflsim.engine.season.Transactions.price(dynasty.weeksLeft)
+            val full = team.roster.size >= com.nflsim.engine.season.Transactions.ROSTER_LIMIT
+            Text(
+                if (full) "The 53 is full: release somebody to make room before promoting him."
+                else "Promoted, he signs to the 53 for ${money(price)} - a year at the minimum, prorated for the weeks left.",
+                style = NdTheme.type.caption, color = c.chalkDim,
+            )
+            PrimaryButton("Promote him to the 53", {
+                scope.launch { store.signFreeAgent(player.id.v) }
+            }, Modifier.padding(top = NdTheme.spacing.s), enabled = !full && !store.busy)
+            SecondaryButton("Release him from the squad", {
+                asking = Pending("Release ${player.name}?", "He leaves the practice squad and goes to the street; nothing is owed.",
+                    "Release him", { store.releaseFromPracticeSquad(player.id.v) }, leaves = true)
+            }, Modifier.padding(top = NdTheme.spacing.s), enabled = !store.busy)
+        } else {
+            val dead = player.contract?.deadCap(dynasty.year)
+            val cost = when {
+                dead == null || (dead.thisYear == 0 && dead.nextYear == 0) -> "Nothing is owed."
+                dead.nextYear > 0 -> "${money(dead.thisYear)} stays on this year's cap and ${money(dead.nextYear)} on next year's."
+                else -> "${money(dead.thisYear)} stays on this year's cap."
+            }
+            val refusal = com.nflsim.engine.season.Transactions.squadRefusal(league, team.id, player.id)
+            Text("Releasing him: $cost", style = NdTheme.type.caption, color = c.chalkDim)
+            SecondaryButton("Release him", {
+                asking = Pending("Release ${player.name}?", "$cost He goes to the street, and any club can sign him.",
+                    "Release him", { store.releasePlayer(player.id.v) }, leaves = true)
+            }, Modifier.padding(top = NdTheme.spacing.s), enabled = !store.busy)
+            if (refusal == null) {
+                SecondaryButton("Move him to the practice squad", {
+                    asking = Pending("Move ${player.name} to the practice squad?",
+                        "He comes off the 53 and its cap. $cost He trains with the squad, and you can promote him again.",
+                        "Move him", { store.releaseToPracticeSquad(player.id.v) }, leaves = false)
+                }, Modifier.padding(top = NdTheme.spacing.s), enabled = !store.busy)
+            } else {
+                Text("Practice squad: $refusal", style = NdTheme.type.caption, color = c.chalkDim,
+                    modifier = Modifier.padding(top = NdTheme.spacing.s))
+            }
+        }
+    }
+    asking?.let { a ->
+        com.example.nflsimtext.ui.components.ActionDialog(a.title, onDismiss = { asking = null },
+            situation = com.example.nflsimtext.ui.components.Situation.RED_ZONE) {
+            Text(a.says, style = NdTheme.type.body, color = c.chalk)
+            PrimaryButton(a.button, {
+                asking = null
+                scope.launch {
+                    a.move()
+                    if (a.leaves) onGone()
+                }
+            }, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s), enabled = !store.busy)
+            SecondaryButton("Never mind", { asking = null }, Modifier.fillMaxWidth().padding(top = NdTheme.spacing.s))
+        }
     }
 }
 

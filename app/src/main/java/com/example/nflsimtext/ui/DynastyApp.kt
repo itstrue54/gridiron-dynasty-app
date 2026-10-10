@@ -114,6 +114,8 @@ fun DynastyApp(
     var started by rememberSaveable { mutableStateOf(false) }
     val begin = { started = true; tab = Tab.HUB }
     var player by remember { mutableStateOf<Int?>(null) }
+    // The club the roster shows: kept while a card is open, so back returns to it.
+    var rosterClub by remember { mutableStateOf<com.nflsim.engine.model.TeamId?>(null) }
     // The player being edited, and the screen the editor goes back to.
     var editing by remember { mutableStateOf<Int?>(null) }
     var editFrom by remember { mutableStateOf(Tab.EDIT_FIND) }
@@ -168,6 +170,11 @@ fun DynastyApp(
                         dynasty,
                         onDepthChart = { tab = Tab.DEPTH },
                         onPlayer = { player = it; tab = Tab.PLAYER },
+                        // A club from another save's league falls back to the user's.
+                        club = rosterClub?.takeIf { id -> dynasty.league.teamsById.containsKey(id) } ?: dynasty.userTeamId,
+                        onClub = { rosterClub = it },
+                        message = store.message,
+                        onDismiss = { store.dismissMessage() },
                     )
                     Tab.SCHEDULE -> ScheduleScreen(dynasty) { boxGame = it; tab = Tab.BOX }
                     Tab.OFFSEASON -> OffseasonScreen(dynasty)
@@ -176,7 +183,7 @@ fun DynastyApp(
                     Tab.DEPTH -> DepthChartScreen(dynasty, store, scope) { tab = Tab.ROSTER }
                     Tab.PLAN -> GamePlanScreen(dynasty, store, scope) { tab = Tab.HUB }
                     Tab.GALLERY -> DesignGallery { tab = Tab.SETTINGS }
-                    Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope,
+                    Tab.PLAYER -> PlayerCardScreen(dynasty, player, store, scope, rosterMoves = true,
                         onEdit = { editing = it; editFrom = Tab.PLAYER; tab = Tab.EDIT_PLAYER }) { tab = Tab.ROSTER }
                     Tab.EDIT_FIND -> PlayerFinderScreen(dynasty,
                         onEdit = { editing = it; editFrom = Tab.EDIT_FIND; tab = Tab.EDIT_PLAYER }) { tab = Tab.SETTINGS }
