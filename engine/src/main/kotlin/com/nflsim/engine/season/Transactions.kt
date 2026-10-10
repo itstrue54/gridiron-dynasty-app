@@ -201,6 +201,41 @@ object Transactions {
         )
     }
 
+    /**
+     * Why [playerId] can't go from [team]'s 53 to its practice squad, or null
+     * if he can: he is on the 53 and not hurt, and the squad has a place for
+     * him by the CBA's count (PracticeSquads.hasRoom).
+     */
+    fun squadRefusal(league: League, team: TeamId, playerId: PlayerId): String? {
+        val player = league.playersById[playerId] ?: return "There is no such player."
+        if (player.teamId != team || player.status != PlayerStatus.ACTIVE) return "${player.name} is not on the 53."
+        if (player.injuryWeeks > 0) return "${player.name} is hurt; a club doesn't send a hurt man to its squad."
+        val squad = league.team(team).practiceSquad.map { league.player(it) }
+        if (PracticeSquads.hasRoom(squad, player)) return null
+        return when {
+            squad.size >= PracticeSquads.SIZE -> "The practice squad is full at ${PracticeSquads.SIZE}."
+            PracticeSquads.isVeteran(player) && squad.count(PracticeSquads::isVeteran) >= PracticeSquads.VETERANS ->
+                "All ${PracticeSquads.VETERANS} veteran places are taken; ${player.lastName} has ${player.accruedSeasons} accrued seasons."
+            else -> "The squad already carries ${PracticeSquads.PER_POSITION} at ${player.position.label}."
+        }
+    }
+
+    /**
+     * Off the 53 and onto the club's practice squad: released at the dead
+     * money his deal leaves, then signed to the squad. Checked before
+     * anything moves, so a man the squad can't take is never cut for
+     * nothing. No waivers: in this league a released man is free at once,
+     * and the club that cut him signs him first.
+     */
+    fun releaseToPracticeSquad(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year, week: Int = 0): Outcome {
+        squadRefusal(league, team, playerId)?.let { return Outcome.Refused(it) }
+        val released = release(league, team, playerId, year, week) as? Outcome.Done ?: return release(league, team, playerId, year, week)
+        return when (val squad = signToPracticeSquad(released.league, team, playerId, week)) {
+            is Outcome.Done -> Outcome.Done(squad.league, released.note.removeSuffix(".") + ", and joins the practice squad.")
+            is Outcome.Refused -> squad
+        }
+    }
+
     fun release(league: League, team: TeamId, playerId: PlayerId, year: Int = league.year, week: Int = 0): Outcome {
         val player = league.playersById[playerId]
             ?: return Outcome.Refused("There is no such player.")
